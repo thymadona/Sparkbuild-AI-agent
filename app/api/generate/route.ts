@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase'
+
+export const runtime = 'nodejs'
 import { model, SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 
