@@ -9,7 +9,7 @@ A Lovable-style AI code generation app for 200–500 students. User types a prom
 - **Framework**: Next.js 14 (App Router)
 - **Hosting**: Vercel (free tier)
 - **Auth + DB**: Supabase (magic link auth, Postgres)
-- **LLM**: Google Gemini 2.0 Flash via `@google/generative-ai`
+- **LLM**: Gemini 2.5 Flash Preview via OpenRouter (`openai` SDK, OpenAI-compatible)
 - **Code Preview**: `srcdoc` iframe (no sandbox service, no WebContainer)
 - **Styling**: Tailwind CSS
 
@@ -18,7 +18,7 @@ A Lovable-style AI code generation app for 200–500 students. User types a prom
 ```
 /app
   /api
-    /generate      → Gemini streaming API route
+    /generate      → OpenRouter streaming API route
     /projects      → CRUD for saved projects
   /dashboard       → User's saved projects
   /editor/[id]     → Main editor + preview page
@@ -28,7 +28,7 @@ A Lovable-style AI code generation app for 200–500 students. User types a prom
   /Preview         → srcdoc iframe renderer
   /FileTree        → Project file state display
 /lib
-  /gemini.ts       → Gemini client + system prompt
+  /gemini.ts       → OpenRouter client + system prompt
   /supabase.ts     → Supabase client (server + browser)
   /ratelimit.ts    → Per-user daily prompt counter
 /types
@@ -59,7 +59,7 @@ create table prompts (
 );
 ```
 
-## LLM System Prompt (in /lib/gemini.ts)
+## LLM System Prompt (in /lib/gemini.ts — sent as `system` message to OpenRouter)
 
 ```
 You are a code generator for students learning to build web apps.
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
   // 1. Auth check — reject if no session
   // 2. Rate limit check — reject if over 20/day
   // 3. Log prompt to DB
-  // 4. Stream Gemini response back as text/event-stream
+  // 4. Stream OpenRouter response back as text/plain
   // 5. On stream end, update project files in DB
 }
 ```
@@ -118,7 +118,7 @@ type ProjectFiles = Record<string, string>
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only, never expose to client
-GEMINI_API_KEY=
+OPENROUTER_API_KEY=              # server-side only
 ```
 
 ## What NOT to Build (MVP Scope Guard)
@@ -132,7 +132,7 @@ GEMINI_API_KEY=
 
 ## Key Constraints
 
-- Gemini 2.0 Flash only — do not switch models without approval (cost control)
+- Model: `google/gemini-2.5-flash-preview` via OpenRouter — do not switch models without approval (cost control)
 - Do not install WebContainer, Sandpack, or CodeSandbox SDK — srcdoc is intentional
 - All DB writes go through server-side routes using `SUPABASE_SERVICE_ROLE_KEY`
 - Never expose service role key to the browser

@@ -1,7 +1,7 @@
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
-import { model, SYSTEM_PROMPT } from '@/lib/gemini'
+import { openrouter, MODEL, SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 
 export async function POST(req: Request) {
@@ -55,22 +55,30 @@ export async function POST(req: Request) {
     content: prompt,
   })
 
-  // 5. Build Gemini content
-  const contents = currentCode
-    ? `${SYSTEM_PROMPT}\n\nCurrent code:\n${currentCode}\n\nUser request: ${prompt}`
-    : `${SYSTEM_PROMPT}\n\nUser request: ${prompt}`
+  // 5. Build messages
+  const userMessage = currentCode
+    ? `Current code:\n${currentCode}\n\nUser request: ${prompt}`
+    : prompt
 
-  // 6. Stream Gemini response
+  // 6. Stream OpenRouter response
   const encoder = new TextEncoder()
   let fullCode = ''
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const result = await model.generateContentStream(contents)
+        const result = await openrouter.chat.completions.create({
+          model: MODEL,
+          stream: true,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userMessage },
+          ],
+        })
 
-        for await (const chunk of result.stream) {
-          const text = chunk.text()
+        for await (const chunk of result) {
+          const text = chunk.choices[0]?.delta?.content ?? ''
+          if (!text) continue
           fullCode += text
           controller.enqueue(encoder.encode(text))
         }
@@ -86,7 +94,7 @@ export async function POST(req: Request) {
           })
           .eq('id', projectId)
       } catch (err) {
-        console.error('Gemini stream error:', err)
+        console.error('OpenRouter stream error:', err)
         controller.error(err)
       }
     },
