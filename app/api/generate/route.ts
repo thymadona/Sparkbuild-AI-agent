@@ -1,8 +1,9 @@
+import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase'
-
-export const runtime = 'nodejs'
 import { openrouter, MODEL, SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
+
+export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   // 1. Auth check
