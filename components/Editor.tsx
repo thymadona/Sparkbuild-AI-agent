@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/types";
-import { parseMultiFileResponse } from "@/lib/parse-multi-file";
+import { parseMultiFileResponse, parseSummary } from "@/lib/parse-multi-file";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -17,7 +17,8 @@ interface EditorProps {
   files: Record<string, string>;
   onFilesUpdate: (files: Record<string, string>) => void;
   activeFile?: string;
-  initialMessages?: Message[];
+  messages: Message[];
+  onMessagesChange: (msgs: Message[] | ((prev: Message[]) => Message[])) => void;
   selectedCode?: { text: string; startLine: number; endLine: number } | null;
   onClearSelection?: () => void;
 }
@@ -35,22 +36,31 @@ export default function Editor({
   files,
   onFilesUpdate,
   activeFile,
-  initialMessages = [],
+  messages: messagesProp,
+  onMessagesChange,
   selectedCode,
   onClearSelection,
 }: EditorProps) {
   const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    initialMessages.map(toChat),
-  );
+  const messages = messagesProp.map(toChat);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<'ask' | 'build'>('ask');
+  const [buildModeAvailable, setBuildModeAvailable] = useState(false);
+  const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messagesProp]);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => setBuildModeAvailable(d.buildModeEnabled === true))
+      .catch(() => {})
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,12 +73,15 @@ export default function Editor({
     setIsGenerating(true);
     onClearSelection?.();
 
-    const userChatMsg: ChatMessage = {
-      role: "user",
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      project_id: projectId,
+      user_id: '',
+      role: 'user',
       content: userMessage,
-      timestamp: new Date(),
+      created_at: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userChatMsg]);
+    onMessagesChange((prev) => [...prev, userMsg]);
 
     try {
       const res = await fetch("/api/generate", {
@@ -80,6 +93,7 @@ export default function Editor({
           files: Object.keys(files).length > 0 ? files : undefined,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
           selectedCode: contextCode?.text,
+          mode,
         }),
       });
 
@@ -119,12 +133,19 @@ export default function Editor({
       }
 
       const isCode = accumulated.trimStart().startsWith("--- FILE:");
-      const assistantContent = isCode ? "Code updated." : accumulated;
+      const assistantContent = isCode
+        ? parseSummary(accumulated) ?? "I've built that for you! Check the preview."
+        : accumulated;
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: assistantContent, timestamp: new Date() },
-      ]);
+      const assistantMsg: Message = {
+        id: crypto.randomUUID(),
+        project_id: projectId,
+        user_id: '',
+        role: 'assistant',
+        content: assistantContent,
+        created_at: new Date().toISOString(),
+      };
+      onMessagesChange((prev) => [...prev, assistantMsg]);
     } catch {
       setError("Network error. Please check your connection.");
     } finally {
@@ -141,6 +162,57 @@ export default function Editor({
 
   return (
     <div className="flex h-full flex-col">
+      {/* Mode dropdown */}
+      {buildModeAvailable && (
+        <div className="shrink-0 px-3 pt-3 pb-2 border-b border-gray-800">
+          <div className="relative inline-block">
+            <button
+              onClick={() => setModeDropdownOpen((o) => !o)}
+              className="flex items-center gap-1.5 rounded-md bg-gray-800 border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:border-gray-600 transition-colors"
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${mode === 'build' ? 'bg-indigo-400' : 'bg-green-400'}`} />
+              {mode === 'ask' ? 'Ask' : 'Build'}
+              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {modeDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setModeDropdownOpen(false)} />
+                <div className="absolute left-0 top-full mt-1 z-20 w-44 rounded-md border border-gray-700 bg-gray-900 shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => { setMode('ask'); setModeDropdownOpen(false); }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
+                      mode === 'ask' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0" />
+                    <div className="text-left">
+                      <div className="font-medium">Ask</div>
+                      <div className="text-gray-500">Hints &amp; guidance only</div>
+                    </div>
+                    {mode === 'ask' && <svg className="ml-auto h-3 w-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                  </button>
+                  <button
+                    onClick={() => { setMode('build'); setModeDropdownOpen(false); }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
+                      mode === 'build' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0" />
+                    <div className="text-left">
+                      <div className="font-medium">Build</div>
+                      <div className="text-gray-500">Generate code for me</div>
+                    </div>
+                    {mode === 'build' && <svg className="ml-auto h-3 w-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Chat history */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
@@ -163,32 +235,25 @@ export default function Editor({
             </div>
 
             <h2 className="text-base font-semibold text-white mb-1">
-              What do you want to build?
+              {mode === 'build' ? 'What do you want to build?' : 'Need a hint?'}
             </h2>
             <p className="text-xs text-gray-500 mb-5 leading-relaxed max-w-[200px]">
-              Describe your idea and the AI will generate HTML, CSS, and JS for
-              you instantly.
+              {mode === 'build'
+                ? 'Describe your idea and the AI will generate HTML, CSS, and JS for you instantly.'
+                : 'Ask your tutor for a nudge in the right direction.'}
             </p>
 
             {/* How it works */}
             <div className="w-full space-y-2 mb-5">
-              {[
-                {
-                  icon: "✦",
-                  label: "Describe",
-                  detail: "Type what you want to build",
-                },
-                {
-                  icon: "⟳",
-                  label: "Generate",
-                  detail: "AI writes all three files",
-                },
-                {
-                  icon: "◈",
-                  label: "Edit & refine",
-                  detail: "Iterate with follow-up prompts",
-                },
-              ].map(({ icon, label, detail }) => (
+              {(mode === 'build' ? [
+                { icon: "✦", label: "Describe", detail: "Type what you want to build" },
+                { icon: "⟳", label: "Generate", detail: "AI writes all three files" },
+                { icon: "◈", label: "Edit & refine", detail: "Iterate with follow-up prompts" },
+              ] : [
+                { icon: "✦", label: "Share your code", detail: "Paste what you're working on" },
+                { icon: "?", label: "Ask a question", detail: "What's confusing or stuck?" },
+                { icon: "◈", label: "Learn step by step", detail: "Your tutor guides you forward" },
+              ]).map(({ icon, label, detail }) => (
                 <div
                   key={label}
                   className="flex items-center gap-2.5 rounded-md bg-gray-800/50 px-3 py-2 text-left"
@@ -211,11 +276,15 @@ export default function Editor({
               Try one of these
             </p>
             <div className="flex flex-col gap-1.5 w-full">
-              {[
+              {(mode === 'build' ? [
                 "Build a to-do list app",
                 "Make a countdown timer",
                 "Create a personal portfolio page",
-              ].map((suggestion) => (
+              ] : [
+                "Why isn't my if statement working?",
+                "What does a for loop do?",
+                "How do I change the colour of text in CSS?",
+              ]).map((suggestion) => (
                 <button
                   key={suggestion}
                   onClick={() => setPrompt(suggestion)}
@@ -342,7 +411,7 @@ export default function Editor({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask for a hint or help..."
+          placeholder={mode === 'build' ? 'Describe what you want to build...' : 'Ask for a hint or help...'}
           rows={1}
           disabled={isGenerating}
           className="flex-1 resize-none rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"

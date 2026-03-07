@@ -30,7 +30,8 @@ jest.mock('@/lib/gemini', () => ({
     },
   },
   MODEL: 'google/gemini-2.5-flash-preview',
-  SYSTEM_PROMPT: 'You are a code generator.',
+  ASK_SYSTEM_PROMPT: 'You are a coding tutor.',
+  BUILD_SYSTEM_PROMPT: 'You are a code generator.',
 }))
 
 jest.mock('next/headers', () => ({

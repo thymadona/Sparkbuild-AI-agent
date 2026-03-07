@@ -34,6 +34,7 @@ export default function EditorLayout({ project, initialMessages }: Props) {
   const [files, setFiles] = useState<Record<string, string>>(project.files)
   const [openTabs, setOpenTabs] = useState<string[]>(Object.keys(project.files))
   const [activeFile, setActiveFile] = useState<string>('index.html')
+  const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [title, setTitle] = useState(project.title)
   const [savingTitle, setSavingTitle] = useState(false)
   const [rightTab, setRightTab] = useState<RightTab>('preview')
@@ -66,6 +67,13 @@ export default function EditorLayout({ project, initialMessages }: Props) {
       consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [consoleLogs, rightTab])
+
+  useEffect(() => {
+    fetch(`/api/projects/${project.id}/messages`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.messages)) setMessages(d.messages) })
+      .catch(() => {})
+  }, [project.id])
 
   const combinedHtml = buildCombinedHtml(files)
 
@@ -242,15 +250,16 @@ export default function EditorLayout({ project, initialMessages }: Props) {
               &times;
             </button>
           </div>
-          <div className="flex-1 overflow-hidden">
-            {activity === 'explorer' ? (
+          <div className="flex-1 overflow-hidden relative">
+            <div className={activity === 'explorer' ? 'h-full' : 'hidden'}>
               <FileTree
                 files={files}
                 activeFile={activeFile}
                 onFileClick={handleFileClick}
                 onAddFile={handleAddFile}
               />
-            ) : (
+            </div>
+            <div className={activity === 'chat' ? 'h-full' : 'hidden'}>
               <Editor
                 projectId={project.id}
                 files={files}
@@ -260,11 +269,12 @@ export default function EditorLayout({ project, initialMessages }: Props) {
                   setConsoleLogs([])
                 }}
                 activeFile={activeFile}
-                initialMessages={initialMessages}
+                messages={messages}
+                onMessagesChange={setMessages}
                 selectedCode={selectedCode}
                 onClearSelection={() => setSelectedCode(null)}
               />
-            )}
+            </div>
           </div>
         </div>
 
