@@ -40,7 +40,6 @@ export default function Editor({
   onClearSelection,
 }: EditorProps) {
   const [prompt, setPrompt] = useState("");
-  const [mode, setMode] = useState<"ask" | "build">("ask");
   const [messages, setMessages] = useState<ChatMessage[]>(
     initialMessages.map(toChat),
   );
@@ -81,7 +80,6 @@ export default function Editor({
           files: Object.keys(files).length > 0 ? files : undefined,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
           selectedCode: contextCode?.text,
-          mode,
         }),
       });
 
@@ -344,11 +342,7 @@ export default function Editor({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            mode === "ask"
-              ? "Ask a question..."
-              : "Describe what to build..."
-          }
+          placeholder="Ask for a hint or help..."
           rows={1}
           disabled={isGenerating}
           className="flex-1 resize-none rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
@@ -369,14 +363,6 @@ export default function Editor({
             </svg>
           )}
         </button>
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as "ask" | "build")}
-          className="self-end rounded-md border border-gray-700 bg-gray-900 px-2 py-2 text-sm text-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-        >
-          <option value="ask">Ask</option>
-          <option value="build">Build</option>
-        </select>
       </form>
     </div>
   );
