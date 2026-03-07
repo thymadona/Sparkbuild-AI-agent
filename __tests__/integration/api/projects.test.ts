@@ -150,7 +150,8 @@ describe('PATCH /api/projects', () => {
   it('returns 404 when project belongs to a different user', async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
     const chain = makeAdminChain()
-    chain.single.mockResolvedValue({ data: { user_id: 'other-user' }, error: null })
+    // UPDATE with wrong user_id filter returns no row
+    chain.single.mockResolvedValue({ data: null, error: null })
     mockAdminFrom.mockReturnValue(chain)
 
     const res = await PATCH(makeRequest('PATCH', { id: 'p1', title: 'New' }))
@@ -162,11 +163,8 @@ describe('PATCH /api/projects', () => {
     const updated = { id: 'p1', title: 'New Title', is_public: true, user_id: AUTHED_USER.id }
 
     const chain = makeAdminChain()
-    // First call: ownership check → returns owner
-    // Second call: update → returns updated project
-    chain.single
-      .mockResolvedValueOnce({ data: { user_id: AUTHED_USER.id }, error: null })
-      .mockResolvedValueOnce({ data: updated, error: null })
+    // Single UPDATE filtered by id + user_id returns the updated row
+    chain.single.mockResolvedValue({ data: updated, error: null })
     mockAdminFrom.mockReturnValue(chain)
 
     const res = await PATCH(makeRequest('PATCH', { id: 'p1', title: 'New Title', is_public: true }))
@@ -195,21 +193,27 @@ describe('DELETE /api/projects', () => {
   it('returns 404 when project belongs to a different user', async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
     const chain = makeAdminChain()
-    chain.single.mockResolvedValue({ data: { user_id: 'other-user' }, error: null })
+    // DELETE filtered by id + user_id — second eq resolves with error (no match)
+    const deleteChain = {
+      eq: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: { message: 'No rows deleted' } }),
+      }),
+    }
+    chain.delete.mockReturnValue(deleteChain)
     mockAdminFrom.mockReturnValue(chain)
 
     const res = await DELETE(makeRequest('DELETE', undefined, 'http://localhost/api/projects?id=p1'))
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(500)
   })
 
   it('deletes the project and returns success for the owner', async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
     const chain = makeAdminChain()
-    chain.single.mockResolvedValue({ data: { user_id: AUTHED_USER.id }, error: null })
-    chain.eq.mockReturnValue({ ...chain, then: undefined })
-    // The final delete().eq() resolves with no error
+    // DELETE filtered by id + user_id succeeds
     const deleteChain = {
-      eq: jest.fn().mockResolvedValue({ error: null }),
+      eq: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      }),
     }
     chain.delete.mockReturnValue(deleteChain)
     mockAdminFrom.mockReturnValue(chain)

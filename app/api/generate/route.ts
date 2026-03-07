@@ -21,35 +21,38 @@ export async function POST(req: Request) {
 
   if (!allowed) {
     return NextResponse.json(
-      { error: `Daily limit reached. Resets in ${hoursUntilReset} hour${hoursUntilReset === 1 ? '' : 's'}.` },
+      { error: `Hourly limit reached. Resets in ${hoursUntilReset} hour${hoursUntilReset === 1 ? '' : 's'}.` },
       { status: 429 }
     )
   }
 
   // 3. Parse request body
   const body = await req.json()
-  const { prompt, projectId, currentCode } = body as {
+  const { prompt, projectId, currentCode, history, selectedCode } = body as {
     prompt: string
     projectId: string
     currentCode?: string
+    history?: { role: 'user' | 'assistant'; content: string }[]
+    selectedCode?: string
   }
 
   if (!prompt || !projectId) {
     return NextResponse.json({ error: 'prompt and projectId are required' }, { status: 400 })
   }
 
-  // Verify project ownership
+  // Verify project ownership — single query, ownership enforced by user_id filter
   const { data: project } = await supabaseAdmin
     .from('projects')
     .select('user_id')
     .eq('id', projectId)
+    .eq('user_id', user.id)
     .single()
 
-  if (!project || project.user_id !== user.id) {
+  if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
-  // 4. Log prompt to DB
+  // 4. Log prompt to DB (for rate limiting)
   await supabaseAdmin.from('prompts').insert({
     user_id: user.id,
     project_id: projectId,
@@ -57,13 +60,25 @@ export async function POST(req: Request) {
   })
 
   // 5. Build messages
-  const userMessage = currentCode
-    ? `Current code:\n${currentCode}\n\nUser request: ${prompt}`
+  const systemContent = currentCode
+    ? `${SYSTEM_PROMPT}\n\n--- CURRENT FILE: index.html ---\n${currentCode}\n--- END FILE ---`
+    : SYSTEM_PROMPT
+
+  const userContent = selectedCode
+    ? `Selected code:\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${prompt}`
     : prompt
+
+  const recentHistory = (history ?? []).slice(-10)
+
+  const llmMessages = [
+    { role: 'system' as const, content: systemContent },
+    ...recentHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    { role: 'user' as const, content: userContent },
+  ]
 
   // 6. Stream OpenRouter response
   const encoder = new TextEncoder()
-  let fullCode = ''
+  let accumulated = ''
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -71,29 +86,47 @@ export async function POST(req: Request) {
         const result = await openrouter.chat.completions.create({
           model: MODEL,
           stream: true,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMessage },
-          ],
+          messages: llmMessages,
         })
 
         for await (const chunk of result) {
           const text = chunk.choices[0]?.delta?.content ?? ''
           if (!text) continue
-          fullCode += text
+          accumulated += text
           controller.enqueue(encoder.encode(text))
         }
 
         controller.close()
 
-        // 7. Save final HTML to DB after stream completes
-        await supabaseAdmin
-          .from('projects')
-          .update({
-            files: { 'index.html': fullCode },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', projectId)
+        // 7. Determine response type and save accordingly
+        const isCode = accumulated.trimStart().toLowerCase().startsWith('<!doctype html>')
+
+        if (isCode) {
+          await supabaseAdmin
+            .from('projects')
+            .update({
+              files: { 'index.html': accumulated },
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', projectId)
+        }
+
+        // 8. Persist chat messages
+        const { error: msgError } = await supabaseAdmin.from('messages').insert([
+          {
+            project_id: projectId,
+            user_id: user.id,
+            role: 'user',
+            content: prompt,
+          },
+          {
+            project_id: projectId,
+            user_id: user.id,
+            role: 'assistant',
+            content: isCode ? 'Code updated.' : accumulated,
+          },
+        ])
+        if (msgError) console.error('messages insert error:', msgError)
       } catch (err) {
         console.error('OpenRouter stream error:', err)
         controller.error(err)

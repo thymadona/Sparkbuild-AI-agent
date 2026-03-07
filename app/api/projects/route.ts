@@ -73,36 +73,28 @@ export async function PATCH(req: Request) {
   }
 
   const body = await req.json()
-  const { id, title, is_public } = body
+  const { id, title, is_public, files } = body
 
   if (!id) {
     return NextResponse.json({ error: 'Project id is required' }, { status: 400 })
   }
 
-  // Verify ownership before update
-  const { data: existing } = await supabaseAdmin
-    .from('projects')
-    .select('user_id')
-    .eq('id', id)
-    .single()
-
-  if (!existing || existing.user_id !== user.id) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (title !== undefined) updates.title = title
   if (is_public !== undefined) updates.is_public = is_public
+  if (files !== undefined) updates.files = files
 
+  // Ownership enforced by filtering on both id and user_id in the UPDATE itself
   const { data: project, error } = await supabaseAdmin
     .from('projects')
     .update(updates)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error || !project) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
   return NextResponse.json(project)
@@ -126,18 +118,8 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Project id is required' }, { status: 400 })
   }
 
-  // Verify ownership before delete
-  const { data: existing } = await supabaseAdmin
-    .from('projects')
-    .select('user_id')
-    .eq('id', id)
-    .single()
-
-  if (!existing || existing.user_id !== user.id) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  const { error } = await supabaseAdmin.from('projects').delete().eq('id', id)
+  // Ownership enforced by filtering on both id and user_id in the DELETE itself
+  const { error } = await supabaseAdmin.from('projects').delete().eq('id', id).eq('user_id', user.id)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

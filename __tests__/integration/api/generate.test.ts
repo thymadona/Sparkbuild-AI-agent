@@ -99,14 +99,14 @@ describe('POST /api/generate', () => {
 
   // ---- Rate limit checks ----------------------------------------------------
 
-  it('returns 429 when the user has exceeded the daily limit', async () => {
+  it('returns 429 when the user has exceeded the hourly limit', async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
-    mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 10 })
 
     const res = await POST(makeRequest({ prompt: 'build something', projectId: 'p1' }))
     expect(res.status).toBe(429)
     const json = await res.json()
-    expect(json.error).toMatch(/daily limit/i)
+    expect(json.error).toMatch(/hourly limit/i)
     expect(json.error).toMatch(/3 hour/)
   })
 
@@ -132,7 +132,8 @@ describe('POST /api/generate', () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
 
-    const chain = makeAdminChain({ data: { user_id: 'other-user' }, error: null })
+    // SELECT filtered by id + user_id returns no row
+    const chain = makeAdminChain({ data: null, error: null })
     mockAdminFrom.mockReturnValue(chain)
 
     const res = await POST(makeRequest({ prompt: 'build a todo app', projectId: 'p1' }))
@@ -222,9 +223,11 @@ describe('POST /api/generate', () => {
     await POST(makeRequest({ prompt: 'add a button', projectId: 'proj-1', currentCode: existingCode }))
 
     const callArgs = mockCreate.mock.calls[0][0]
+    const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
     const userMessage = callArgs.messages.find((m: { role: string }) => m.role === 'user')
-    expect(userMessage.content).toContain('Current code:')
-    expect(userMessage.content).toContain(existingCode)
+    // currentCode is injected into the system prompt
+    expect(systemMessage.content).toContain('CURRENT FILE: index.html')
+    expect(systemMessage.content).toContain(existingCode)
     expect(userMessage.content).toContain('add a button')
   })
 })
