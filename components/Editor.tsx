@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import type { Message } from '@/types'
+import { parseMultiFileResponse } from '@/lib/parse-multi-file'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -11,8 +12,9 @@ interface ChatMessage {
 
 interface EditorProps {
   projectId: string
-  currentCode: string
-  onCodeUpdate: (code: string) => void
+  files: Record<string, string>
+  onFilesUpdate: (files: Record<string, string>) => void
+  activeFile?: string
   initialMessages?: Message[]
   selectedCode?: { text: string; startLine: number; endLine: number } | null
   onClearSelection?: () => void
@@ -22,7 +24,7 @@ function toChat(m: Message): ChatMessage {
   return { role: m.role, content: m.content, timestamp: new Date(m.created_at) }
 }
 
-export default function Editor({ projectId, currentCode, onCodeUpdate, initialMessages = [], selectedCode, onClearSelection }: EditorProps) {
+export default function Editor({ projectId, files, onFilesUpdate, activeFile, initialMessages = [], selectedCode, onClearSelection }: EditorProps) {
   const [prompt, setPrompt] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages.map(toChat))
   const [isGenerating, setIsGenerating] = useState(false)
@@ -55,7 +57,7 @@ export default function Editor({ projectId, currentCode, onCodeUpdate, initialMe
         body: JSON.stringify({
           prompt: userMessage,
           projectId,
-          currentCode: currentCode || undefined,
+          files: Object.keys(files).length > 0 ? files : undefined,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
           selectedCode: contextCode?.text,
         }),
@@ -88,12 +90,15 @@ export default function Editor({ projectId, currentCode, onCodeUpdate, initialMe
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
         // Live-update preview only for code responses
-        if (accumulated.trimStart().toLowerCase().startsWith('<!doctype html>')) {
-          onCodeUpdate(accumulated)
+        if (accumulated.trimStart().startsWith('--- FILE:')) {
+          const parsed = parseMultiFileResponse(accumulated)
+          if (parsed) {
+            onFilesUpdate(parsed)
+          }
         }
       }
 
-      const isCode = accumulated.trimStart().toLowerCase().startsWith('<!doctype html>')
+      const isCode = accumulated.trimStart().startsWith('--- FILE:')
       const assistantContent = isCode ? 'Code updated.' : accumulated
 
       setMessages((prev) => [
@@ -119,9 +124,53 @@ export default function Editor({ projectId, currentCode, onCodeUpdate, initialMe
       {/* Chat history */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 text-sm mt-8">
-            <p>Describe what you want to build.</p>
-            <p className="mt-1">e.g. &ldquo;Build a colorful to-do list app&rdquo;</p>
+          <div className="flex flex-col items-center justify-center h-full min-h-[320px] px-4 text-center select-none">
+            {/* Icon */}
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/20 ring-1 ring-indigo-500/30">
+              <svg className="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+            </div>
+
+            <h2 className="text-base font-semibold text-white mb-1">What do you want to build?</h2>
+            <p className="text-xs text-gray-500 mb-5 leading-relaxed max-w-[200px]">
+              Describe your idea and the AI will generate HTML, CSS, and JS for you instantly.
+            </p>
+
+            {/* How it works */}
+            <div className="w-full space-y-2 mb-5">
+              {[
+                { icon: '✦', label: 'Describe', detail: 'Type what you want to build' },
+                { icon: '⟳', label: 'Generate', detail: 'AI writes all three files' },
+                { icon: '◈', label: 'Edit & refine', detail: 'Iterate with follow-up prompts' },
+              ].map(({ icon, label, detail }) => (
+                <div key={label} className="flex items-center gap-2.5 rounded-md bg-gray-800/50 px-3 py-2 text-left">
+                  <span className="text-indigo-400 text-xs w-4 shrink-0">{icon}</span>
+                  <div>
+                    <span className="text-xs font-medium text-gray-300">{label}</span>
+                    <span className="text-xs text-gray-500"> — {detail}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Prompt starters */}
+            <p className="text-xs text-gray-600 mb-2 uppercase tracking-wider">Try one of these</p>
+            <div className="flex flex-col gap-1.5 w-full">
+              {[
+                'Build a to-do list app',
+                'Make a countdown timer',
+                'Create a personal portfolio page',
+              ].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => setPrompt(suggestion)}
+                  className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-400 hover:border-indigo-500 hover:text-indigo-300 transition-colors text-left"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((msg, i) => (
@@ -165,7 +214,7 @@ export default function Editor({ projectId, currentCode, onCodeUpdate, initialMe
         <div className="mx-3 mb-2 rounded-md border border-indigo-800 bg-gray-900">
           <div className="flex items-center justify-between px-2 py-1 border-b border-indigo-800/60">
             <span className="text-xs text-indigo-400 font-mono">
-              index.html:{selectedCode.startLine === selectedCode.endLine
+              {activeFile ?? 'index.html'}:{selectedCode.startLine === selectedCode.endLine
                 ? `${selectedCode.startLine}`
                 : `${selectedCode.startLine}–${selectedCode.endLine}`}
             </span>
@@ -192,8 +241,8 @@ export default function Editor({ projectId, currentCode, onCodeUpdate, initialMe
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask a question or describe what to build... (Enter to send)"
-          rows={2}
+          placeholder="What do you want to build? (Enter to send)"
+          rows={1}
           disabled={isGenerating}
           className="flex-1 resize-none rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
         />

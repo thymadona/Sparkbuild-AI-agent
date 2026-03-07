@@ -5,7 +5,31 @@ interface PreviewProps {
   isDragging?: boolean
 }
 
+const CONSOLE_INTERCEPTOR = `<script>
+;(function(){
+  var _send = function(level, args) {
+    try {
+      window.parent.postMessage({
+        type: '__console__',
+        level: level,
+        args: Array.prototype.slice.call(args).map(function(a) {
+          try { return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a) } catch(e) { return String(a) }
+        })
+      }, '*')
+    } catch(e){}
+  }
+  ;['log','warn','error','info','debug'].forEach(function(l){
+    var orig = console[l].bind(console)
+    console[l] = function() { orig.apply(console, arguments); _send(l, arguments) }
+  })
+  window.addEventListener('error', function(e){
+    _send('error', [e.message + (e.filename ? ' (' + e.filename + ':' + e.lineno + ')' : '')])
+  })
+})()
+</script>`
+
 export default function Preview({ code, isDragging }: PreviewProps) {
+  const injected = code ? code.replace(/<head>/i, '<head>' + CONSOLE_INTERCEPTOR) : code
   if (!code) {
     return (
       <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -29,7 +53,7 @@ export default function Preview({ code, isDragging }: PreviewProps) {
 
   return (
     <iframe
-      srcDoc={code}
+      srcDoc={injected}
       sandbox="allow-scripts allow-forms"
       className={`h-full w-full border-0 bg-white ${isDragging ? 'pointer-events-none' : ''}`}
       title="Live preview"

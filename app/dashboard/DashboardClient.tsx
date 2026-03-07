@@ -13,12 +13,13 @@ interface Props {
 export default function DashboardClient({ initialProjects, userEmail }: Props) {
   const [projects, setProjects] = useState(initialProjects)
   const [creating, setCreating] = useState(false)
+  const [duplicating, setDuplicating] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createBrowserSupabaseClient()
 
   async function handleNewProject() {
     setCreating(true)
-    const res = await fetch('/api/projects', { method: 'POST', body: JSON.stringify({ title: 'Untitled' }), headers: { 'Content-Type': 'application/json' } })
+    const res = await fetch('/api/projects', { method: 'POST', body: JSON.stringify({}), headers: { 'Content-Type': 'application/json' } })
     const project = await res.json()
     setCreating(false)
     if (project.id) {
@@ -40,6 +41,18 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
     })
     const updated = await res.json()
     setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+  }
+
+  async function handleDuplicate(project: Project) {
+    setDuplicating(project.id)
+    const res = await fetch('/api/projects/duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: project.id }),
+    })
+    const copy = await res.json()
+    setDuplicating(null)
+    if (copy.id) router.push(`/editor/${copy.id}`)
   }
 
   async function handleSignOut() {
@@ -129,6 +142,13 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
                       Copy link
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDuplicate(project)}
+                    disabled={duplicating === project.id}
+                    className="rounded bg-gray-800 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                  >
+                    {duplicating === project.id ? '...' : 'Duplicate'}
+                  </button>
                   <button
                     onClick={() => handleDelete(project.id)}
                     className="rounded bg-gray-800 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950 transition-colors"

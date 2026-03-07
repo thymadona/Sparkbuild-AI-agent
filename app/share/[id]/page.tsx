@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import type { Project } from '@/types'
 import Preview from '@/components/Preview'
+import ForkButton from './ForkButton'
+import { buildCombinedHtml } from '@/lib/combine'
 
 interface Props {
   params: { id: string }
@@ -20,7 +22,7 @@ export default async function SharePage({ params }: Props) {
   }
 
   const typedProject = project as Project
-  const code = typedProject.files['index.html'] ?? ''
+  const code = buildCombinedHtml(typedProject.files)
 
   return (
     <div className="flex h-screen flex-col bg-gray-950">
@@ -31,12 +33,15 @@ export default async function SharePage({ params }: Props) {
             Public
           </span>
         </div>
-        <a
-          href="/"
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
-        >
-          Build your own →
-        </a>
+        <div className="flex items-center gap-2">
+          <ForkButton projectId={typedProject.id} />
+          <a
+            href="/"
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
+          >
+            Build your own →
+          </a>
+        </div>
       </header>
       <div className="flex-1 overflow-hidden">
         <Preview code={code} />

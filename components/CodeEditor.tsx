@@ -3,16 +3,19 @@
 import { useState, useEffect } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { html } from '@codemirror/lang-html'
+import { css } from '@codemirror/lang-css'
+import { javascript } from '@codemirror/lang-javascript'
 import { oneDark } from '@codemirror/theme-one-dark'
 import type { ViewUpdate } from '@codemirror/view'
 
 interface CodeEditorProps {
   code: string
   onSave: (code: string) => void
+  language?: 'html' | 'css' | 'js'
   onSelectionChange?: (selection: { text: string; startLine: number; endLine: number } | null) => void
 }
 
-export default function CodeEditor({ code, onSave, onSelectionChange }: CodeEditorProps) {
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
 
   useEffect(() => {
@@ -36,6 +39,8 @@ export default function CodeEditor({ code, onSave, onSelectionChange }: CodeEdit
     onSelectionChange({ text, startLine, endLine })
   }
 
+  const extensions = language === 'css' ? [css()] : language === 'js' ? [javascript()] : [html()]
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-end border-b border-gray-800 bg-gray-900 px-3 py-1.5">
@@ -52,7 +57,7 @@ export default function CodeEditor({ code, onSave, onSelectionChange }: CodeEdit
           value={draft}
           height="100%"
           theme={oneDark}
-          extensions={[html()]}
+          extensions={extensions}
           onChange={setDraft}
           onUpdate={handleUpdate}
           style={{ height: '100%', fontSize: '13px' }}

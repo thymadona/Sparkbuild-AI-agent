@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { openrouter, MODEL, SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
+import { parseMultiFileResponse } from '@/lib/parse-multi-file'
 
 export const runtime = 'nodejs'
 
@@ -28,10 +29,10 @@ export async function POST(req: Request) {
 
   // 3. Parse request body
   const body = await req.json()
-  const { prompt, projectId, currentCode, history, selectedCode } = body as {
+  const { prompt, projectId, files, history, selectedCode } = body as {
     prompt: string
     projectId: string
-    currentCode?: string
+    files?: Record<string, string>
     history?: { role: 'user' | 'assistant'; content: string }[]
     selectedCode?: string
   }
@@ -60,8 +61,15 @@ export async function POST(req: Request) {
   })
 
   // 5. Build messages
-  const systemContent = currentCode
-    ? `${SYSTEM_PROMPT}\n\n--- CURRENT FILE: index.html ---\n${currentCode}\n--- END FILE ---`
+  let filesContext = ''
+  if (files && Object.keys(files).length > 0) {
+    filesContext = Object.entries(files)
+      .map(([name, content]) => `--- FILE: ${name} ---\n${content}`)
+      .join('\n\n')
+  }
+
+  const systemContent = filesContext
+    ? `${SYSTEM_PROMPT}\n\nCurrent project files:\n${filesContext}`
     : SYSTEM_PROMPT
 
   const userContent = selectedCode
@@ -99,16 +107,19 @@ export async function POST(req: Request) {
         controller.close()
 
         // 7. Determine response type and save accordingly
-        const isCode = accumulated.trimStart().toLowerCase().startsWith('<!doctype html>')
+        const isCode = accumulated.trimStart().startsWith('--- FILE:')
 
         if (isCode) {
-          await supabaseAdmin
-            .from('projects')
-            .update({
-              files: { 'index.html': accumulated },
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', projectId)
+          const parsedFiles = parseMultiFileResponse(accumulated)
+          if (parsedFiles) {
+            await supabaseAdmin
+              .from('projects')
+              .update({
+                files: parsedFiles,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', projectId)
+          }
         }
 
         // 8. Persist chat messages

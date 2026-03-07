@@ -1,36 +1,70 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Editor from '@/components/Editor'
 import Preview from '@/components/Preview'
 import FileTree from '@/components/FileTree'
 import CodeEditor from '@/components/CodeEditor'
+import { buildCombinedHtml } from '@/lib/combine'
 import type { Project, Message } from '@/types'
+
+interface ConsoleEntry {
+  level: 'log' | 'warn' | 'error' | 'info' | 'debug'
+  args: string[]
+  timestamp: Date
+}
 
 interface Props {
   project: Project
   initialMessages: Message[]
 }
 
-type RightTab = 'code' | 'preview'
+type RightTab = 'code' | 'preview' | 'console'
 type Activity = 'explorer' | 'chat'
 
+function getLanguage(filename: string): 'html' | 'css' | 'js' {
+  if (filename.endsWith('.css')) return 'css'
+  if (filename.endsWith('.js')) return 'js'
+  return 'html'
+}
+
 export default function EditorLayout({ project, initialMessages }: Props) {
-  const [code, setCode] = useState<string>(project.files['index.html'] ?? '')
+  const [files, setFiles] = useState<Record<string, string>>(project.files)
+  const [activeFile, setActiveFile] = useState<string>('index.html')
   const [title, setTitle] = useState(project.title)
   const [savingTitle, setSavingTitle] = useState(false)
   const [rightTab, setRightTab] = useState<RightTab>('preview')
   const [activity, setActivity] = useState<Activity>('chat')
   const [sideOpen, setSideOpen] = useState(true)
-  const [sideWidth, setSideWidth] = useState(240)
+  const [sideWidth, setSideWidth] = useState(380)
   const [previewBlocked, setPreviewBlocked] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{ text: string; startLine: number; endLine: number } | null>(null)
-  const sideWidthRef = useRef(240)
+  const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([])
+  const consoleEndRef = useRef<HTMLDivElement>(null)
+  const sideWidthRef = useRef(380)
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
   const isDraggingRef = useRef(false)
   const router = useRouter()
+
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type !== '__console__') return
+      const entry: ConsoleEntry = { level: e.data.level, args: e.data.args, timestamp: new Date() }
+      setConsoleLogs((prev) => [...prev, entry])
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
+  useEffect(() => {
+    if (rightTab === 'console') {
+      consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [consoleLogs, rightTab])
+
+  const combinedHtml = buildCombinedHtml(files)
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -71,19 +105,31 @@ export default function EditorLayout({ project, initialMessages }: Props) {
     setSavingTitle(false)
   }
 
-  async function handleCodeSave(newCode: string) {
-    setCode(newCode)
+  async function handleCodeSave(newContent: string) {
+    const updatedFiles = { ...files, [activeFile]: newContent }
+    setFiles(updatedFiles)
     await fetch('/api/projects', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: project.id, files: { 'index.html': newCode } }),
+      body: JSON.stringify({ id: project.id, files: updatedFiles }),
     })
   }
 
   function handleFileClick(filename: string) {
-    if (filename === 'index.html') {
-      setRightTab('code')
-    }
+    setActiveFile(filename)
+    setRightTab('code')
+  }
+
+  async function handleAddFile(filename: string) {
+    const updatedFiles = { ...files, [filename]: '' }
+    setFiles(updatedFiles)
+    setActiveFile(filename)
+    setRightTab('code')
+    await fetch('/api/projects', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: project.id, files: updatedFiles }),
+    })
   }
 
   function handleActivity(clicked: Activity) {
@@ -95,7 +141,7 @@ export default function EditorLayout({ project, initialMessages }: Props) {
     }
   }
 
-  const currentFiles = code ? { 'index.html': code } : project.files
+  const activeLanguage = getLanguage(activeFile)
 
   return (
     <div className="flex h-screen flex-col bg-gray-950">
@@ -183,15 +229,22 @@ export default function EditorLayout({ project, initialMessages }: Props) {
           </div>
           <div className="flex-1 overflow-hidden">
             {activity === 'explorer' ? (
-              <FileTree files={currentFiles} onFileClick={handleFileClick} />
+              <FileTree
+                files={files}
+                activeFile={activeFile}
+                onFileClick={handleFileClick}
+                onAddFile={handleAddFile}
+              />
             ) : (
               <Editor
                 projectId={project.id}
-                currentCode={code}
-                onCodeUpdate={(newCode) => {
-                  setCode(newCode)
+                files={files}
+                onFilesUpdate={(newFiles) => {
+                  setFiles(newFiles)
                   setRightTab('preview')
+                  setConsoleLogs([])
                 }}
+                activeFile={activeFile}
                 initialMessages={initialMessages}
                 selectedCode={selectedCode}
                 onClearSelection={() => setSelectedCode(null)}
@@ -224,7 +277,7 @@ export default function EditorLayout({ project, initialMessages }: Props) {
               <svg className="h-3.5 w-3.5 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 18.08L4.08 16 2 6h20l-2.08 10L12 18.08zm-1-4.08l1 .22 1-.22.72-3.5H9.28l.72 3.5z"/>
               </svg>
-              index.html
+              {activeFile}
             </button>
 
             <button
@@ -242,12 +295,30 @@ export default function EditorLayout({ project, initialMessages }: Props) {
               Preview
             </button>
 
+            <button
+              onClick={() => setRightTab('console')}
+              className={`flex items-center gap-1.5 border-r border-gray-800 px-4 py-2 text-xs transition-colors ${
+                rightTab === 'console'
+                  ? 'border-t-2 border-t-indigo-500 bg-gray-950 text-white'
+                  : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+              }`}
+            >
+              <svg className="h-3.5 w-3.5 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3" />
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+              </svg>
+              Console
+              {consoleLogs.some(l => l.level === 'error') && (
+                <span className="ml-1 h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
+              )}
+            </button>
+
             <div className="flex-1" />
 
-            {code && (
+            {combinedHtml && (
               <button
                 onClick={() => {
-                  const blob = new Blob([code], { type: 'text/html' })
+                  const blob = new Blob([combinedHtml], { type: 'text/html' })
                   const url = URL.createObjectURL(blob)
                   window.open(url, '_blank')
                 }}
@@ -263,10 +334,12 @@ export default function EditorLayout({ project, initialMessages }: Props) {
           </div>
 
           {/* Tab content */}
-          <div className="flex-1 overflow-hidden">
-            {rightTab === 'code' ? (
+          <div className="flex-1 overflow-hidden relative">
+            {/* Code — unmount when not active is fine, CodeEditor has no side-effects on mount */}
+            {rightTab === 'code' && (
               <CodeEditor
-                code={code}
+                code={files[activeFile] ?? ''}
+                language={activeLanguage}
                 onSave={handleCodeSave}
                 onSelectionChange={(sel) => {
                   setSelectedCode(sel)
@@ -276,8 +349,59 @@ export default function EditorLayout({ project, initialMessages }: Props) {
                   }
                 }}
               />
-            ) : (
-              <Preview code={code} isDragging={previewBlocked} />
+            )}
+
+            {/* Preview — always mounted so iframe never reloads on tab switch */}
+            <div className={`absolute inset-0 ${rightTab === 'preview' ? '' : 'invisible pointer-events-none'}`}>
+              <Preview code={combinedHtml} isDragging={previewBlocked} />
+            </div>
+
+            {/* Console */}
+            {rightTab === 'console' && (
+              <div className="flex h-full flex-col bg-gray-950 font-mono text-xs">
+                <div className="flex items-center justify-between border-b border-gray-800 px-3 py-1.5 shrink-0">
+                  <span className="text-gray-500">
+                    {consoleLogs.length} {consoleLogs.length === 1 ? 'message' : 'messages'}
+                  </span>
+                  <button
+                    onClick={() => setConsoleLogs([])}
+                    className="text-gray-600 hover:text-gray-400 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {consoleLogs.length === 0 ? (
+                    <div className="flex h-full items-center justify-center text-gray-600">
+                      No console output
+                    </div>
+                  ) : (
+                    consoleLogs.map((entry, i) => (
+                      <div
+                        key={i}
+                        className={`flex gap-2 border-b border-gray-900 px-3 py-1.5 ${
+                          entry.level === 'error'
+                            ? 'bg-red-950/30 text-red-400'
+                            : entry.level === 'warn'
+                            ? 'bg-yellow-950/30 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      >
+                        <span className="shrink-0 text-gray-600">
+                          {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                        <span className={`shrink-0 uppercase w-10 ${
+                          entry.level === 'error' ? 'text-red-500' :
+                          entry.level === 'warn' ? 'text-yellow-500' :
+                          'text-gray-500'
+                        }`}>{entry.level}</span>
+                        <span className="break-all whitespace-pre-wrap">{entry.args.join(' ')}</span>
+                      </div>
+                    ))
+                  )}
+                  <div ref={consoleEndRef} />
+                </div>
+              </div>
             )}
           </div>
         </div>
