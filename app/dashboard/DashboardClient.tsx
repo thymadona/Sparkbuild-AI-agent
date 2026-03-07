@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserSupabaseClient } from '@/lib/supabase'
+import { createBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type { Project } from '@/types'
 
 interface Props {
