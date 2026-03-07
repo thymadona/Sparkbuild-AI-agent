@@ -1,6 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
-import type { Project } from '@/types'
+import type { Project, Message } from '@/types'
 import EditorLayout from './EditorLayout'
 
 interface Props {
@@ -27,5 +27,17 @@ export default async function EditorPage({ params }: Props) {
     notFound()
   }
 
-  return <EditorLayout project={project as Project} />
+  const { data: messages } = await supabaseAdmin
+    .from('messages')
+    .select('*')
+    .eq('project_id', params.id)
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  return (
+    <EditorLayout
+      project={project as Project}
+      initialMessages={(messages ?? []) as Message[]}
+    />
+  )
 }

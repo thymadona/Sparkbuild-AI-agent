@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import type { Message } from '@/types'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -12,11 +13,18 @@ interface EditorProps {
   projectId: string
   currentCode: string
   onCodeUpdate: (code: string) => void
+  initialMessages?: Message[]
+  selectedCode?: { text: string; startLine: number; endLine: number } | null
+  onClearSelection?: () => void
 }
 
-export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorProps) {
+function toChat(m: Message): ChatMessage {
+  return { role: m.role, content: m.content, timestamp: new Date(m.created_at) }
+}
+
+export default function Editor({ projectId, currentCode, onCodeUpdate, initialMessages = [], selectedCode, onClearSelection }: EditorProps) {
   const [prompt, setPrompt] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages.map(toChat))
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -31,14 +39,14 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
     if (!prompt.trim() || isGenerating) return
 
     const userMessage = prompt.trim()
+    const contextCode = selectedCode ?? null
     setPrompt('')
     setError('')
     setIsGenerating(true)
+    onClearSelection?.()
 
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: userMessage, timestamp: new Date() },
-    ])
+    const userChatMsg: ChatMessage = { role: 'user', content: userMessage, timestamp: new Date() }
+    setMessages((prev) => [...prev, userChatMsg])
 
     try {
       const res = await fetch('/api/generate', {
@@ -48,13 +56,15 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
           prompt: userMessage,
           projectId,
           currentCode: currentCode || undefined,
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+          selectedCode: contextCode?.text,
         }),
       })
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         if (res.status === 429) {
-          setError(data.error || 'Daily limit reached.')
+          setError(data.error || 'Hourly limit reached.')
         } else {
           setError(data.error || 'Something went wrong. Please try again.')
         }
@@ -77,12 +87,18 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
         const { done, value } = await reader.read()
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
-        onCodeUpdate(accumulated)
+        // Live-update preview only for code responses
+        if (accumulated.trimStart().toLowerCase().startsWith('<!doctype html>')) {
+          onCodeUpdate(accumulated)
+        }
       }
+
+      const isCode = accumulated.trimStart().toLowerCase().startsWith('<!doctype html>')
+      const assistantContent = isCode ? 'Code updated.' : accumulated
 
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Generated successfully.', timestamp: new Date() },
+        { role: 'assistant', content: assistantContent, timestamp: new Date() },
       ])
     } catch {
       setError('Network error. Please check your connection.')
@@ -120,7 +136,7 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
                   : 'bg-gray-800 text-gray-300'
               }`}
             >
-              <p>{msg.content}</p>
+              <p className="whitespace-pre-wrap">{msg.content}</p>
               <p className={`mt-0.5 text-xs ${msg.role === 'user' ? 'text-indigo-300' : 'text-gray-500'}`}>
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
@@ -130,7 +146,7 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
         {isGenerating && (
           <div className="flex justify-start">
             <div className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-gray-400">
-              <span className="animate-pulse">Generating...</span>
+              <span className="animate-pulse">Thinking...</span>
             </div>
           </div>
         )}
@@ -144,6 +160,31 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
         </div>
       )}
 
+      {/* Selected code context */}
+      {selectedCode && (
+        <div className="mx-3 mb-2 rounded-md border border-indigo-800 bg-gray-900">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-indigo-800/60">
+            <span className="text-xs text-indigo-400 font-mono">
+              index.html:{selectedCode.startLine === selectedCode.endLine
+                ? `${selectedCode.startLine}`
+                : `${selectedCode.startLine}–${selectedCode.endLine}`}
+            </span>
+            <button
+              onClick={onClearSelection}
+              className="text-gray-500 hover:text-gray-300 transition-colors leading-none text-base"
+              title="Dismiss"
+            >
+              &times;
+            </button>
+          </div>
+          <pre className="px-2 py-1.5 text-xs text-gray-300 font-mono overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap break-all">
+            {selectedCode.text.length > 300
+              ? selectedCode.text.slice(0, 300) + '…'
+              : selectedCode.text}
+          </pre>
+        </div>
+      )}
+
       {/* Input form */}
       <form onSubmit={handleSubmit} className="border-t border-gray-800 p-3 flex gap-2">
         <textarea
@@ -151,7 +192,7 @@ export default function Editor({ projectId, currentCode, onCodeUpdate }: EditorP
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe what to build... (Enter to send)"
+          placeholder="Ask a question or describe what to build... (Enter to send)"
           rows={2}
           disabled={isGenerating}
           className="flex-1 resize-none rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"

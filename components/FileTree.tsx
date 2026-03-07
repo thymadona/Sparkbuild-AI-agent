@@ -4,9 +4,10 @@ import type { ProjectFiles } from '@/types'
 
 interface FileTreeProps {
   files: ProjectFiles
+  onFileClick?: (filename: string) => void
 }
 
-export default function FileTree({ files }: FileTreeProps) {
+export default function FileTree({ files, onFileClick }: FileTreeProps) {
   const fileNames = Object.keys(files)
 
   if (fileNames.length === 0) {
@@ -18,9 +19,10 @@ export default function FileTree({ files }: FileTreeProps) {
   return (
     <div className="px-2 py-1">
       {fileNames.map((name) => (
-        <div
+        <button
           key={name}
-          className="flex items-center gap-2 rounded px-2 py-1 text-sm text-gray-300"
+          onClick={() => onFileClick?.(name)}
+          className="flex w-full items-center gap-2 rounded px-2 py-1 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
         >
           <svg
             className="h-3.5 w-3.5 shrink-0 text-gray-500"
@@ -36,7 +38,7 @@ export default function FileTree({ files }: FileTreeProps) {
             />
           </svg>
           <span className="truncate">{name}</span>
-        </div>
+        </button>
       ))}
     </div>
   )
