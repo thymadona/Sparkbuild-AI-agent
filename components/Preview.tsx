@@ -2,9 +2,10 @@
 
 interface PreviewProps {
   code: string
+  isDragging?: boolean
 }
 
-export default function Preview({ code }: PreviewProps) {
+export default function Preview({ code, isDragging }: PreviewProps) {
   if (!code) {
     return (
       <div className="flex h-full items-center justify-center text-gray-500 text-sm">
@@ -30,7 +31,7 @@ export default function Preview({ code }: PreviewProps) {
     <iframe
       srcDoc={code}
       sandbox="allow-scripts allow-forms"
-      className="h-full w-full border-0 bg-white"
+      className={`h-full w-full border-0 bg-white ${isDragging ? 'pointer-events-none' : ''}`}
       title="Live preview"
     />
   )
