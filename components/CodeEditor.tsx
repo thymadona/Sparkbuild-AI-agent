@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { html } from '@codemirror/lang-html'
 import { css } from '@codemirror/lang-css'
@@ -17,10 +17,6 @@ interface CodeEditorProps {
 
 export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
-
-  useEffect(() => {
-    setDraft(code)
-  }, [code])
 
   function handleUpdate(vu: ViewUpdate) {
     if (!onSelectionChange || !vu.selectionSet) return

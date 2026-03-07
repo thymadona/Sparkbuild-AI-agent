@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
-import { openrouter, MODEL, SYSTEM_PROMPT } from '@/lib/gemini'
+import { openrouter, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { parseMultiFileResponse } from '@/lib/parse-multi-file'
 
@@ -17,8 +17,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // 2. Rate limit check
-  const { allowed, hoursUntilReset } = await checkRateLimit(user.id)
+  // 2. Rate limit check (skip for admins)
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
+  const isAdmin = adminEmails.includes(user.email?.toLowerCase() ?? '')
+
+  const { allowed, hoursUntilReset } = isAdmin ? { allowed: true, hoursUntilReset: 0 } : await checkRateLimit(user.id)
 
   if (!allowed) {
     return NextResponse.json(
@@ -29,12 +32,13 @@ export async function POST(req: Request) {
 
   // 3. Parse request body
   const body = await req.json()
-  const { prompt, projectId, files, history, selectedCode } = body as {
+  const { prompt, projectId, files, history, selectedCode, mode = 'build' } = body as {
     prompt: string
     projectId: string
     files?: Record<string, string>
     history?: { role: 'user' | 'assistant'; content: string }[]
     selectedCode?: string
+    mode?: 'ask' | 'build'
   }
 
   if (!prompt || !projectId) {
@@ -68,9 +72,10 @@ export async function POST(req: Request) {
       .join('\n\n')
   }
 
+  const basePrompt = mode === 'ask' ? ASK_SYSTEM_PROMPT : BUILD_SYSTEM_PROMPT
   const systemContent = filesContext
-    ? `${SYSTEM_PROMPT}\n\nCurrent project files:\n${filesContext}`
-    : SYSTEM_PROMPT
+    ? `${basePrompt}\n\nCurrent project files:\n${filesContext}`
+    : basePrompt
 
   const userContent = selectedCode
     ? `Selected code:\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${prompt}`

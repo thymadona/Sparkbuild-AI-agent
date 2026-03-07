@@ -7,6 +7,19 @@ interface PreviewProps {
 
 const CONSOLE_INTERCEPTOR = `<script>
 ;(function(){
+  function makeStorage() {
+    var store = {}
+    return {
+      getItem: function(k) { return store[k] !== undefined ? store[k] : null },
+      setItem: function(k, v) { store[k] = String(v) },
+      removeItem: function(k) { delete store[k] },
+      clear: function() { store = {} },
+      key: function(i) { return Object.keys(store)[i] || null },
+      get length() { return Object.keys(store).length }
+    }
+  }
+  try { localStorage } catch(e) { Object.defineProperty(window, 'localStorage', { value: makeStorage() }) }
+  try { sessionStorage } catch(e) { Object.defineProperty(window, 'sessionStorage', { value: makeStorage() }) }
   var _send = function(level, args) {
     try {
       window.parent.postMessage({
