@@ -1,142 +1,83 @@
-# CLAUDE.md — Student Code Builder (Lovable Clone)
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This Project Is
 
-A Lovable-style AI code generation app for 200–500 students. User types a prompt → LLM generates a single HTML file → live preview in iframe. Projects are saved and shareable. Optimized for near-zero infra cost.
+A Lovable-style AI code generation app for 200-500 students. User types a prompt, LLM generates a single HTML file, live preview in iframe. Projects are saved and shareable. Optimized for near-zero infra cost.
+
+## Commands
+
+```bash
+bun run dev          # Start dev server
+bun run build        # Production build
+bun run lint         # ESLint
+bun run test         # All tests
+bun run test:unit    # Unit tests only
+bun run test:integration  # Integration tests only
+bunx jest __tests__/unit/lib/ratelimit.test.ts  # Single test file
+```
 
 ## Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Hosting**: Vercel (free tier)
 - **Auth + DB**: Supabase (magic link auth, Postgres)
-- **LLM**: Gemini 2.5 Flash Preview via OpenRouter (`openai` SDK, OpenAI-compatible)
+- **LLM**: Gemini 3 Flash Preview via OpenRouter (`openai` SDK, OpenAI-compatible)
 - **Code Preview**: `srcdoc` iframe (no sandbox service, no WebContainer)
 - **Styling**: Tailwind CSS
+- **Testing**: Jest with @testing-library/react
 
-## Project Structure
+## Architecture
 
-```
-/app
-  /api
-    /generate      → OpenRouter streaming API route
-    /projects      → CRUD for saved projects
-  /dashboard       → User's saved projects
-  /editor/[id]     → Main editor + preview page
-  /auth            → Magic link callback
-/components
-  /Editor          → Prompt input + chat history
-  /Preview         → srcdoc iframe renderer
-  /FileTree        → Project file state display
-/lib
-  /gemini.ts       → OpenRouter client + system prompt
-  /supabase.ts     → Supabase client (server + browser)
-  /ratelimit.ts    → Per-user daily prompt counter
-/types
-  index.ts         → Shared TypeScript types
-```
+### Request Flow
 
-## Core Data Models (Supabase)
+1. User prompt hits `POST /api/generate`
+2. Route authenticates via Supabase server client, checks rate limit (20/day/user)
+3. Prompt logged to `prompts` table, then streamed to OpenRouter (Gemini 2.5 Flash)
+4. Response streamed back to client via `ReadableStream` + `TextEncoder`
+5. On stream completion, final HTML saved to `projects.files` JSONB column
 
-```sql
--- users handled by Supabase Auth
+### Three Supabase Clients (`lib/supabase.ts`)
 
-create table projects (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null,
-  title text not null default 'Untitled',
-  files jsonb not null default '{}',   -- { "index.html": "..." }
-  is_public boolean default false,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
+- `createBrowserSupabaseClient()` — Client Components, uses anon key
+- `createServerSupabaseClient()` — Server Components/API routes, respects RLS, uses cookies
+- `supabaseAdmin` — Server-only, bypasses RLS with service role key. All DB writes use this.
 
-create table prompts (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null,
-  project_id uuid references projects,
-  content text not null,
-  created_at timestamptz default now()
-);
-```
+### Auth & Middleware (`middleware.ts`)
 
-## LLM System Prompt (in /lib/gemini.ts — sent as `system` message to OpenRouter)
+Supabase middleware refreshes session on every request. Protected routes: `/dashboard`, `/editor`. Excluded from middleware: `/auth/callback`, `/share`.
 
-```
-You are a code generator for students learning to build web apps.
-Always return a SINGLE complete HTML file with all CSS in a <style> tag 
-and all JavaScript in a <script> tag. No markdown. No explanation. 
-No code fences. Return raw HTML only starting with <!DOCTYPE html>.
-When editing existing code, return the full updated file, not a diff.
-```
+### LLM Integration (`lib/gemini.ts`)
 
-## Rate Limiting Rule
+Uses `openai` SDK pointed at OpenRouter's base URL. System prompt forces raw HTML output (no markdown, no code fences). Model constant: `google/gemini-2.5-flash-preview`.
 
-- **20 prompts per user per 24 hours** — hard cap, no exceptions
-- Check before every `/api/generate` call
-- Query: `SELECT COUNT(*) FROM prompts WHERE user_id = $1 AND created_at > NOW() - INTERVAL '24 hours'`
-- Return HTTP 429 with message `"Daily limit reached. Resets in X hours."` if exceeded
+### Preview Rendering
 
-## Preview Rendering Rule
+Always `<iframe srcdoc={code}>` — never blob URLs. If generated output doesn't start with `<!DOCTYPE html>`, show error state. Full file replacement on each generation (no diffs/patches).
 
-- Always render in `<iframe srcdoc={code} sandbox="allow-scripts allow-forms" />`
-- Never use `src` with a blob URL — `srcdoc` only
-- On each new generation, replace the entire srcdoc (full file, not patch)
-- If the generated string does not start with `<!DOCTYPE html>`, do not render — show an error state
+### Path Aliases
 
-## Streaming Pattern
+`@/` maps to project root (configured in tsconfig and jest).
 
-```ts
-// /app/api/generate/route.ts
-export async function POST(req: Request) {
-  // 1. Auth check — reject if no session
-  // 2. Rate limit check — reject if over 20/day
-  // 3. Log prompt to DB
-  // 4. Stream OpenRouter response back as text/plain
-  // 5. On stream end, update project files in DB
-}
-```
+## Data Models (Supabase)
 
-Use `ReadableStream` + `TextEncoder` for streaming. Do not buffer the full response before sending.
-
-## File State Shape (in-memory + DB)
-
-```ts
-type ProjectFiles = Record<string, string>
-// e.g. { "index.html": "<!DOCTYPE html>..." }
-// MVP only needs one key. Multi-file support comes later.
-```
-
-## Auth Rules
-
-- Magic link only (no passwords — reduces friction for students)
-- Protect all `/dashboard` and `/editor` routes via Supabase middleware
-- Public projects (`is_public: true`) are readable without auth via `/share/[id]`
+- `projects`: id, user_id, title, `files` (JSONB: `{ "index.html": "..." }`), is_public, timestamps
+- `prompts`: id, user_id, project_id, content, created_at
 
 ## Environment Variables
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=       # server-side only, never expose to client
+SUPABASE_SERVICE_ROLE_KEY=       # server-side only
 OPENROUTER_API_KEY=              # server-side only
 ```
 
-## What NOT to Build (MVP Scope Guard)
-
-- No multi-file tabs (single HTML file only)
-- No terminal / npm install / Node runtime
-- No collaborative editing
-- No version history (just latest save)
-- No payments / tiers
-- No custom domains for previews
-
 ## Key Constraints
 
-- Model: `google/gemini-2.5-flash-preview` via OpenRouter — do not switch models without approval (cost control)
-- Do not install WebContainer, Sandpack, or CodeSandbox SDK — srcdoc is intentional
-- All DB writes go through server-side routes using `SUPABASE_SERVICE_ROLE_KEY`
+- Model: `google/gemini-3-flash-preview` via OpenRouter -- do not switch without approval (cost control)
+- Do not install WebContainer, Sandpack, or CodeSandbox SDK -- srcdoc is intentional
+- All DB writes go through server-side routes using `supabaseAdmin`
 - Never expose service role key to the browser
-
-## Done = Definition
-
-A session is complete when: user can log in → type a prompt → see live HTML preview → save project → reload page and see saved project → share via URL.
+- MVP: single HTML file only, no multi-file, no version history, no payments
