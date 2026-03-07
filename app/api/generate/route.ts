@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
-import { openrouter, MODEL, SYSTEM_PROMPT } from '@/lib/gemini'
+import { openrouter, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
-import { parseMultiFileResponse } from '@/lib/parse-multi-file'
+import { parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 
 export const runtime = 'nodejs'
 
@@ -32,12 +32,13 @@ export async function POST(req: Request) {
 
   // 3. Parse request body
   const body = await req.json()
-  const { prompt, projectId, files, history, selectedCode } = body as {
+  const { prompt, projectId, files, history, selectedCode, mode } = body as {
     prompt: string
     projectId: string
     files?: Record<string, string>
     history?: { role: 'user' | 'assistant'; content: string }[]
     selectedCode?: string
+    mode?: 'ask' | 'build'
   }
 
   if (!prompt || !projectId) {
@@ -56,6 +57,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
+  // 3b. Resolve effective mode — check per-user permission (server is authoritative)
+  let effectiveMode: 'ask' | 'build' = 'ask'
+  if (mode === 'build') {
+    const { data: setting } = await supabaseAdmin
+      .from('user_build_mode')
+      .select('enabled')
+      .eq('user_id', user.id)
+      .single()
+    if (setting?.enabled === true) effectiveMode = 'build'
+  }
+  const BASE_SYSTEM_PROMPT = effectiveMode === 'build' ? BUILD_SYSTEM_PROMPT : ASK_SYSTEM_PROMPT
+
   // 4. Log prompt to DB (for rate limiting)
   await supabaseAdmin.from('prompts').insert({
     user_id: user.id,
@@ -72,8 +85,8 @@ export async function POST(req: Request) {
   }
 
   const systemContent = filesContext
-    ? `${SYSTEM_PROMPT}\n\nCurrent project files:\n${filesContext}`
-    : SYSTEM_PROMPT
+    ? `${BASE_SYSTEM_PROMPT}\n\nCurrent project files:\n${filesContext}`
+    : BASE_SYSTEM_PROMPT
 
   const userContent = selectedCode
     ? `Selected code:\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${prompt}`
@@ -111,6 +124,7 @@ export async function POST(req: Request) {
 
         // 7. Determine response type and save accordingly
         const isCode = accumulated.trimStart().startsWith('--- FILE:')
+        let assistantContent = accumulated
 
         if (isCode) {
           const parsedFiles = parseMultiFileResponse(accumulated)
@@ -123,6 +137,7 @@ export async function POST(req: Request) {
               })
               .eq('id', projectId)
           }
+          assistantContent = parseSummary(accumulated) ?? "I've built that for you! Check the preview."
         }
 
         // 8. Persist chat messages
@@ -137,7 +152,7 @@ export async function POST(req: Request) {
             project_id: projectId,
             user_id: user.id,
             role: 'assistant',
-            content: isCode ? 'Code updated.' : accumulated,
+            content: assistantContent,
           },
         ])
         if (msgError) console.error('messages insert error:', msgError)

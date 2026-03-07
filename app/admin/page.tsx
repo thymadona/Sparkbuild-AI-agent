@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import BuildModeToggle from '@/components/BuildModeToggle'
 
 const INPUT_COST_PER_M = 0.15  // $/1M tokens
 const OUTPUT_COST_PER_M = 0.60
@@ -26,6 +27,7 @@ export default async function AdminPage() {
     { count: totalProjects },
     { data: allPrompts },
     { data: allProjects },
+    { data: buildModeRows },
   ] = await Promise.all([
     supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
     supabaseAdmin.from('prompts').select('*', { count: 'exact', head: true }),
@@ -34,6 +36,7 @@ export default async function AdminPage() {
     supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('prompts').select('user_id'),
     supabaseAdmin.from('projects').select('user_id'),
+    supabaseAdmin.from('user_build_mode').select('user_id, enabled'),
   ])
 
   const users = usersData?.users ?? []
@@ -49,15 +52,22 @@ export default async function AdminPage() {
     projectCountByUser[row.user_id] = (projectCountByUser[row.user_id] ?? 0) + 1
   }
 
+  const buildModeByUser: Record<string, boolean> = {}
+  for (const row of buildModeRows ?? []) {
+    buildModeByUser[row.user_id] = row.enabled === true
+  }
+
   const safeTotalProjects = totalProjects ?? 0
   const avgProjects = users.length > 0 ? (safeTotalProjects / users.length).toFixed(1) : '0'
 
   const userRows = users
     .map((u) => ({
+      id: u.id,
       email: u.email ?? u.id,
       name: (u.user_metadata?.full_name as string) ?? '',
       prompts: countByUser[u.id] ?? 0,
       projects: projectCountByUser[u.id] ?? 0,
+      buildMode: buildModeByUser[u.id] ?? false,
       createdAt: u.created_at,
     }))
     .sort((a, b) => b.prompts - a.prompts)
@@ -104,6 +114,7 @@ export default async function AdminPage() {
                 <th className="text-right px-4 py-3 text-gray-500 font-normal">AI Requests</th>
                 <th className="text-right px-4 py-3 text-gray-500 font-normal">Projects</th>
                 <th className="text-right px-4 py-3 text-gray-500 font-normal">Joined</th>
+                <th className="text-right px-4 py-3 text-gray-500 font-normal">Build Mode</th>
               </tr>
             </thead>
             <tbody>
@@ -116,11 +127,16 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 text-right text-gray-500">
                     {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end">
+                      <BuildModeToggle userId={u.id} initialEnabled={u.buildMode} />
+                    </div>
+                  </td>
                 </tr>
               ))}
               {userRows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray-600">No users yet</td>
+                  <td colSpan={6} className="px-4 py-6 text-center text-gray-600">No users yet</td>
                 </tr>
               )}
             </tbody>
