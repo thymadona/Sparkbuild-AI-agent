@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin } from './supabase-server'
 
 const DAILY_LIMIT = 20
 const WINDOW_HOURS = 24

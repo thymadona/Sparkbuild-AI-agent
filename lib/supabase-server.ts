@@ -1,5 +1,4 @@
-import { createBrowserClient as createBrowserClientSSR } from '@supabase/ssr'
-import { createServerClient as createServerClientSSR } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
@@ -7,20 +6,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-// Browser client — used in Client Components
-export function createBrowserSupabaseClient() {
-  return createBrowserClientSSR(supabaseUrl, supabaseAnonKey)
-}
-
 // Server client — used in Server Components and API routes (respects RLS)
 export function createServerSupabaseClient() {
   const cookieStore = cookies()
-  return createServerClientSSR(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll()
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options)

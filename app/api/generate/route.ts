@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase'
+import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { openrouter, MODEL, SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 

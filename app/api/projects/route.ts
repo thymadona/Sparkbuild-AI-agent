@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase'
+import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
@@ -30,7 +30,10 @@ export async function POST(req: Request) {
   const supabase = createServerSupabaseClient()
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
+
+  if (authError) console.error('POST /api/projects auth error:', authError)
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -51,6 +54,7 @@ export async function POST(req: Request) {
     .single()
 
   if (error) {
+    console.error('POST /api/projects error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

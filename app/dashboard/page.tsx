@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase'
+import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import type { Project } from '@/types'
 import DashboardClient from './DashboardClient'
 

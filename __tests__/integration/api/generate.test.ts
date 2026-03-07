@@ -8,7 +8,7 @@ const mockAdminFrom = jest.fn()
 const mockCheckRateLimit = jest.fn()
 const mockCreate = jest.fn()
 
-jest.mock('@/lib/supabase', () => ({
+jest.mock('@/lib/supabase-server', () => ({
   createServerSupabaseClient: () => ({
     auth: { getUser: mockGetUser },
   }),

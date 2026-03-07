@@ -2,7 +2,7 @@ import { checkRateLimit } from '@/lib/ratelimit'
 
 // Mock supabaseAdmin used inside ratelimit.ts
 const mockFrom = jest.fn()
-jest.mock('@/lib/supabase', () => ({
+jest.mock('@/lib/supabase-server', () => ({
   supabaseAdmin: { from: (...args) => mockFrom(...args) },
 }))
 
