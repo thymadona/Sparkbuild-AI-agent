@@ -34,12 +34,31 @@ export async function middleware(request: NextRequest) {
 
   // Protect /dashboard and /editor routes
   const isProtected =
-    pathname.startsWith('/dashboard') || pathname.startsWith('/editor')
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/editor') ||
+    pathname.startsWith('/profile')
 
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/'
     return NextResponse.redirect(redirectUrl)
+  }
+
+  // Admin guard
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = '/'
+      return NextResponse.redirect(redirectUrl)
+    }
+    const allowed = (process.env.ADMIN_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+    if (!allowed.includes(user.email?.toLowerCase() ?? '')) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = '/dashboard'
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   return supabaseResponse

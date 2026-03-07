@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**Keep in mind when u build it** when i build a new thing, i prefer reasoning from atomic level only the most fundamental things ignored good to have basically first principles inspired by Elon Musk
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This Project Is

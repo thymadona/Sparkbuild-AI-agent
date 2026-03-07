@@ -54,6 +54,9 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
         <h1 className="text-xl font-semibold text-white">My Projects</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-400">{userEmail}</span>
+          <a href="/profile" className="text-sm text-gray-400 hover:text-white transition-colors">
+            Profile
+          </a>
           <button
             onClick={handleSignOut}
             className="text-sm text-gray-400 hover:text-white transition-colors"
