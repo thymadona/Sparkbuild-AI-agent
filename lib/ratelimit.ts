@@ -1,7 +1,7 @@
 import { supabaseAdmin } from './supabase-server'
 
-const DAILY_LIMIT = 20
-const WINDOW_HOURS = 24
+const HOURLY_LIMIT = 10
+const WINDOW_HOURS = 1
 
 export async function checkRateLimit(
   userId: string
@@ -25,7 +25,7 @@ export async function checkRateLimit(
 
   const count = data.length
 
-  if (count < DAILY_LIMIT) {
+  if (count < HOURLY_LIMIT) {
     return { allowed: true, hoursUntilReset: 0, count }
   }
 
