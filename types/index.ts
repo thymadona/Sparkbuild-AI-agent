@@ -6,6 +6,7 @@ export interface Project {
   title: string
   files: ProjectFiles
   is_public: boolean
+  lesson_id: number | null
   created_at: string
   updated_at: string
 }

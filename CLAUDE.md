@@ -35,16 +35,15 @@ bunx jest __tests__/unit/lib/ratelimit.test.ts  # Single test file
 ### Request Flow
 
 1. User prompt hits `POST /api/generate`
-2. Route authenticates via Supabase server client, checks rate limit (20/day/user)
+2. Route authenticates via Supabase server client, checks rate limit (10/hour/user; admins bypass via `ADMIN_EMAILS` env var)
 3. Prompt logged to `prompts` table, then streamed to OpenRouter (Gemini 2.5 Flash)
 4. Response streamed back to client via `ReadableStream` + `TextEncoder`
-5. On stream completion, final HTML saved to `projects.files` JSONB column
+5. On stream completion: if build mode, parse files and update `projects.files`; persist both user and assistant messages to `messages` table
 
-### Three Supabase Clients (`lib/supabase.ts`)
+### Three Supabase Clients
 
-- `createBrowserSupabaseClient()` — Client Components, uses anon key
-- `createServerSupabaseClient()` — Server Components/API routes, respects RLS, uses cookies
-- `supabaseAdmin` — Server-only, bypasses RLS with service role key. All DB writes use this.
+- `lib/supabase-browser.ts`: `createBrowserSupabaseClient()` — Client Components, uses anon key
+- `lib/supabase-server.ts`: `createServerSupabaseClient()` — Server Components/API routes, respects RLS, uses cookies; `supabaseAdmin` — Server-only, bypasses RLS with service role key. All DB writes use this.
 
 ### Auth & Middleware (`middleware.ts`)
 
@@ -52,11 +51,13 @@ Supabase middleware refreshes session on every request. Protected routes: `/dash
 
 ### LLM Integration (`lib/gemini.ts`)
 
-Uses `openai` SDK pointed at OpenRouter's base URL. System prompt forces raw HTML output (no markdown, no code fences). Model constant: `google/gemini-2.5-flash-preview`.
+Uses `openai` SDK pointed at OpenRouter's base URL. Two system prompts: `ASK_SYSTEM_PROMPT` (tutoring, never writes code) and `BUILD_SYSTEM_PROMPT` (generates HTML using `--- FILE: index.html ---` / `--- DONE ---` delimiters). Model constant: `google/gemini-3-flash-preview`.
+
+Build mode is off by default; enabled per-user via the `user_build_mode` table. The server is authoritative — client sends `mode: 'build'` but server verifies the user's permission before using `BUILD_SYSTEM_PROMPT`.
 
 ### Preview Rendering
 
-Always `<iframe srcdoc={code}>` — never blob URLs. If generated output doesn't start with `<!DOCTYPE html>`, show error state. Full file replacement on each generation (no diffs/patches).
+Always `<iframe srcdoc={code}>` — never blob URLs. Files are parsed from LLM output via `lib/parse-multi-file.ts` using `--- FILE: <name> ---` / `--- DONE ---` delimiters. `parseSummary()` extracts the friendly message after `--- DONE ---` to show in chat instead of raw LLM output. Full file replacement on each generation (no diffs/patches).
 
 ### Path Aliases
 
@@ -65,7 +66,9 @@ Always `<iframe srcdoc={code}>` — never blob URLs. If generated output doesn't
 ## Data Models (Supabase)
 
 - `projects`: id, user_id, title, `files` (JSONB: `{ "index.html": "..." }`), is_public, timestamps
-- `prompts`: id, user_id, project_id, content, created_at
+- `prompts`: id, user_id, project_id, content, created_at — also used as the rate limit log
+- `messages`: id, project_id, user_id, role (`user`|`assistant`), content, created_at — full chat history per project
+- `user_build_mode`: user_id, enabled (bool) — controls whether build mode is accessible
 
 ## Environment Variables
 
@@ -74,11 +77,13 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
 OPENROUTER_API_KEY=              # server-side only
+ADMIN_EMAILS=                    # comma-separated; bypasses rate limit
 ```
 
 ## Key Constraints
 
-- Model: `google/gemini-3-flash-preview` via OpenRouter -- do not switch without approval (cost control)
+- Model: `google/gemini-3-flash-preview` via OpenRouter — do not switch without approval (cost control)
+- Rate limit: 10 prompts/hour/user (not 20/day); controlled in `lib/ratelimit.ts`; `ADMIN_EMAILS` env var bypasses it
 - Do not install WebContainer, Sandpack, or CodeSandbox SDK -- srcdoc is intentional
 - All DB writes go through server-side routes using `supabaseAdmin`
 - Never expose service role key to the browser

@@ -7,8 +7,10 @@ import Editor from '@/components/Editor'
 import Preview from '@/components/Preview'
 import FileTree from '@/components/FileTree'
 import CodeEditor from '@/components/CodeEditor'
+import Navigator from '@/components/Navigator'
 import { buildCombinedHtml } from '@/lib/combine'
 import type { Project, Message } from '@/types'
+import type { Lesson } from '@/lib/lessons'
 
 interface ConsoleEntry {
   level: 'log' | 'warn' | 'error' | 'info' | 'debug'
@@ -19,10 +21,11 @@ interface ConsoleEntry {
 interface Props {
   project: Project
   initialMessages: Message[]
+  lesson: Lesson | null
 }
 
 type RightTab = 'code' | 'preview' | 'console'
-type Activity = 'explorer' | 'chat'
+type Activity = 'explorer' | 'chat' | 'navigator'
 
 function getLanguage(filename: string): 'html' | 'css' | 'js' {
   if (filename.endsWith('.css')) return 'css'
@@ -30,7 +33,7 @@ function getLanguage(filename: string): 'html' | 'css' | 'js' {
   return 'html'
 }
 
-export default function EditorLayout({ project, initialMessages }: Props) {
+export default function EditorLayout({ project, initialMessages, lesson }: Props) {
   const [files, setFiles] = useState<Record<string, string>>(project.files)
   const [openTabs, setOpenTabs] = useState<string[]>(Object.keys(project.files))
   const [activeFile, setActiveFile] = useState<string>('index.html')
@@ -39,12 +42,14 @@ export default function EditorLayout({ project, initialMessages }: Props) {
   const [savingTitle, setSavingTitle] = useState(false)
   const [rightTab, setRightTab] = useState<RightTab>('preview')
   const [splitView, setSplitView] = useState(false)
-  const [activity, setActivity] = useState<Activity>('explorer')
+  const [activity, setActivity] = useState<Activity>(lesson ? 'navigator' : 'explorer')
   const [sideOpen, setSideOpen] = useState(true)
   const [sideWidth, setSideWidth] = useState(380)
   const [previewBlocked, setPreviewBlocked] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{ text: string; startLine: number; endLine: number } | null>(null)
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([])
+  const [highlightLine, setHighlightLine] = useState<number | null>(null)
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const sideWidthRef = useRef(380)
   const dragStartX = useRef(0)
@@ -202,20 +207,22 @@ export default function EditorLayout({ project, initialMessages }: Props) {
 
         {/* Activity bar */}
         <div className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-gray-800 bg-[#1e1e2e] py-2">
-          {/* Explorer icon */}
-          <button
-            onClick={() => handleActivity('explorer')}
-            className={`flex h-10 w-10 items-center justify-center rounded transition-colors ${
-              activity === 'explorer' && sideOpen
-                ? 'border-l-2 border-indigo-500 text-white'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-            title="Explorer"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-            </svg>
-          </button>
+          {/* Navigator icon — only for lesson projects */}
+          {lesson && (
+            <button
+              onClick={() => handleActivity('navigator')}
+              className={`flex h-10 w-10 items-center justify-center rounded transition-colors ${
+                activity === 'navigator' && sideOpen
+                  ? 'border-l-2 border-indigo-500 text-white'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+              title="Tasks"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </button>
+          )}
 
           {/* Chat icon */}
           <button
@@ -231,6 +238,21 @@ export default function EditorLayout({ project, initialMessages }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </button>
+
+          {/* Explorer icon */}
+          <button
+            onClick={() => handleActivity('explorer')}
+            className={`flex h-10 w-10 items-center justify-center rounded transition-colors ${
+              activity === 'explorer' && sideOpen
+                ? 'border-l-2 border-indigo-500 text-white'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+            title="Explorer"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            </svg>
+          </button>
         </div>
 
         {/* Side panel */}
@@ -240,7 +262,7 @@ export default function EditorLayout({ project, initialMessages }: Props) {
         >
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800 shrink-0">
             <span className="text-xs font-medium uppercase tracking-widest text-gray-500">
-              {activity === 'explorer' ? 'Explorer' : 'Chat'}
+              {activity === 'navigator' ? 'Tasks' : activity === 'chat' ? 'Chat' : 'Explorer'}
             </span>
             <button
               onClick={() => setSideOpen(false)}
@@ -273,8 +295,28 @@ export default function EditorLayout({ project, initialMessages }: Props) {
                 onMessagesChange={setMessages}
                 selectedCode={selectedCode}
                 onClearSelection={() => setSelectedCode(null)}
+                pendingPrompt={pendingPrompt}
+                onPromptConsumed={() => setPendingPrompt(null)}
               />
             </div>
+            {lesson && (
+              <div className={activity === 'navigator' ? 'h-full' : 'hidden'}>
+                <Navigator
+                  lesson={lesson}
+                  code={files['index.html'] ?? ''}
+                  onHighlight={(line) => {
+                    setHighlightLine(line)
+                    setRightTab('code')
+                    setTimeout(() => setHighlightLine(null), 3000)
+                  }}
+                  onPrompt={(p) => {
+                    setActivity('chat')
+                    setSideOpen(true)
+                    setPendingPrompt(p)
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -403,6 +445,7 @@ export default function EditorLayout({ project, initialMessages }: Props) {
                   code={files[activeFile] ?? ''}
                   language={activeLanguage}
                   onSave={handleCodeSave}
+                  highlightLine={highlightLine}
                   onSelectionChange={(sel) => {
                     setSelectedCode(sel)
                     if (sel) {
@@ -426,6 +469,7 @@ export default function EditorLayout({ project, initialMessages }: Props) {
                   code={files[activeFile] ?? ''}
                   language={activeLanguage}
                   onSave={handleCodeSave}
+                  highlightLine={highlightLine}
                   onSelectionChange={(sel) => {
                     setSelectedCode(sel)
                     if (sel) {

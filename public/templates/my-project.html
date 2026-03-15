@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ============================================
+      CHANGE THIS: Your project name in the title tab
+    ============================================ -->
+    <title>My Project — Your Name Here</title>
+
+    <style>
+      /* ============================================
+        COLORS — change these to match your project
+        Find color codes at: coolors.co
+      ============================================ */
+      :root {
+        --background: #0f0f0f;
+        --text: #f0f0f0;
+        --accent: #00c896;
+      }
+
+      body {
+        background-color: var(--background);
+        color: var(--text);
+        font-family: sans-serif;
+        max-width: 700px;
+        margin: 60px auto;
+        padding: 0 20px;
+        line-height: 1.7;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: var(--accent);
+      }
+
+      button {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 12px;
+        font-weight: 600;
+      }
+
+      button:hover { opacity: 0.85; }
+
+      .section {
+        margin-top: 40px;
+        border-top: 1px solid #333;
+        padding-top: 20px;
+      }
+
+      .problem-box {
+        background: #1a1a1a;
+        border-left: 4px solid var(--accent);
+        padding: 16px 20px;
+        margin-top: 12px;
+        border-radius: 4px;
+      }
+
+      .tag {
+        display: inline-block;
+        background: var(--accent);
+        color: #000;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin: 4px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ============================================
+      CHANGE THIS: Your project name and one sentence
+      describing the problem it solves
+    ============================================ -->
+    <h1>[Your Project Name]</h1>
+    <p>Built by [Your Name] · Week 6 Demo Day</p>
+
+
+    <!-- ============================================
+      CHANGE THIS: Describe the problem you are solving
+      Answer: who has this problem, and why does it matter?
+    ============================================ -->
+    <div class="section">
+      <h2>The Problem</h2>
+      <div class="problem-box">
+        <p>[Describe the problem in 1–2 sentences. Who has this problem? Someone you know?]</p>
+      </div>
+    </div>
+
+
+    <!-- ============================================
+      THIS IS YOUR MAIN BUILD AREA
+      Delete everything inside this section and
+      replace it with your actual project.
+      Use what you learned in weeks 1–5:
+      - HTML structure (week 1)
+      - onclick buttons (week 2)
+      - variables and score (week 3)
+      - timers and randomness (week 4)
+      - fetch from the internet (week 5)
+    ============================================ -->
+    <div class="section">
+      <h2>My Solution</h2>
+
+      <!-- YOUR PROJECT GOES HERE -->
+      <!-- Delete these placeholder lines and build your thing -->
+      <p style="color: #555; font-style: italic;">
+        [Delete this line and build your project here]
+      </p>
+
+      <button onclick="doSomething()">[ Your button ]</button>
+      <p id="output" style="margin-top: 16px;"></p>
+    </div>
+
+
+    <!-- ============================================
+      CHANGE THIS: What you would add next
+      Be honest — this is part of the pitch
+    ============================================ -->
+    <div class="section">
+      <h2>If I had one more week</h2>
+      <p>[One thing you'd add or improve if you had more time]</p>
+    </div>
+
+
+    <!-- ============================================
+      CHANGE THIS: Add tags that describe your project
+    ============================================ -->
+    <div class="section">
+      <span class="tag">[ tag 1 ]</span>
+      <span class="tag">[ tag 2 ]</span>
+      <span class="tag">[ tag 3 ]</span>
+    </div>
+
+
+    <script>
+      // ============================================
+      // YOUR CODE GOES HERE
+      // Replace this example function with your
+      // actual project logic
+      // ============================================
+      function doSomething() {
+        document.getElementById('output').textContent = 'Replace this with your real code.'
+      }
+    </script>
+
+  </body>
+</html>

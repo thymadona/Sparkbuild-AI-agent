@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ============================================
+      CHANGE THIS: Put your page name in the title tab
+    ============================================ -->
+    <title>My AI Page — Your Name Here</title>
+
+    <style>
+      /* ============================================
+        COLORS — change these to colors you like
+        Find color codes at: coolors.co
+      ============================================ */
+      :root {
+        --background: #0f0f0f;
+        --text: #f0f0f0;
+        --accent: #a78bfa;
+      }
+
+      body {
+        background-color: var(--background);
+        color: var(--text);
+        font-family: sans-serif;
+        max-width: 700px;
+        margin: 60px auto;
+        padding: 0 20px;
+        line-height: 1.7;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: var(--accent);
+      }
+
+      button {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 12px;
+        font-weight: 600;
+      }
+
+      button:hover { opacity: 0.85; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      .section {
+        margin-top: 40px;
+        border-top: 1px solid #333;
+        padding-top: 20px;
+      }
+
+      /* ============================================
+        THE CONTENT BOX — where AI results appear
+        Change background and border to style it
+      ============================================ */
+      .content-box {
+        background: #1a1a1a;
+        border-left: 4px solid var(--accent);
+        padding: 20px 24px;
+        margin-top: 16px;
+        border-radius: 4px;
+        font-size: 1.05rem;
+        min-height: 60px;
+      }
+
+      #loading-text {
+        color: #666;
+        font-style: italic;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ============================================
+      CHANGE THIS: Your name and page description
+    ============================================ -->
+    <h1>Hi, I'm [Your Name]</h1>
+    <p>This page fetches live content from the internet every time you click.</p>
+
+
+    <!-- ============================================
+      SECTION 1: Fetch a random joke
+      The button calls fetchJoke() in the script below
+    ============================================ -->
+    <div class="section">
+      <h2>Random Joke</h2>
+      <p>Every click fetches a brand new joke from the internet.</p>
+      <button onclick="fetchJoke()" id="joke-btn">Get a joke</button>
+
+      <!-- CHANGE THIS: the placeholder text before clicking -->
+      <div class="content-box" id="joke-box">
+        Click the button to load a joke.
+      </div>
+    </div>
+
+
+    <!-- ============================================
+      SECTION 2: Fetch a random quote
+      CHANGE THIS: the section heading and description
+    ============================================ -->
+    <div class="section">
+      <h2>Random Quote</h2>
+      <p>A new quote every time. Click as many times as you want.</p>
+      <button onclick="fetchQuote()" id="quote-btn">Get a quote</button>
+
+      <div class="content-box" id="quote-box">
+        Click the button to load a quote.
+      </div>
+    </div>
+
+
+    <script>
+      // ============================================
+      // HOW FETCH WORKS:
+      // 1. Your browser sends a request to a URL
+      // 2. The server sends back data (usually JSON)
+      // 3. You pull out the part you want
+      // 4. You put it on the page with textContent
+      // ============================================
+
+
+      // ============================================
+      // FETCH A JOKE
+      // This calls a free public joke API
+      // The response looks like:
+      // { setup: "Why did...", punchline: "Because..." }
+      // ============================================
+      async function fetchJoke() {
+        let btn = document.getElementById('joke-btn')
+        let box = document.getElementById('joke-box')
+
+        btn.disabled = true
+        box.textContent = 'Loading...'
+
+        try {
+          let response = await fetch('https://official-joke-api.appspot.com/random_joke')
+          let data = await response.json()
+
+          // CHANGE THIS: how you display the result
+          // data.setup is the question, data.punchline is the answer
+          box.textContent = data.setup + ' ... ' + data.punchline
+
+        } catch (error) {
+          box.textContent = 'Could not load joke. Check your internet connection.'
+        }
+
+        btn.disabled = false
+      }
+
+
+      // ============================================
+      // FETCH A QUOTE
+      // This calls a free public quote API
+      // The response looks like:
+      // { content: "The quote text", author: "Name" }
+      // ============================================
+      async function fetchQuote() {
+        let btn = document.getElementById('quote-btn')
+        let box = document.getElementById('quote-box')
+
+        btn.disabled = true
+        box.textContent = 'Loading...'
+
+        try {
+          let response = await fetch('https://api.quotable.io/random')
+          let data = await response.json()
+
+          // CHANGE THIS: how you display the result
+          // data.content is the quote, data.author is who said it
+          box.textContent = '"' + data.content + '" — ' + data.author
+
+        } catch (error) {
+          box.textContent = 'Could not load quote. Check your internet connection.'
+        }
+
+        btn.disabled = false
+      }
+    </script>
+
+  </body>
+</html>

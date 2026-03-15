@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ============================================
+      CHANGE THIS: Put your name in the title tab
+    ============================================ -->
+    <title>My Interactive Page — Your Name Here</title>
+
+    <style>
+      /* ============================================
+        COLORS — change these to colors you like
+        Find color codes at: coolors.co
+      ============================================ */
+      :root {
+        --background: #0f0f0f;
+        --text: #f0f0f0;
+        --accent: #00c896;
+      }
+
+      body {
+        background-color: var(--background);
+        color: var(--text);
+        font-family: sans-serif;
+        max-width: 700px;
+        margin: 60px auto;
+        padding: 0 20px;
+        line-height: 1.7;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: var(--accent);
+      }
+
+      /* ============================================
+        HOW BUTTONS LOOK — you can change padding,
+        border-radius, font-size here
+      ============================================ */
+      button {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 12px;
+      }
+
+      button:hover {
+        opacity: 0.85;
+      }
+
+      .section {
+        margin-top: 40px;
+        border-top: 1px solid #333;
+        padding-top: 20px;
+      }
+
+      /* ============================================
+        THIS IS THE HIDDEN BOX — display: none means
+        it is invisible until the button is clicked
+      ============================================ -->
+      #secret-box {
+        display: none;
+        background: #1a1a1a;
+        border-left: 4px solid var(--accent);
+        padding: 16px 20px;
+        margin-top: 16px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ============================================
+      CHANGE THIS: Your name and a short intro
+    ============================================ -->
+    <h1>Hi, I'm [Your Name]</h1>
+    <p>This page talks back. Click the button below to see.</p>
+
+
+    <!-- ============================================
+      CHANGE THIS: The button label and secret message
+      The onclick= connects the button to the function
+      below in the <script> tag
+    ============================================ -->
+    <div class="section">
+      <h2>Click to reveal something about me</h2>
+      <button onclick="showSecret()">Click me</button>
+      <div id="secret-box">
+        [Write something surprising or funny about yourself here]
+      </div>
+    </div>
+
+
+    <!-- ============================================
+      CHANGE THIS: Your mood options and responses
+      Add or remove <button> lines to change choices
+    ============================================ -->
+    <div class="section">
+      <h2>How do you feel about coding?</h2>
+      <p>Pick one:</p>
+      <button onclick="showMood('excited')">🔥 Excited</button>
+      <button onclick="showMood('confused')">😵 Confused</button>
+      <button onclick="showMood('tired')">😴 Tired</button>
+      <p id="mood-response" style="margin-top: 16px; font-size: 1.1rem;"></p>
+    </div>
+
+
+    <script>
+      // ============================================
+      // FUNCTION 1: Show or hide the secret box
+      // display = "block" makes it appear
+      // display = "none" makes it disappear
+      // ============================================
+      function showSecret() {
+        let box = document.getElementById('secret-box')
+        if (box.style.display === 'block') {
+          box.style.display = 'none'
+        } else {
+          box.style.display = 'block'
+        }
+      }
+
+
+      // ============================================
+      // CHANGE THIS: The mood responses
+      // Add a new line for each button you added above
+      // Format: 'keyword': 'your response here'
+      // ============================================
+      function showMood(mood) {
+        let responses = {
+          'excited': '🔥 Let\'s go! That energy is everything.',
+          'confused': '😵 Good. Confusion means you\'re learning.',
+          'tired': '😴 Same. But you\'re here. That counts.',
+        }
+        let responseBox = document.getElementById('mood-response')
+        responseBox.textContent = responses[mood]
+      }
+    </script>
+
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import type { Project, Message } from '@/types'
+import { LESSONS } from '@/lib/lessons'
 import EditorLayout from './EditorLayout'
 
 interface Props {
@@ -34,10 +35,15 @@ export default async function EditorPage({ params }: Props) {
     .order('created_at', { ascending: true })
     .limit(100)
 
+  const lesson = project.lesson_id != null
+    ? (LESSONS.find((l) => l.id === project.lesson_id) ?? null)
+    : null
+
   return (
     <EditorLayout
       project={project as Project}
       initialMessages={(messages ?? []) as Message[]}
+      lesson={lesson}
     />
   )
 }

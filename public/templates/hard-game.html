@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ============================================
+      CHANGE THIS: Put your game name in the title tab
+    ============================================ -->
+    <title>My Game — Your Name Here</title>
+
+    <style>
+      /* ============================================
+        COLORS — change these to colors you like
+        Find color codes at: coolors.co
+      ============================================ */
+      :root {
+        --background: #0f0f0f;
+        --text: #f0f0f0;
+        --accent: #ff4455;
+      }
+
+      body {
+        background-color: var(--background);
+        color: var(--text);
+        font-family: sans-serif;
+        max-width: 700px;
+        margin: 60px auto;
+        padding: 0 20px;
+        line-height: 1.7;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: var(--accent);
+      }
+
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 10px 28px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 12px;
+        margin-right: 8px;
+      }
+
+      button:hover { opacity: 0.85; }
+
+      /* ============================================
+        THE GAME AREA — the box where the target lives
+        Change width and height to resize it
+      ============================================ */
+      #game-area {
+        position: relative;
+        width: 100%;
+        height: 300px;
+        background: #1a1a1a;
+        border: 2px solid #333;
+        border-radius: 12px;
+        margin: 24px 0;
+        overflow: hidden;
+      }
+
+      /* ============================================
+        THE TARGET — the thing players click
+        Change width, height, border-radius to
+        make it a different shape or size
+      ============================================ -->
+      #target {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        background: var(--accent);
+        border-radius: 50%;
+        cursor: pointer;
+        top: 120px;
+        left: 300px;
+        transition: top 0.1s, left 0.1s;
+      }
+
+      #score-display {
+        font-size: 3rem;
+        font-weight: bold;
+        color: var(--accent);
+        line-height: 1;
+      }
+
+      #timer-display {
+        font-size: 1.3rem;
+        color: #888;
+        margin-bottom: 8px;
+      }
+
+      #message {
+        font-size: 1.1rem;
+        min-height: 28px;
+        color: var(--accent);
+        margin-top: 8px;
+      }
+
+      #start-btn { margin-top: 0; }
+
+      #reset-btn {
+        background: transparent;
+        color: #666;
+        border: 1px solid #444;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ============================================
+      CHANGE THIS: Your game title and instructions
+    ============================================ -->
+    <h1>Click The Dot</h1>
+    <p>Click the dot as many times as you can before time runs out.</p>
+
+    <div id="timer-display">Time: 10s</div>
+    <div id="score-display">0</div>
+    <div id="message">Press Start to play</div>
+
+    <div id="game-area">
+      <div id="target" onclick="hitTarget()"></div>
+    </div>
+
+    <button id="start-btn" onclick="startGame()">Start</button>
+    <button id="reset-btn" onclick="resetGame()">Reset</button>
+
+
+    <script>
+      // ============================================
+      // CHANGE THIS: Game settings
+      // Try changing gameDuration to 5 for harder,
+      // or 15 for easier
+      // ============================================
+      let gameDuration = 10   // seconds
+      let score = 0
+      let timeLeft = gameDuration
+      let gameRunning = false
+      let timerInterval = null
+
+
+      // ============================================
+      // CHANGE THIS: Milestone messages
+      // Add your own score milestones and messages
+      // ============================================
+      function hitTarget() {
+        if (!gameRunning) return
+
+        score = score + 1
+        document.getElementById('score-display').textContent = score
+
+        // Move target to a random spot after each click
+        moveTarget()
+
+        let message = ''
+        if (score === 5)  message = '🔥 Five hits!'
+        if (score === 10) message = '⚡ Ten! Keep going!'
+        if (score === 20) message = '🏆 TWENTY. Unreal.'
+
+        // CHANGE THIS: your own message at any score
+        // if (score === 3) message = 'not bad...'
+
+        if (message) document.getElementById('message').textContent = message
+      }
+
+
+      // ============================================
+      // MOVE TARGET: picks a random position inside
+      // the game area. Math.random() gives a number
+      // between 0 and 1 — multiply to get a range
+      // ============================================
+      function moveTarget() {
+        let area = document.getElementById('game-area')
+        let target = document.getElementById('target')
+
+        let maxX = area.offsetWidth - 60
+        let maxY = area.offsetHeight - 60
+
+        let randomX = Math.floor(Math.random() * maxX)
+        let randomY = Math.floor(Math.random() * maxY)
+
+        target.style.left = randomX + 'px'
+        target.style.top = randomY + 'px'
+
+        // CHANGE THIS: make target smaller as score goes up
+        // let newSize = Math.max(20, 60 - score * 2)
+        // target.style.width = newSize + 'px'
+        // target.style.height = newSize + 'px'
+      }
+
+
+      function startGame() {
+        if (gameRunning) return
+        gameRunning = true
+        score = 0
+        timeLeft = gameDuration
+        document.getElementById('score-display').textContent = score
+        document.getElementById('message').textContent = 'Go!'
+        document.getElementById('start-btn').disabled = true
+
+        // setInterval runs a function every X milliseconds
+        // 1000 milliseconds = 1 second
+        timerInterval = setInterval(function() {
+          timeLeft = timeLeft - 1
+          document.getElementById('timer-display').textContent = 'Time: ' + timeLeft + 's'
+
+          if (timeLeft <= 0) {
+            endGame()
+          }
+        }, 1000)
+      }
+
+
+      function endGame() {
+        gameRunning = false
+        clearInterval(timerInterval)
+        document.getElementById('message').textContent = 'Done! You scored ' + score + ' points.'
+        document.getElementById('start-btn').disabled = false
+      }
+
+
+      function resetGame() {
+        gameRunning = false
+        clearInterval(timerInterval)
+        score = 0
+        timeLeft = gameDuration
+        document.getElementById('score-display').textContent = '0'
+        document.getElementById('timer-display').textContent = 'Time: ' + gameDuration + 's'
+        document.getElementById('message').textContent = 'Press Start to play'
+        document.getElementById('start-btn').disabled = false
+
+        let target = document.getElementById('target')
+        target.style.left = '300px'
+        target.style.top = '120px'
+        target.style.width = '60px'
+        target.style.height = '60px'
+      }
+    </script>
+
+  </body>
+</html>

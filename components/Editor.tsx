@@ -21,6 +21,8 @@ interface EditorProps {
   onMessagesChange: (msgs: Message[] | ((prev: Message[]) => Message[])) => void;
   selectedCode?: { text: string; startLine: number; endLine: number } | null;
   onClearSelection?: () => void;
+  pendingPrompt?: string | null;
+  onPromptConsumed?: () => void;
 }
 
 function toChat(m: Message): ChatMessage {
@@ -40,6 +42,8 @@ export default function Editor({
   onMessagesChange,
   selectedCode,
   onClearSelection,
+  pendingPrompt,
+  onPromptConsumed,
 }: EditorProps) {
   const [prompt, setPrompt] = useState("");
   const messages = messagesProp.map(toChat);
@@ -62,13 +66,18 @@ export default function Editor({
       .catch(() => {})
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
+  useEffect(() => {
+    if (!pendingPrompt || isGenerating) return
+    onPromptConsumed?.()
+    submitPrompt(pendingPrompt)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPrompt]);
 
-    const userMessage = prompt.trim();
+  async function submitPrompt(text: string) {
+    if (!text.trim() || isGenerating) return;
+
+    const userMessage = text.trim();
     const contextCode = selectedCode ?? null;
-    setPrompt("");
     setError("");
     setIsGenerating(true);
     onClearSelection?.();
@@ -108,7 +117,6 @@ export default function Editor({
         return;
       }
 
-      // Read streaming response
       const reader = res.body?.getReader();
       if (!reader) {
         setError("Failed to read response stream.");
@@ -123,12 +131,9 @@ export default function Editor({
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        // Live-update preview only for code responses
         if (accumulated.trimStart().startsWith("--- FILE:")) {
           const parsed = parseMultiFileResponse(accumulated);
-          if (parsed) {
-            onFilesUpdate(parsed);
-          }
+          if (parsed) onFilesUpdate(parsed);
         }
       }
 
@@ -151,6 +156,14 @@ export default function Editor({
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!prompt.trim() || isGenerating) return;
+    const text = prompt;
+    setPrompt("");
+    await submitPrompt(text);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {

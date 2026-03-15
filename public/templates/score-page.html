@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ============================================
+      CHANGE THIS: Put your name in the title tab
+    ============================================ -->
+    <title>My Score Page — Your Name Here</title>
+
+    <style>
+      /* ============================================
+        COLORS — change these to colors you like
+        Find color codes at: coolors.co
+      ============================================ */
+      :root {
+        --background: #0f0f0f;
+        --text: #f0f0f0;
+        --accent: #ffe135;
+      }
+
+      body {
+        background-color: var(--background);
+        color: var(--text);
+        font-family: sans-serif;
+        max-width: 700px;
+        margin: 60px auto;
+        padding: 0 20px;
+        line-height: 1.7;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: var(--accent);
+      }
+
+      button {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 12px;
+        margin-right: 8px;
+      }
+
+      button:hover { opacity: 0.85; }
+
+      .section {
+        margin-top: 40px;
+        border-top: 1px solid #333;
+        padding-top: 20px;
+      }
+
+      /* ============================================
+        THE BIG SCORE NUMBER — change font-size to
+        make it bigger or smaller
+      ============================================ -->
+      #score-display {
+        font-size: 5rem;
+        font-weight: bold;
+        color: var(--accent);
+        line-height: 1;
+        margin: 16px 0;
+      }
+
+      #milestone-message {
+        font-size: 1.1rem;
+        min-height: 28px;
+        color: var(--accent);
+      }
+
+      #reset-btn {
+        background: transparent;
+        color: #666;
+        border: 1px solid #444;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- ============================================
+      CHANGE THIS: Your name and what you are counting
+    ============================================ -->
+    <h1>[Your Name]'s Score</h1>
+    <p>Every click counts. How high can you go?</p>
+
+
+    <!-- ============================================
+      CHANGE THIS: The button labels
+      onclick= connects the button to the function below
+    ============================================ -->
+    <div class="section">
+      <h2>Keep Score</h2>
+      <div id="score-display">0</div>
+      <div id="milestone-message"></div>
+      <br>
+      <button onclick="addScore()">+ Add point</button>
+      <button id="reset-btn" onclick="resetScore()">Reset</button>
+    </div>
+
+
+    <script>
+      // ============================================
+      // THIS IS THE MOST IMPORTANT LINE TODAY
+      // let score = 0 creates a variable called score
+      // and gives it the starting value of zero
+      // ============================================
+      let score = 0
+
+
+      // ============================================
+      // CHANGE THIS: The milestone messages
+      // When score reaches the number on the left,
+      // the message on the right appears
+      // Add your own milestone numbers and messages!
+      // ============================================
+      function addScore() {
+        score = score + 1
+        document.getElementById('score-display').textContent = score
+
+        let message = ''
+        if (score === 5)  message = '🔥 Five points!'
+        if (score === 10) message = '⚡ Ten! Halfway to legend.'
+        if (score === 20) message = '🏆 TWENTY. You are the game.'
+
+        // CHANGE THIS: your custom message at any score
+        // if (score === 3) message = 'three already??'
+
+        document.getElementById('milestone-message').textContent = message
+      }
+
+
+      // ============================================
+      // RESET: sets score back to zero
+      // You don't need to change this
+      // ============================================
+      function resetScore() {
+        score = 0
+        document.getElementById('score-display').textContent = score
+        document.getElementById('milestone-message').textContent = ''
+      }
+    </script>
+
+  </body>
+</html>

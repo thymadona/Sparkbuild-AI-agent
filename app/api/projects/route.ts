@@ -45,14 +45,20 @@ export async function POST(req: Request) {
   const NOUNS = ['Rocket', 'Panda', 'Wizard', 'Robot', 'Ninja', 'Dragon', 'Phoenix', 'Comet', 'Shark', 'Tiger']
   const randomTitle = `${ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]} ${NOUNS[Math.floor(Math.random() * NOUNS.length)]}`
   const title = body.title || randomTitle
+  const { templateHtml, lessonId } = body
 
-  const { data: project, error } = await supabaseAdmin
-    .from('projects')
-    .insert({
-      user_id: user.id,
-      title,
-      files: {
-        'index.html': `<!DOCTYPE html>
+  const insertData: Record<string, unknown> = {
+    user_id: user.id,
+    title,
+    is_public: false,
+  }
+  if (lessonId !== undefined) insertData.lesson_id = lessonId
+
+  if (templateHtml) {
+    insertData.files = { 'index.html': templateHtml }
+  } else {
+    insertData.files = {
+      'index.html': `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -220,9 +226,12 @@ export async function POST(req: Request) {
   </script>
 </body>
 </html>`,
-      },
-      is_public: false,
-    })
+    }
+  }
+
+  const { data: project, error } = await supabaseAdmin
+    .from('projects')
+    .insert(insertData)
     .select()
     .single()
 
@@ -290,6 +299,10 @@ export async function DELETE(req: Request) {
   if (!id) {
     return NextResponse.json({ error: 'Project id is required' }, { status: 400 })
   }
+
+  // Delete child rows first to avoid FK constraint violations
+  await supabaseAdmin.from('messages').delete().eq('project_id', id)
+  await supabaseAdmin.from('prompts').delete().eq('project_id', id)
 
   // Ownership enforced by filtering on both id and user_id in the DELETE itself
   const { error } = await supabaseAdmin.from('projects').delete().eq('id', id).eq('user_id', user.id)

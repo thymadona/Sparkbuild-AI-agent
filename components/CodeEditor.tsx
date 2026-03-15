@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import CodeMirror from '@uiw/react-codemirror'
+import { useState, useEffect, useRef } from 'react'
+import CodeMirror, { EditorView } from '@uiw/react-codemirror'
 import { html } from '@codemirror/lang-html'
 import { css } from '@codemirror/lang-css'
 import { javascript } from '@codemirror/lang-javascript'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { Decoration, DecorationSet } from '@codemirror/view'
+import { StateEffect, StateField } from '@codemirror/state'
 import type { ViewUpdate } from '@codemirror/view'
 
 interface CodeEditorProps {
@@ -13,12 +15,68 @@ interface CodeEditorProps {
   onSave: (code: string) => void
   language?: 'html' | 'css' | 'js'
   onSelectionChange?: (selection: { text: string; startLine: number; endLine: number } | null) => void
+  highlightLine?: number | null
 }
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange }: CodeEditorProps) {
+const addHighlight = StateEffect.define<{ from: number; to: number }>()
+const clearHighlight = StateEffect.define<null>()
+
+const highlightField = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none
+  },
+  update(deco, tr) {
+    deco = deco.map(tr.changes)
+    for (const e of tr.effects) {
+      if (e.is(addHighlight)) {
+        const mark = Decoration.line({ class: 'cm-lesson-highlight' })
+        deco = Decoration.set([mark.range(e.value.from)])
+      } else if (e.is(clearHighlight)) {
+        deco = Decoration.none
+      }
+    }
+    return deco
+  },
+  provide: (f) => EditorView.decorations.from(f),
+})
+
+const highlightTheme = EditorView.baseTheme({
+  '.cm-lesson-highlight': {
+    backgroundColor: 'rgba(99, 102, 241, 0.25) !important',
+    borderLeft: '2px solid #818cf8',
+  },
+})
+
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLine }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
+  const viewRef = useRef<EditorView | null>(null)
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view || highlightLine == null) return
+
+    const doc = view.state.doc
+    if (highlightLine < 1 || highlightLine > doc.lines) return
+
+    const line = doc.line(highlightLine)
+    view.dispatch({
+      effects: [
+        addHighlight.of({ from: line.from, to: line.to }),
+        EditorView.scrollIntoView(line.from, { y: 'center' }),
+      ],
+    })
+
+    const timer = setTimeout(() => {
+      view.dispatch({ effects: clearHighlight.of(null) })
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [highlightLine])
 
   function handleUpdate(vu: ViewUpdate) {
+    // capture view ref
+    viewRef.current = vu.view
+
     if (!onSelectionChange || !vu.selectionSet) return
     const sel = vu.state.selection.main
     if (sel.empty) {
@@ -35,7 +93,11 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
     onSelectionChange({ text, startLine, endLine })
   }
 
-  const extensions = language === 'css' ? [css()] : language === 'js' ? [javascript()] : [html()]
+  const extensions = [
+    highlightField,
+    highlightTheme,
+    ...(language === 'css' ? [css()] : language === 'js' ? [javascript()] : [html()]),
+  ]
 
   return (
     <div className="flex h-full flex-col">

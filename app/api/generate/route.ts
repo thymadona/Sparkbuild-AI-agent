@@ -80,7 +80,13 @@ export async function POST(req: Request) {
   let filesContext = ''
   if (files && Object.keys(files).length > 0) {
     filesContext = Object.entries(files)
-      .map(([name, content]) => `--- FILE: ${name} ---\n${content}`)
+      .map(([name, content]) => {
+        const numbered = content
+          .split('\n')
+          .map((line, i) => `${i + 1} | ${line}`)
+          .join('\n')
+        return `--- FILE: ${name} ---\n${numbered}`
+      })
       .join('\n\n')
   }
 
