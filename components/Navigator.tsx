@@ -51,10 +51,10 @@ export default function Navigator({ lesson, code, onHighlight, onPrompt }: Navig
         {/* Progress header */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
+            <p className="text-sm font-semibold text-white">
               {lesson.title}
             </p>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-400">
               {done.size}/{lesson.tasks.length}
             </p>
           </div>
@@ -62,15 +62,15 @@ export default function Navigator({ lesson, code, onHighlight, onPrompt }: Navig
           {/* Progress bar */}
           <div className="h-1 rounded-full bg-gray-800">
             <div
-              className="h-1 rounded-full bg-indigo-500 transition-all duration-300"
+              className="h-1 rounded-full bg-gradient-to-r from-brand-500 to-teal-400 transition-all duration-300"
               style={{ width: `${(done.size / lesson.tasks.length) * 100}%` }}
             />
           </div>
         </div>
 
         {allDone && (
-          <div className="rounded-md border border-green-800 bg-green-950/40 px-3 py-2 text-xs text-green-400 text-center">
-            All tasks complete!
+          <div className="rounded-xl border border-teal-500/40 bg-teal-900/20 px-4 py-4 text-center animate-pop-in">
+            <p className="text-sm text-teal-300">🎉 All done! You completed every task in this lesson.</p>
           </div>
         )}
 
@@ -89,19 +89,20 @@ export default function Navigator({ lesson, code, onHighlight, onPrompt }: Navig
                   isDone
                     ? 'bg-transparent text-gray-600'
                     : isActive
-                    ? 'bg-indigo-600/20 text-white ring-1 ring-indigo-500'
+                    ? 'bg-brand-500/15 text-white ring-1 ring-brand-400'
                     : 'bg-gray-800/60 text-gray-400 hover:bg-gray-800 hover:text-gray-200'
                 }`}
               >
                 {/* Status indicator */}
-                <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full border text-xs font-medium
-                  ${isDone ? 'border-green-800 bg-green-950 text-green-500' : isActive ? 'border-indigo-500 bg-indigo-900 text-indigo-300' : 'border-gray-700 bg-gray-900 text-gray-500'}">
+                <span className={`shrink-0 flex h-5 w-5 items-center justify-center rounded-full border text-xs font-medium ${
+                  isDone ? 'border-green-800 bg-green-950 text-green-500' : isActive ? 'border-brand-400 bg-brand-900 text-brand-300' : 'border-gray-700 bg-gray-900 text-gray-500'
+                }`}>
                   {isDone ? (
                     <svg className="h-3 w-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <span className={`text-xs ${isActive ? 'text-indigo-300' : 'text-gray-600'}`}>{i + 1}</span>
+                    <span className={`text-xs ${isActive ? 'text-brand-300' : 'text-gray-600'}`}>{i + 1}</span>
                   )}
                 </span>
                 <span className={isDone ? 'line-through' : ''}>{task.chip}</span>
@@ -132,7 +133,7 @@ export default function Navigator({ lesson, code, onHighlight, onPrompt }: Navig
         </div>
       </div>
 
-      {/* Mark done — pinned footer, only shown when a task is active */}
+      {/* Done, move on — pinned footer, only shown when a task is active */}
       {activeTask && !allDone && (
         <div className="shrink-0 border-t border-gray-800 p-3">
           <p className="text-xs text-gray-600 mb-2 text-center">
@@ -140,9 +141,9 @@ export default function Navigator({ lesson, code, onHighlight, onPrompt }: Navig
           </p>
           <button
             onClick={() => markDone(activeIndex)}
-            className="w-full rounded-md bg-green-800 px-4 py-2 text-sm font-medium text-green-100 hover:bg-green-700 active:bg-green-900 transition-colors"
+            className="w-full rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 active:bg-teal-700 transition-colors"
           >
-            Mark done →
+            Mark done ✓
           </button>
         </div>
       )}

@@ -174,14 +174,22 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
   return (
     <div className="flex h-screen flex-col bg-gray-950">
       {/* Top bar */}
-      <header className="flex h-10 shrink-0 items-center justify-between border-b border-gray-800 bg-gray-900 px-4 gap-3">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-gray-800 bg-surface-800 px-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-gray-500 hover:text-white transition-colors text-sm shrink-0"
+            className="flex items-center gap-1 text-gray-500 hover:text-white transition-colors text-xs shrink-0"
           >
-            &larr;
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
           </button>
+          {lesson && (
+            <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400 ring-1 ring-amber-500/30">
+              {lesson.title.split('—')[1]?.trim() ?? lesson.title}
+            </span>
+          )}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -206,52 +214,55 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
       <div className="flex flex-1 overflow-hidden">
 
         {/* Activity bar */}
-        <div className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-gray-800 bg-[#1e1e2e] py-2">
+        <div className="flex w-14 shrink-0 flex-col items-stretch gap-0.5 border-r border-gray-800 bg-surface-700 py-2 px-1">
           {/* Navigator icon — only for lesson projects */}
           {lesson && (
             <button
               onClick={() => handleActivity('navigator')}
-              className={`flex h-10 w-10 items-center justify-center rounded transition-colors ${
+              className={`flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
                 activity === 'navigator' && sideOpen
-                  ? 'border-l-2 border-indigo-500 text-white'
-                  : 'text-gray-500 hover:text-gray-300'
+                  ? 'bg-brand-500/15 text-brand-300 rounded-md'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 rounded-md'
               }`}
               title="Tasks"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
+              <span className="text-[10px] font-medium leading-none">Tasks</span>
             </button>
           )}
 
           {/* Chat icon */}
           <button
             onClick={() => handleActivity('chat')}
-            className={`flex h-10 w-10 items-center justify-center rounded transition-colors ${
+            className={`flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
               activity === 'chat' && sideOpen
-                ? 'border-l-2 border-indigo-500 text-white'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'bg-brand-500/15 text-brand-300 rounded-md'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 rounded-md'
             }`}
             title="Chat"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
+            <span className="text-[10px] font-medium leading-none">Chat</span>
           </button>
 
           {/* Explorer icon */}
           <button
             onClick={() => handleActivity('explorer')}
-            className={`flex h-10 w-10 items-center justify-center rounded transition-colors ${
+            className={`flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
               activity === 'explorer' && sideOpen
-                ? 'border-l-2 border-indigo-500 text-white'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'bg-brand-500/15 text-brand-300 rounded-md'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 rounded-md'
             }`}
             title="Explorer"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
             </svg>
+            <span className="text-[10px] font-medium leading-none">Files</span>
           </button>
         </div>
 
@@ -260,13 +271,27 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
           className={`flex flex-col border-r border-gray-800 bg-gray-900 overflow-hidden shrink-0 ${previewBlocked ? '' : 'transition-[width] duration-200'}`}
           style={{ width: sideOpen ? sideWidth : 0 }}
         >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800 shrink-0">
-            <span className="text-xs font-medium uppercase tracking-widest text-gray-500">
-              {activity === 'navigator' ? 'Tasks' : activity === 'chat' ? 'Chat' : 'Explorer'}
-            </span>
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-800 shrink-0">
+            <div className="flex items-center gap-2">
+              {activity === 'chat' && (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                  <span className="text-sm font-semibold text-white">AI Tutor</span>
+                </>
+              )}
+              {activity === 'navigator' && (
+                <span className="text-sm font-semibold text-white">Tasks</span>
+              )}
+              {activity === 'explorer' && (
+                <span className="text-sm font-semibold text-white">Files</span>
+              )}
+            </div>
             <button
               onClick={() => setSideOpen(false)}
-              className="text-gray-600 hover:text-gray-400 transition-colors text-base leading-none"
+              className="text-gray-600 hover:text-gray-400 transition-colors p-1 rounded hover:bg-gray-800"
               title="Close panel"
             >
               &times;
@@ -332,15 +357,15 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
         {/* Main area: Code + Preview tabs */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Tab bar */}
-          <div className="flex items-center border-b border-gray-800 bg-gray-900">
+          <div className="flex items-center border-b border-gray-800 bg-surface-900 px-2 gap-1">
             {openTabs.map((filename) => (
               <button
                 key={filename}
                 onClick={() => { setActiveFile(filename); setRightTab('code'); }}
-                className={`flex items-center gap-1.5 border-r border-gray-800 px-4 py-2 text-xs transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
                   rightTab === 'code' && activeFile === filename
-                    ? 'border-t-2 border-t-indigo-500 bg-gray-950 text-white'
-                    : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+                    ? 'bg-surface-700 text-white rounded-md my-1'
+                    : 'text-gray-500 hover:bg-gray-800/60 hover:text-gray-300 rounded-md my-1'
                 }`}
               >
                 {filename.endsWith('.css') ? (
@@ -371,10 +396,10 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
 
             <button
               onClick={() => setRightTab('preview')}
-              className={`flex items-center gap-1.5 border-r border-gray-800 px-4 py-2 text-xs transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
                 rightTab === 'preview'
-                  ? 'border-t-2 border-t-indigo-500 bg-gray-950 text-white'
-                  : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+                  ? 'bg-surface-700 text-white rounded-md my-1'
+                  : 'text-gray-500 hover:bg-gray-800/60 hover:text-gray-300 rounded-md my-1'
               }`}
             >
               <svg className="h-3.5 w-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -386,10 +411,10 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
 
             <button
               onClick={() => setRightTab('console')}
-              className={`flex items-center gap-1.5 border-r border-gray-800 px-4 py-2 text-xs transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
                 rightTab === 'console'
-                  ? 'border-t-2 border-t-indigo-500 bg-gray-950 text-white'
-                  : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+                  ? 'bg-surface-700 text-white rounded-md my-1'
+                  : 'text-gray-500 hover:bg-gray-800/60 hover:text-gray-300 rounded-md my-1'
               }`}
             >
               <svg className="h-3.5 w-3.5 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -409,7 +434,7 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
                 if (!splitView && rightTab === 'console') setRightTab('code')
                 setSplitView(v => !v)
               }}
-              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded transition-colors ${splitView ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded transition-colors ${splitView ? 'bg-brand-500/20 text-brand-300 rounded-md' : 'text-gray-400 hover:text-white'}`}
               title="Split view"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

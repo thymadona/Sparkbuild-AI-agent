@@ -51,7 +51,6 @@ export default function Editor({
   const [error, setError] = useState("");
   const [mode, setMode] = useState<'ask' | 'build'>('ask');
   const [buildModeAvailable, setBuildModeAvailable] = useState(false);
-  const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -166,62 +165,30 @@ export default function Editor({
     await submitPrompt(text);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e as unknown as React.FormEvent);
-    }
-  }
-
   return (
     <div className="flex h-full flex-col">
-      {/* Mode dropdown */}
+      {/* Mode toggle */}
       {buildModeAvailable && (
         <div className="shrink-0 px-3 pt-3 pb-2 border-b border-gray-800">
-          <div className="relative inline-block">
+          <div className="flex rounded-lg bg-gray-800 p-0.5 w-fit">
             <button
-              onClick={() => setModeDropdownOpen((o) => !o)}
-              className="flex items-center gap-1.5 rounded-md bg-gray-800 border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:border-gray-600 transition-colors"
+              type="button"
+              onClick={() => setMode('ask')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                mode === 'ask' ? 'bg-surface-600 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
             >
-              <span className={`h-1.5 w-1.5 rounded-full ${mode === 'build' ? 'bg-indigo-400' : 'bg-green-400'}`} />
-              {mode === 'ask' ? 'Ask' : 'Build'}
-              <svg className="h-3 w-3 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
+              Ask
             </button>
-            {modeDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setModeDropdownOpen(false)} />
-                <div className="absolute left-0 top-full mt-1 z-20 w-44 rounded-md border border-gray-700 bg-gray-900 shadow-lg overflow-hidden">
-                  <button
-                    onClick={() => { setMode('ask'); setModeDropdownOpen(false); }}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
-                      mode === 'ask' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    }`}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0" />
-                    <div className="text-left">
-                      <div className="font-medium">Ask</div>
-                      <div className="text-gray-500">Hints &amp; guidance only</div>
-                    </div>
-                    {mode === 'ask' && <svg className="ml-auto h-3 w-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                  </button>
-                  <button
-                    onClick={() => { setMode('build'); setModeDropdownOpen(false); }}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
-                      mode === 'build' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    }`}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0" />
-                    <div className="text-left">
-                      <div className="font-medium">Build</div>
-                      <div className="text-gray-500">Generate code for me</div>
-                    </div>
-                    {mode === 'build' && <svg className="ml-auto h-3 w-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                  </button>
-                </div>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={() => setMode('build')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                mode === 'build' ? 'bg-brand-600 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Build
+            </button>
           </div>
         </div>
       )}
@@ -230,80 +197,30 @@ export default function Editor({
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full min-h-[320px] px-4 text-center select-none">
-            {/* Icon */}
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/20 ring-1 ring-indigo-500/30">
-              <svg
-                className="h-6 w-6 text-indigo-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
-                />
-              </svg>
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500/30 to-teal-500/20 ring-1 ring-brand-400/40 animate-pop-in">
+              <span className="text-3xl" role="img" aria-label="wave">👋</span>
             </div>
-
-            <h2 className="text-base font-semibold text-white mb-1">
-              {mode === 'build' ? 'What do you want to build?' : 'Need a hint?'}
-            </h2>
-            <p className="text-xs text-gray-500 mb-5 leading-relaxed max-w-[200px]">
-              {mode === 'build'
-                ? 'Describe your idea and the AI will generate HTML, CSS, and JS for you instantly.'
-                : 'Ask your tutor for a nudge in the right direction.'}
+            <h2 className="font-display text-base font-semibold text-white mb-1">Hi! I&apos;m your AI Tutor.</h2>
+            <p className="text-xs text-gray-400 mb-6 leading-relaxed max-w-[220px]">
+              Ask me anything about coding — no question is too small!
             </p>
-
-            {/* How it works */}
-            <div className="w-full space-y-2 mb-5">
+            <div className="flex flex-col gap-2 w-full">
               {(mode === 'build' ? [
-                { icon: "✦", label: "Describe", detail: "Type what you want to build" },
-                { icon: "⟳", label: "Generate", detail: "AI writes all three files" },
-                { icon: "◈", label: "Edit & refine", detail: "Iterate with follow-up prompts" },
+                { emoji: '🚀', text: 'Build a to-do app' },
+                { emoji: '🎮', text: 'Make a simple game' },
+                { emoji: '🌈', text: 'Create a personal page' },
               ] : [
-                { icon: "✦", label: "Share your code", detail: "Paste what you're working on" },
-                { icon: "?", label: "Ask a question", detail: "What's confusing or stuck?" },
-                { icon: "◈", label: "Learn step by step", detail: "Your tutor guides you forward" },
-              ]).map(({ icon, label, detail }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2.5 rounded-md bg-gray-800/50 px-3 py-2 text-left"
-                >
-                  <span className="text-indigo-400 text-xs w-4 shrink-0">
-                    {icon}
-                  </span>
-                  <div>
-                    <span className="text-xs font-medium text-gray-300">
-                      {label}
-                    </span>
-                    <span className="text-xs text-gray-500"> — {detail}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Prompt starters */}
-            <p className="text-xs text-gray-600 mb-2 uppercase tracking-wider">
-              Try one of these
-            </p>
-            <div className="flex flex-col gap-1.5 w-full">
-              {(mode === 'build' ? [
-                "Build a to-do list app",
-                "Make a countdown timer",
-                "Create a personal portfolio page",
-              ] : [
-                "Why isn't my if statement working?",
-                "What does a for loop do?",
-                "How do I change the colour of text in CSS?",
-              ]).map((suggestion) => (
+                { emoji: '🤔', text: 'What is a variable?' },
+                { emoji: '🐛', text: 'Help me fix a bug' },
+                { emoji: '✨', text: 'What does this code do?' },
+              ]).map(({ emoji, text }) => (
                 <button
-                  key={suggestion}
-                  onClick={() => setPrompt(suggestion)}
-                  className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-400 hover:border-indigo-500 hover:text-indigo-300 transition-colors text-left"
+                  key={text}
+                  onClick={() => setPrompt(text)}
+                  className="flex items-center gap-2.5 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-2.5 text-sm text-brand-200 hover:bg-brand-500/20 hover:border-brand-400/60 transition-all text-left"
                 >
-                  {suggestion}
+                  <span className="text-base leading-none">{emoji}</span>
+                  <span>{text}</span>
                 </button>
               ))}
             </div>
@@ -312,69 +229,79 @@ export default function Editor({
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            <div
-              className={`max-w-[85%] w-fit rounded-lg px-3 py-2 text-sm ${
-                msg.role === "user"
-                  ? "bg-indigo-700 text-white"
-                  : "bg-gray-800 text-gray-300"
-              }`}
-            >
-              {msg.role === "user" ? (
+            {msg.role === "user" ? (
+              <div className="max-w-[85%] w-fit rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm bg-brand-600 text-white">
                 <p className="whitespace-pre-wrap">{msg.content}</p>
-              ) : (
-                <div className="prose-chat">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                      h1: ({ children }) => <p className="font-bold text-white mb-1 text-sm">{children}</p>,
-                      h2: ({ children }) => <p className="font-semibold text-white mb-1 text-sm">{children}</p>,
-                      h3: ({ children }) => <p className="font-semibold text-gray-200 mb-1 text-xs uppercase tracking-wide">{children}</p>,
-                      ul: ({ children }) => <ul className="mb-2 ml-4 space-y-0.5 list-disc list-outside">{children}</ul>,
-                      ol: ({ children }) => <ol className="mb-2 ml-4 space-y-0.5 list-decimal list-outside">{children}</ol>,
-                      li: ({ children }) => <li className="text-gray-300 pl-0.5">{children}</li>,
-                      code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => {
-                        const text = String(children).replace(/\n$/, '')
-                        const isInline = inline || !text.includes('\n')
-                        return isInline ? (
-                          <code className="rounded bg-gray-900 px-1 py-0.5 font-mono text-xs text-indigo-300">{children}</code>
-                        ) : (
-                          <pre className="my-2 w-fit min-w-[6rem] max-w-full overflow-x-auto rounded bg-gray-900 p-2.5 font-mono text-xs text-gray-200 leading-relaxed">
-                            <code>{children}</code>
-                          </pre>
-                        )
-                      },
-                      strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                      em: ({ children }) => <em className="italic text-gray-400">{children}</em>,
-                      blockquote: ({ children }) => (
-                        <blockquote className="my-2 border-l-2 border-indigo-500 pl-3 text-gray-400 italic">{children}</blockquote>
-                      ),
-                      a: ({ href, children }) => (
-                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline hover:text-indigo-300">{children}</a>
-                      ),
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                <p className="mt-1 text-xs text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {msg.timestamp.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-end gap-2 max-w-[90%]">
+                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-300 mb-1">
+                  AI
                 </div>
-              )}
-              <p
-                className={`mt-1 text-xs ${msg.role === "user" ? "text-indigo-300" : "text-gray-500"}`}
-              >
-                {msg.timestamp.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
+                <div className="w-fit rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm bg-gray-800 text-gray-200">
+                  <div className="prose-chat">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                        h1: ({ children }) => <p className="font-bold text-white mb-1 text-sm">{children}</p>,
+                        h2: ({ children }) => <p className="font-semibold text-white mb-1 text-sm">{children}</p>,
+                        h3: ({ children }) => <p className="font-semibold text-gray-200 mb-1 text-xs uppercase tracking-wide">{children}</p>,
+                        ul: ({ children }) => <ul className="mb-2 ml-4 space-y-0.5 list-disc list-outside">{children}</ul>,
+                        ol: ({ children }) => <ol className="mb-2 ml-4 space-y-0.5 list-decimal list-outside">{children}</ol>,
+                        li: ({ children }) => <li className="text-gray-300 pl-0.5">{children}</li>,
+                        code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => {
+                          const text = String(children).replace(/\n$/, '')
+                          const isInline = inline || !text.includes('\n')
+                          return isInline ? (
+                            <code className="rounded bg-gray-900 px-1 py-0.5 font-mono text-xs text-brand-300">{children}</code>
+                          ) : (
+                            <pre className="my-2 w-fit min-w-[6rem] max-w-full overflow-x-auto rounded bg-gray-900 p-2.5 font-mono text-xs text-gray-200 leading-relaxed">
+                              <code>{children}</code>
+                            </pre>
+                          )
+                        },
+                        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                        em: ({ children }) => <em className="italic text-gray-400">{children}</em>,
+                        blockquote: ({ children }) => (
+                          <blockquote className="my-2 border-l-2 border-brand-500 pl-3 text-gray-400 italic">{children}</blockquote>
+                        ),
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-400 underline hover:text-brand-300">{children}</a>
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {msg.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {isGenerating && (
-          <div className="flex justify-start">
-            <div className="rounded-lg bg-gray-800 px-3 py-2 text-sm text-gray-400">
-              <span className="animate-pulse">Thinking...</span>
+          <div className="flex items-end gap-2 justify-start">
+            <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-300 mb-0.5">
+              AI
+            </div>
+            <div className="rounded-2xl rounded-bl-sm bg-gray-800 px-4 py-3 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce-dot" style={{ animationDelay: '0ms' }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce-dot" style={{ animationDelay: '150ms' }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce-dot" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}
@@ -390,9 +317,9 @@ export default function Editor({
 
       {/* Selected code context */}
       {selectedCode && (
-        <div className="mx-3 mb-2 rounded-md border border-indigo-800 bg-gray-900">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-indigo-800/60">
-            <span className="text-xs text-indigo-400 font-mono">
+        <div className="mx-3 mb-2 rounded-md border border-brand-800 bg-gray-900">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-brand-800/60">
+            <span className="text-xs text-brand-400 font-mono">
               {activeFile ?? "index.html"}:
               {selectedCode.startLine === selectedCode.endLine
                 ? `${selectedCode.startLine}`
@@ -415,36 +342,52 @@ export default function Editor({
       )}
 
       {/* Input form */}
-      <form
-        onSubmit={handleSubmit}
-        className="border-t border-gray-800 p-3 flex gap-2"
-      >
-        <textarea
-          ref={textareaRef}
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={mode === 'build' ? 'Describe what you want to build...' : 'Ask for a hint or help...'}
-          rows={1}
-          disabled={isGenerating}
-          className="flex-1 resize-none rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={isGenerating || !prompt.trim()}
-          className="self-end rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isGenerating ? (
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-          ) : (
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
-          )}
-        </button>
+      <form onSubmit={handleSubmit} className="shrink-0 px-3 pb-3 pt-2">
+        <div className={`flex items-end gap-2 rounded-2xl border bg-gray-900 px-3 py-2 transition-colors ${
+          prompt.length > 0 ? 'border-brand-500/60' : 'border-gray-700'
+        }`}>
+          <textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => {
+              setPrompt(e.target.value)
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px'
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (prompt.trim() && !isGenerating) handleSubmit(e as unknown as React.FormEvent)
+              }
+            }}
+            placeholder="Ask me anything..."
+            rows={1}
+            disabled={isGenerating}
+            className="flex-1 resize-none bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none disabled:opacity-50 leading-relaxed min-h-[24px]"
+            style={{ height: '24px' }}
+          />
+          <button
+            type="submit"
+            disabled={isGenerating || !prompt.trim()}
+            className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all active:scale-90 ${
+              prompt.trim() && !isGenerating
+                ? 'bg-brand-500 text-white hover:bg-brand-400'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {isGenerating ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 3l9 9H3l9-9z" />
+              </svg>
+            )}
+          </button>
+        </div>
+        <p className="mt-1 text-center text-[10px] text-gray-600">Enter to send · Shift+Enter for new line</p>
       </form>
     </div>
   );

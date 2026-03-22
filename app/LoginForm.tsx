@@ -34,9 +34,9 @@ export default function LoginForm() {
 
   if (sent) {
     return (
-      <div className="rounded-lg border border-green-800 bg-green-950 p-6 text-center">
-        <p className="text-green-300 font-medium">Check your email!</p>
-        <p className="mt-1 text-sm text-green-400">
+      <div className="rounded-xl border border-teal-500/40 bg-teal-900/20 p-6 text-center">
+        <p className="text-teal-300 font-medium">Check your email!</p>
+        <p className="mt-1 text-sm text-teal-400">
           We sent a magic link to <strong>{email}</strong>. Click it to sign in.
         </p>
       </div>
@@ -55,8 +55,8 @@ export default function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full rounded-md border border-gray-700 bg-gray-900 px-4 py-2.5 text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          placeholder="you@school.edu"
+          className="w-full rounded-xl border border-surface-600 bg-surface-700 px-4 py-3 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/50 transition-colors"
         />
       </div>
       {error && (
@@ -65,7 +65,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-indigo-600 px-4 py-2.5 font-medium text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="rounded-xl bg-brand-500 px-6 py-3 font-semibold text-white hover:bg-brand-600 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Sending...' : 'Send magic link'}
       </button>
