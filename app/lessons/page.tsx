@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { LESSONS } from '@/lib/lessons'
 import LessonsClient from './LessonsClient'
 
 export default async function LessonsPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -13,5 +13,11 @@ export default async function LessonsPage() {
     redirect('/')
   }
 
-  return <LessonsClient lessons={LESSONS} />
+  const { data: userProjects } = await supabaseAdmin
+    .from('projects')
+    .select('id, lesson_id')
+    .eq('user_id', user.id)
+    .not('lesson_id', 'is', null)
+
+  return <LessonsClient lessons={LESSONS} userProjects={userProjects ?? []} />
 }
