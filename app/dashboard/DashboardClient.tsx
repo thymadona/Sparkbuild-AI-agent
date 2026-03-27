@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserSupabaseClient } from '@/lib/supabase-browser'
+import ThemeToggle from '@/components/ThemeToggle'
 import type { Project } from '@/types'
 import { LESSONS } from '@/lib/lessons'
 
@@ -20,7 +21,7 @@ function getLessonGradient(lessonId: number | null): string {
     5: 'from-emerald-500 to-teal-600',
     6: 'from-brand-500 to-indigo-600',
   }
-  return map[lessonId ?? 0] ?? 'from-gray-600 to-gray-700'
+  return map[lessonId ?? 0] ?? 'from-gray-400 to-gray-500'
 }
 
 export default function DashboardClient({ initialProjects, userEmail }: Props) {
@@ -86,18 +87,19 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
     <div className="min-h-screen bg-surface-900 font-body">
       {/* Top nav */}
       <header className="sticky top-0 z-10 border-b border-surface-600/50 bg-surface-900/90 backdrop-blur-md px-6 py-3 flex items-center justify-between">
-        <a href="/" className="font-display text-lg font-bold text-white">
+        <a href="/" className="font-display text-lg font-bold text-fg-primary">
           <span className="text-brand-400">Code</span>Builder
         </a>
         <nav className="flex items-center gap-4 text-sm">
-          <a href="/lessons" className="text-gray-400 hover:text-white transition-colors hidden sm:block">Lessons</a>
-          <a href="/explore" className="text-gray-400 hover:text-white transition-colors hidden sm:block">Explore</a>
+          <a href="/lessons" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Lessons</a>
+          <a href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</a>
           <button
             onClick={handleSignOut}
-            className="text-gray-400 hover:text-white transition-colors text-sm hidden sm:block"
+            className="text-fg-secondary hover:text-fg-primary transition-colors text-sm hidden sm:block"
           >
             Sign out
           </button>
+          <ThemeToggle />
           <a href="/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white hover:bg-brand-500 transition-colors">
             {firstName[0].toUpperCase()}
           </a>
@@ -106,11 +108,11 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
 
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
         {/* Welcome banner */}
-        <section className="rounded-2xl bg-gradient-to-r from-brand-900/60 to-surface-800 border border-brand-800/40 px-6 py-6 flex items-center justify-between gap-4">
+        <section className="rounded-2xl bg-gradient-to-r from-brand-600/20 to-surface-800 border border-brand-500/20 px-6 py-6 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-brand-400">Welcome back</p>
-            <h1 className="font-display mt-1 text-2xl font-bold text-white">Hey, {firstName}!</h1>
-            <p className="mt-1 text-sm text-gray-400">What are you building today?</p>
+            <h1 className="font-display mt-1 text-2xl font-bold text-fg-primary">Hey, {firstName}!</h1>
+            <p className="mt-1 text-sm text-fg-secondary">What are you building today?</p>
           </div>
           <button
             onClick={handleNewProject}
@@ -130,7 +132,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
           ].map(({ value, label, color }) => (
             <div key={label} className="rounded-xl border border-surface-600 bg-surface-800 p-4 text-center">
               <p className={`font-display text-3xl font-bold ${color}`}>{value}</p>
-              <p className="text-xs text-gray-500 mt-1">{label}</p>
+              <p className="text-xs text-fg-muted mt-1">{label}</p>
             </div>
           ))}
         </section>
@@ -138,7 +140,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
         {/* Lesson progress strip */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-base font-semibold text-white">Lesson Progress</h2>
+            <h2 className="font-display text-base font-semibold text-fg-primary">Lesson Progress</h2>
             <a href="/lessons" className="text-sm text-brand-400 hover:text-brand-300 transition-colors">See all →</a>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
@@ -146,12 +148,12 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
               const started = projects.some(p => p.lesson_id === lesson.id)
               return (
                 <div key={lesson.id} className={`shrink-0 rounded-xl border px-4 py-3 w-40 transition-colors ${
-                  started ? 'border-brand-500/50 bg-brand-900/30' : 'border-surface-600 bg-surface-800'
+                  started ? 'border-brand-500/50 bg-brand-500/10' : 'border-surface-600 bg-surface-800'
                 }`}>
-                  <span className={`text-xs font-bold ${started ? 'text-brand-400' : 'text-gray-600'}`}>
+                  <span className={`text-xs font-bold ${started ? 'text-brand-400' : 'text-fg-muted'}`}>
                     Week {lesson.id}
                   </span>
-                  <p className="mt-1 text-xs text-gray-300 leading-snug line-clamp-2">
+                  <p className="mt-1 text-xs text-fg-secondary leading-snug line-clamp-2">
                     {lesson.title.split('—')[1]?.trim() || lesson.title}
                   </p>
                   {started && <span className="mt-2 inline-block text-xs text-teal-400">Started</span>}
@@ -163,21 +165,21 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
 
         {/* Projects */}
         <section>
-          <h2 className="font-display text-base font-semibold text-white mb-4">
+          <h2 className="font-display text-base font-semibold text-fg-primary mb-4">
             My Projects
-            <span className="ml-2 text-sm font-normal text-gray-500">({projects.length})</span>
+            <span className="ml-2 text-sm font-normal text-fg-muted">({projects.length})</span>
           </h2>
 
           {projects.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-surface-600 py-20 text-center">
               <p className="text-5xl mb-4">🚀</p>
-              <p className="font-display text-xl font-semibold text-white">Nothing here yet!</p>
-              <p className="text-sm text-gray-500 mt-2 mb-6">Start a lesson or create a blank project.</p>
+              <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet!</p>
+              <p className="text-sm text-fg-muted mt-2 mb-6">Start a lesson or create a blank project.</p>
               <div className="flex gap-3 justify-center">
                 <a href="/lessons" className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
                   Start a lesson
                 </a>
-                <button onClick={handleNewProject} disabled={creating} className="rounded-xl border border-surface-600 px-5 py-2.5 text-sm text-gray-300 hover:border-brand-400 transition-colors disabled:opacity-50">
+                <button onClick={handleNewProject} disabled={creating} className="rounded-xl border border-surface-600 px-5 py-2.5 text-sm text-fg-secondary hover:border-brand-400 transition-colors disabled:opacity-50">
                   Blank project
                 </button>
               </div>
@@ -185,24 +187,24 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <div key={project.id} className="rounded-2xl border border-surface-600 bg-surface-800 overflow-hidden hover:border-surface-500 transition-colors">
+                <div key={project.id} className="rounded-2xl border border-surface-600 bg-surface-800 overflow-hidden hover:border-surface-700 transition-colors">
                   {/* Gradient top strip */}
                   <div className={`h-2 bg-gradient-to-r ${getLessonGradient(project.lesson_id)}`} />
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-white truncate">{project.title}</p>
+                        <p className="font-semibold text-fg-primary truncate">{project.title}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-fg-muted">
                             {project.lesson_id ? `Week ${project.lesson_id}` : 'Free Build'}
                           </span>
                           {project.is_public && (
-                            <span className="rounded-full bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-400">Public</span>
+                            <span className="rounded-full bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-700 dark:text-teal-400">Public</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 mb-3">
+                    <p className="text-xs text-fg-muted mb-3">
                       Updated {new Date(project.updated_at).toLocaleDateString()}
                     </p>
                     <div className="flex gap-2">
@@ -211,7 +213,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
                       </a>
                       <button
                         onClick={() => handleTogglePublic(project)}
-                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-gray-400 hover:border-brand-400 hover:text-white transition-colors"
+                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-fg-secondary hover:border-brand-400 hover:text-fg-primary transition-colors"
                         title={project.is_public ? 'Make private' : 'Share'}
                       >
                         {project.is_public ? 'Unshare' : 'Share'}
@@ -219,23 +221,23 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
                       <button
                         onClick={() => handleDuplicate(project)}
                         disabled={duplicating === project.id}
-                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-gray-400 hover:border-surface-500 transition-colors disabled:opacity-50"
+                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-fg-secondary hover:border-surface-600 transition-colors disabled:opacity-50"
                         title="Duplicate"
                       >
                         {duplicating === project.id ? '...' : 'Copy'}
                       </button>
                       <button
                         onClick={() => handleDelete(project.id)}
-                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-red-500 hover:border-red-800 hover:bg-red-950/40 transition-colors"
+                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-red-500 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                         title="Delete"
                       >
-                        Del
+                        Delete
                       </button>
                     </div>
                     {project.is_public && (
                       <button
                         onClick={() => handleCopyLink(project.id)}
-                        className="mt-2 w-full rounded-xl border border-surface-600 py-1.5 text-xs text-gray-400 hover:border-brand-400 hover:text-brand-300 transition-colors"
+                        className="mt-2 w-full rounded-xl border border-surface-600 py-1.5 text-xs text-fg-secondary hover:border-brand-400 hover:text-brand-400 transition-colors"
                       >
                         Copy share link
                       </button>

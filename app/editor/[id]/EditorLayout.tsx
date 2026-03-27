@@ -172,7 +172,7 @@ export default function EditorLayout({ project, initialMessages, lesson }: Props
   const activeLanguage = getLanguage(activeFile)
 
   return (
-    <div className="flex h-screen flex-col bg-gray-950">
+    <div className="dark flex h-screen flex-col bg-gray-950">
       {/* Top bar */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-gray-800 bg-surface-800 px-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">

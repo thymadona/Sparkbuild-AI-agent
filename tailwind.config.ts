@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -20,10 +21,15 @@ const config: Config = {
           950: '#1a0a40',
         },
         surface: {
-          600: '#252535',
-          700: '#1e1e2e',
-          800: '#16161f',
-          900: '#0f0f17',
+          600: 'var(--surface-600)',
+          700: 'var(--surface-700)',
+          800: 'var(--surface-800)',
+          900: 'var(--surface-900)',
+        },
+        fg: {
+          primary: 'var(--fg-primary)',
+          secondary: 'var(--fg-secondary)',
+          muted: 'var(--fg-muted)',
         },
         amber: {
           400: '#fbbf24',

@@ -1,6 +1,5 @@
 'use client'
 
-import LoginForm from './LoginForm'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
@@ -32,18 +31,18 @@ export default function LandingPage() {
           <span className="mb-6 inline-block rounded-full bg-brand-900/80 border border-brand-800 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-300">
             For students, age 10–16
           </span>
-          <h1 className="font-display text-5xl font-bold leading-tight text-white sm:text-6xl">
+          <h1 className="font-display text-5xl font-bold leading-tight text-fg-primary sm:text-6xl">
             Build real web apps.<br />
             <span className="text-brand-400">Learn by doing.</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-gray-400 leading-relaxed">
+          <p className="mx-auto mt-6 max-w-xl text-lg text-fg-secondary leading-relaxed">
             Type what you want to make. Your AI tutor helps you understand it — step by step. No setup, no downloads, just building.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <a href="#login" className="rounded-full bg-brand-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all hover:shadow-brand-500/50">
+            <a href="/register" className="rounded-full bg-brand-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all hover:shadow-brand-500/50">
               Start building free
             </a>
-            <a href="/explore" className="rounded-full border border-surface-600 px-8 py-3.5 text-base font-semibold text-gray-300 hover:border-brand-400 hover:text-white transition-colors">
+            <a href="/explore" className="rounded-full border border-surface-600 px-8 py-3.5 text-base font-semibold text-fg-secondary hover:border-brand-400 hover:text-fg-primary transition-colors">
               See what students built →
             </a>
           </div>
@@ -52,8 +51,8 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section id="how-it-works" className="mx-auto max-w-4xl px-6 py-24">
-        <h2 className="font-display text-3xl font-bold text-white text-center mb-3">How it works</h2>
-        <p className="text-center text-gray-500 mb-16">Three steps. No experience needed.</p>
+        <h2 className="font-display text-3xl font-bold text-fg-primary text-center mb-3">How it works</h2>
+        <p className="text-center text-fg-muted mb-16">Three steps. No experience needed.</p>
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             { step: '01', title: 'Pick a lesson', body: 'Start with a guided project — a personal page, a game, a tool. 6 lessons, each with 5 tasks.', color: 'text-brand-400' },
@@ -62,8 +61,8 @@ export default function LandingPage() {
           ].map(({ step, title, body, color }) => (
             <div key={step} className="rounded-2xl border border-surface-600 bg-surface-800 p-6">
               <span className={`font-display text-4xl font-bold ${color} opacity-60`}>{step}</span>
-              <h3 className="font-display mt-3 text-xl font-semibold text-white">{title}</h3>
-              <p className="mt-2 text-sm text-gray-400 leading-relaxed">{body}</p>
+              <h3 className="font-display mt-3 text-xl font-semibold text-fg-primary">{title}</h3>
+              <p className="mt-2 text-sm text-fg-secondary leading-relaxed">{body}</p>
             </div>
           ))}
         </div>
@@ -72,7 +71,7 @@ export default function LandingPage() {
       {/* Gallery preview */}
       <section className="mx-auto max-w-4xl px-6 pb-24">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="font-display text-2xl font-bold text-white">Built by students</h2>
+          <h2 className="font-display text-2xl font-bold text-fg-primary">Built by students</h2>
           <a href="/explore" className="text-sm text-brand-400 hover:text-brand-300 transition-colors">See all →</a>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -80,8 +79,8 @@ export default function LandingPage() {
             <div key={p.id} className="rounded-xl overflow-hidden border border-surface-600 bg-surface-800 hover:border-brand-500/50 transition-colors">
               <div className={`h-32 bg-gradient-to-br ${gradients[p.lessonId] ?? 'from-gray-600 to-gray-700'} opacity-80`} />
               <div className="p-3">
-                <p className="font-semibold text-white text-sm truncate">{p.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">by {p.creator}</p>
+                <p className="font-semibold text-fg-primary text-sm truncate">{p.title}</p>
+                <p className="text-xs text-fg-muted mt-0.5">by {p.creator}</p>
               </div>
             </div>
           ))}
@@ -99,17 +98,23 @@ export default function LandingPage() {
           ].map(({ value, label }) => (
             <div key={label} className="flex-1 text-center py-4 sm:py-0 px-4">
               <p className="font-display text-3xl font-bold text-brand-400">{value}</p>
-              <p className="text-sm text-gray-500 mt-1">{label}</p>
+              <p className="text-sm text-fg-muted mt-1">{label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* CTA / Login */}
-      <section id="login" className="mx-auto max-w-md px-6 py-24 text-center">
-        <h2 className="font-display text-3xl font-bold text-white mb-3">Ready to start?</h2>
-        <p className="text-gray-400 mb-8">No password needed. Just your school email.</p>
-        <LoginForm />
+      {/* CTA */}
+      <section className="mx-auto max-w-md px-6 py-24 text-center">
+        <h2 className="font-display text-3xl font-bold text-fg-primary mb-3">Ready to start?</h2>
+        <p className="text-fg-secondary mb-8">Free forever. No password needed.</p>
+        <a href="/register" className="inline-block rounded-xl bg-brand-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-brand-600 transition-colors">
+          Create your account
+        </a>
+        <p className="mt-4 text-sm text-fg-muted">
+          Already have an account?{' '}
+          <a href="/login" className="text-brand-400 hover:text-brand-300 transition-colors">Sign in</a>
+        </p>
       </section>
 
       <Footer />

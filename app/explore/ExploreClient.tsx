@@ -15,6 +15,7 @@ interface Project {
 
 interface Props {
   projects: Project[]
+  isLoggedIn: boolean
 }
 
 const gradients: Record<number, string> = {
@@ -44,7 +45,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)}mo ago`
 }
 
-export default function ExploreClient({ projects }: Props) {
+export default function ExploreClient({ projects, isLoggedIn }: Props) {
   const [filter, setFilter] = useState<number | null>(null)
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
 
@@ -57,12 +58,12 @@ export default function ExploreClient({ projects }: Props) {
 
   return (
     <div className="min-h-screen bg-surface-900 font-body">
-      <Navbar variant="marketing" />
+      <Navbar variant={isLoggedIn ? 'app' : 'marketing'} />
 
       <main className="mx-auto max-w-5xl px-6 py-24">
         <div className="mb-10">
-          <h1 className="font-display text-4xl font-bold text-white">Student Gallery</h1>
-          <p className="mt-2 text-gray-400">See what your classmates are building.</p>
+          <h1 className="font-display text-4xl font-bold text-fg-primary">Student Gallery</h1>
+          <p className="mt-2 text-fg-secondary">See what your classmates are building.</p>
         </div>
 
         {/* Filters */}
@@ -70,7 +71,7 @@ export default function ExploreClient({ projects }: Props) {
           <button
             onClick={() => setFilter(null)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === null ? 'bg-brand-500 text-white' : 'border border-surface-600 text-gray-400 hover:border-brand-400 hover:text-white'
+              filter === null ? 'bg-brand-500 text-white' : 'border border-surface-600 text-fg-secondary hover:border-brand-400 hover:text-fg-primary'
             }`}
           >
             All
@@ -80,7 +81,7 @@ export default function ExploreClient({ projects }: Props) {
               key={id}
               onClick={() => setFilter(id)}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                filter === id ? 'bg-brand-500 text-white' : 'border border-surface-600 text-gray-400 hover:border-brand-400 hover:text-white'
+                filter === id ? 'bg-brand-500 text-white' : 'border border-surface-600 text-fg-secondary hover:border-brand-400 hover:text-fg-primary'
               }`}
             >
               Week {id}
@@ -92,7 +93,7 @@ export default function ExploreClient({ projects }: Props) {
           <select
             value={sort}
             onChange={e => setSort(e.target.value as 'newest' | 'oldest')}
-            className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-brand-500"
+            className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-1.5 text-sm text-fg-primary focus:outline-none focus:border-brand-500"
           >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
@@ -102,8 +103,8 @@ export default function ExploreClient({ projects }: Props) {
         {filtered.length === 0 ? (
           <div className="mt-24 text-center">
             <p className="text-6xl mb-4">🏗️</p>
-            <p className="font-display text-xl font-semibold text-white">Nothing here yet</p>
-            <p className="mt-2 text-gray-500">Be the first to share a project.</p>
+            <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet</p>
+            <p className="mt-2 text-fg-muted">Be the first to share a project.</p>
             <a href="/dashboard" className="mt-6 inline-block rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
               Go build something
             </a>
@@ -125,26 +126,26 @@ export default function ExploreClient({ projects }: Props) {
                       sandbox="allow-scripts"
                       title={`Preview of ${project.title}`}
                       style={{
-                        width: '640px',
-                        height: '480px',
-                        transform: 'scale(0.5)',
+                        width: '800px',
+                        height: '500px',
+                        transform: 'scale(0.38)',
                         transformOrigin: 'top left',
                         pointerEvents: 'none',
                         border: 'none',
                       }}
                     />
                   ) : (
-                    <div className={`h-full w-full bg-gradient-to-br ${gradients[project.lesson_id ?? 0] ?? 'from-gray-600 to-gray-700'}`} />
+                    <div className={`h-full w-full bg-gradient-to-br ${gradients[project.lesson_id ?? 0] ?? 'from-gray-400 to-gray-500'}`} />
                   )}
                   {project.lesson_id && (
-                    <span className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2 py-0.5 text-xs text-gray-300 backdrop-blur-sm">
+                    <span className="absolute bottom-2 right-2 rounded-full bg-black/40 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
                       {lessonLabels[project.lesson_id] ?? `Week ${project.lesson_id}`}
                     </span>
                   )}
                 </div>
                 <div className="p-4">
-                  <p className="font-semibold text-white truncate group-hover:text-brand-300 transition-colors">{project.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{timeAgo(project.created_at)}</p>
+                  <p className="font-semibold text-fg-primary truncate group-hover:text-brand-400 transition-colors">{project.title}</p>
+                  <p className="text-xs text-fg-muted mt-0.5">{timeAgo(project.created_at)}</p>
                 </div>
               </a>
             ))}
