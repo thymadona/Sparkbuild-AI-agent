@@ -35,7 +35,7 @@ bunx jest __tests__/unit/lib/ratelimit.test.ts  # Single test file
 ### Request Flow
 
 1. User prompt hits `POST /api/generate`
-2. Route authenticates via Supabase server client, checks rate limit (10/hour/user; admins bypass via `ADMIN_EMAILS` env var)
+2. Route authenticates via Supabase server client, checks rate limit (20/hour/user; admins bypass via `ADMIN_EMAILS` env var)
 3. Prompt logged to `prompts` table, then streamed to OpenRouter (Gemini 2.5 Flash)
 4. Response streamed back to client via `ReadableStream` + `TextEncoder`
 5. On stream completion: if build mode, parse files and update `projects.files`; persist both user and assistant messages to `messages` table
@@ -83,7 +83,7 @@ ADMIN_EMAILS=                    # comma-separated; bypasses rate limit
 ## Key Constraints
 
 - Model: `google/gemini-3-flash-preview` via OpenRouter — do not switch without approval (cost control)
-- Rate limit: 10 prompts/hour/user (not 20/day); controlled in `lib/ratelimit.ts`; `ADMIN_EMAILS` env var bypasses it
+- Rate limit: 20 prompts/hour/user; controlled in `lib/ratelimit.ts`; `ADMIN_EMAILS` env var bypasses it
 - Do not install WebContainer, Sandpack, or CodeSandbox SDK -- srcdoc is intentional
 - All DB writes go through server-side routes using `supabaseAdmin`
 - Never expose service role key to the browser

@@ -1,6 +1,6 @@
 import { supabaseAdmin } from './supabase-server'
 
-const HOURLY_LIMIT = 10
+const HOURLY_LIMIT = 20
 const WINDOW_HOURS = 1
 
 export async function checkRateLimit(

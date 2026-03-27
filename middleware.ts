@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
 
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/'
+    redirectUrl.pathname = '/login'
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = '/'
+      redirectUrl.pathname = '/login'
       return NextResponse.redirect(redirectUrl)
     }
     const allowed = (process.env.ADMIN_EMAILS ?? '')
