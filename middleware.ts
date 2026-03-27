@@ -44,6 +44,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Deactivation check — block access for deactivated student accounts
+  if (isProtected && user) {
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('is_active')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    // profile == null means no student_profiles row (e.g. admin users) — allow through
+    if (profile !== null && profile?.is_active === false) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = '/login'
+      redirectUrl.searchParams.set('reason', 'deactivated')
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
   // Admin guard
   if (pathname.startsWith('/admin')) {
     if (!user) {

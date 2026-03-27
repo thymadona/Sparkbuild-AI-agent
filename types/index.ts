@@ -27,3 +27,58 @@ export interface Message {
   content: string
   created_at: string
 }
+
+export interface StudentProfile {
+  user_id: string
+  full_name: string
+  parent_email: string | null
+  parent_telegram_chat_id: string | null
+  notes: string | null
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+}
+
+export interface Class {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+export interface ClassMember {
+  class_id: string
+  user_id: string
+  joined_at: string
+}
+
+export interface ClassSchedule {
+  id: string
+  class_id: string
+  day_of_week: number // 0=Sun … 6=Sat
+  start_time: string  // HH:MM:SS
+  duration_min: number
+  label: string | null
+}
+
+export interface Invoice {
+  id: string
+  user_id: string
+  amount_cents: number
+  description: string
+  due_date: string
+  status: 'unpaid' | 'paid' | 'void'
+  sent_at: string | null
+  paid_at: string | null
+  created_at: string
+}
+
+export interface Receipt {
+  id: string
+  invoice_id: string
+  user_id: string
+  amount_cents: number
+  description: string
+  paid_at: string
+  receipt_number: string
+}
