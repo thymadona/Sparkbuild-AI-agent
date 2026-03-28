@@ -48,7 +48,7 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
     <div className="min-h-screen bg-surface-900 font-body">
       <header className="sticky top-0 z-10 border-b border-surface-600/50 bg-surface-900/90 backdrop-blur-md px-6 py-3 flex items-center justify-between">
         <a href="/dashboard" className="font-display text-lg font-bold text-fg-primary">
-          <span className="text-brand-400">Code</span>Builder
+          <span className="text-brand-600 dark:text-brand-400">Code</span>Builder
         </a>
         <nav className="flex items-center gap-4 text-sm">
           <a href="/dashboard" className="text-fg-secondary hover:text-fg-primary transition-colors">Dashboard</a>
@@ -112,7 +112,7 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
                       </div>
                       <div className="flex gap-0.5 shrink-0">
                         {[1, 2, 3].map(n => (
-                          <span key={n} className={`text-sm ${n <= stars ? 'text-amber-400' : 'text-fg-muted opacity-30'}`}>★</span>
+                          <span key={n} className={`text-sm ${n <= stars ? 'text-amber-600 dark:text-amber-400' : 'text-fg-muted opacity-30'}`}>★</span>
                         ))}
                       </div>
                     </div>

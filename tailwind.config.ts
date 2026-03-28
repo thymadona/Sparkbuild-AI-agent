@@ -11,6 +11,9 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
+          50:  '#f5f3ff',
+          100: '#ede9fa',
+          200: '#ddd6fe',
           300: '#c4b5fd',
           400: '#a78bfa',
           500: '#8b5cf6',
@@ -34,11 +37,22 @@ const config: Config = {
         amber: {
           400: '#fbbf24',
           500: '#f59e0b',
+          600: '#d97706',
         },
         teal: {
           400: '#2dd4bf',
           500: '#14b8a6',
+          600: '#0d9488',
         },
+        // shadcn tokens
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
+        muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+        accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
       },
       fontFamily: {
         display: ['"Plus Jakarta Sans"', 'sans-serif'],

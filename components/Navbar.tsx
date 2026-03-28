@@ -12,7 +12,7 @@ export default function Navbar({ variant = 'marketing', userInitial }: NavbarPro
     <header className="fixed top-0 z-50 w-full border-b border-surface-600/50 bg-surface-900/80 backdrop-blur-md">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href={variant === 'app' ? '/dashboard' : '/'} className="font-display text-xl font-bold text-fg-primary">
-          <span className="text-brand-400">Code</span>Builder
+          <span className="text-brand-600 dark:text-brand-400">Code</span>Builder
         </a>
         <div className="flex items-center gap-4 text-sm">
           {variant === 'marketing' && (
