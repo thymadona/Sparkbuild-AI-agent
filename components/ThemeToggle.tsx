@@ -72,7 +72,7 @@ export default function ThemeToggle() {
               key={value}
               onClick={() => { setTheme(value); setOpen(false) }}
               className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-surface-700 ${
-                theme === value ? 'text-brand-400 font-medium' : 'text-fg-secondary hover:text-fg-primary'
+                theme === value ? 'text-brand-600 dark:text-brand-400 font-medium' : 'text-fg-secondary hover:text-fg-primary'
               }`}
             >
               <Icon />

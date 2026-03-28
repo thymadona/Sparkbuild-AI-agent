@@ -3,7 +3,7 @@ export default function Footer() {
     <footer className="border-t border-surface-600 bg-surface-900 px-6 py-10">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center sm:flex-row sm:justify-between">
         <a href="/" className="font-display text-lg font-bold text-fg-primary">
-          <span className="text-brand-400">Code</span>Builder
+          <span className="text-brand-600 dark:text-brand-400">Code</span>Builder
         </a>
         <nav className="flex gap-6 text-sm text-fg-muted">
           <a href="/about" className="hover:text-fg-primary transition-colors">About</a>

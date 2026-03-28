@@ -28,12 +28,12 @@ export default function LandingPage() {
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-20 text-center overflow-hidden">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-brand-500/10 blur-3xl pointer-events-none" />
         <div className="relative animate-slide-up">
-          <span className="mb-6 inline-block rounded-full bg-brand-900/80 border border-brand-800 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-300">
+          <span className="mb-6 inline-block rounded-full bg-brand-100 border border-brand-200 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-700 dark:bg-brand-900/80 dark:border-brand-800 dark:text-brand-300">
             For students, age 10–16
           </span>
           <h1 className="font-display text-5xl font-bold leading-tight text-fg-primary sm:text-6xl">
             Build real web apps.<br />
-            <span className="text-brand-400">Learn by doing.</span>
+            <span className="text-brand-600 dark:text-brand-400">Learn by doing.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-fg-secondary leading-relaxed">
             Type what you want to make. Your AI tutor helps you understand it — step by step. No setup, no downloads, just building.
@@ -55,11 +55,11 @@ export default function LandingPage() {
         <p className="text-center text-fg-muted mb-16">Three steps. No experience needed.</p>
         <div className="grid gap-6 sm:grid-cols-3">
           {[
-            { step: '01', title: 'Pick a lesson', body: 'Start with a guided project — a personal page, a game, a tool. 6 lessons, each with 5 tasks.', color: 'text-brand-400' },
-            { step: '02', title: 'Build with AI', body: 'Ask questions in plain English. The AI explains and guides you — it never just does it for you.', color: 'text-amber-400' },
-            { step: '03', title: 'Share your work', body: 'Hit Share and get a public link. Show your teacher, your friends, the internet.', color: 'text-teal-400' },
+            { step: '01', title: 'Pick a lesson', body: 'Start with a guided project — a personal page, a game, a tool. 6 lessons, each with 5 tasks.', color: 'text-brand-600 dark:text-brand-400' },
+            { step: '02', title: 'Build with AI', body: 'Ask questions in plain English. The AI explains and guides you — it never just does it for you.', color: 'text-amber-600 dark:text-amber-400' },
+            { step: '03', title: 'Share your work', body: 'Hit Share and get a public link. Show your teacher, your friends, the internet.', color: 'text-teal-600 dark:text-teal-400' },
           ].map(({ step, title, body, color }) => (
-            <div key={step} className="rounded-2xl border border-surface-600 bg-surface-800 p-6">
+            <div key={step} className="rounded-2xl border border-surface-600 bg-surface-800 p-6 shadow-sm dark:shadow-none">
               <span className={`font-display text-4xl font-bold ${color} opacity-60`}>{step}</span>
               <h3 className="font-display mt-3 text-xl font-semibold text-fg-primary">{title}</h3>
               <p className="mt-2 text-sm text-fg-secondary leading-relaxed">{body}</p>
@@ -72,11 +72,11 @@ export default function LandingPage() {
       <section className="mx-auto max-w-4xl px-6 pb-24">
         <div className="flex items-center justify-between mb-8">
           <h2 className="font-display text-2xl font-bold text-fg-primary">Built by students</h2>
-          <a href="/explore" className="text-sm text-brand-400 hover:text-brand-300 transition-colors">See all →</a>
+          <a href="/explore" className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">See all →</a>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {featuredProjects.map((p) => (
-            <div key={p.id} className="rounded-xl overflow-hidden border border-surface-600 bg-surface-800 hover:border-brand-500/50 transition-colors">
+            <div key={p.id} className="rounded-xl overflow-hidden border border-surface-600 bg-surface-800 shadow-sm dark:shadow-none hover:border-brand-500/50 transition-colors">
               <div className={`h-32 bg-gradient-to-br ${gradients[p.lessonId] ?? 'from-gray-600 to-gray-700'} opacity-80`} />
               <div className="p-3">
                 <p className="font-semibold text-fg-primary text-sm truncate">{p.title}</p>
@@ -88,7 +88,7 @@ export default function LandingPage() {
       </section>
 
       {/* Stats */}
-      <div className="border-y border-surface-600 bg-surface-800/60">
+      <div className="border-y border-surface-600 bg-surface-800">
         <div className="mx-auto flex max-w-4xl flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-surface-600 px-6 py-8">
           {[
             { value: '500+', label: 'Students' },
@@ -97,7 +97,7 @@ export default function LandingPage() {
             { value: '100%', label: 'Free' },
           ].map(({ value, label }) => (
             <div key={label} className="flex-1 text-center py-4 sm:py-0 px-4">
-              <p className="font-display text-3xl font-bold text-brand-400">{value}</p>
+              <p className="font-display text-3xl font-bold text-brand-600 dark:text-brand-400">{value}</p>
               <p className="text-sm text-fg-muted mt-1">{label}</p>
             </div>
           ))}
@@ -113,7 +113,7 @@ export default function LandingPage() {
         </a>
         <p className="mt-4 text-sm text-fg-muted">
           Already have an account?{' '}
-          <a href="/login" className="text-brand-400 hover:text-brand-300 transition-colors">Sign in</a>
+          <a href="/login" className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">Sign in</a>
         </p>
       </section>
 
