@@ -39,9 +39,9 @@ CODE STYLE:
 - Bright colors, large text, clear layout — students need to see results immediately
 - Prefer simple JS over frameworks`;
 
-export const MODEL = "google/gemini-3-flash-preview";
+export const MODEL = "deepseek-v4-flash";
 
-export const openrouter = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY!,
+export const deepseek = new OpenAI({
+  baseURL: "https://api.deepseek.com",
+  apiKey: process.env.DEEPSEEK_API_KEY!,
 });

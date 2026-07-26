@@ -25,7 +25,7 @@ bunx jest __tests__/unit/lib/ratelimit.test.ts  # Single test file
 - **Framework**: Next.js 14 (App Router)
 - **Hosting**: Vercel (free tier)
 - **Auth + DB**: Supabase (magic link auth, Postgres)
-- **LLM**: Gemini 3 Flash Preview via OpenRouter (`openai` SDK, OpenAI-compatible)
+- **LLM**: DeepSeek (`deepseek-v4-flash`) via native DeepSeek API (`openai` SDK, OpenAI-compatible)
 - **Code Preview**: `srcdoc` iframe (no sandbox service, no WebContainer)
 - **Styling**: Tailwind CSS
 - **Testing**: Jest with @testing-library/react
@@ -36,7 +36,7 @@ bunx jest __tests__/unit/lib/ratelimit.test.ts  # Single test file
 
 1. User prompt hits `POST /api/generate`
 2. Route authenticates via Supabase server client, checks rate limit (20/hour/user; admins bypass via `ADMIN_EMAILS` env var)
-3. Prompt logged to `prompts` table, then streamed to OpenRouter (Gemini 2.5 Flash)
+3. Prompt logged to `prompts` table, then streamed to DeepSeek (`deepseek-v4-flash`)
 4. Response streamed back to client via `ReadableStream` + `TextEncoder`
 5. On stream completion: if build mode, parse files and update `projects.files`; persist both user and assistant messages to `messages` table
 
@@ -51,7 +51,7 @@ Supabase middleware refreshes session on every request. Protected routes: `/dash
 
 ### LLM Integration (`lib/gemini.ts`)
 
-Uses `openai` SDK pointed at OpenRouter's base URL. Two system prompts: `ASK_SYSTEM_PROMPT` (tutoring, never writes code) and `BUILD_SYSTEM_PROMPT` (generates HTML using `--- FILE: index.html ---` / `--- DONE ---` delimiters). Model constant: `google/gemini-3-flash-preview`.
+Uses `openai` SDK pointed at DeepSeek's native base URL (`https://api.deepseek.com`). Two system prompts: `ASK_SYSTEM_PROMPT` (tutoring, never writes code) and `BUILD_SYSTEM_PROMPT` (generates HTML using `--- FILE: index.html ---` / `--- DONE ---` delimiters). Model constant: `deepseek-v4-flash`.
 
 Build mode is off by default; enabled per-user via the `user_build_mode` table. The server is authoritative — client sends `mode: 'build'` but server verifies the user's permission before using `BUILD_SYSTEM_PROMPT`.
 
@@ -76,13 +76,13 @@ Always `<iframe srcdoc={code}>` — never blob URLs. Files are parsed from LLM o
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
-OPENROUTER_API_KEY=              # server-side only
+DEEPSEEK_API_KEY=                # server-side only
 ADMIN_EMAILS=                    # comma-separated; bypasses rate limit
 ```
 
 ## Key Constraints
 
-- Model: `google/gemini-3-flash-preview` via OpenRouter — do not switch without approval (cost control)
+- Model: `deepseek-v4-flash` via native DeepSeek API — do not switch without approval (cost control)
 - Rate limit: 20 prompts/hour/user; controlled in `lib/ratelimit.ts`; `ADMIN_EMAILS` env var bypasses it
 - Do not install WebContainer, Sandpack, or CodeSandbox SDK -- srcdoc is intentional
 - All DB writes go through server-side routes using `supabaseAdmin`

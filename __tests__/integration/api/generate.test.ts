@@ -1,6 +1,6 @@
 /**
  * Integration tests for /api/generate route handler.
- * OpenRouter client and Supabase are fully mocked.
+ * DeepSeek client and Supabase are fully mocked.
  */
 
 const mockGetUser = jest.fn()
@@ -22,14 +22,14 @@ jest.mock('@/lib/ratelimit', () => ({
 }))
 
 jest.mock('@/lib/gemini', () => ({
-  openrouter: {
+  deepseek: {
     chat: {
       completions: {
         create: (...args) => mockCreate(...args),
       },
     },
   },
-  MODEL: 'google/gemini-2.5-flash-preview',
+  MODEL: 'deepseek-v4-flash',
   ASK_SYSTEM_PROMPT: 'You are a coding tutor.',
   BUILD_SYSTEM_PROMPT: 'You are a code generator.',
 }))

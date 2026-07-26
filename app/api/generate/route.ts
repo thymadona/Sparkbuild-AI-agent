@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
-import { openrouter, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
+import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 
@@ -106,14 +106,14 @@ export async function POST(req: Request) {
     { role: 'user' as const, content: userContent },
   ]
 
-  // 6. Stream OpenRouter response
+  // 6. Stream DeepSeek response
   const encoder = new TextEncoder()
   let accumulated = ''
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const result = await openrouter.chat.completions.create({
+        const result = await deepseek.chat.completions.create({
           model: MODEL,
           stream: true,
           messages: llmMessages,
