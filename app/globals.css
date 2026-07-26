@@ -38,13 +38,13 @@
 
 /* ── Light theme (default) ──────────────────────────────────────── */
 :root {
-  --surface-600: #dcd5f5;   /* borders — visible lavender */
-  --surface-700: #ede9fa;   /* dividers/track — soft lavender */
+  --surface-600: #e8e6e0;   /* borders — near-invisible hairline */
+  --surface-700: #f3f2ee;   /* flat fill for stat/chip/action surfaces */
   --surface-800: #ffffff;   /* cards — pure white */
-  --surface-900: #f9f8ff;   /* page bg — barely-perceptible lavender */
-  --fg-primary:  #1c1630;   /* deep warm near-black */
-  --fg-secondary:#554d72;   /* muted purple-gray */
-  --fg-muted:    #9d94be;   /* light muted purple */
+  --surface-900: #faf9f6;   /* page bg — warm neutral, barely off-white */
+  --fg-primary:  #18181b;   /* near-black */
+  --fg-secondary:#6b6a63;   /* muted warm gray */
+  --fg-muted:    #a3a299;   /* light muted gray */
 }
 
 /* ── Dark theme ──────────────────────────────────────────────────── */

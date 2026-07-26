@@ -81,27 +81,23 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
 
         {/* Journey path */}
         <div className="relative">
-          <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-surface-600" />
-          <div className="space-y-6">
+          <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-surface-700" />
+          <div className="space-y-4">
             {lessons.map((lesson, i) => {
               const isStarted = startedLessonIds.has(lesson.id)
               const stars = difficulty[i]
               return (
                 <div key={lesson.id} className="flex gap-5 relative">
                   {/* Node */}
-                  <div className={`relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 text-lg font-bold transition-all ${
+                  <div className={`relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-bold transition-colors ${
                     isStarted
-                      ? 'border-brand-500 bg-brand-500/10 text-brand-500 shadow-lg shadow-brand-500/20'
-                      : 'border-surface-600 bg-surface-800 text-fg-muted'
+                      ? 'bg-brand-500 text-white'
+                      : 'bg-surface-700 text-fg-muted'
                   }`}>
                     {isStarted ? '✓' : String(i + 1)}
                   </div>
                   {/* Card */}
-                  <div className={`flex-1 rounded-2xl border p-5 transition-colors ${
-                    isStarted
-                      ? 'border-brand-500/30 bg-surface-800'
-                      : 'border-surface-600 bg-surface-800 hover:border-surface-600'
-                  }`}>
+                  <div className="flex-1 rounded-xl bg-surface-800 p-5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-xs font-bold uppercase tracking-widest text-fg-muted">Week {lesson.id}</p>
@@ -121,10 +117,10 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
                       <button
                         onClick={() => handleStart(lesson)}
                         disabled={loadingId !== null}
-                        className={`ml-auto rounded-xl px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                        className={`ml-auto rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
                           isStarted
-                            ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 hover:bg-teal-500/25 border border-teal-500/30'
-                            : 'bg-brand-500 text-white hover:bg-brand-600 shadow-md shadow-brand-500/20'
+                            ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 hover:bg-teal-500/25'
+                            : 'bg-brand-500 text-white hover:bg-brand-600'
                         }`}
                       >
                         {loadingId === lesson.id ? 'Starting...' : isStarted ? 'Start again →' : 'Start'}

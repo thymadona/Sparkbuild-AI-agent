@@ -39,10 +39,10 @@ export default function FileTree({ files, activeFile, onFileClick, onAddFile }: 
     <div className="px-2 py-1">
       {/* Header with add button */}
       <div className="flex items-center justify-between px-2 py-1 mb-1">
-        <span className="text-xs text-gray-500 uppercase tracking-wider">Files</span>
+        <span className="text-xs text-fg-muted uppercase tracking-wider">Files</span>
         <button
           onClick={() => setAdding(true)}
-          className="text-gray-500 hover:text-gray-300 transition-colors text-base leading-none"
+          className="text-fg-muted hover:text-fg-secondary transition-colors text-base leading-none"
           title="Add file"
         >
           +
@@ -50,7 +50,7 @@ export default function FileTree({ files, activeFile, onFileClick, onAddFile }: 
       </div>
 
       {fileNames.length === 0 && !adding && (
-        <div className="px-2 py-1 text-xs text-gray-500">No files yet.</div>
+        <div className="px-2 py-1 text-xs text-fg-muted">No files yet.</div>
       )}
 
       {fileNames.map((name) => (
@@ -59,12 +59,12 @@ export default function FileTree({ files, activeFile, onFileClick, onAddFile }: 
           onClick={() => onFileClick?.(name)}
           className={`flex w-full items-center gap-2 rounded px-2 py-1 text-sm transition-colors ${
             activeFile === name
-              ? 'bg-gray-800 text-white'
-              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              ? 'bg-surface-700 text-fg-primary'
+              : 'text-fg-secondary hover:bg-surface-700 hover:text-fg-primary'
           }`}
         >
           <svg
-            className="h-3.5 w-3.5 shrink-0 text-gray-500"
+            className="h-3.5 w-3.5 shrink-0 text-fg-muted"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -88,12 +88,12 @@ export default function FileTree({ files, activeFile, onFileClick, onAddFile }: 
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="filename"
-            className="w-24 rounded bg-gray-800 px-1.5 py-0.5 text-xs text-white placeholder-gray-500 focus:outline-none border border-gray-700 focus:border-indigo-500"
+            className="w-24 rounded bg-surface-800 px-1.5 py-0.5 text-xs text-fg-primary placeholder:text-fg-muted focus:outline-none border border-surface-600 focus:border-brand-500"
           />
           <select
             value={newType}
             onChange={(e) => setNewType(e.target.value as 'html' | 'css' | 'js')}
-            className="rounded bg-gray-800 px-1 py-0.5 text-xs text-gray-300 border border-gray-700 focus:outline-none"
+            className="rounded bg-surface-800 px-1 py-0.5 text-xs text-fg-secondary border border-surface-600 focus:outline-none"
           >
             <option value="html">.html</option>
             <option value="css">.css</option>
@@ -101,7 +101,7 @@ export default function FileTree({ files, activeFile, onFileClick, onAddFile }: 
           </select>
           <button
             onClick={handleConfirmAdd}
-            className="text-xs text-indigo-400 hover:text-indigo-300"
+            className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300"
           >
             Add
           </button>
