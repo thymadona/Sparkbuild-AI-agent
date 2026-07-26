@@ -44,6 +44,7 @@ export default async function EditorPage({ params }: Props) {
       project={project as Project}
       initialMessages={(messages ?? []) as Message[]}
       lesson={lesson}
+      userEmail={user.email ?? ''}
     />
   )
 }

@@ -169,13 +169,13 @@ export default function Editor({
     <div className="flex h-full flex-col">
       {/* Mode toggle */}
       {buildModeAvailable && (
-        <div className="shrink-0 px-3 pt-3 pb-2 border-b border-gray-800">
-          <div className="flex rounded-lg bg-gray-800 p-0.5 w-fit">
+        <div className="shrink-0 px-3 pt-3 pb-2 border-b border-surface-600">
+          <div className="flex rounded-lg bg-surface-700 p-0.5 w-fit">
             <button
               type="button"
               onClick={() => setMode('ask')}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                mode === 'ask' ? 'bg-surface-600 text-white' : 'text-gray-400 hover:text-gray-200'
+                mode === 'ask' ? 'bg-surface-800 text-fg-primary' : 'text-fg-muted hover:text-fg-secondary'
               }`}
             >
               Ask
@@ -184,7 +184,7 @@ export default function Editor({
               type="button"
               onClick={() => setMode('build')}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                mode === 'build' ? 'bg-brand-600 text-white' : 'text-gray-400 hover:text-gray-200'
+                mode === 'build' ? 'bg-brand-600 text-white' : 'text-fg-muted hover:text-fg-secondary'
               }`}
             >
               Build
@@ -200,8 +200,8 @@ export default function Editor({
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500/30 to-teal-500/20 ring-1 ring-brand-400/40 animate-pop-in">
               <span className="text-3xl" role="img" aria-label="wave">👋</span>
             </div>
-            <h2 className="font-display text-base font-semibold text-white mb-1">Hi! I&apos;m your AI Tutor.</h2>
-            <p className="text-xs text-gray-400 mb-6 leading-relaxed max-w-[220px]">
+            <h2 className="font-display text-base font-semibold text-fg-primary mb-1">Hi! I&apos;m your AI Tutor.</h2>
+            <p className="text-xs text-fg-muted mb-6 leading-relaxed max-w-[220px]">
               Ask me anything about coding — no question is too small!
             </p>
             <div className="flex flex-col gap-2 w-full">
@@ -217,7 +217,7 @@ export default function Editor({
                 <button
                   key={text}
                   onClick={() => setPrompt(text)}
-                  className="flex items-center gap-2.5 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-2.5 text-sm text-brand-200 hover:bg-brand-500/20 hover:border-brand-400/60 transition-all text-left"
+                  className="flex items-center gap-2.5 rounded-full bg-brand-500/10 px-4 py-2.5 text-sm text-brand-700 dark:text-brand-200 hover:bg-brand-500/20 transition-all text-left"
                 >
                   <span className="text-base leading-none">{emoji}</span>
                   <span>{text}</span>
@@ -232,9 +232,9 @@ export default function Editor({
             className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {msg.role === "user" ? (
-              <div className="max-w-[85%] w-fit rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm bg-brand-600 text-white">
+              <div className="max-w-[85%] w-fit rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm bg-brand-100 dark:bg-brand-500/15 text-fg-primary">
                 <p className="whitespace-pre-wrap">{msg.content}</p>
-                <p className="mt-1 text-xs text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p className="mt-1 text-xs text-brand-700 dark:text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity">
                   {msg.timestamp.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -243,46 +243,46 @@ export default function Editor({
               </div>
             ) : (
               <div className="flex items-end gap-2 max-w-[90%]">
-                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-300 mb-1">
+                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-700 dark:text-brand-300 mb-1">
                   AI
                 </div>
-                <div className="w-fit rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm bg-gray-800 text-gray-200">
+                <div className="w-fit rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm bg-surface-700 text-fg-secondary">
                   <div className="prose-chat">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
                         p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                        h1: ({ children }) => <p className="font-bold text-white mb-1 text-sm">{children}</p>,
-                        h2: ({ children }) => <p className="font-semibold text-white mb-1 text-sm">{children}</p>,
-                        h3: ({ children }) => <p className="font-semibold text-gray-200 mb-1 text-xs uppercase tracking-wide">{children}</p>,
+                        h1: ({ children }) => <p className="font-bold text-fg-primary mb-1 text-sm">{children}</p>,
+                        h2: ({ children }) => <p className="font-semibold text-fg-primary mb-1 text-sm">{children}</p>,
+                        h3: ({ children }) => <p className="font-semibold text-fg-secondary mb-1 text-xs uppercase tracking-wide">{children}</p>,
                         ul: ({ children }) => <ul className="mb-2 ml-4 space-y-0.5 list-disc list-outside">{children}</ul>,
                         ol: ({ children }) => <ol className="mb-2 ml-4 space-y-0.5 list-decimal list-outside">{children}</ol>,
-                        li: ({ children }) => <li className="text-gray-300 pl-0.5">{children}</li>,
+                        li: ({ children }) => <li className="text-fg-secondary pl-0.5">{children}</li>,
                         code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => {
                           const text = String(children).replace(/\n$/, '')
                           const isInline = inline || !text.includes('\n')
                           return isInline ? (
-                            <code className="rounded bg-gray-900 px-1 py-0.5 font-mono text-xs text-brand-300">{children}</code>
+                            <code className="rounded bg-surface-800 px-1 py-0.5 font-mono text-xs text-brand-700 dark:text-brand-300">{children}</code>
                           ) : (
-                            <pre className="my-2 w-fit min-w-[6rem] max-w-full overflow-x-auto rounded bg-gray-900 p-2.5 font-mono text-xs text-gray-200 leading-relaxed">
+                            <pre className="my-2 w-fit min-w-[6rem] max-w-full overflow-x-auto rounded bg-surface-800 p-2.5 font-mono text-xs text-fg-secondary leading-relaxed">
                               <code>{children}</code>
                             </pre>
                           )
                         },
-                        strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                        em: ({ children }) => <em className="italic text-gray-400">{children}</em>,
+                        strong: ({ children }) => <strong className="font-semibold text-fg-primary">{children}</strong>,
+                        em: ({ children }) => <em className="italic text-fg-muted">{children}</em>,
                         blockquote: ({ children }) => (
-                          <blockquote className="my-2 border-l-2 border-brand-500 pl-3 text-gray-400 italic">{children}</blockquote>
+                          <blockquote className="my-2 border-l-2 border-brand-500 pl-3 text-fg-muted italic">{children}</blockquote>
                         ),
                         a: ({ href, children }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-400 underline hover:text-brand-300">{children}</a>
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-700 dark:hover:text-brand-300">{children}</a>
                         ),
                       }}
                     >
                       {msg.content}
                     </ReactMarkdown>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <p className="mt-1 text-xs text-fg-muted opacity-0 group-hover:opacity-100 transition-opacity">
                     {msg.timestamp.toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -295,13 +295,13 @@ export default function Editor({
         ))}
         {isGenerating && (
           <div className="flex items-end gap-2 justify-start">
-            <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-300 mb-0.5">
+            <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-700 dark:text-brand-300 mb-0.5">
               AI
             </div>
-            <div className="rounded-2xl rounded-bl-sm bg-gray-800 px-4 py-3 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce-dot" style={{ animationDelay: '0ms' }} />
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce-dot" style={{ animationDelay: '150ms' }} />
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce-dot" style={{ animationDelay: '300ms' }} />
+            <div className="rounded-2xl rounded-bl-sm bg-surface-700 px-4 py-3 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '0ms' }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '150ms' }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}
@@ -310,16 +310,16 @@ export default function Editor({
 
       {/* Error */}
       {error && (
-        <div className="mx-4 mb-2 rounded-md border border-red-800 bg-red-950 px-3 py-2 text-sm text-red-300">
+        <div className="mx-4 mb-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       {/* Selected code context */}
       {selectedCode && (
-        <div className="mx-3 mb-2 rounded-md border border-brand-800 bg-gray-900">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-brand-800/60">
-            <span className="text-xs text-brand-400 font-mono">
+        <div className="mx-3 mb-2 rounded-md border border-brand-200 dark:border-brand-800 bg-surface-800">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-brand-200/60 dark:border-brand-800/60">
+            <span className="text-xs text-brand-600 dark:text-brand-400 font-mono">
               {activeFile ?? "index.html"}:
               {selectedCode.startLine === selectedCode.endLine
                 ? `${selectedCode.startLine}`
@@ -327,13 +327,13 @@ export default function Editor({
             </span>
             <button
               onClick={onClearSelection}
-              className="text-gray-500 hover:text-gray-300 transition-colors leading-none text-base"
+              className="text-fg-muted hover:text-fg-secondary transition-colors leading-none text-base"
               title="Dismiss"
             >
               &times;
             </button>
           </div>
-          <pre className="px-2 py-1.5 text-xs text-gray-300 font-mono overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap break-all">
+          <pre className="px-2 py-1.5 text-xs text-fg-secondary font-mono overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap break-all">
             {selectedCode.text.length > 300
               ? selectedCode.text.slice(0, 300) + "…"
               : selectedCode.text}
@@ -343,8 +343,8 @@ export default function Editor({
 
       {/* Input form */}
       <form onSubmit={handleSubmit} className="shrink-0 px-3 pb-3 pt-2">
-        <div className={`flex items-end gap-2 rounded-2xl border bg-gray-900 px-3 py-2 transition-colors ${
-          prompt.length > 0 ? 'border-brand-500/60' : 'border-gray-700'
+        <div className={`flex items-end gap-2 rounded-2xl border bg-surface-800 px-3 py-2 transition-colors ${
+          prompt.length > 0 ? 'border-brand-500/60' : 'border-surface-600'
         }`}>
           <textarea
             ref={textareaRef}
@@ -363,7 +363,7 @@ export default function Editor({
             placeholder="Ask me anything..."
             rows={1}
             disabled={isGenerating}
-            className="flex-1 resize-none bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none disabled:opacity-50 leading-relaxed min-h-[24px]"
+            className="flex-1 resize-none bg-transparent text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none disabled:opacity-50 leading-relaxed min-h-[24px]"
             style={{ height: '24px' }}
           />
           <button
@@ -372,7 +372,7 @@ export default function Editor({
             className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all active:scale-90 ${
               prompt.trim() && !isGenerating
                 ? 'bg-brand-500 text-white hover:bg-brand-400'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-surface-700 text-fg-muted cursor-not-allowed'
             }`}
           >
             {isGenerating ? (
@@ -387,7 +387,7 @@ export default function Editor({
             )}
           </button>
         </div>
-        <p className="mt-1 text-center text-[10px] text-gray-600">Enter to send · Shift+Enter for new line</p>
+        <p className="mt-1 text-center text-[10px] text-fg-muted">Enter to send · Shift+Enter for new line</p>
       </form>
     </div>
   );

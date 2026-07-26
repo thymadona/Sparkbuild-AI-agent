@@ -71,7 +71,7 @@ export default function ExploreClient({ projects, isLoggedIn }: Props) {
           <button
             onClick={() => setFilter(null)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              filter === null ? 'bg-brand-500 text-white' : 'border border-surface-600 text-fg-secondary hover:border-brand-400 hover:text-fg-primary'
+              filter === null ? 'bg-brand-500 text-white' : 'bg-surface-700 text-fg-secondary hover:text-fg-primary'
             }`}
           >
             All
@@ -81,7 +81,7 @@ export default function ExploreClient({ projects, isLoggedIn }: Props) {
               key={id}
               onClick={() => setFilter(id)}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                filter === id ? 'bg-brand-500 text-white' : 'border border-surface-600 text-fg-secondary hover:border-brand-400 hover:text-fg-primary'
+                filter === id ? 'bg-brand-500 text-white' : 'bg-surface-700 text-fg-secondary hover:text-fg-primary'
               }`}
             >
               Week {id}
@@ -93,7 +93,7 @@ export default function ExploreClient({ projects, isLoggedIn }: Props) {
           <select
             value={sort}
             onChange={e => setSort(e.target.value as 'newest' | 'oldest')}
-            className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-1.5 text-sm text-fg-primary focus:outline-none focus:border-brand-500"
+            className="rounded-lg bg-surface-700 px-3 py-1.5 text-sm text-fg-primary focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
@@ -117,7 +117,7 @@ export default function ExploreClient({ projects, isLoggedIn }: Props) {
                 href={`/share/${project.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group rounded-xl overflow-hidden border border-surface-600 bg-surface-800 hover:border-brand-500/50 transition-colors block"
+                className="group rounded-xl overflow-hidden bg-surface-800 hover:opacity-90 transition-opacity block"
               >
                 <div className="relative h-44 overflow-hidden bg-surface-700">
                   {project.files?.['index.html'] ? (

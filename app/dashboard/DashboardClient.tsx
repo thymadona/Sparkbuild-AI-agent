@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Plus, Check, Globe, ArrowRight } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import type { Project } from '@/types'
@@ -10,18 +11,6 @@ import { LESSONS } from '@/lib/lessons'
 interface Props {
   initialProjects: Project[]
   userEmail: string
-}
-
-function getLessonGradient(lessonId: number | null): string {
-  const map: Record<number, string> = {
-    1: 'from-violet-600 to-fuchsia-600',
-    2: 'from-blue-600 to-cyan-500',
-    3: 'from-amber-500 to-orange-600',
-    4: 'from-red-600 to-pink-500',
-    5: 'from-emerald-500 to-teal-600',
-    6: 'from-brand-500 to-indigo-600',
-  }
-  return map[lessonId ?? 0] ?? 'from-gray-400 to-gray-500'
 }
 
 export default function DashboardClient({ initialProjects, userEmail }: Props) {
@@ -92,55 +81,63 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
 
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
         {/* Welcome banner */}
-        <section className="rounded-2xl bg-gradient-to-r from-brand-100 to-surface-900 border border-brand-200 dark:from-brand-600/20 dark:to-surface-800 dark:border-brand-500/20 px-6 py-6 flex items-center justify-between gap-4">
+        <section className="flex items-baseline justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">Welcome back</p>
-            <h1 className="font-display mt-1 text-2xl font-bold text-fg-primary">Hey, {firstName}!</h1>
-            <p className="mt-1 text-sm text-fg-secondary">What are you building today?</p>
+            <p className="text-xs text-fg-muted mb-1">Welcome back</p>
+            <h1 className="font-display text-2xl font-bold text-fg-primary">Hey, {firstName}. What are you building today?</h1>
           </div>
           <button
             onClick={handleNewProject}
             disabled={creating}
-            className="shrink-0 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 hover:bg-brand-600 transition-all disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
           >
-            {creating ? 'Creating...' : '+ New Project'}
+            <Plus size={16} strokeWidth={2.5} />
+            {creating ? 'Creating…' : 'New project'}
           </button>
         </section>
 
         {/* Stats */}
-        <section className="grid grid-cols-3 gap-4">
+        <section className="grid grid-cols-3 gap-3">
           {[
-            { value: projects.length, label: 'Projects', color: 'text-brand-600 dark:text-brand-400' },
-            { value: `${lessonsStarted}/6`, label: 'Lessons started', color: 'text-amber-600 dark:text-amber-400' },
-            { value: publicCount, label: 'Shared publicly', color: 'text-teal-600 dark:text-teal-400' },
-          ].map(({ value, label, color }) => (
-            <div key={label} className="rounded-xl border border-surface-600 bg-surface-800 p-4 text-center shadow-sm dark:shadow-none">
-              <p className={`font-display text-3xl font-bold ${color}`}>{value}</p>
-              <p className="text-xs text-fg-muted mt-1">{label}</p>
+            { value: projects.length, label: 'Projects' },
+            { value: `${lessonsStarted}/6`, label: 'Lessons started' },
+            { value: publicCount, label: 'Shared publicly' },
+          ].map(({ value, label }) => (
+            <div key={label} className="rounded-lg bg-surface-700 p-4">
+              <p className="text-xs text-fg-secondary mb-1.5">{label}</p>
+              <p className="font-display text-2xl font-bold text-fg-primary">{value}</p>
             </div>
           ))}
         </section>
 
-        {/* Lesson progress strip */}
+        {/* Lesson progress */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-base font-semibold text-fg-primary">Lesson Progress</h2>
-            <a href="/lessons" className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">See all →</a>
+            <h2 className="font-display text-base font-semibold text-fg-primary">Your journey</h2>
+            <a href="/lessons" className="inline-flex items-center gap-1 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
+              See all <ArrowRight size={14} />
+            </a>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {LESSONS.map((lesson) => {
               const started = projects.some(p => p.lesson_id === lesson.id)
               return (
-                <div key={lesson.id} className={`shrink-0 rounded-xl border px-4 py-3 w-40 transition-colors ${
-                  started ? 'border-brand-500/50 bg-brand-500/10' : 'border-surface-600 bg-surface-800'
-                }`}>
-                  <span className={`text-xs font-bold ${started ? 'text-brand-600 dark:text-brand-400' : 'text-fg-muted'}`}>
+                <div
+                  key={lesson.id}
+                  className={`shrink-0 flex items-center gap-2 rounded-full pl-2 pr-3.5 py-2 ${
+                    started ? 'bg-brand-100 dark:bg-brand-500/10' : 'bg-surface-700'
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ${
+                      started ? 'bg-brand-500 text-white' : 'border border-surface-600 text-fg-muted'
+                    }`}
+                  >
+                    {started ? <Check size={12} strokeWidth={3} /> : lesson.id}
+                  </span>
+                  <span className={`text-xs font-semibold whitespace-nowrap ${started ? 'text-brand-700 dark:text-brand-300' : 'text-fg-secondary'}`}>
                     Week {lesson.id}
                   </span>
-                  <p className="mt-1 text-xs text-fg-secondary leading-snug line-clamp-2">
-                    {lesson.title.split('—')[1]?.trim() || lesson.title}
-                  </p>
-                  {started && <span className="mt-2 inline-block text-xs text-teal-600 dark:text-teal-400">Started</span>}
                 </div>
               )
             })}
@@ -169,64 +166,63 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
               </div>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <div key={project.id} className="rounded-2xl border border-surface-600 bg-surface-800 overflow-hidden shadow-sm dark:shadow-none hover:border-brand-200 dark:hover:border-surface-700 transition-colors">
-                  {/* Gradient top strip */}
-                  <div className={`h-2 bg-gradient-to-r ${getLessonGradient(project.lesson_id)}`} />
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-fg-primary truncate">{project.title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-fg-muted">
-                            {project.lesson_id ? `Week ${project.lesson_id}` : 'Free Build'}
-                          </span>
-                          {project.is_public && (
-                            <span className="rounded-full bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-700 dark:text-teal-400">Public</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-fg-muted mb-3">
-                      Updated {new Date(project.updated_at).toLocaleDateString()}
-                    </p>
-                    <div className="flex gap-2">
-                      <a href={`/editor/${project.id}`} className="flex-1 rounded-xl bg-brand-500 py-2 text-center text-xs font-semibold text-white hover:bg-brand-600 transition-colors">
-                        Open
-                      </a>
-                      <button
-                        onClick={() => handleTogglePublic(project)}
-                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-fg-secondary hover:border-brand-400 hover:text-fg-primary transition-colors"
-                        title={project.is_public ? 'Make private' : 'Share'}
-                      >
-                        {project.is_public ? 'Unshare' : 'Share'}
-                      </button>
-                      <button
-                        onClick={() => handleDuplicate(project)}
-                        disabled={duplicating === project.id}
-                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-fg-secondary hover:border-surface-600 transition-colors disabled:opacity-50"
-                        title="Duplicate"
-                      >
-                        {duplicating === project.id ? '...' : 'Copy'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(project.id)}
-                        className="rounded-xl border border-surface-600 px-3 py-2 text-xs text-red-500 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-                        title="Delete"
-                      >
-                        Delete
-                      </button>
+                <div key={project.id} className="rounded-xl border border-surface-600 bg-surface-800 p-4 transition-colors dark:hover:border-surface-700">
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 dark:bg-brand-500/10 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
+                        {project.lesson_id ?? <Globe size={12} />}
+                      </span>
+                      <span className="text-xs text-fg-muted">
+                        Updated {new Date(project.updated_at).toLocaleDateString()}
+                      </span>
                     </div>
                     {project.is_public && (
-                      <button
-                        onClick={() => handleCopyLink(project.id)}
-                        className="mt-2 w-full rounded-xl border border-surface-600 py-1.5 text-xs text-fg-secondary hover:border-brand-300 hover:text-brand-600 dark:hover:border-brand-400 dark:hover:text-brand-400 transition-colors"
-                      >
-                        Copy share link
-                      </button>
+                      <span className="rounded-md bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-700 dark:text-teal-400">Public</span>
                     )}
                   </div>
+
+                  <p className="text-sm font-semibold text-fg-primary truncate mb-0.5">{project.title}</p>
+                  <p className="text-xs text-fg-muted mb-3.5">
+                    {project.lesson_id ? `Week ${project.lesson_id}` : 'Free build'}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <a
+                      href={`/editor/${project.id}`}
+                      className="rounded-lg bg-brand-500 px-3 py-1.5 font-semibold text-white hover:bg-brand-600 transition-colors"
+                    >
+                      Open
+                    </a>
+                    <button
+                      onClick={() => handleTogglePublic(project)}
+                      className="rounded-lg bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors"
+                    >
+                      {project.is_public ? 'Unshare' : 'Share'}
+                    </button>
+                    <button
+                      onClick={() => handleDuplicate(project)}
+                      disabled={duplicating === project.id}
+                      className="rounded-lg bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors disabled:opacity-50"
+                    >
+                      {duplicating === project.id ? '…' : 'Copy'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(project.id)}
+                      className="ml-auto rounded-lg bg-surface-700 px-3 py-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  {project.is_public && (
+                    <button
+                      onClick={() => handleCopyLink(project.id)}
+                      className="mt-2.5 w-full rounded-lg bg-surface-700 py-1.5 text-xs text-fg-secondary hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                    >
+                      Copy share link
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

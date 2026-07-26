@@ -6,6 +6,7 @@ import { html } from '@codemirror/lang-html'
 import { css } from '@codemirror/lang-css'
 import { javascript } from '@codemirror/lang-javascript'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { useTheme } from 'next-themes'
 import { Decoration, DecorationSet } from '@codemirror/view'
 import { StateEffect, StateField } from '@codemirror/state'
 import type { ViewUpdate } from '@codemirror/view'
@@ -50,6 +51,9 @@ const highlightTheme = EditorView.baseTheme({
 export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLine }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     const view = viewRef.current
@@ -101,11 +105,11 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-end border-b border-gray-800 bg-gray-900 px-3 py-1.5">
+      <div className="flex items-center justify-end border-b border-surface-600 bg-surface-800 px-3 py-1.5">
         <button
           onClick={() => onSave(draft)}
           disabled={draft === code}
-          className="text-xs rounded bg-indigo-600 px-3 py-1 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="text-xs rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Save
         </button>
@@ -114,7 +118,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
         <CodeMirror
           value={draft}
           height="100%"
-          theme={oneDark}
+          theme={mounted && resolvedTheme === 'light' ? 'light' : oneDark}
           extensions={extensions}
           onChange={setDraft}
           onUpdate={handleUpdate}
