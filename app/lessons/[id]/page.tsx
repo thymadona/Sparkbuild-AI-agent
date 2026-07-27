@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { LESSONS } from '@/lib/lessons'
 import LessonDetailClient from './LessonDetailClient'
 
@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default async function LessonPage({ params }: Props) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -20,5 +20,13 @@ export default async function LessonPage({ params }: Props) {
   const lesson = LESSONS.find((l) => l.id === Number(params.id))
   if (!lesson) notFound()
 
-  return <LessonDetailClient lesson={lesson} />
+  const { data: existingProjects } = await supabaseAdmin
+    .from('projects')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('lesson_id', lesson.id)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+
+  return <LessonDetailClient lesson={lesson} existingProjectId={existingProjects?.[0]?.id ?? null} />
 }

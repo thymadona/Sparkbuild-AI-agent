@@ -7,7 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 interface Props {
   lessons: Lesson[]
-  userProjects: { id: string; lesson_id: number | null }[]
+  userProjects: { id: string; lesson_id: number | null; updated_at: string }[]
 }
 
 export default function LessonsClient({ lessons, userProjects }: Props) {
@@ -15,11 +15,23 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const startedLessonIds = new Set(userProjects.map(p => p.lesson_id))
-  const lessonsStarted = startedLessonIds.size
+  // Projects arrive newest first, so the first project for each lesson is the resume target.
+  const projectByLessonId = new Map<number, string>()
+  for (const project of userProjects) {
+    if (project.lesson_id !== null && !projectByLessonId.has(project.lesson_id)) {
+      projectByLessonId.set(project.lesson_id, project.id)
+    }
+  }
+  const lessonsStarted = projectByLessonId.size
   const difficulty = [1, 1, 2, 2, 3, 3]
 
   async function handleStart(lesson: Lesson) {
+    const existingProjectId = projectByLessonId.get(lesson.id)
+    if (existingProjectId) {
+      router.push(`/editor/${existingProjectId}`)
+      return
+    }
+
     setLoadingId(lesson.id)
     setError(null)
     try {
@@ -84,7 +96,7 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
           <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-surface-700" />
           <div className="space-y-4">
             {lessons.map((lesson, i) => {
-              const isStarted = startedLessonIds.has(lesson.id)
+              const isStarted = projectByLessonId.has(lesson.id)
               const stars = difficulty[i]
               return (
                 <div key={lesson.id} className="flex gap-5 relative">
@@ -123,7 +135,7 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
                             : 'bg-brand-500 text-white hover:bg-brand-600'
                         }`}
                       >
-                        {loadingId === lesson.id ? 'Starting...' : isStarted ? 'Start again →' : 'Start'}
+                        {loadingId === lesson.id ? 'Starting...' : isStarted ? 'Resume →' : 'Start'}
                       </button>
                     </div>
                   </div>
