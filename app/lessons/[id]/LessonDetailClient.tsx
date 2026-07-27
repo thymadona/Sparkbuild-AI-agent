@@ -6,13 +6,19 @@ import type { Lesson } from '@/lib/lessons'
 
 interface Props {
   lesson: Lesson
+  existingProjectId: string | null
 }
 
-export default function LessonDetailClient({ lesson }: Props) {
+export default function LessonDetailClient({ lesson, existingProjectId }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
   async function startLesson() {
+    if (existingProjectId) {
+      router.push(`/editor/${existingProjectId}`)
+      return
+    }
+
     setLoading(true)
     try {
       const templateRes = await fetch(`/templates/${lesson.templateFile}`)
@@ -71,7 +77,7 @@ export default function LessonDetailClient({ lesson }: Props) {
           disabled={loading}
           className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Starting…' : 'Start lesson'}
+          {loading ? 'Starting…' : existingProjectId ? 'Resume lesson' : 'Start lesson'}
         </button>
       </div>
     </div>

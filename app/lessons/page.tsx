@@ -15,9 +15,10 @@ export default async function LessonsPage() {
 
   const { data: userProjects } = await supabaseAdmin
     .from('projects')
-    .select('id, lesson_id')
+    .select('id, lesson_id, updated_at')
     .eq('user_id', user.id)
     .not('lesson_id', 'is', null)
+    .order('updated_at', { ascending: false })
 
   return <LessonsClient lessons={LESSONS} userProjects={userProjects ?? []} />
 }
