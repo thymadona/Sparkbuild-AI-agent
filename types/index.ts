@@ -7,7 +7,14 @@ export interface Project {
   files: ProjectFiles
   is_public: boolean
   lesson_id: number | null
+  lesson_version: number | null
   created_at: string
+  updated_at: string
+}
+
+export interface LessonProgress {
+  project_id: string
+  completed_task_ids: string[]
   updated_at: string
 }
 

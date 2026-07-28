@@ -1,151 +1,35 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- ============================================
-      CHANGE THIS: Put your name in the title tab
-    ============================================ -->
-    <title>My Score Page — Your Name Here</title>
-
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Streak Spark</title>
     <style>
-      /* ============================================
-        COLORS — change these to colors you like
-        Find color codes at: coolors.co
-      ============================================ */
-      :root {
-        --background: #0f0f0f;
-        --text: #f0f0f0;
-        --accent: #ffe135;
-      }
-
-      body {
-        background-color: var(--background);
-        color: var(--text);
-        font-family: sans-serif;
-        max-width: 700px;
-        margin: 60px auto;
-        padding: 0 20px;
-        line-height: 1.7;
-      }
-
-      h1 {
-        font-size: 2.5rem;
-        color: var(--accent);
-      }
-
-      button {
-        background: var(--accent);
-        color: #000;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-size: 1rem;
-        cursor: pointer;
-        margin-top: 12px;
-        margin-right: 8px;
-      }
-
-      button:hover { opacity: 0.85; }
-
-      .section {
-        margin-top: 40px;
-        border-top: 1px solid #333;
-        padding-top: 20px;
-      }
-
-      /* ============================================
-        THE BIG SCORE NUMBER — change font-size to
-        make it bigger or smaller
-      ============================================ -->
-      #score-display {
-        font-size: 5rem;
-        font-weight: bold;
-        color: var(--accent);
-        line-height: 1;
-        margin: 16px 0;
-      }
-
-      #milestone-message {
-        font-size: 1.1rem;
-        min-height: 28px;
-        color: var(--accent);
-      }
-
-      #reset-btn {
-        background: transparent;
-        color: #666;
-        border: 1px solid #444;
-        margin-top: 20px;
-      }
+      :root { --ink: #19213c; --cloud: #f4f8ff; --blue: #5796ff; --orange: #ff9e5c; --yellow: #ffe36e; --green: #71d9a4; }
+      * { box-sizing: border-box; } body { min-height: 100vh; margin: 0; color: var(--ink); font-family: ui-rounded, system-ui, sans-serif; background: linear-gradient(155deg, #dcedff, var(--cloud) 45%, #fff6d9); }
+      main { width: min(820px, calc(100% - 32px)); margin: auto; padding: 42px 0 64px; } .eyebrow { margin: 0; color: #456fc1; font-size: .75rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+      h1 { margin: 8px 0; font-size: clamp(3rem, 9vw, 5.5rem); letter-spacing: -.07em; line-height: .95; } .subtitle { margin: 0; color: #52607e; font-size: 1.1rem; line-height: 1.55; }
+      .tracker { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; margin-top: 28px; } .score-card, .side-card { border: 3px solid var(--ink); border-radius: 26px; box-shadow: 7px 7px 0 var(--ink); }
+      .score-card { padding: clamp(28px, 6vw, 48px); text-align: center; background: var(--yellow); } .score-card h2 { margin: 0; font-size: 1.2rem; } #score-display { margin: 12px 0; font-size: clamp(6rem, 20vw, 10rem); font-weight: 900; line-height: .9; letter-spacing: -.1em; color: var(--blue); text-shadow: 3px 3px 0 var(--ink); } #milestone-message { min-height: 3em; margin: 0 auto 20px; max-width: 27ch; font-weight: 800; line-height: 1.4; }
+      button { padding: .75rem 1rem; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); font: inherit; font-weight: 900; cursor: pointer; background: white; box-shadow: 3px 3px 0 var(--ink); transition: transform .15s; } button:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); } .primary { background: var(--orange); }
+      .side-card { padding: 25px; background: white; } .side-card h2 { margin: 0 0 8px; } .side-card p { color: #52607e; line-height: 1.55; } .dots { display: flex; gap: 8px; margin: 18px 0; } .dot { width: 20px; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 50%; background: #e9eef8; } .dot.active { background: var(--green); } .reward { margin-top: 18px; padding: 15px; border-radius: 14px; background: #e0fff0; font-weight: 800; }
+      .footer { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 25px; } .footer article { padding: 20px; border-radius: 18px; color: white; background: var(--blue); } .footer article:last-child { color: var(--ink); background: var(--green); } .footer h2 { margin: 0 0 8px; font-size: 1rem; } .footer p { margin: 0; line-height: 1.45; }
+      @media (max-width: 650px) { .tracker, .footer { grid-template-columns: 1fr; } }
     </style>
   </head>
-
-  <body>
-
-    <!-- ============================================
-      CHANGE THIS: Your name and what you are counting
-    ============================================ -->
-    <h1>[Your Name]'s Score</h1>
-    <p>Every click counts. How high can you go?</p>
-
-
-    <!-- ============================================
-      CHANGE THIS: The button labels
-      onclick= connects the button to the function below
-    ============================================ -->
-    <div class="section">
-      <h2>Keep Score</h2>
-      <div id="score-display">0</div>
-      <div id="milestone-message"></div>
-      <br>
-      <button onclick="addScore()">+ Add point</button>
-      <button id="reset-btn" onclick="resetScore()">Reset</button>
-    </div>
-
-
-    <script>
-      // ============================================
-      // THIS IS THE MOST IMPORTANT LINE TODAY
-      // let score = 0 creates a variable called score
-      // and gives it the starting value of zero
-      // ============================================
-      let score = 0
-
-
-      // ============================================
-      // CHANGE THIS: The milestone messages
-      // When score reaches the number on the left,
-      // the message on the right appears
-      // Add your own milestone numbers and messages!
-      // ============================================
-      function addScore() {
-        score = score + 1
-        document.getElementById('score-display').textContent = score
-
-        let message = ''
-        if (score === 5)  message = '🔥 Five points!'
-        if (score === 10) message = '⚡ Ten! Halfway to legend.'
-        if (score === 20) message = '🏆 TWENTY. You are the game.'
-
-        // CHANGE THIS: your custom message at any score
-        // if (score === 3) message = 'three already??'
-
-        document.getElementById('milestone-message').textContent = message
-      }
-
-
-      // ============================================
-      // RESET: sets score back to zero
-      // You don't need to change this
-      // ============================================
-      function resetScore() {
-        score = 0
-        document.getElementById('score-display').textContent = score
-        document.getElementById('milestone-message').textContent = ''
-      }
-    </script>
-
-  </body>
+  <body><main>
+    <!-- TASK: goal name -->
+    <p class="eyebrow">Small steps, bright streaks</p><h1>My <span style="color:var(--orange)">reading</span> streak.</h1><p class="subtitle">One little action can turn into a habit. What will you track today?</p>
+    <section class="tracker"><div class="score-card"><h2>Days I showed up</h2><div id="score-display">0</div><p id="milestone-message" aria-live="polite">Start with one tiny win.</p>
+      <!-- TASK: counter labels --><button class="primary" onclick="addScore()">I did it! +1</button><button onclick="resetScore()">Reset</button></div>
+      <aside class="side-card"><h2>Streak map</h2><p>Every dot is proof that you practiced. Keep the chain glowing.</p><div class="dots" id="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <!-- TASK: reward choice --><div class="reward">My reward at 7 days: a cosy movie night 🍿</div></aside></section>
+    <section class="footer"><article><h2>Why this matters</h2><p>A tiny habit can make a big difference over time.</p></article><article><!-- BONUS: custom milestone --><h2>Bonus idea</h2><p>Make a special message appear at a number you choose.</p></article></section>
+  </main><script>
+    let score = 0
+    // TASK: milestones
+    const milestones = { 1: 'First step complete — you started!', 3: 'Three in a row! Your streak has a spark.', 5: 'Five wins! You are building momentum.' }
+    function render() { document.getElementById('score-display').textContent = score; document.getElementById('milestone-message').textContent = milestones[score] || (score ? 'Keep your streak glowing!' : 'Start with one tiny win.'); document.querySelectorAll('.dot').forEach((dot, index) => dot.classList.toggle('active', index < Math.min(score, 5))) }
+    function addScore() { score += 1; render() }
+    function resetScore() { score = 0; render() }
+  </script></body>
 </html>

@@ -45,5 +45,6 @@ describe('LessonDetailClient', () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith('/editor/new-project'))
     expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/personal-page.html')
     expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects', expect.objectContaining({ method: 'POST' }))
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 1, lessonVersion: 2 })
   })
 })
