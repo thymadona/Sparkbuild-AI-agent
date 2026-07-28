@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Lesson } from '@/lib/lessons'
+import { CURRENT_LESSON_VERSION, type Lesson } from '@/lib/lessons'
 
 interface Props {
   lesson: Lesson
@@ -31,6 +31,7 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
           title: lesson.title,
           templateHtml,
           lessonId: lesson.id,
+          lessonVersion: CURRENT_LESSON_VERSION,
         }),
       })
 

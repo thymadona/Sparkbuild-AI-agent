@@ -24,6 +24,7 @@ interface Props {
   project: Project
   initialMessages: Message[]
   lesson: Lesson | null
+  initialCompletedTaskIds: string[]
   userEmail: string
 }
 
@@ -36,7 +37,7 @@ function getLanguage(filename: string): 'html' | 'css' | 'js' {
   return 'html'
 }
 
-export default function EditorLayout({ project, initialMessages, lesson, userEmail }: Props) {
+export default function EditorLayout({ project, initialMessages, lesson, initialCompletedTaskIds, userEmail }: Props) {
   const [files, setFiles] = useState<Record<string, string>>(project.files)
   const [openTabs, setOpenTabs] = useState<string[]>(Object.keys(project.files))
   const [activeFile, setActiveFile] = useState<string>('index.html')
@@ -335,6 +336,8 @@ export default function EditorLayout({ project, initialMessages, lesson, userEma
               <div className={activity === 'navigator' ? 'h-full' : 'hidden'}>
                 <Navigator
                   lesson={lesson}
+                  projectId={project.id}
+                  initialCompletedTaskIds={initialCompletedTaskIds}
                   code={files['index.html'] ?? ''}
                   onHighlight={(line) => {
                     setHighlightLine(line)

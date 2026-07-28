@@ -1,247 +1,33 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- ============================================
-      CHANGE THIS: Put your game name in the title tab
-    ============================================ -->
-    <title>My Game — Your Name Here</title>
-
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Reflex Rush</title>
     <style>
-      /* ============================================
-        COLORS — change these to colors you like
-        Find color codes at: coolors.co
-      ============================================ */
-      :root {
-        --background: #0f0f0f;
-        --text: #f0f0f0;
-        --accent: #ff4455;
-      }
-
-      body {
-        background-color: var(--background);
-        color: var(--text);
-        font-family: sans-serif;
-        max-width: 700px;
-        margin: 60px auto;
-        padding: 0 20px;
-        line-height: 1.7;
-        text-align: center;
-      }
-
-      h1 {
-        font-size: 2.5rem;
-        color: var(--accent);
-      }
-
-      button {
-        background: var(--accent);
-        color: #fff;
-        border: none;
-        padding: 10px 28px;
-        border-radius: 8px;
-        font-size: 1rem;
-        cursor: pointer;
-        margin-top: 12px;
-        margin-right: 8px;
-      }
-
-      button:hover { opacity: 0.85; }
-
-      /* ============================================
-        THE GAME AREA — the box where the target lives
-        Change width and height to resize it
-      ============================================ */
-      #game-area {
-        position: relative;
-        width: 100%;
-        height: 300px;
-        background: #1a1a1a;
-        border: 2px solid #333;
-        border-radius: 12px;
-        margin: 24px 0;
-        overflow: hidden;
-      }
-
-      /* ============================================
-        THE TARGET — the thing players click
-        Change width, height, border-radius to
-        make it a different shape or size
-      ============================================ -->
-      #target {
-        position: absolute;
-        width: 60px;
-        height: 60px;
-        background: var(--accent);
-        border-radius: 50%;
-        cursor: pointer;
-        top: 120px;
-        left: 300px;
-        transition: top 0.1s, left 0.1s;
-      }
-
-      #score-display {
-        font-size: 3rem;
-        font-weight: bold;
-        color: var(--accent);
-        line-height: 1;
-      }
-
-      #timer-display {
-        font-size: 1.3rem;
-        color: #888;
-        margin-bottom: 8px;
-      }
-
-      #message {
-        font-size: 1.1rem;
-        min-height: 28px;
-        color: var(--accent);
-        margin-top: 8px;
-      }
-
-      #start-btn { margin-top: 0; }
-
-      #reset-btn {
-        background: transparent;
-        color: #666;
-        border: 1px solid #444;
-      }
+      :root { --night: #11142c; --panel: #202650; --pink: #ff4f9a; --cyan: #60e7ff; --yellow: #ffe76a; --white: #f8f9ff; }
+      * { box-sizing: border-box; } body { min-height: 100vh; margin: 0; color: var(--white); font-family: ui-rounded, system-ui, sans-serif; background: radial-gradient(circle at 15% 10%, #3b3079, transparent 26%), var(--night); }
+      main { width: min(900px, calc(100% - 28px)); margin: auto; padding: 36px 0 60px; } .top { display: flex; justify-content: space-between; align-items: end; gap: 18px; } .tag { color: var(--yellow); font-size: .76rem; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+      h1 { margin: 6px 0; font-size: clamp(3.3rem, 10vw, 6.5rem); line-height: .85; letter-spacing: -.08em; } h1 span { color: var(--pink); } .instructions { max-width: 42ch; margin: 12px 0 0; color: #bec5ec; line-height: 1.5; }
+      .scoreboard { display: flex; gap: 10px; } .stat { min-width: 78px; padding: 9px 12px; border: 1px solid #576098; border-radius: 13px; background: rgba(255,255,255,.06); text-align: center; } .stat b { display: block; font-size: 1.45rem; color: var(--cyan); } .stat span { color: #bfc5e7; font-size: .65rem; font-weight: 800; text-transform: uppercase; }
+      #game-area { position: relative; height: min(52vw, 420px); min-height: 300px; overflow: hidden; margin-top: 25px; border: 2px solid #515b98; border-radius: 28px; background: linear-gradient(130deg, #2b2462, #161b3e); box-shadow: inset 0 0 50px rgba(96,231,255,.08); } #game-area::before { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px); background-size: 30px 30px; content: ''; }
+      #target { position: absolute; display: none; width: 62px; aspect-ratio: 1; border: 4px solid var(--white); border-radius: 50%; background: var(--pink); box-shadow: 0 0 0 7px rgba(255,79,154,.25), 0 0 30px var(--pink); cursor: crosshair; transition: width .15s, height .15s; } #target::after { position: absolute; inset: 19px; border-radius: 50%; background: var(--yellow); content: ''; }
+      .controls { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 18px; } #message { min-height: 1.5em; color: #d7dcf7; font-weight: 800; } button { padding: .75rem 1rem; border: 2px solid var(--white); border-radius: 12px; color: var(--night); font: inherit; font-weight: 900; cursor: pointer; background: var(--cyan); box-shadow: 3px 3px 0 #6873b9; } button:disabled { cursor: not-allowed; opacity: .5; }
+      .tips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 22px; } .tip { padding: 16px; border-radius: 16px; background: var(--panel); } .tip b { display: block; margin-bottom: 5px; color: var(--yellow); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; } .tip p { margin: 0; color: #bec5ec; font-size: .9rem; line-height: 1.4; }
+      @media (max-width: 620px) { .top, .controls { align-items: start; flex-direction: column; } .tips { grid-template-columns: 1fr; } }
     </style>
   </head>
-
-  <body>
-
-    <!-- ============================================
-      CHANGE THIS: Your game title and instructions
-    ============================================ -->
-    <h1>Click The Dot</h1>
-    <p>Click the dot as many times as you can before time runs out.</p>
-
-    <div id="timer-display">Time: 10s</div>
-    <div id="score-display">0</div>
-    <div id="message">Press Start to play</div>
-
-    <div id="game-area">
-      <div id="target" onclick="hitTarget()"></div>
-    </div>
-
-    <button id="start-btn" onclick="startGame()">Start</button>
-    <button id="reset-btn" onclick="resetGame()">Reset</button>
-
-
-    <script>
-      // ============================================
-      // CHANGE THIS: Game settings
-      // Try changing gameDuration to 5 for harder,
-      // or 15 for easier
-      // ============================================
-      let gameDuration = 10   // seconds
-      let score = 0
-      let timeLeft = gameDuration
-      let gameRunning = false
-      let timerInterval = null
-
-
-      // ============================================
-      // CHANGE THIS: Milestone messages
-      // Add your own score milestones and messages
-      // ============================================
-      function hitTarget() {
-        if (!gameRunning) return
-
-        score = score + 1
-        document.getElementById('score-display').textContent = score
-
-        // Move target to a random spot after each click
-        moveTarget()
-
-        let message = ''
-        if (score === 5)  message = '🔥 Five hits!'
-        if (score === 10) message = '⚡ Ten! Keep going!'
-        if (score === 20) message = '🏆 TWENTY. Unreal.'
-
-        // CHANGE THIS: your own message at any score
-        // if (score === 3) message = 'not bad...'
-
-        if (message) document.getElementById('message').textContent = message
-      }
-
-
-      // ============================================
-      // MOVE TARGET: picks a random position inside
-      // the game area. Math.random() gives a number
-      // between 0 and 1 — multiply to get a range
-      // ============================================
-      function moveTarget() {
-        let area = document.getElementById('game-area')
-        let target = document.getElementById('target')
-
-        let maxX = area.offsetWidth - 60
-        let maxY = area.offsetHeight - 60
-
-        let randomX = Math.floor(Math.random() * maxX)
-        let randomY = Math.floor(Math.random() * maxY)
-
-        target.style.left = randomX + 'px'
-        target.style.top = randomY + 'px'
-
-        // CHANGE THIS: make target smaller as score goes up
-        // let newSize = Math.max(20, 60 - score * 2)
-        // target.style.width = newSize + 'px'
-        // target.style.height = newSize + 'px'
-      }
-
-
-      function startGame() {
-        if (gameRunning) return
-        gameRunning = true
-        score = 0
-        timeLeft = gameDuration
-        document.getElementById('score-display').textContent = score
-        document.getElementById('message').textContent = 'Go!'
-        document.getElementById('start-btn').disabled = true
-
-        // setInterval runs a function every X milliseconds
-        // 1000 milliseconds = 1 second
-        timerInterval = setInterval(function() {
-          timeLeft = timeLeft - 1
-          document.getElementById('timer-display').textContent = 'Time: ' + timeLeft + 's'
-
-          if (timeLeft <= 0) {
-            endGame()
-          }
-        }, 1000)
-      }
-
-
-      function endGame() {
-        gameRunning = false
-        clearInterval(timerInterval)
-        document.getElementById('message').textContent = 'Done! You scored ' + score + ' points.'
-        document.getElementById('start-btn').disabled = false
-      }
-
-
-      function resetGame() {
-        gameRunning = false
-        clearInterval(timerInterval)
-        score = 0
-        timeLeft = gameDuration
-        document.getElementById('score-display').textContent = '0'
-        document.getElementById('timer-display').textContent = 'Time: ' + gameDuration + 's'
-        document.getElementById('message').textContent = 'Press Start to play'
-        document.getElementById('start-btn').disabled = false
-
-        let target = document.getElementById('target')
-        target.style.left = '300px'
-        target.style.top = '120px'
-        target.style.width = '60px'
-        target.style.height = '60px'
-      }
-    </script>
-
-  </body>
+  <body><main>
+    <!-- TASK: game name --><div class="top"><div><p class="tag">Arcade build #04</p><h1>Reflex <span>Rush</span></h1><p class="instructions">Tap the glowing target as many times as you can before the timer reaches zero.</p></div><div class="scoreboard"><div class="stat"><b id="score">0</b><span>score</span></div><div class="stat"><b id="timer">10</b><span>seconds</span></div></div></div>
+    <!-- TASK: arena theme --><section id="game-area" aria-label="Game arena"><button id="target" aria-label="Click target" onclick="hitTarget()"></button></section>
+    <div class="controls"><div id="message" aria-live="polite">Set your reflexes to ready.</div><div><button id="start-btn" onclick="startGame()">Start game ▶</button><button onclick="resetGame()">Reset</button></div></div>
+    <section class="tips"><article class="tip"><b>Challenge</b><!-- TASK: game settings --><p>Set your timer and target speed in the game settings.</p></article><article class="tip"><b>Hype</b><!-- TASK: score messages --><p>Write messages that celebrate players as their score rises.</p></article><article class="tip"><b>Bonus</b><!-- BONUS: hard mode --><p>Make the target shrink or move faster for hard mode.</p></article></section>
+  </main><script>
+    // TASK: game settings
+    const gameDuration = 10; const moveDelay = 700
+    let score = 0; let timeLeft = gameDuration; let timerId; let moveId; let playing = false
+    function moveTarget() { const target = document.getElementById('target'); const area = document.getElementById('game-area'); target.style.left = `${Math.random() * (area.clientWidth - target.offsetWidth)}px`; target.style.top = `${Math.random() * (area.clientHeight - target.offsetHeight)}px` }
+    function startGame() { if (playing) return; playing = true; score = 0; timeLeft = gameDuration; document.getElementById('score').textContent = score; document.getElementById('target').style.display = 'block'; document.getElementById('start-btn').disabled = true; moveTarget(); moveId = setInterval(moveTarget, moveDelay); timerId = setInterval(() => { timeLeft--; document.getElementById('timer').textContent = timeLeft; if (timeLeft <= 0) endGame() }, 1000) }
+    // TASK: score messages
+    function hitTarget() { if (!playing) return; score++; document.getElementById('score').textContent = score; document.getElementById('message').textContent = score >= 10 ? '🌟 Reflex legend!' : score >= 5 ? '⚡ You are on fire!' : 'Nice hit — keep going!'; moveTarget() }
+    function endGame() { playing = false; clearInterval(timerId); clearInterval(moveId); document.getElementById('target').style.display = 'none'; document.getElementById('start-btn').disabled = false; document.getElementById('message').textContent = `Time! Your final score is ${score}.` }
+    function resetGame() { clearInterval(timerId); clearInterval(moveId); playing = false; score = 0; timeLeft = gameDuration; document.getElementById('score').textContent = score; document.getElementById('timer').textContent = timeLeft; document.getElementById('target').style.display = 'none'; document.getElementById('start-btn').disabled = false; document.getElementById('message').textContent = 'Set your reflexes to ready.' }
+  </script></body>
 </html>

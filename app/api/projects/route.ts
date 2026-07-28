@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
@@ -45,14 +46,17 @@ export async function POST(req: Request) {
   const NOUNS = ['Rocket', 'Panda', 'Wizard', 'Robot', 'Ninja', 'Dragon', 'Phoenix', 'Comet', 'Shark', 'Tiger']
   const randomTitle = `${ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]} ${NOUNS[Math.floor(Math.random() * NOUNS.length)]}`
   const title = body.title || randomTitle
-  const { templateHtml, lessonId } = body
+  const { templateHtml, lessonId, lessonVersion } = body
 
   const insertData: Record<string, unknown> = {
     user_id: user.id,
     title,
     is_public: false,
   }
-  if (lessonId !== undefined) insertData.lesson_id = lessonId
+  if (lessonId !== undefined) {
+    insertData.lesson_id = lessonId
+    if (lessonVersion === CURRENT_LESSON_VERSION) insertData.lesson_version = CURRENT_LESSON_VERSION
+  }
 
   if (templateHtml) {
     insertData.files = { 'index.html': templateHtml }

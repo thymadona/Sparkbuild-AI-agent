@@ -28,12 +28,12 @@ const gradients: Record<number, string> = {
 }
 
 const lessonLabels: Record<number, string> = {
-  1: 'Week 1 — Personal Page',
-  2: 'Week 2 — Make It React',
-  3: 'Week 3 — Keep Score',
-  4: 'Week 4 — Make It Hard',
-  5: 'Week 5 — Add the AI',
-  6: 'Week 6 — Real Problem',
+  1: 'Week 1 — Profile Pop',
+  2: 'Week 2 — Vibe Mixer',
+  3: 'Week 3 — Streak Spark',
+  4: 'Week 4 — Reflex Rush',
+  5: 'Week 5 — Inspiration Lab',
+  6: 'Week 6 — Bright Idea',
 }
 
 function timeAgo(dateStr: string): string {

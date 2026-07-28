@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import type { Project, Message } from '@/types'
-import { LESSONS } from '@/lib/lessons'
+import { getLessonForProject } from '@/lib/lessons'
 import EditorLayout from './EditorLayout'
 
 interface Props {
@@ -36,14 +36,23 @@ export default async function EditorPage({ params }: Props) {
     .limit(100)
 
   const lesson = project.lesson_id != null
-    ? (LESSONS.find((l) => l.id === project.lesson_id) ?? null)
+    ? getLessonForProject(project.lesson_id, project.lesson_version)
     : null
+
+  const { data: lessonProgress } = lesson
+    ? await supabaseAdmin
+      .from('lesson_progress')
+      .select('completed_task_ids')
+      .eq('project_id', params.id)
+      .maybeSingle()
+    : { data: null }
 
   return (
     <EditorLayout
       project={project as Project}
       initialMessages={(messages ?? []) as Message[]}
       lesson={lesson}
+      initialCompletedTaskIds={lessonProgress?.completed_task_ids ?? []}
       userEmail={user.email ?? ''}
     />
   )

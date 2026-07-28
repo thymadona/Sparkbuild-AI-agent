@@ -1,158 +1,24 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- ============================================
-      CHANGE THIS: Your project name in the title tab
-    ============================================ -->
-    <title>My Project — Your Name Here</title>
-
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Bright Idea</title>
     <style>
-      /* ============================================
-        COLORS — change these to match your project
-        Find color codes at: coolors.co
-      ============================================ */
-      :root {
-        --background: #0f0f0f;
-        --text: #f0f0f0;
-        --accent: #00c896;
-      }
-
-      body {
-        background-color: var(--background);
-        color: var(--text);
-        font-family: sans-serif;
-        max-width: 700px;
-        margin: 60px auto;
-        padding: 0 20px;
-        line-height: 1.7;
-      }
-
-      h1 {
-        font-size: 2.5rem;
-        color: var(--accent);
-      }
-
-      button {
-        background: var(--accent);
-        color: #000;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-size: 1rem;
-        cursor: pointer;
-        margin-top: 12px;
-        font-weight: 600;
-      }
-
-      button:hover { opacity: 0.85; }
-
-      .section {
-        margin-top: 40px;
-        border-top: 1px solid #333;
-        padding-top: 20px;
-      }
-
-      .problem-box {
-        background: #1a1a1a;
-        border-left: 4px solid var(--accent);
-        padding: 16px 20px;
-        margin-top: 12px;
-        border-radius: 4px;
-      }
-
-      .tag {
-        display: inline-block;
-        background: var(--accent);
-        color: #000;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        margin: 4px;
-        font-weight: 600;
-      }
+      :root { --ink: #1e2941; --paper: #fffdf8; --blue: #54a3ff; --pink: #ff7198; --yellow: #ffd969; --mint: #7de0c1; }
+      * { box-sizing: border-box; } body { min-height: 100vh; margin: 0; color: var(--ink); font-family: ui-rounded, system-ui, sans-serif; background: linear-gradient(135deg, #e8f3ff, #fff9ed 55%, #ffe6ef); }
+      main { width: min(950px, calc(100% - 32px)); margin: auto; padding: 42px 0 70px; } .header { padding: clamp(28px, 6vw, 56px); border: 3px solid var(--ink); border-radius: 30px; background: var(--paper); box-shadow: 9px 9px 0 var(--ink); } .label { color: #3c78bb; font-size: .76rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+      h1 { max-width: 12ch; margin: 10px 0; font-size: clamp(3.5rem, 10vw, 6.5rem); line-height: .86; letter-spacing: -.08em; } h1 span { color: var(--pink); } .promise { max-width: 54ch; margin: 0; color: #58647e; font-size: 1.12rem; line-height: 1.6; }
+      .map { display: grid; grid-template-columns: .9fr 1.1fr; gap: 20px; margin-top: 28px; } .panel { padding: 26px; border: 3px solid var(--ink); border-radius: 24px; background: white; box-shadow: 6px 6px 0 var(--ink); } .problem { background: var(--yellow); } .panel h2 { margin: 0 0 10px; font-size: 1.45rem; } .panel p { margin: 0; line-height: 1.55; } .who { display: inline-block; margin-top: 18px; padding: .45rem .75rem; border: 2px solid var(--ink); border-radius: 999px; font-size: .8rem; font-weight: 900; background: white; }
+      .prototype { margin-top: 20px; padding: 26px; border: 3px solid var(--ink); border-radius: 24px; background: var(--blue); box-shadow: 6px 6px 0 var(--ink); } .prototype h2 { margin: 0; font-size: 1.45rem; } .prototype p { max-width: 52ch; line-height: 1.5; } .demo { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 20px; padding: 18px; border: 2px solid var(--ink); border-radius: 17px; background: var(--paper); } #demo-message { font-weight: 800; } button { flex: none; padding: .75rem 1rem; border: 2px solid var(--ink); border-radius: 12px; color: var(--ink); font: inherit; font-weight: 900; cursor: pointer; background: var(--mint); box-shadow: 3px 3px 0 var(--ink); transition: transform .15s; } button:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+      .finish { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 26px; } .finish article { padding: 22px; border-radius: 20px; color: white; background: var(--pink); } .finish article:last-child { color: var(--ink); background: var(--mint); } .finish h2 { margin: 0 0 8px; font-size: 1.1rem; } .finish p { margin: 0; line-height: 1.5; }
+      @media (max-width: 650px) { .map, .finish { grid-template-columns: 1fr; } .demo { align-items: start; flex-direction: column; } }
     </style>
   </head>
-
-  <body>
-
-    <!-- ============================================
-      CHANGE THIS: Your project name and one sentence
-      describing the problem it solves
-    ============================================ -->
-    <h1>[Your Project Name]</h1>
-    <p>Built by [Your Name] · Week 6 Demo Day</p>
-
-
-    <!-- ============================================
-      CHANGE THIS: Describe the problem you are solving
-      Answer: who has this problem, and why does it matter?
-    ============================================ -->
-    <div class="section">
-      <h2>The Problem</h2>
-      <div class="problem-box">
-        <p>[Describe the problem in 1–2 sentences. Who has this problem? Someone you know?]</p>
-      </div>
-    </div>
-
-
-    <!-- ============================================
-      THIS IS YOUR MAIN BUILD AREA
-      Delete everything inside this section and
-      replace it with your actual project.
-      Use what you learned in weeks 1–5:
-      - HTML structure (week 1)
-      - onclick buttons (week 2)
-      - variables and score (week 3)
-      - timers and randomness (week 4)
-      - fetch from the internet (week 5)
-    ============================================ -->
-    <div class="section">
-      <h2>My Solution</h2>
-
-      <!-- YOUR PROJECT GOES HERE -->
-      <!-- Delete these placeholder lines and build your thing -->
-      <p style="color: #555; font-style: italic;">
-        [Delete this line and build your project here]
-      </p>
-
-      <button onclick="doSomething()">[ Your button ]</button>
-      <p id="output" style="margin-top: 16px;"></p>
-    </div>
-
-
-    <!-- ============================================
-      CHANGE THIS: What you would add next
-      Be honest — this is part of the pitch
-    ============================================ -->
-    <div class="section">
-      <h2>If I had one more week</h2>
-      <p>[One thing you'd add or improve if you had more time]</p>
-    </div>
-
-
-    <!-- ============================================
-      CHANGE THIS: Add tags that describe your project
-    ============================================ -->
-    <div class="section">
-      <span class="tag">[ tag 1 ]</span>
-      <span class="tag">[ tag 2 ]</span>
-      <span class="tag">[ tag 3 ]</span>
-    </div>
-
-
-    <script>
-      // ============================================
-      // YOUR CODE GOES HERE
-      // Replace this example function with your
-      // actual project logic
-      // ============================================
-      function doSomething() {
-        document.getElementById('output').textContent = 'Replace this with your real code.'
-      }
-    </script>
-
-  </body>
+  <body><main>
+    <header class="header"><!-- TASK: project name --><p class="label">A small app with a big heart</p><h1><span>Kindness</span> Queue</h1><p class="promise">A tiny tool that helps busy students remember one kind thing they can do for someone today.</p></header>
+    <section class="map"><article class="panel problem"><!-- TASK: problem statement --><h2>The problem</h2><p>Sometimes people want to help, but they cannot think of an idea in the moment. Small kindnesses get forgotten when life gets busy.</p><span class="who">For: busy students</span></article><article class="panel"><!-- TASK: pitch choice --><h2>Why try it?</h2><p>Kindness Queue gives you one doable idea in seconds. No perfect plan needed—just one bright next move.</p></article></section>
+    <section class="prototype"><!-- TASK: first feature --><h2>My first feature</h2><p>Tap the button to get a tiny act of kindness. Replace this demo with the first useful action for your own app.</p><div class="demo"><span id="demo-message" aria-live="polite">Ready for a bright idea?</span><button onclick="giveIdea()">Give me an idea ✦</button></div></section>
+    <section class="finish"><article><!-- BONUS: next version --><h2>If I had one more week</h2><p>I would let people save their favorite ideas and make their own kindness list.</p></article><article><h2>Build notes</h2><p>My app is for people who want to make a positive difference, one simple action at a time.</p></article></section>
+  </main><script>
+    const ideas = ['Send someone a message that makes them smile.', 'Thank a person who helped you this week.', 'Invite someone to join your game or group.', 'Leave a kind note for someone at home.']
+    function giveIdea() { document.getElementById('demo-message').textContent = ideas[Math.floor(Math.random() * ideas.length)] }
+  </script></body>
 </html>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Lesson } from '@/lib/lessons'
+import { CURRENT_LESSON_VERSION, Lesson } from '@/lib/lessons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -45,6 +45,7 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
           title: lesson.title,
           templateHtml,
           lessonId: lesson.id,
+          lessonVersion: CURRENT_LESSON_VERSION,
         }),
       })
       if (!res.ok) throw new Error('Failed to create project')

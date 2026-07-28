@@ -3,146 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- ============================================
-      CHANGE THIS: Put your name in the title tab
-    ============================================ -->
-    <title>My Interactive Page — Your Name Here</title>
-
+    <title>Vibe Mixer</title>
     <style>
-      /* ============================================
-        COLORS — change these to colors you like
-        Find color codes at: coolors.co
-      ============================================ */
-      :root {
-        --background: #0f0f0f;
-        --text: #f0f0f0;
-        --accent: #00c896;
-      }
-
-      body {
-        background-color: var(--background);
-        color: var(--text);
-        font-family: sans-serif;
-        max-width: 700px;
-        margin: 60px auto;
-        padding: 0 20px;
-        line-height: 1.7;
-      }
-
-      h1 {
-        font-size: 2.5rem;
-        color: var(--accent);
-      }
-
-      /* ============================================
-        HOW BUTTONS LOOK — you can change padding,
-        border-radius, font-size here
-      ============================================ */
-      button {
-        background: var(--accent);
-        color: #000;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-size: 1rem;
-        cursor: pointer;
-        margin-top: 12px;
-      }
-
-      button:hover {
-        opacity: 0.85;
-      }
-
-      .section {
-        margin-top: 40px;
-        border-top: 1px solid #333;
-        padding-top: 20px;
-      }
-
-      /* ============================================
-        THIS IS THE HIDDEN BOX — display: none means
-        it is invisible until the button is clicked
-      ============================================ -->
-      #secret-box {
-        display: none;
-        background: #1a1a1a;
-        border-left: 4px solid var(--accent);
-        padding: 16px 20px;
-        margin-top: 16px;
-        border-radius: 4px;
-      }
+      :root { --night: #17142e; --cream: #fff9ec; --coral: #ff6b70; --sky: #63d6ff; --lime: #c7f36b; --violet: #a88cf5; }
+      * { box-sizing: border-box; } body { min-height: 100vh; margin: 0; color: var(--cream); font-family: ui-rounded, system-ui, sans-serif; background: var(--night); }
+      main { width: min(850px, calc(100% - 32px)); margin: auto; padding: 42px 0 60px; }
+      .label { display: inline-block; padding: .4rem .75rem; border-radius: 999px; color: var(--night); background: var(--lime); font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 16px 0 8px; font-size: clamp(3rem, 9vw, 6rem); line-height: .9; letter-spacing: -.07em; } h1 em { color: var(--sky); font-style: normal; }
+      .intro { max-width: 46ch; margin: 0; color: #c7c1df; font-size: 1.1rem; line-height: 1.55; }
+      .mixer { position: relative; overflow: hidden; margin-top: 28px; padding: clamp(22px, 5vw, 42px); border: 2px solid #5e5988; border-radius: 28px; background: linear-gradient(135deg, #302a5d, #1f1b41); }
+      .mixer::after { position: absolute; inset: auto -55px -70px auto; width: 220px; aspect-ratio: 1; border-radius: 50%; background: var(--coral); content: ''; filter: blur(1px); opacity: .85; }
+      .mixer > * { position: relative; z-index: 1; } h2 { margin: 0; font-size: 1.35rem; } .hint { color: #c7c1df; }
+      .vibes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; } .vibe { min-height: 118px; padding: 16px; border: 2px solid transparent; border-radius: 18px; color: var(--night); text-align: left; font: inherit; font-weight: 900; cursor: pointer; transition: transform .2s, border-color .2s; }
+      .vibe:hover, .vibe:focus-visible { border-color: var(--cream); transform: translateY(-5px) rotate(-1deg); outline: none; } .vibe:nth-child(1) { background: var(--sky); } .vibe:nth-child(2) { background: var(--lime); } .vibe:nth-child(3) { background: var(--violet); } .vibe span { display: block; margin-bottom: 8px; font-size: 2rem; }
+      #result { min-height: 85px; margin-top: 18px; padding: 18px; border: 2px dashed #7870a6; border-radius: 16px; color: #e7e3f5; background: rgba(255,255,255,.06); font-size: 1.05rem; line-height: 1.45; }
+      .bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; } .card { padding: 22px; border-radius: 20px; color: var(--night); background: var(--cream); } .card p { margin-bottom: 0; line-height: 1.5; }
+      .theme { color: var(--cream); background: #fe5f89; } .theme p { color: #fff0f5; } button.surprise { padding: .72rem 1rem; border: 2px solid var(--night); border-radius: 12px; color: var(--night); font: inherit; font-weight: 900; cursor: pointer; background: var(--lime); box-shadow: 3px 3px 0 var(--night); }
+      @media (max-width: 590px) { .vibes, .bottom { grid-template-columns: 1fr; } }
     </style>
   </head>
-
   <body>
-
-    <!-- ============================================
-      CHANGE THIS: Your name and a short intro
-    ============================================ -->
-    <h1>Hi, I'm [Your Name]</h1>
-    <p>This page talks back. Click the button below to see.</p>
-
-
-    <!-- ============================================
-      CHANGE THIS: The button label and secret message
-      The onclick= connects the button to the function
-      below in the <script> tag
-    ============================================ -->
-    <div class="section">
-      <h2>Click to reveal something about me</h2>
-      <button onclick="showSecret()">Click me</button>
-      <div id="secret-box">
-        [Write something surprising or funny about yourself here]
-      </div>
-    </div>
-
-
-    <!-- ============================================
-      CHANGE THIS: Your mood options and responses
-      Add or remove <button> lines to change choices
-    ============================================ -->
-    <div class="section">
-      <h2>How do you feel about coding?</h2>
-      <p>Pick one:</p>
-      <button onclick="showMood('excited')">🔥 Excited</button>
-      <button onclick="showMood('confused')">😵 Confused</button>
-      <button onclick="showMood('tired')">😴 Tired</button>
-      <p id="mood-response" style="margin-top: 16px; font-size: 1.1rem;"></p>
-    </div>
-
-
+    <main>
+      <!-- TASK: studio name -->
+      <span class="label">Interactive mini-app</span><h1>Welcome to the <em>Vibe Mixer.</em></h1><p class="intro">Pick an energy, get a tiny pep talk, and make this page match your own world.</p>
+      <section class="mixer">
+        <!-- TASK: vibe buttons -->
+        <h2>What are you bringing to today’s build?</h2><p class="hint">Choose a button to mix your next move.</p>
+        <div class="vibes"><button class="vibe" onclick="showVibe('spark')"><span>⚡</span>Full of spark</button><button class="vibe" onclick="showVibe('focus')"><span>🎯</span>Ready to focus</button><button class="vibe" onclick="showVibe('chill')"><span>🌈</span>Keeping it chill</button></div>
+        <div id="result" aria-live="polite">Your next vibe will appear here.</div>
+      </section>
+      <section class="bottom">
+        <!-- TASK: theme choice -->
+        <article class="card theme"><h2>Theme switch</h2><p>Turn this into a space station, music booth, sports zone, or whatever feels most you.</p></article>
+        <!-- BONUS: surprise mode -->
+        <article class="card"><h2>Can’t decide?</h2><p>Let the mixer choose for you.</p><button class="surprise" onclick="surpriseMe()">Surprise me ✦</button></article>
+      </section>
+    </main>
     <script>
-      // ============================================
-      // FUNCTION 1: Show or hide the secret box
-      // display = "block" makes it appear
-      // display = "none" makes it disappear
-      // ============================================
-      function showSecret() {
-        let box = document.getElementById('secret-box')
-        if (box.style.display === 'block') {
-          box.style.display = 'none'
-        } else {
-          box.style.display = 'block'
-        }
-      }
-
-
-      // ============================================
-      // CHANGE THIS: The mood responses
-      // Add a new line for each button you added above
-      // Format: 'keyword': 'your response here'
-      // ============================================
-      function showMood(mood) {
-        let responses = {
-          'excited': '🔥 Let\'s go! That energy is everything.',
-          'confused': '😵 Good. Confusion means you\'re learning.',
-          'tired': '😴 Same. But you\'re here. That counts.',
-        }
-        let responseBox = document.getElementById('mood-response')
-        responseBox.textContent = responses[mood]
-      }
+      // TASK: vibe responses
+      const responses = { spark: '⚡ Big energy! Pick one tiny idea and turn it into something real.', focus: '🎯 Focus mode on. Make one change, test it, then celebrate it.', chill: '🌈 Chill is powerful. Explore, play, and see what happens.' }
+      function showVibe(vibe) { document.getElementById('result').textContent = responses[vibe] }
+      function surpriseMe() { const options = Object.keys(responses); showVibe(options[Math.floor(Math.random() * options.length)]) }
     </script>
-
   </body>
 </html>
