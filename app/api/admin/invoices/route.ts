@@ -7,7 +7,7 @@ function isAdmin(email: string | undefined) {
 }
 
 export async function GET(req: Request) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

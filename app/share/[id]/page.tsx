@@ -6,10 +6,11 @@ import ForkButton from './ForkButton'
 import { buildCombinedHtml } from '@/lib/combine'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default async function SharePage({ params }: Props) {
+export default async function SharePage(props: Props) {
+  const params = await props.params;
   const { data: project } = await supabaseAdmin
     .from('projects')
     .select('*')

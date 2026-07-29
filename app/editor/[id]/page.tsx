@@ -2,14 +2,16 @@ import { redirect, notFound } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import type { Project, Message } from '@/types'
 import { getLessonForProject } from '@/lib/lessons'
+import type { ClassSlot } from '@/lib/schedule'
 import EditorLayout from './EditorLayout'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default async function EditorPage({ params }: Props) {
-  const supabase = createServerSupabaseClient()
+export default async function EditorPage(props: Props) {
+  const params = await props.params;
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -47,8 +49,28 @@ export default async function EditorPage({ params }: Props) {
       .maybeSingle()
     : { data: null }
 
+  // Homework is due before this student's next class. Slots are passed raw so
+  // the browser can resolve them in the student's own timezone.
+  let classSlots: ClassSlot[] = []
+  if (lesson) {
+    const { data: memberships } = await supabaseAdmin
+      .from('class_members')
+      .select('class_id')
+      .eq('user_id', user.id)
+
+    const classIds = (memberships ?? []).map((row) => row.class_id)
+    if (classIds.length > 0) {
+      const { data: schedules } = await supabaseAdmin
+        .from('class_schedules')
+        .select('day_of_week, start_time')
+        .in('class_id', classIds)
+      classSlots = schedules ?? []
+    }
+  }
+
   return (
     <EditorLayout
+      classSlots={classSlots}
       project={project as Project}
       initialMessages={(messages ?? []) as Message[]}
       lesson={lesson}

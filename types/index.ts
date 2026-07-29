@@ -1,5 +1,8 @@
 export type ProjectFiles = Record<string, string>
 
+// null = homework not handed in yet
+export type SubmissionStatus = 'submitted' | 'approved' | 'needs_work'
+
 export interface Project {
   id: string
   user_id: string
@@ -8,6 +11,7 @@ export interface Project {
   is_public: boolean
   lesson_id: number | null
   lesson_version: number | null
+  submission_status: SubmissionStatus | null
   created_at: string
   updated_at: string
 }
@@ -30,7 +34,7 @@ export interface Message {
   id: string
   project_id: string
   user_id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'teacher'
   content: string
   created_at: string
 }

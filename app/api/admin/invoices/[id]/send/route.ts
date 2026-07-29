@@ -10,8 +10,9 @@ function formatAmount(cents: number): string {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const supabase = createServerSupabaseClient()
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

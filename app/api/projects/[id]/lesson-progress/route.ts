@@ -3,7 +3,7 @@ import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server
 import { getLessonForProject } from '@/lib/lessons'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 async function getLessonProject(projectId: string, userId: string) {
@@ -19,8 +19,9 @@ async function getLessonProject(projectId: string, userId: string) {
   return lesson ? { project, lesson } : null
 }
 
-export async function GET(_req: Request, { params }: Props) {
-  const supabase = createServerSupabaseClient()
+export async function GET(_req: Request, props: Props) {
+  const params = await props.params;
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -37,8 +38,9 @@ export async function GET(_req: Request, { params }: Props) {
   return NextResponse.json({ completedTaskIds: data?.completed_task_ids ?? [] })
 }
 
-export async function PUT(req: Request, { params }: Props) {
-  const supabase = createServerSupabaseClient()
+export async function PUT(req: Request, props: Props) {
+  const params = await props.params;
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

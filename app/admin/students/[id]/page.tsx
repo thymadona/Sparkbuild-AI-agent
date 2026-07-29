@@ -19,7 +19,8 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-export default async function StudentDetailPage({ params }: { params: { id: string } }) {
+export default async function StudentDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const userId = params.id
 
   const [
