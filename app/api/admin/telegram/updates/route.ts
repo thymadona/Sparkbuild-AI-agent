@@ -9,7 +9,7 @@ function isAdmin(email: string | undefined) {
 // Returns recent Telegram updates so admin can look up a parent's chat_id
 // after the parent sends /start to the bot
 export async function GET() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

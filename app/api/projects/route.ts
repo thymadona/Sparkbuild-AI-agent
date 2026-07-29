@@ -4,7 +4,7 @@ import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -28,7 +28,7 @@ export async function GET() {
 
 // POST /api/projects — create a new project
 export async function POST(req: Request) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
     error: authError,
@@ -249,7 +249,7 @@ export async function POST(req: Request) {
 
 // PATCH /api/projects — update title or is_public for a project
 export async function PATCH(req: Request) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -288,7 +288,7 @@ export async function PATCH(req: Request) {
 
 // DELETE /api/projects — delete a project
 export async function DELETE(req: Request) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

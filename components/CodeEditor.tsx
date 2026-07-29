@@ -17,7 +17,18 @@ interface CodeEditorProps {
   language?: 'html' | 'css' | 'js'
   onSelectionChange?: (selection: { text: string; startLine: number; endLine: number } | null) => void
   highlightLine?: number | null
+  // Bumped every time the parent asks to point at a line, so asking twice for
+  // the same line scrolls there again.
+  highlightNonce?: number
+  // Called while the student types, debounced. Drives the live preview and the
+  // lesson checks.
+  onChange?: (code: string) => void
+  saveState?: 'saved' | 'saving' | 'dirty'
 }
+
+// Short enough that the preview feels live, long enough not to re-render on
+// every keystroke.
+const LIVE_DELAY_MS = 300
 
 const addHighlight = StateEffect.define<{ from: number; to: number }>()
 const clearHighlight = StateEffect.define<null>()
@@ -48,16 +59,51 @@ const highlightTheme = EditorView.baseTheme({
   },
 })
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLine }: CodeEditorProps) {
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLine, highlightNonce, onChange, saveState }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
+  const [viewReady, setViewReady] = useState(false)
+  const lastEmitted = useRef(code)
+  const liveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
+  // Adopt changes that came from somewhere else — an AI generation, or a file
+  // switch — without clobbering what the student is typing. Anything we pushed
+  // up ourselves comes back identical and is ignored.
+  useEffect(() => {
+    if (code === lastEmitted.current) return
+    lastEmitted.current = code
+    setDraft(code)
+  }, [code])
+
+  useEffect(() => () => clearTimeout(liveTimer.current), [])
+
+  function handleChange(value: string) {
+    setDraft(value)
+    if (!onChange) return
+    clearTimeout(liveTimer.current)
+    liveTimer.current = setTimeout(() => {
+      lastEmitted.current = value
+      onChange(value)
+    }, LIVE_DELAY_MS)
+  }
+
+  function flush() {
+    clearTimeout(liveTimer.current)
+    lastEmitted.current = draft
+    onSave(draft)
+  }
+
   useEffect(() => {
     const view = viewRef.current
-    if (!view || highlightLine == null) return
+    if (!view) return
+
+    if (highlightLine == null) {
+      view.dispatch({ effects: clearHighlight.of(null) })
+      return
+    }
 
     const doc = view.state.doc
     if (highlightLine < 1 || highlightLine > doc.lines) return
@@ -69,17 +115,18 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
         EditorView.scrollIntoView(line.from, { y: 'center' }),
       ],
     })
-
-    const timer = setTimeout(() => {
-      view.dispatch({ effects: clearHighlight.of(null) })
-    }, 3000)
-
-    return () => clearTimeout(timer)
-  }, [highlightLine])
+    // The highlight stays until the student moves to another task. A three
+    // second flash is not long enough for a child who reads slowly.
+    // viewReady is a dependency because the editor is often mounted in the same
+    // click that sets highlightLine (task click turns on split view).
+  }, [highlightLine, highlightNonce, viewReady])
 
   function handleUpdate(vu: ViewUpdate) {
     // capture view ref
-    viewRef.current = vu.view
+    if (viewRef.current !== vu.view) {
+      viewRef.current = vu.view
+      setViewReady(true)
+    }
 
     if (!onSelectionChange || !vu.selectionSet) return
     const sel = vu.state.selection.main
@@ -103,16 +150,36 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
     ...(language === 'css' ? [css()] : language === 'js' ? [javascript()] : [html()]),
   ]
 
+  const autosaving = Boolean(onChange)
+  const statusLabel = saveState === 'saving' ? 'Saving…' : saveState === 'dirty' ? 'Saving in a moment…' : 'All changes saved'
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-end border-b border-surface-600 bg-surface-800 px-3 py-1.5">
-        <button
-          onClick={() => onSave(draft)}
-          disabled={draft === code}
-          className="text-xs rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          Save
-        </button>
+    <div
+      className="flex h-full flex-col"
+      onKeyDown={(e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault()
+          flush()
+        }
+      }}
+    >
+      <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
+        {autosaving ? (
+          <span
+            className={`text-xs ${saveState === 'saved' ? 'text-fg-muted' : 'text-fg-secondary'}`}
+            aria-live="polite"
+          >
+            {statusLabel}
+          </span>
+        ) : (
+          <button
+            onClick={flush}
+            disabled={draft === code}
+            className="text-xs rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Save
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-auto">
         <CodeMirror
@@ -120,7 +187,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
           height="100%"
           theme={mounted && resolvedTheme === 'light' ? 'light' : oneDark}
           extensions={extensions}
-          onChange={setDraft}
+          onChange={handleChange}
           onUpdate={handleUpdate}
           style={{ height: '100%', fontSize: '13px' }}
           basicSetup={{

@@ -4,10 +4,11 @@ import { LESSONS } from '@/lib/lessons'
 import LessonDetailClient from './LessonDetailClient'
 
 interface Props {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default async function LessonPage({ params }: Props) {
+export default async function LessonPage(props: Props) {
+  const params = await props.params;
   const supabase = await createServerSupabaseClient()
   const {
     data: { user },

@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import LoginForm from '@/app/LoginForm'
 import Navbar from '@/components/Navbar'
 
-export default async function LoginPage({ searchParams }: { searchParams: { reason?: string } }) {
+export default async function LoginPage(props: { searchParams: Promise<{ reason?: string }> }) {
+  const searchParams = await props.searchParams;
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/dashboard')

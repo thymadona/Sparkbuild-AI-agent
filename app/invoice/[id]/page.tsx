@@ -6,7 +6,8 @@ function formatAmount(cents: number): string {
   return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 }
 
-export default async function InvoicePage({ params }: { params: { id: string } }) {
+export default async function InvoicePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { data: invoice, error } = await supabaseAdmin
     .from('invoices')
     .select('*')

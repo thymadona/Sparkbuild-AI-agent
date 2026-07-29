@@ -6,8 +6,9 @@ function isAdmin(email: string | undefined) {
   return allowed.includes(email?.toLowerCase() ?? '')
 }
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
-  const supabase = createServerSupabaseClient()
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

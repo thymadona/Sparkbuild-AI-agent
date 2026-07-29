@@ -4,7 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import ClassDetailClient from './ClassDetailClient'
 import type { ClassSchedule } from '@/types'
 
-export default async function ClassDetailPage({ params }: { params: { id: string } }) {
+export default async function ClassDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const [
     { data: cls },
     { data: members },

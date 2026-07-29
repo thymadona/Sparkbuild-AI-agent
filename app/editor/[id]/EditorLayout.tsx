@@ -13,6 +13,7 @@ import ProfileDropdown from '@/components/ProfileDropdown'
 import { buildCombinedHtml } from '@/lib/combine'
 import type { Project, Message } from '@/types'
 import type { Lesson } from '@/lib/lessons'
+import type { ClassSlot } from '@/lib/schedule'
 
 interface ConsoleEntry {
   level: 'log' | 'warn' | 'error' | 'info' | 'debug'
@@ -26,7 +27,11 @@ interface Props {
   lesson: Lesson | null
   initialCompletedTaskIds: string[]
   userEmail: string
+  classSlots?: ClassSlot[]
 }
+
+// Upper bound on retained preview console output.
+const MAX_CONSOLE_ENTRIES = 200
 
 type RightTab = 'code' | 'preview' | 'console'
 type Activity = 'explorer' | 'chat' | 'navigator'
@@ -37,7 +42,7 @@ function getLanguage(filename: string): 'html' | 'css' | 'js' {
   return 'html'
 }
 
-export default function EditorLayout({ project, initialMessages, lesson, initialCompletedTaskIds, userEmail }: Props) {
+export default function EditorLayout({ project, initialMessages, lesson, initialCompletedTaskIds, userEmail, classSlots = [] }: Props) {
   const [files, setFiles] = useState<Record<string, string>>(project.files)
   const [openTabs, setOpenTabs] = useState<string[]>(Object.keys(project.files))
   const [activeFile, setActiveFile] = useState<string>('index.html')
@@ -53,19 +58,86 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [selectedCode, setSelectedCode] = useState<{ text: string; startLine: number; endLine: number } | null>(null)
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([])
   const [highlightLine, setHighlightLine] = useState<number | null>(null)
+  const [highlightNonce, setHighlightNonce] = useState(0)
+  const [undoFiles, setUndoFiles] = useState<Record<string, string> | null>(null)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const sideWidthRef = useRef(380)
   const dragStartX = useRef(0)
   const dragStartWidth = useRef(0)
   const isDraggingRef = useRef(false)
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'dirty'>('saved')
+  const pendingFilesRef = useRef<Record<string, string> | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const savingRef = useRef(false)
   const router = useRouter()
+
+  // How long the student has to stop typing before the project is written to
+  // the server. Local state has already updated by then.
+  const SAVE_DELAY_MS = 1200
+
+  const flushSave = useCallback(async () => {
+    const next = pendingFilesRef.current
+    if (!next || savingRef.current) return
+    pendingFilesRef.current = null
+    savingRef.current = true
+    setSaveState('saving')
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, files: next }),
+      })
+      if (!response.ok) throw new Error('save failed')
+      setSaveState(pendingFilesRef.current ? 'dirty' : 'saved')
+    } catch {
+      // Keep the unsaved work queued so the next attempt picks it up.
+      pendingFilesRef.current = pendingFilesRef.current ?? next
+      setSaveState('dirty')
+    } finally {
+      savingRef.current = false
+      if (pendingFilesRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = setTimeout(() => { void flushSave() }, SAVE_DELAY_MS)
+      }
+    }
+  }, [project.id])
+
+  const scheduleSave = useCallback(() => {
+    clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => { void flushSave() }, SAVE_DELAY_MS)
+  }, [flushSave])
+
+  // Last-chance write if the student closes the tab mid-edit.
+  useEffect(() => {
+    function onBeforeUnload() {
+      const next = pendingFilesRef.current
+      if (!next) return
+      void fetch('/api/projects', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: project.id, files: next }),
+        keepalive: true,
+      })
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      clearTimeout(saveTimerRef.current)
+      onBeforeUnload()
+    }
+  }, [project.id])
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.data?.type !== '__console__') return
       const entry: ConsoleEntry = { level: e.data.level, args: e.data.args, timestamp: new Date() }
-      setConsoleLogs((prev) => [...prev, entry])
+      // A student's loop or game can log forever; keep only a recent window so
+      // the tab does not grow without bound.
+      setConsoleLogs((prev) => {
+        const next = [...prev, entry]
+        return next.length > MAX_CONSOLE_ENTRIES ? next.slice(-MAX_CONSOLE_ENTRIES) : next
+      })
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
@@ -128,11 +200,34 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   async function handleCodeSave(newContent: string) {
     const updatedFiles = { ...files, [activeFile]: newContent }
     setFiles(updatedFiles)
-    await fetch('/api/projects', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: project.id, files: updatedFiles }),
-    })
+    pendingFilesRef.current = updatedFiles
+    clearTimeout(saveTimerRef.current)
+    await flushSave()
+  }
+
+  // Typing path: local state updates immediately so the preview and the lesson
+  // checks stay live, while the network write is debounced and coalesced.
+  function handleCodeChange(newContent: string) {
+    if (files[activeFile] === newContent) return
+    const updatedFiles = { ...files, [activeFile]: newContent }
+    setFiles(updatedFiles)
+    pendingFilesRef.current = updatedFiles
+    setSaveState('dirty')
+    scheduleSave()
+    // Their own edits are now on top of the AI's; undoing would throw those away.
+    setUndoFiles(null)
+  }
+
+  // Autosave means an AI generation overwrites the student's file with nothing
+  // to go back to. One step of undo, until the student edits again.
+  async function undoGeneration() {
+    if (!undoFiles) return
+    const restored = undoFiles
+    setUndoFiles(null)
+    setFiles(restored)
+    pendingFilesRef.current = restored
+    clearTimeout(saveTimerRef.current)
+    await flushSave()
   }
 
   function handleFileClick(filename: string) {
@@ -174,6 +269,18 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   }
 
   const activeLanguage = getLanguage(activeFile)
+
+  // Lesson projects get the simplified student layout. Free-form projects from
+  // /explore keep the full developer chrome.
+  const kidMode = lesson !== null
+  const hasConsoleError = consoleLogs.some((entry) => entry.level === 'error')
+  // In kid mode the console is not a peer of Preview — it only appears once
+  // something has actually gone wrong.
+  const showConsoleTab = !kidMode || hasConsoleError
+
+  useEffect(() => {
+    if (kidMode && rightTab === 'console' && !hasConsoleError) setRightTab('preview')
+  }, [kidMode, rightTab, hasConsoleError])
 
   return (
     <div className="flex h-screen flex-col bg-surface-900 font-body">
@@ -318,6 +425,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               <Editor
                 projectId={project.id}
                 files={files}
+                onBeforeGenerate={() => setUndoFiles(files)}
                 onFilesUpdate={(newFiles) => {
                   setFiles(newFiles)
                   setRightTab('preview')
@@ -338,11 +446,17 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   lesson={lesson}
                   projectId={project.id}
                   initialCompletedTaskIds={initialCompletedTaskIds}
+                  initialSubmissionStatus={project.submission_status}
+                  classSlots={classSlots}
                   code={files['index.html'] ?? ''}
+                  kidMode={kidMode}
                   onHighlight={(line) => {
                     setHighlightLine(line)
+                    setHighlightNonce((n) => n + 1)
+                    // Code beside preview, so the student sees the line they are
+                    // changing and the result of changing it at the same time.
+                    setSplitView(true)
                     setRightTab('code')
-                    setTimeout(() => setHighlightLine(null), 3000)
                   }}
                   onPrompt={(p) => {
                     setActivity('chat')
@@ -366,6 +480,28 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
         {/* Main area: Code + Preview tabs */}
         <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Undo the last AI change */}
+          {undoFiles && (
+            <div className="flex items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-50 px-3 py-1.5 dark:bg-amber-900/20">
+              <span className="text-xs text-amber-800 dark:text-amber-200">The AI changed your file.</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={undoGeneration}
+                  className="rounded border border-amber-500/40 px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-500/20 dark:text-amber-200"
+                >
+                  Go back to mine
+                </button>
+                <button
+                  onClick={() => setUndoFiles(null)}
+                  aria-label="Keep the AI change"
+                  className="rounded px-1 text-xs text-amber-800/70 hover:text-amber-900 dark:text-amber-200/70"
+                >
+                  Keep it
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Tab bar */}
           <div className="flex items-center border-b border-surface-600 bg-surface-900 px-2 gap-1">
             {openTabs.map((filename) => (
@@ -419,23 +555,27 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               Preview
             </button>
 
-            <button
-              onClick={() => setRightTab('console')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
-                rightTab === 'console'
-                  ? 'bg-surface-700 text-fg-primary rounded-md my-1'
-                  : 'text-fg-muted hover:bg-surface-700/60 hover:text-fg-secondary rounded-md my-1'
-              }`}
-            >
-              <svg className="h-3.5 w-3.5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3" />
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-              </svg>
-              Console
-              {consoleLogs.some(l => l.level === 'error') && (
-                <span className="ml-1 h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
-              )}
-            </button>
+            {showConsoleTab && (
+              <button
+                onClick={() => setRightTab('console')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 ${kidMode ? 'text-sm' : 'text-xs'} transition-colors ${
+                  rightTab === 'console'
+                    ? 'bg-surface-700 text-fg-primary rounded-md my-1'
+                    : kidMode
+                      ? 'text-amber-600 dark:text-amber-400 hover:bg-surface-700/60 rounded-md my-1'
+                      : 'text-fg-muted hover:bg-surface-700/60 hover:text-fg-secondary rounded-md my-1'
+                }`}
+              >
+                <svg className={`h-3.5 w-3.5 shrink-0 ${kidMode ? 'text-amber-500' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3" />
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                </svg>
+                {kidMode ? 'Something went wrong' : 'Console'}
+                {hasConsoleError && (
+                  <span className="ml-1 h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
+                )}
+              </button>
+            )}
 
             <div className="flex-1" />
 
@@ -480,7 +620,10 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   code={files[activeFile] ?? ''}
                   language={activeLanguage}
                   onSave={handleCodeSave}
+                  onChange={handleCodeChange}
+                  saveState={saveState}
                   highlightLine={highlightLine}
+                  highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
                     setSelectedCode(sel)
                     if (sel) {
@@ -504,7 +647,10 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   code={files[activeFile] ?? ''}
                   language={activeLanguage}
                   onSave={handleCodeSave}
+                  onChange={handleCodeChange}
+                  saveState={saveState}
                   highlightLine={highlightLine}
+                  highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
                     setSelectedCode(sel)
                     if (sel) {

@@ -3,12 +3,14 @@ import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server
 import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
+import { getLessonForProject } from '@/lib/lessons'
+import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   // 1. Auth check
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
   // Verify project ownership — single query, ownership enforced by user_id filter
   const { data: project } = await supabaseAdmin
     .from('projects')
-    .select('user_id')
+    .select('user_id, lesson_id, lesson_version')
     .eq('id', projectId)
     .eq('user_id', user.id)
     .single()
@@ -57,9 +59,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
+  // 3a. Lesson guard — while a core task is open, the student writes the code.
+  let openTask = null
+  if (project.lesson_id != null) {
+    const lesson = getLessonForProject(project.lesson_id, project.lesson_version)
+    const { data: progress } = await supabaseAdmin
+      .from('lesson_progress')
+      .select('completed_task_ids')
+      .eq('project_id', projectId)
+      .maybeSingle()
+    openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
+  }
+
   // 3b. Resolve effective mode — check per-user permission (server is authoritative)
   let effectiveMode: 'ask' | 'build' = 'ask'
-  if (mode === 'build') {
+  if (mode === 'build' && !openTask) {
     const { data: setting } = await supabaseAdmin
       .from('user_build_mode')
       .select('enabled')
@@ -90,9 +104,13 @@ export async function POST(req: Request) {
       .join('\n\n')
   }
 
-  const systemContent = filesContext
-    ? `${BASE_SYSTEM_PROMPT}\n\nCurrent project files:\n${filesContext}`
-    : BASE_SYSTEM_PROMPT
+  const systemContent = [
+    BASE_SYSTEM_PROMPT,
+    openTask ? buildTaskNudge(openTask) : '',
+    filesContext ? `Current project files:\n${filesContext}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 
   const userContent = selectedCode
     ? `Selected code:\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${prompt}`
@@ -174,6 +192,9 @@ export async function POST(req: Request) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
+      // Lets the client explain why a build request came back as tutoring.
+      'X-Effective-Mode': effectiveMode,
+      ...(openTask ? { 'X-Open-Task': openTask.id } : {}),
     },
   })
 }

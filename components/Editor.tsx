@@ -5,9 +5,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/types";
 import { parseMultiFileResponse, parseSummary } from "@/lib/parse-multi-file";
+import SpeakButton from "@/components/SpeakButton";
 
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "teacher";
   content: string;
   timestamp: Date;
 }
@@ -16,6 +17,8 @@ interface EditorProps {
   projectId: string;
   files: Record<string, string>;
   onFilesUpdate: (files: Record<string, string>) => void;
+  // Fired once before a generation, so the parent can snapshot for undo.
+  onBeforeGenerate?: () => void;
   activeFile?: string;
   messages: Message[];
   onMessagesChange: (msgs: Message[] | ((prev: Message[]) => Message[])) => void;
@@ -37,6 +40,7 @@ export default function Editor({
   projectId,
   files,
   onFilesUpdate,
+  onBeforeGenerate,
   activeFile,
   messages: messagesProp,
   onMessagesChange,
@@ -49,6 +53,7 @@ export default function Editor({
   const messages = messagesProp.map(toChat);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
   const [mode, setMode] = useState<'ask' | 'build'>('ask');
   const [buildModeAvailable, setBuildModeAvailable] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -79,6 +84,7 @@ export default function Editor({
     const contextCode = selectedCode ?? null;
     setError("");
     setIsGenerating(true);
+    onBeforeGenerate?.();
     onClearSelection?.();
 
     const userMsg: Message = {
@@ -99,7 +105,11 @@ export default function Editor({
           prompt: userMessage,
           projectId,
           files: Object.keys(files).length > 0 ? files : undefined,
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
+          history: messages.map((m) =>
+            m.role === "teacher"
+              ? { role: "user" as const, content: `My teacher said: ${m.content}` }
+              : { role: m.role, content: m.content },
+          ),
           selectedCode: contextCode?.text,
           mode,
         }),
@@ -121,6 +131,14 @@ export default function Editor({
         setError("Failed to read response stream.");
         setIsGenerating(false);
         return;
+      }
+
+      // The server withholds build mode while a lesson task is open. Say so,
+      // rather than letting a build request look like it silently failed.
+      if (mode === "build" && res.headers.get("X-Effective-Mode") === "ask" && res.headers.get("X-Open-Task")) {
+        setNotice("This part is yours to type. Your tutor will show you where.");
+      } else {
+        setNotice(null);
       }
 
       const decoder = new TextDecoder();
@@ -231,7 +249,20 @@ export default function Editor({
             key={i}
             className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            {msg.role === "user" ? (
+            {msg.role === "teacher" ? (
+              <div className="flex items-end gap-2 max-w-[90%]">
+                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-teal-500/20 ring-1 ring-teal-400/40 text-[10px] font-bold text-teal-700 dark:text-teal-300 mb-1">
+                  T
+                </div>
+                <div className="w-fit rounded-2xl rounded-bl-sm border border-teal-500/30 bg-teal-50 px-4 py-2.5 text-sm text-teal-900 dark:bg-teal-900/20 dark:text-teal-100">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Your teacher</p>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <div className="mt-1">
+                    <SpeakButton text={msg.content} label="Read your teacher's note out loud" />
+                  </div>
+                </div>
+              </div>
+            ) : msg.role === "user" ? (
               <div className="max-w-[85%] w-fit rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm bg-brand-100 dark:bg-brand-500/15 text-fg-primary">
                 <p className="whitespace-pre-wrap">{msg.content}</p>
                 <p className="mt-1 text-xs text-brand-700 dark:text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -282,12 +313,15 @@ export default function Editor({
                       {msg.content}
                     </ReactMarkdown>
                   </div>
-                  <p className="mt-1 text-xs text-fg-muted opacity-0 group-hover:opacity-100 transition-opacity">
-                    {msg.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <SpeakButton text={msg.content} label="Read this answer out loud" />
+                    <p className="text-xs text-fg-muted opacity-0 group-hover:opacity-100 transition-opacity">
+                      {msg.timestamp.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -312,6 +346,14 @@ export default function Editor({
       {error && (
         <div className="mx-4 mb-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
           {error}
+        </div>
+      )}
+
+      {/* Build mode withheld while a lesson task is open */}
+      {notice && (
+        <div className="mx-4 mb-2 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+          <span aria-hidden="true">✋</span>
+          <span>{notice}</span>
         </div>
       )}
 

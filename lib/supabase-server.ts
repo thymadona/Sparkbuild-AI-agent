@@ -1,14 +1,14 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
+import { cookies } from 'next/headers';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 // Server client — used in Server Components and API routes (respects RLS)
-export function createServerSupabaseClient() {
-  const cookieStore = cookies()
+export async function createServerSupabaseClient() {
+  const cookieStore = await cookies()
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {

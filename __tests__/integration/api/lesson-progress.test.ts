@@ -11,7 +11,7 @@ jest.mock('next/headers', () => ({ cookies: () => ({ getAll: () => [], set: jest
 import { GET, PUT } from '@/app/api/projects/[id]/lesson-progress/route'
 
 const user = { id: 'student-1' }
-const params = { params: { id: 'project-1' } }
+const params = { params: Promise.resolve({ id: 'project-1' }) }
 
 function request(body?: unknown) {
   return new Request('http://localhost/api/projects/project-1/lesson-progress', {
