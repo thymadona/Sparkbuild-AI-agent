@@ -11,7 +11,7 @@ jest.mock('@/lib/supabase-server', () => ({
     auth: { getUser: mockGetUser },
   }),
   supabaseAdmin: {
-    from: (...args) => mockAdminFrom(...args),
+    from: (...args: unknown[]) => mockAdminFrom(...args),
   },
 }))
 

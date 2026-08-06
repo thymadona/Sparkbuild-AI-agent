@@ -134,14 +134,24 @@ export async function POST(req: Request) {
         const result = await deepseek.chat.completions.create({
           model: MODEL,
           stream: true,
+          stream_options: { include_usage: true },
           messages: llmMessages,
         })
 
         for await (const chunk of result) {
           const text = chunk.choices[0]?.delta?.content ?? ''
-          if (!text) continue
-          accumulated += text
-          controller.enqueue(encoder.encode(text))
+          if (text) {
+            accumulated += text
+            controller.enqueue(encoder.encode(text))
+          }
+
+          // DeepSeek caches repeated prompt prefixes on disk automatically;
+          // this surfaces the hit rate in logs (fields aren't in the OpenAI
+          // SDK's types since they're a DeepSeek-specific extension).
+          const usage = chunk.usage as { prompt_cache_hit_tokens?: number; prompt_cache_miss_tokens?: number } | undefined
+          if (usage) {
+            console.log(`[deepseek cache] hit=${usage.prompt_cache_hit_tokens ?? 0} miss=${usage.prompt_cache_miss_tokens ?? 0}`)
+          }
         }
 
         controller.close()

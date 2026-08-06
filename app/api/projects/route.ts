@@ -15,7 +15,7 @@ export async function GET() {
 
   const { data: projects, error } = await supabaseAdmin
     .from('projects')
-    .select('*')
+    .select('id, title, lesson_id, updated_at, is_public')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 

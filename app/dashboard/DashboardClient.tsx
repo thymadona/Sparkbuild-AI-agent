@@ -5,11 +5,20 @@ import { useRouter } from 'next/navigation'
 import { Plus, Check, Globe, ArrowRight } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
-import type { Project } from '@/types'
 import { LESSONS } from '@/lib/lessons'
 
+// Dashboard only ever renders these fields — the full Project type also
+// includes `files`, which would be a wasted fetch for a list view.
+type ProjectListItem = {
+  id: string
+  title: string
+  lesson_id: number | null
+  updated_at: string
+  is_public: boolean
+}
+
 interface Props {
-  initialProjects: Project[]
+  initialProjects: ProjectListItem[]
   userEmail: string
 }
 
@@ -38,7 +47,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
     setProjects((prev) => prev.filter((p) => p.id !== id))
   }
 
-  async function handleTogglePublic(project: Project) {
+  async function handleTogglePublic(project: ProjectListItem) {
     const res = await fetch('/api/projects', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -48,7 +57,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
     setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
   }
 
-  async function handleDuplicate(project: Project) {
+  async function handleDuplicate(project: ProjectListItem) {
     setDuplicating(project.id)
     const res = await fetch('/api/projects/duplicate', {
       method: 'POST',

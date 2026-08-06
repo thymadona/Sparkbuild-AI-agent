@@ -3,7 +3,7 @@ import { checkRateLimit } from '@/lib/ratelimit'
 // Mock supabaseAdmin used inside ratelimit.ts
 const mockFrom = jest.fn()
 jest.mock('@/lib/supabase-server', () => ({
-  supabaseAdmin: { from: (...args) => mockFrom(...args) },
+  supabaseAdmin: { from: (...args: unknown[]) => mockFrom(...args) },
 }))
 
 const USER_ID = 'user-123'

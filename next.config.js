@@ -6,6 +6,25 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  async headers() {
+    return [
+      {
+        // Lesson templates are re-fetched on every "Start lesson" click.
+        // Short max-age + background revalidation avoids re-fetching within
+        // a session without risking long-lived staleness — nothing
+        // guarantees a template file's content never changes without its
+        // filename changing (that guarantee only covers lib/lessons.ts
+        // catalog versions, not the HTML files themselves).
+        source: '/templates/:path*.html',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=300, stale-while-revalidate=86400',
+          },
+        ],
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
