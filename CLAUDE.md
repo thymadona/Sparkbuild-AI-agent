@@ -33,6 +33,8 @@ Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
 
 **Supabase has three clients with different privileges**: `createBrowserSupabaseClient()` (anon, Client Components), `createServerSupabaseClient()` (anon + cookies, identifies the caller, respects RLS), and `supabaseAdmin` (service role, bypasses RLS — used for nearly all reads/writes). Because `supabaseAdmin` ignores RLS, every query must carry its own ownership check (e.g. `.eq('id', id).eq('user_id', user.id)`). Never import `supabaseAdmin` into a Client Component.
 
+**Drizzle (`lib/db/client.ts`, `lib/db/schema.ts`)** is available for new server-side code as a typed alternative to `supabaseAdmin` — same service-role Postgres connection, same RLS-bypass, same per-query ownership-check obligation. It's database-first: `supabase/migrations/*.sql` is still the schema source of truth; run `bun run db:pull` to re-introspect `lib/db/schema.ts` after a migration. Existing `supabaseAdmin` call sites have not been migrated — this is additive, not a replacement.
+
 **The LLM contract is delimiter-based and full-file**: build responses are `--- FILE: <name> ---` ... `--- DONE ---` blocks parsed by `lib/parse-multi-file.ts`; files are replaced wholesale, never diffed. Model is pinned to `deepseek-v4-flash` via the native DeepSeek API for cost control — don't change providers/models without approval.
 
 **Preview is `srcdoc`-only, deliberately** — no WebContainer, Sandpack, or CodeSandbox SDK.
@@ -48,6 +50,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
+DATABASE_URL=                    # server-side only; Postgres pooler URL for Drizzle, bypasses RLS like supabaseAdmin
 DEEPSEEK_API_KEY=                # server-side only
 ADMIN_EMAILS=                    # comma-separated; grants back-office access + bypasses rate limit
 TELEGRAM_BOT_TOKEN=              # server-side only
