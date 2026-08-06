@@ -3,6 +3,7 @@
 import { CURRENT_LESSON_VERSION, Lesson } from '@/lib/lessons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
 
 interface Props {
@@ -60,12 +61,12 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
   return (
     <div className="min-h-screen bg-surface-900 font-body">
       <header className="sticky top-0 z-10 border-b border-surface-600/50 bg-surface-900/90 backdrop-blur-md px-6 py-3 flex items-center justify-between">
-        <a href="/dashboard" className="font-display text-lg font-bold text-fg-primary">
+        <Link href="/dashboard" className="font-display text-lg font-bold text-fg-primary">
           <span className="text-brand-600 dark:text-brand-400">Code</span>Builder
-        </a>
+        </Link>
         <nav className="flex items-center gap-4 text-sm">
-          <a href="/dashboard" className="text-fg-secondary hover:text-fg-primary transition-colors">Dashboard</a>
-          <a href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</a>
+          <Link href="/dashboard" className="text-fg-secondary hover:text-fg-primary transition-colors">Dashboard</Link>
+          <Link href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</Link>
           <ThemeToggle />
         </nav>
       </header>

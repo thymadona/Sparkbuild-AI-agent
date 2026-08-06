@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@/components/Editor'
 import Preview from '@/components/Preview'
@@ -47,6 +48,11 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [openTabs, setOpenTabs] = useState<string[]>(Object.keys(project.files))
   const [activeFile, setActiveFile] = useState<string>('index.html')
   const [messages, setMessages] = useState<Message[]>(initialMessages)
+  // Captured once at mount so it can't flip from true to false on a later
+  // re-render that happens to land after the 10s window.
+  const [isFreshlyCreated] = useState(() =>
+    initialMessages.length === 0 && Date.now() - new Date(project.created_at).getTime() < 10_000
+  )
   const [title, setTitle] = useState(project.title)
   const [savingTitle, setSavingTitle] = useState(false)
   const [rightTab, setRightTab] = useState<RightTab>('preview')
@@ -149,12 +155,18 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     }
   }, [consoleLogs, rightTab])
 
+  // Refetches messages in case the browser served a stale cached RSC payload
+  // (e.g. back/forward navigation after the chat moved on since first load).
+  // Skipped when the project was created moments ago: no prior render of
+  // this page can exist yet for it to have gone stale, so the fetch could
+  // only ever return the same empty list already in `initialMessages`.
   useEffect(() => {
+    if (isFreshlyCreated) return
     fetch(`/api/projects/${project.id}/messages`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d.messages)) setMessages(d.messages) })
       .catch(() => {})
-  }, [project.id])
+  }, [project.id, isFreshlyCreated])
 
   const combinedHtml = buildCombinedHtml(files)
 
@@ -318,8 +330,8 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               Copy link
             </button>
           )}
-          <a href="/lessons" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Lessons</a>
-          <a href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</a>
+          <Link href="/lessons" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Lessons</Link>
+          <Link href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</Link>
           <ThemeToggle />
           <ProfileDropdown email={userEmail} />
         </div>

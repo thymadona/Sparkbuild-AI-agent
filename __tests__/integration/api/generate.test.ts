@@ -13,7 +13,7 @@ jest.mock('@/lib/supabase-server', () => ({
     auth: { getUser: mockGetUser },
   }),
   supabaseAdmin: {
-    from: (...args) => mockAdminFrom(...args),
+    from: (...args: unknown[]) => mockAdminFrom(...args),
   },
 }))
 
@@ -25,7 +25,7 @@ jest.mock('@/lib/gemini', () => ({
   deepseek: {
     chat: {
       completions: {
-        create: (...args) => mockCreate(...args),
+        create: (...args: unknown[]) => mockCreate(...args),
       },
     },
   },

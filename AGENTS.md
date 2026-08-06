@@ -132,10 +132,10 @@ graph LR
 
 Pre-existing on a clean checkout, so don't attribute them to your change:
 
-- `npm test` fails 3 suites / 7 tests because tests encode stale values: a rate limit of 10 (code uses 20), a default project title of `"Untitled"` (code generates a random name), and a request field named `currentCode` (code uses `selectedCode`).
-- `npm run test:unit` and `npm run test:integration` find nothing — they pass `--selectProjects` but `jest.config.ts` defines no `projects`. Use `npm test` or a path filter.
+- `bun run test` fails 3 suites / 7 tests because tests encode stale values: a rate limit of 10 (code uses 20), a default project title of `"Untitled"` (code generates a random name), and a request field named `currentCode` (code uses `selectedCode`).
+- `bun run test:unit` and `bun run test:integration` find nothing — they pass `--selectProjects` but `jest.config.ts` defines no `projects`. Use `bun run test` or a path filter.
 - `types/index.ts` has no interfaces for `app_settings` or `user_build_mode`.
-- `npm run lint` reports 11 pre-existing `no-html-link-for-pages` errors (`components/Navbar.tsx`, `components/Footer.tsx`, `app/share/[id]/page.tsx` use `<a>` where `<Link>` belongs) and one `no-page-custom-font` warning in `app/layout.tsx`. These predate the Next 16 upgrade; they were invisible because `next lint` had no config and only ever opened its interactive setup prompt.
+- `bun run lint` reports 10 pre-existing `no-html-link-for-pages` errors (`components/Navbar.tsx`, `components/Footer.tsx`, `app/share/[id]/page.tsx`, `app/about/page.tsx`, `app/dashboard/DashboardClient.tsx` use `<a>` where `<Link>` belongs) and one `no-page-custom-font` warning in `app/layout.tsx`. These predate the Next 16 upgrade; they were invisible because `next lint` had no config and only ever opened its interactive setup prompt.
 - `middleware.ts` still works but the filename is deprecated in Next 16 in favour of `proxy.ts`. It was left as-is: `proxy` forces the Node runtime, and renaming it is a behavioural change worth doing on its own.
 - `CLAUDE.md` describes an earlier MVP scope (claims no multi-file and no payments) that the code has outgrown.
 
@@ -171,14 +171,14 @@ Tests mirror the implementation area under `__tests__/unit/` and `__tests__/inte
 
 ### Build, Test, and Development Commands
 
-- `npm run dev` starts the local Next.js development server.
-- `npm run build` creates a production build; run it before submitting changes that affect routes or configuration.
-- `npm run start` serves a completed production build.
-- `npm test` runs the Jest suite.
-- `npx jest __tests__/unit/lib/ratelimit.test.ts` runs one focused test file.
-- `npm run lint` runs the configured Next.js ESLint command.
+- `bun run dev` starts the local Next.js development server.
+- `bun run build` creates a production build; run it before submitting changes that affect routes or configuration.
+- `bun run start` serves a completed production build.
+- `bun run test` runs the Jest suite.
+- `bunx jest __tests__/unit/lib/ratelimit.test.ts` runs one focused test file.
+- `bun run lint` runs the configured Next.js ESLint command.
 
-Use `npm` for reproducible installs because the repository includes `package-lock.json`.
+Use `bun` for reproducible installs because the repository includes `bun.lock`. Scripts must be invoked as `bun run <script>` — `bun test` runs bun's own built-in test runner, not Jest, and will not run this suite.
 
 ### Coding Style & Naming Conventions
 
@@ -188,7 +188,7 @@ Tailwind CSS is the styling system. Reuse `cn()` from `lib/utils.ts` for conditi
 
 ### Testing Guidelines
 
-Jest is configured through `jest.config.ts` with Testing Library support. Name tests `*.test.ts` or `*.test.tsx` and place them under the matching `__tests__/unit/` or `__tests__/integration/` area. Test observable behavior, mock external Supabase/LLM dependencies, and cover error paths for API and persistence logic. Run relevant focused tests during development, then `npm test` before opening a pull request.
+Jest is configured through `jest.config.ts` with Testing Library support. Name tests `*.test.ts` or `*.test.tsx` and place them under the matching `__tests__/unit/` or `__tests__/integration/` area. Test observable behavior, mock external Supabase/LLM dependencies, and cover error paths for API and persistence logic. Run relevant focused tests during development, then `bun run test` before opening a pull request.
 
 ### Commit & Pull Request Guidelines
 
@@ -197,3 +197,13 @@ Follow the history's concise imperative style, preferably Conventional Commits: 
 ### Security & Configuration
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` and `DEEPSEEK_API_KEY` server-only; only `NEXT_PUBLIC_*` values may reach the browser. Use the Supabase server/admin clients only from server code, preserve RLS expectations, and never commit local environment files or secrets.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

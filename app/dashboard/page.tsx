@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
-import type { Project } from '@/types'
 import DashboardClient from './DashboardClient'
 
 export default async function DashboardPage() {
@@ -15,13 +14,13 @@ export default async function DashboardPage() {
 
   const { data: projects } = await supabaseAdmin
     .from('projects')
-    .select('*')
+    .select('id, title, lesson_id, updated_at, is_public')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
   return (
     <DashboardClient
-      initialProjects={(projects as Project[]) ?? []}
+      initialProjects={projects ?? []}
       userEmail={user.email ?? ''}
     />
   )
