@@ -9,9 +9,12 @@ import Preview from '@/components/Preview'
 import FileTree from '@/components/FileTree'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
+import Homework from '@/components/Homework'
+import ConfettiBurst from '@/components/ConfettiBurst'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import { buildCombinedHtml } from '@/lib/combine'
+import { useLessonProgress } from '@/hooks/useLessonProgress'
 import type { Project, Message } from '@/types'
 import type { Lesson } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
@@ -35,7 +38,7 @@ interface Props {
 const MAX_CONSOLE_ENTRIES = 200
 
 type RightTab = 'code' | 'preview' | 'console'
-type Activity = 'explorer' | 'chat' | 'navigator'
+type Activity = 'explorer' | 'chat' | 'navigator' | 'homework'
 
 function getLanguage(filename: string): 'html' | 'css' | 'js' {
   if (filename.endsWith('.css')) return 'css'
@@ -67,6 +70,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [highlightNonce, setHighlightNonce] = useState(0)
   const [undoFiles, setUndoFiles] = useState<Record<string, string> | null>(null)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
+  const [confettiTrigger, setConfettiTrigger] = useState<string | null>(null)
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const sideWidthRef = useRef(380)
   const dragStartX = useRef(0)
@@ -169,6 +173,38 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   }, [project.id, isFreshlyCreated])
 
   const combinedHtml = buildCombinedHtml(files)
+
+  function handleTaskPrompt(p: string) {
+    setActivity('chat')
+    setSideOpen(true)
+    setPendingPrompt(p)
+  }
+
+  // Shared by the Tasks and Homework side panels: both act on the same
+  // lesson, the same "done" set, and the same active task.
+  const progress = useLessonProgress({
+    lesson,
+    projectId: project.id,
+    code: files['index.html'] ?? '',
+    initialCompletedTaskIds,
+    initialSubmissionStatus: project.submission_status,
+    onHighlight: (line) => {
+      setHighlightLine(line)
+      setHighlightNonce((n) => n + 1)
+      // Code beside preview, so the student sees the line they are
+      // changing and the result of changing it at the same time.
+      setSplitView(true)
+      setRightTab('code')
+    },
+    onPrompt: handleTaskPrompt,
+    // Unique per completion so re-completing the same task id (in theory)
+    // still fires a fresh burst.
+    onComplete: (task) => setConfettiTrigger(`${task.id}:${Date.now()}`),
+  })
+
+  const hasHomework = lesson ? lesson.tasks.some((task) => task.type === 'homework') : false
+  const coreTasks = lesson ? lesson.tasks.filter((task) => task.type === 'core') : []
+  const coreComplete = coreTasks.length > 0 && coreTasks.every((task) => progress.done.has(task.id))
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -296,6 +332,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   return (
     <div className="flex h-screen flex-col bg-surface-900 font-body">
+      <ConfettiBurst trigger={confettiTrigger} />
       {/* Top bar */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-surface-600 bg-surface-800 px-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -376,6 +413,27 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
             <span className="text-[10px] font-medium leading-none">Chat</span>
           </button>
 
+          {/* Homework icon — only for lessons that assign homework */}
+          {lesson && hasHomework && (
+            <button
+              onClick={() => handleActivity('homework')}
+              className={`relative flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
+                activity === 'homework' && sideOpen
+                  ? 'bg-brand-500/15 text-brand-600 dark:text-brand-300 rounded-md'
+                  : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-600/50 rounded-md'
+              }`}
+              title="Homework"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" />
+              </svg>
+              <span className="text-[10px] font-medium leading-none">Homework</span>
+              {!coreComplete && (
+                <span className="absolute top-1 right-2 text-[9px]" aria-hidden="true">🔒</span>
+              )}
+            </button>
+          )}
+
           {/* Explorer icon */}
           <button
             onClick={() => handleActivity('explorer')}
@@ -411,6 +469,9 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               )}
               {activity === 'navigator' && (
                 <span className="text-sm font-semibold text-fg-primary">Tasks</span>
+              )}
+              {activity === 'homework' && (
+                <span className="text-sm font-semibold text-fg-primary">Homework</span>
               )}
               {activity === 'explorer' && (
                 <span className="text-sm font-semibold text-fg-primary">Files</span>
@@ -456,25 +517,20 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               <div className={activity === 'navigator' ? 'h-full' : 'hidden'}>
                 <Navigator
                   lesson={lesson}
-                  projectId={project.id}
-                  initialCompletedTaskIds={initialCompletedTaskIds}
-                  initialSubmissionStatus={project.submission_status}
-                  classSlots={classSlots}
                   code={files['index.html'] ?? ''}
                   kidMode={kidMode}
-                  onHighlight={(line) => {
-                    setHighlightLine(line)
-                    setHighlightNonce((n) => n + 1)
-                    // Code beside preview, so the student sees the line they are
-                    // changing and the result of changing it at the same time.
-                    setSplitView(true)
-                    setRightTab('code')
-                  }}
-                  onPrompt={(p) => {
-                    setActivity('chat')
-                    setSideOpen(true)
-                    setPendingPrompt(p)
-                  }}
+                  progress={progress}
+                />
+              </div>
+            )}
+            {lesson && hasHomework && (
+              <div className={activity === 'homework' ? 'h-full' : 'hidden'}>
+                <Homework
+                  lesson={lesson}
+                  code={files['index.html'] ?? ''}
+                  kidMode={kidMode}
+                  progress={progress}
+                  classSlots={classSlots}
                 />
               </div>
             )}
