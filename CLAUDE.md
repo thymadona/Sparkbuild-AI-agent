@@ -188,8 +188,6 @@ NEXT_PUBLIC_SITE_URL=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
 DATABASE_URL=                    # server-side only; Postgres pooler URL for Drizzle, bypasses RLS like supabaseAdmin
 DEEPSEEK_API_KEY=                # server-side only
-ADMIN_EMAILS=                    # comma-separated; bypasses the /api/generate rate limit only —
-                                  # admin/teacher access is via public.user_roles, see lib/auth/permissions.ts
 TELEGRAM_BOT_TOKEN=              # server-side only
 ```
 

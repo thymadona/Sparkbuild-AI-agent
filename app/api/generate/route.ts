@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/ratelimit'
 import { parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 import { getLessonForProject } from '@/lib/lessons'
 import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
+import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 
 export const runtime = 'nodejs'
 
@@ -19,11 +20,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // 2. Rate limit check (skip for admins)
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
-  const isAdmin = adminEmails.includes(user.email?.toLowerCase() ?? '')
+  // 2. Rate limit check (skip for admins and teachers — role-based, not ADMIN_EMAILS)
+  const [userIsAdmin, userIsTeacher] = await Promise.all([isAdmin(user.id), isTeacher(user.id)])
+  const bypassRateLimit = userIsAdmin || userIsTeacher
 
-  const { allowed, hoursUntilReset } = isAdmin ? { allowed: true, hoursUntilReset: 0 } : await checkRateLimit(user.id)
+  const { allowed, hoursUntilReset } = bypassRateLimit ? { allowed: true, hoursUntilReset: 0 } : await checkRateLimit(user.id)
 
   if (!allowed) {
     return NextResponse.json(

@@ -7,6 +7,8 @@ const mockGetUser = jest.fn()
 const mockAdminFrom = jest.fn()
 const mockCheckRateLimit = jest.fn()
 const mockCreate = jest.fn()
+const mockIsAdmin = jest.fn()
+const mockIsTeacher = jest.fn()
 
 jest.mock('@/lib/supabase-server', () => ({
   createServerSupabaseClient: () => ({
@@ -19,6 +21,11 @@ jest.mock('@/lib/supabase-server', () => ({
 
 jest.mock('@/lib/ratelimit', () => ({
   checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+}))
+
+jest.mock('@/lib/auth/permissions', () => ({
+  isAdmin: (...args: unknown[]) => mockIsAdmin(...args),
+  isTeacher: (...args: unknown[]) => mockIsTeacher(...args),
 }))
 
 jest.mock('@/lib/gemini', () => ({
@@ -86,6 +93,8 @@ function makeStreamChunks(texts: string[]) {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockIsAdmin.mockResolvedValue(false)
+  mockIsTeacher.mockResolvedValue(false)
 })
 
 describe('POST /api/generate', () => {
@@ -109,6 +118,38 @@ describe('POST /api/generate', () => {
     const json = await res.json()
     expect(json.error).toMatch(/hourly limit/i)
     expect(json.error).toMatch(/3 hour/)
+  })
+
+  it('bypasses the rate limit for admins even when over the hourly limit', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockIsAdmin.mockResolvedValue(true)
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
+
+    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
+    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
+    chain.update.mockReturnValue(updateChain)
+    mockAdminFrom.mockReturnValue(chain)
+    mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html></html>']))
+
+    const res = await POST(makeRequest({ prompt: 'build something', projectId: 'proj-1' }))
+    expect(res.status).toBe(200)
+    expect(mockCheckRateLimit).not.toHaveBeenCalled()
+  })
+
+  it('bypasses the rate limit for teachers even when over the hourly limit', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockIsTeacher.mockResolvedValue(true)
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
+
+    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
+    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
+    chain.update.mockReturnValue(updateChain)
+    mockAdminFrom.mockReturnValue(chain)
+    mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html></html>']))
+
+    const res = await POST(makeRequest({ prompt: 'build something', projectId: 'proj-1' }))
+    expect(res.status).toBe(200)
+    expect(mockCheckRateLimit).not.toHaveBeenCalled()
   })
 
   // ---- Input validation -----------------------------------------------------
