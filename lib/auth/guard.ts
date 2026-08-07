@@ -38,8 +38,12 @@ export function decideGuard(input: GuardInput): GuardResult | null {
     pathname.startsWith('/dashboard') || pathname.startsWith('/editor') || pathname.startsWith('/profile')
   const isAdminPath = pathname.startsWith('/admin')
   const isTeacherPath = pathname.startsWith('/teacher')
+  // The unified admin+teacher dashboard. Gated identically to /teacher —
+  // hasTeacherAccess is already admin-inclusive (see the field comment
+  // above) — so this is one check, not isAdmin || hasTeacherAccess.
+  const isStaffPath = pathname.startsWith('/staff')
 
-  if (!user && (isProtected || isAdminPath || isTeacherPath)) {
+  if (!user && (isProtected || isAdminPath || isTeacherPath || isStaffPath)) {
     return { redirect: '/login' }
   }
   if (!user) return null
@@ -64,6 +68,10 @@ export function decideGuard(input: GuardInput): GuardResult | null {
   }
 
   if (isTeacherPath && !input.hasTeacherAccess) {
+    return { redirect: '/dashboard' }
+  }
+
+  if (isStaffPath && !input.hasTeacherAccess) {
     return { redirect: '/dashboard' }
   }
 

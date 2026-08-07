@@ -440,7 +440,7 @@ export default function ClassDetailClient({
         </div>
         {teachers.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-gray-600">
-            No teacher assigned to this class yet — students in this class won&apos;t appear in anyone&apos;s /teacher dashboard until one is.
+            No teacher assigned to this class yet — students in this class won&apos;t appear in anyone&apos;s classes tab until one is.
           </p>
         ) : (
           <table className="w-full text-sm">

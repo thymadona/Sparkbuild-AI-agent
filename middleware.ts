@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/profile')
   const isAdminPath = pathname.startsWith('/admin')
   const isTeacherPath = pathname.startsWith('/teacher')
+  const isStaffPath = pathname.startsWith('/staff')
 
   // Deactivation + class-assignment checks — only meaningful for accounts
   // that actually have a student_profiles row (admin/teacher accounts don't
@@ -62,12 +63,12 @@ export async function middleware(request: NextRequest) {
     needsClassAssignment = profile !== null && !isEnrolled
   }
 
-  // Only pay the RPC round-trip on /admin and /teacher navigations — every
-  // other path incurs zero extra latency, mirroring the old
-  // pathname.startsWith('/admin') gating.
+  // Only pay the RPC round-trip on /admin, /teacher, and /staff
+  // navigations — every other path incurs zero extra latency, mirroring
+  // the old pathname.startsWith('/admin') gating.
   let isAdminUser = false
   let hasTeacherAccess = false
-  if (user && (isAdminPath || isTeacherPath)) {
+  if (user && (isAdminPath || isTeacherPath || isStaffPath)) {
     const [adminResult, teacherResult] = await Promise.all([
       supabase.rpc('is_admin', { p_user_id: user.id }),
       supabase.rpc('can_access_teacher_dashboard', { p_user_id: user.id }),
