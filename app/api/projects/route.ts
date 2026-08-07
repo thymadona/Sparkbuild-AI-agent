@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
-import { isAdmin } from '@/lib/auth/permissions'
+import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   const title = body.title || randomTitle
   const { templateHtml, lessonId, lessonVersion } = body
 
-  if (typeof lessonId === 'number' && !(await isAdmin(user.id))) {
+  if (typeof lessonId === 'number' && !(await isAdmin(user.id)) && !(await isTeacher(user.id))) {
     const enabledLessonIds = await getEnabledLessonIdsForUser(user.id)
     if (!enabledLessonIds.has(lessonId)) {
       return NextResponse.json({ error: 'This lesson is not available for your class right now' }, { status: 403 })

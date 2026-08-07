@@ -43,6 +43,20 @@ export async function isAdmin(userId: string): Promise<boolean> {
   return data === true
 }
 
+// True if userId holds the teacher role, regardless of class assignment —
+// used to exempt teachers from the per-class lesson-enabled toggle, which is
+// meant to gate students, not the teachers who set it. Fails closed like
+// isAdmin, rather than throwing like getUserRoles, so a lookup failure here
+// denies the bypass instead of crashing the page/route calling it.
+export async function isTeacher(userId: string): Promise<boolean> {
+  try {
+    const roles = await getUserRoles(userId)
+    return roles.includes('teacher')
+  } catch {
+    return false
+  }
+}
+
 export async function requirePermission(userId: string, key: string): Promise<void> {
   if (!(await hasPermission(userId, key))) {
     throw new ForbiddenError(`Missing permission: ${key}`)
