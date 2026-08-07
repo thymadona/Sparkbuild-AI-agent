@@ -1,47 +1,183 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
 
-**Read `AGENTS.md` next.** It documents repo-specific patterns, gotchas, and known issues in far more depth than belongs here, and it is kept current. The `.agents/summary/` directory behind it has full detail per topic (architecture, interfaces, data models, workflows, dependencies, review notes). Don't duplicate that work — this file only covers commands and the big-picture shape.
+Deep-dive reference docs — full endpoint contracts, schema/RLS/cascades, end-to-end user
+journeys, and the dependency inventory — live in `.agents/summary/`; start with
+`.agents/summary/index.md` for anything not covered here.
 
 ## What This Project Is
 
-Student Code Builder: an AI-assisted coding platform for students aged 10–16. Students work through a 6-week lesson track, prompting an LLM that either tutors (ask mode) or generates a complete HTML/CSS/JS file (build mode), rendered live in a sandboxed iframe. Teachers and admins run classes, review homework, and manage invoices/receipts (delivered over Telegram) through a back office.
+Student Code Builder: an AI-assisted coding platform for students aged 10–16. Students work
+through a 6-week lesson track, prompting an LLM that either tutors (ask mode) or generates a
+complete HTML/CSS/JS file (build mode), rendered live in a sandboxed iframe. Teachers and
+admins run classes, review homework, and manage invoices/receipts (delivered over Telegram)
+through a back office.
 
 ## Commands
 
-Use `bun` — the repo ships `bun.lock`. Scripts must be run as `bun run <script>`, not `bun <script>`: bun's built-in test runner is a different tool from Jest and is not a drop-in for `bun run test`.
+Use `bun` — the repo ships `bun.lock`. Scripts must be run as `bun run <script>`, not
+`bun <script>`: bun's built-in test runner is a different tool from Jest and is not a drop-in
+for `bun run test`.
 
 ```bash
-bun run dev            # Start dev server (Turbopack)
-bun run build           # Production build
-bun run start            # Serve production build
-bun run test              # Run all Jest tests
-bun run lint               # ESLint (flat config)
+bun run dev              # Start dev server (Turbopack)
+bun run build            # Production build
+bun run start             # Serve production build
+bun run test               # Run all Jest tests
+bun run lint                # ESLint (flat config)
 bunx jest __tests__/unit/lib/ratelimit.test.ts   # Single test file
 ```
 
-`bun run test:unit` / `bun run test:integration` are broken (`--selectProjects` with no `projects` defined in `jest.config.ts`) — use `bun run test` or a path filter instead. See "Known Issues" in `AGENTS.md` for other pre-existing failures (stale test fixtures, lint errors) that predate any change you make.
+`bun run test:unit` / `bun run test:integration` are broken (`--selectProjects` with no
+`projects` defined in `jest.config.ts`) — use `bun run test` or a path filter instead.
 
 ## Architecture
 
 Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
 
-1. **Editor** (`app/editor/[id]/`, `components/Editor.tsx`) — student prompts hit `POST /api/generate`, which streams from DeepSeek (`lib/gemini.ts` — despite the filename, no Gemini code) and renders into a sandboxed `srcdoc` iframe (`components/Preview.tsx`). Build mode is server-gated: granted only if `user_build_mode.enabled` is true *and* the project has no pending core/homework task.
-2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/task-checks.ts`, `public/templates/`) — weekly lessons with code-aware task verification (checks run against the student's live file, not self-reported) and gated homework.
-3. **Admin back office** (`app/admin/`, `app/api/admin/`, `components/admin/`) — students, classes, homework review, invoices/receipts. Middleware only guards page navigation; every admin API route independently re-checks `ADMIN_EMAILS`.
+1. **Editor** (`app/editor/[id]/`, `components/Editor.tsx`) — student prompts hit
+   `POST /api/generate`, which streams from DeepSeek (`lib/gemini.ts` — despite the filename,
+   no Gemini code) and renders into a sandboxed `srcdoc` iframe (`components/Preview.tsx`).
+2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/task-checks.ts`, `public/templates/`) —
+   weekly lessons backed by HTML templates with in-file task anchors, code-aware task
+   verification, and gated homework.
+3. **Admin back office** (`app/admin/`, `app/api/admin/`, `components/admin/`) — student
+   accounts, classes with weekly schedules, homework review, and invoices/receipts delivered to
+   parents over Telegram.
 
-**Supabase has three clients with different privileges**: `createBrowserSupabaseClient()` (anon, Client Components), `createServerSupabaseClient()` (anon + cookies, identifies the caller, respects RLS), and `supabaseAdmin` (service role, bypasses RLS — used for nearly all reads/writes). Because `supabaseAdmin` ignores RLS, every query must carry its own ownership check (e.g. `.eq('id', id).eq('user_id', user.id)`). Never import `supabaseAdmin` into a Client Component.
+**Colocation rule:** route-specific client components live beside their route
+(`app/editor/[id]/EditorLayout.tsx`, `app/admin/classes/ClassesClient.tsx`). Only genuinely
+reusable UI goes in `components/`. A `page.tsx` next to a `*Client.tsx` is always a
+server-fetch / client-interact pair.
 
-**Drizzle (`lib/db/client.ts`, `lib/db/schema.ts`)** is available for new server-side code as a typed alternative to `supabaseAdmin` — same service-role Postgres connection, same RLS-bypass, same per-query ownership-check obligation. It's database-first: `supabase/migrations/*.sql` is still the schema source of truth; run `bun run db:pull` to re-introspect `lib/db/schema.ts` after a migration. Existing `supabaseAdmin` call sites have not been migrated — this is additive, not a replacement.
+**Three Supabase clients with different privileges**: `createBrowserSupabaseClient()` (anon,
+Client Components), `createServerSupabaseClient()` (anon + cookies, identifies the caller,
+respects RLS), and `supabaseAdmin` (service role, **bypasses RLS** — used for essentially all
+reads and writes). Because `supabaseAdmin` ignores RLS, authorization must be written into
+every query, e.g. `.eq('id', id).eq('user_id', user.id)`, so an owner mismatch yields zero rows
+instead of a cross-tenant write. Never import `supabaseAdmin` into a Client Component.
 
-**The LLM contract is delimiter-based and full-file**: build responses are `--- FILE: <name> ---` ... `--- DONE ---` blocks parsed by `lib/parse-multi-file.ts`; files are replaced wholesale, never diffed. Model is pinned to `deepseek-v4-flash` via the native DeepSeek API for cost control — don't change providers/models without approval.
+**Drizzle** (`lib/db/client.ts`, `lib/db/schema.ts`) is available for new server-side code as a
+typed alternative to `supabaseAdmin` — same service-role Postgres connection, same RLS-bypass,
+same per-query ownership-check obligation. It's database-first: `supabase/migrations/*.sql` is
+still the schema source of truth. `bun run db:pull` does **not** work on this schema —
+`lib/db/schema.ts`'s header comment explains why (an upstream drizzle-kit bug) — so update
+`lib/db/schema.ts` by hand to match each migration instead. Existing `supabaseAdmin` call sites
+have not been migrated — this is additive, not a replacement.
 
-**Preview is `srcdoc`-only, deliberately** — no WebContainer, Sandpack, or CodeSandbox SDK.
+**The LLM contract is delimiter-based and full-file.** Build responses must be
+`--- FILE: <name> ---` … `--- DONE ---` blocks followed by a summary sentence, parsed by
+`lib/parse-multi-file.ts`; `/api/generate` classifies a response as code with
+`trimStart().startsWith('--- FILE:')`. Files are replaced wholesale — no diff or patch format.
+Changing the delimiters means changing the prompt, the parser, and the classification check
+together. Model is pinned to `deepseek-v4-flash` via the native DeepSeek API for cost control —
+**do not change providers or models without approval**. (`/api/generate` also logs stream
+failures as `'OpenRouter stream error:'` — a stale provider name in the log line, not a real
+dependency.)
 
-**Path alias**: `@/` maps to the repo root (kept in sync between `tsconfig.json` and `jest.config.ts`).
+**Preview is `srcdoc`-only, deliberately** — no WebContainer, Sandpack, or CodeSandbox SDK. A
+console-interceptor script is injected after `<head>` and forwards `console.*`/errors to the
+parent via `postMessage({ type: '__console__' })`; it also shims `localStorage`/`sessionStorage`
+(unavailable in the opaque-origin frame). `lib/combine.ts` inlines `style.css` and `script.js`
+by exact filename and strips external `<link>`/`<script src>` tags before rendering.
 
-**Next.js 16 specifics**: `params` in pages/route handlers is a `Promise` and must be awaited; `createServerSupabaseClient()` is async (`cookies()` is async) and must be awaited.
+**Path alias**: `@/` maps to the repo root — kept in sync between `tsconfig.json` (`paths`) and
+`jest.config.ts` (`moduleNameMapper`).
+
+**Next.js 16 specifics**: `params` in every page and route handler is a `Promise` and must be
+awaited; `createServerSupabaseClient()` is async (`cookies()` is async) and must be awaited.
+
+## Patterns That Deviate From Defaults
+
+**Homework is verified, gated, and reviewed.** Each lesson carries 2–3 `type: 'homework'` tasks
+plus a `homeworkBrief`. They're hidden in the task panel until every core task is done, live in
+their own section, and hold back build mode exactly like core tasks —
+`pendingCoreTask()` gates on `['core', 'homework']`. `POST /api/projects/[id]/submit` sets
+`submission_status` to `'submitted'` and refuses with 409 unless `homeworkComplete()` agrees.
+Teachers review at `/admin/homework` via `POST /api/admin/homework/[id]/review`, writing
+`approved` or `needs_work` and inserting feedback as a `messages` row with `role: 'teacher'`
+(mandatory when sending work back). `needs_work` lets the student resubmit. Teacher messages
+render as their own bubble and relay to the LLM as `My teacher said: …`, since the model API
+rejects a `teacher` role directly.
+
+**Build mode is server-authoritative, and lessons withhold it.** The client may send
+`mode: 'build'`, but `/api/generate` grants it only if `user_build_mode.enabled` is true for
+that user **and** `pendingCoreTask()` returns null. While a task is open, the request is
+downgraded to ask mode and `buildTaskNudge()` is appended to the system prompt forbidding code.
+The response carries `X-Effective-Mode` and `X-Open-Task` headers so the client can explain the
+downgrade instead of looking broken. Only `POST /api/admin/settings` writes
+`user_build_mode`.
+
+**Lesson tasks are verified, not self-reported.** Each task in `LESSONS` carries
+`checks: TaskCheck[]` (`lib/task-checks.ts`), evaluated against the student's live file in the
+browser; `Mark done` stays disabled until they pass. Two invariants, enforced by
+`__tests__/unit/lib/task-checks.test.ts`: no task may pass on its untouched starter template,
+and every `textChanged` check must resolve to an element that actually holds the `from` text.
+Checks fail **open** whenever they cannot run (no DOM, bad regex) — a broken check must never
+dead-end a child. The escape hatch requires both 90s on task and a hint request.
+`LEGACY_LESSONS` has no checks and stays self-reported.
+
+**Student-facing lesson copy has a word budget.** `__tests__/unit/lib/lesson-copy.test.ts` caps
+chips at 5 words, goals at 8, check labels at 6, hints at 10, bans vocabulary above roughly a
+9-year-old ESL reading level, and caps total reading load. The audience is 8–13 reading English
+as a second language; long or advanced copy turns a lesson gate into a reading test.
+
+**The editor autosaves; there is no Save button in lesson projects.** `CodeEditor` reports
+typing upward after 300ms (driving preview and checks); `EditorLayout` writes to
+`/api/projects` after 1200ms idle, coalesced through `pendingFilesRef` with an in-flight guard.
+`CodeEditor` must keep adopting external `code` changes while ignoring the echo of its own
+emissions (`lastEmitted`), or a generation arriving while mounted in split view gets
+overwritten. One step of undo is kept in `undoFiles`, discarded as soon as the student types.
+
+**`kidMode` is on for any lesson project** (`kidMode = lesson !== null`). It raises the type
+scale, collapses the task list to one task at a time, and hides the console until a real error
+occurs. It's a proxy for "young student," not a real age signal — there's no age or grade field
+on `student_profiles`.
+
+**Admin API routes re-verify authorization themselves.** Middleware only guards page
+navigation under `/admin`/`/teacher`. Every admin route file calls
+`hasPermission(user.id, '<key>')` from `lib/auth/permissions.ts` (backed by `public.roles`,
+`public.permissions`, `public.role_permissions`, `public.user_roles`, and the
+`has_permission()`/`is_admin()` Postgres functions) as its first line. A new admin endpoint
+without that check is unprotected. `ADMIN_EMAILS` is no longer the enforcement mechanism —
+role assignment lives in `user_roles`, editable from `/admin/users`.
+
+**Middleware treats a missing `student_profiles` row as "not a student" and allows it through.**
+Only an explicit `is_active === false` redirects to `/login?reason=deactivated`.
+
+**Rate limiting fails open and uses `prompts` as its ledger.** `lib/ratelimit.ts` counts rows in
+the last hour against a limit of 20; a failed count query allows the request. Admins bypass it
+entirely. Deleting prompt rows resets a user's quota.
+
+**Lesson versioning uses parallel catalogs, not migrations.** `getLessonForProject` reads the
+current catalog only when a project's `lesson_version` equals `CURRENT_LESSON_VERSION`, else
+the legacy catalog. Old projects keep their original task ids since
+`lesson_progress.completed_task_ids` stores those ids as plain strings. Bump the version by
+adding a catalog — never edit the old one in place.
+
+**Lesson tasks bind to code by string match.** Each task's `commentAnchor` is searched for in
+the file text to drive editor highlighting. Renaming an anchor comment in
+`public/templates/*.html` silently breaks it.
+
+**Component tests need a jsdom docblock.** `jest.config.ts` sets `testEnvironment: 'node'`
+globally, so every `.tsx` test starts with `/** @jest-environment jsdom */`.
+
+## Config-Derived Facts
+
+- Middleware matcher excludes `_next/static`, `_next/image`, `favicon.ico`, `auth/callback`,
+  and `share` — the last two deliberately, so OAuth can complete without a session and share
+  pages stay public.
+- `next.config.js` sets only `turbopack.root` (pinned because an unrelated `package-lock.json`
+  in a parent directory made Turbopack infer the wrong workspace root).
+- Linting is ESLint flat config (`eslint.config.mjs`): `@next/eslint-plugin-next` recommended +
+  core-web-vitals, plus `react-hooks/rules-of-hooks` and `exhaustive-deps`. `next lint` no
+  longer exists; the script is `eslint .`. The react-hooks plugin's current `recommended` set
+  adds React Compiler rules that flag long-standing patterns here, so it's deliberately not
+  enabled.
+- `components.json` configures shadcn (style `base-nova`, `lucide` icons, RSC on).
+- No CI workflow, git hooks, or deployment config exist in the repository.
 
 ## Environment Variables
 
@@ -52,12 +188,91 @@ NEXT_PUBLIC_SITE_URL=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
 DATABASE_URL=                    # server-side only; Postgres pooler URL for Drizzle, bypasses RLS like supabaseAdmin
 DEEPSEEK_API_KEY=                # server-side only
-ADMIN_EMAILS=                    # comma-separated; grants back-office access + bypasses rate limit
+ADMIN_EMAILS=                    # comma-separated; bypasses the /api/generate rate limit only —
+                                  # admin/teacher access is via public.user_roles, see lib/auth/permissions.ts
 TELEGRAM_BOT_TOKEN=              # server-side only
 ```
 
-## Key Constraints
+## Security Constraints
 
-- Rate limit: 20 prompts/hour/user (`lib/ratelimit.ts`), fails open on query errors, admins bypass.
-- All DB writes go through server-side routes using `supabaseAdmin`; never expose the service role key or DeepSeek/Telegram tokens to the browser.
-- Lesson versioning uses parallel catalogs (`lib/lessons.ts`), not migrations — never edit an old catalog in place, add a new one and bump the version.
+- Never expose `SUPABASE_SERVICE_ROLE_KEY`, `DEEPSEEK_API_KEY`, or `TELEGRAM_BOT_TOKEN` to the
+  browser; only `NEXT_PUBLIC_*` values may be referenced from `'use client'` files.
+- All writes go through server route handlers using `supabaseAdmin`, never from the browser.
+- Because `supabaseAdmin` bypasses RLS, every query needs its own ownership or admin check.
+- The `"Admin full access"` RLS policies are unconditional `using (true)` predicates. They do
+  not identify an admin and are not a security boundary — enforcement comes from the server
+  routes. Do not expose those tables to the anon key.
+- `/invoice/[id]` and `/receipt/[id]` perform no authorization; the id is the only access
+  control.
+
+## Known Issues
+
+Pre-existing on a clean checkout — don't attribute these to your change:
+
+- `bun run test` fails 3 suites / 7 tests because tests encode stale values: a rate limit of 10
+  (code uses 20), a default project title of `"Untitled"` (code generates a random name), and a
+  request field named `currentCode` (code uses `selectedCode`).
+- `bun run test:unit` and `bun run test:integration` find nothing — they pass
+  `--selectProjects` but `jest.config.ts` defines no `projects`. Use `bun run test` or a path
+  filter.
+- `types/index.ts` has no interfaces for `app_settings` or `user_build_mode`.
+- `bun run lint` reports 10 pre-existing `no-html-link-for-pages` errors
+  (`components/Navbar.tsx`, `components/Footer.tsx`, `app/share/[id]/page.tsx`,
+  `app/about/page.tsx`, `app/dashboard/DashboardClient.tsx` use `<a>` where `<Link>` belongs)
+  and one `no-page-custom-font` warning in `app/layout.tsx`. These predate the Next 16 upgrade.
+- `middleware.ts` still works but the filename is deprecated in Next 16 in favour of
+  `proxy.ts`. Left as-is: `proxy` forces the Node runtime, and renaming it is a behavioral
+  change worth doing on its own.
+
+Full detail and prioritized fixes: `.agents/summary/review_notes.md`.
+
+## Coding Style, Testing & Commit Conventions
+
+TypeScript with the existing style: two-space indentation, single quotes, omitted semicolons,
+strict types. Prefer the `@/` alias for root imports. PascalCase for React components
+(`ProfileDropdown.tsx`), camelCase for utilities (`parse-multi-file.ts`), route handlers named
+`route.ts`. Keep Client Components explicit with `'use client'`; don't move server-only logic
+into them. Tailwind is the styling system — reuse `cn()` from `lib/utils.ts` and existing
+`components/ui` primitives before adding duplicate UI patterns.
+
+Jest is configured through `jest.config.ts` with Testing Library support. Name tests
+`*.test.ts`/`*.test.tsx`, place them under the matching `__tests__/unit/` or
+`__tests__/integration/` area. Test observable behavior, mock external Supabase/LLM
+dependencies, and cover error paths for API and persistence logic. Run focused tests during
+development, then `bun run test` before opening a pull request.
+
+Supabase schema changes go in `supabase/migrations/` using dated, descriptive filenames (e.g.
+`20260807_add_roles_permissions.sql`).
+
+Commits: concise imperative style, preferably Conventional Commits —
+`feat(admin): add class schedule editor`, `fix: enforce rate limit`,
+`refactor: simplify editor state`. Keep each commit focused. Pull requests should explain the
+user-facing change, note migrations or environment-variable changes, link the related issue
+when available, and include screenshots for visible UI changes.
+
+## Key Entry Points
+
+| Concern                                      | File                                                |
+| -------------------------------------------- | --------------------------------------------------- |
+| Route guards, admin gate, deactivation check | `middleware.ts`                                     |
+| Student workspace                            | `app/editor/[id]/page.tsx` → `EditorLayout.tsx`     |
+| LLM pipeline                                 | `app/api/generate/route.ts`                         |
+| Project CRUD                                 | `app/api/projects/route.ts`                         |
+| LLM client + system prompts                  | `lib/gemini.ts`                                     |
+| Supabase clients                             | `lib/supabase-server.ts`, `lib/supabase-browser.ts` |
+| Lesson catalog + versioning                  | `lib/lessons.ts`                                    |
+| Task verification                            | `lib/task-checks.ts`                                |
+| Schema of record                             | `supabase/migrations/`                              |
+
+## Reference Docs
+
+| Document                           | Use for                                                          |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| `.agents/summary/index.md`         | Knowledge-base entry point and question routing                  |
+| `.agents/summary/codebase_info.md` | Stack, directory hierarchy, config inventory                     |
+| `.agents/summary/architecture.md`  | Layers, Supabase boundaries, middleware and generation pipelines |
+| `.agents/summary/components.md`    | Which file owns which piece of UI                                |
+| `.agents/summary/interfaces.md`    | Every endpoint's contract and status codes                       |
+| `.agents/summary/data_models.md`   | Schema, RLS, cascades, type mapping                              |
+| `.agents/summary/workflows.md`     | End-to-end user journeys                                         |
+| `.agents/summary/dependencies.md`  | Packages, external services, environment variables               |

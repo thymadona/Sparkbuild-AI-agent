@@ -60,6 +60,7 @@ export interface Class {
 export interface ClassMember {
   class_id: string
   user_id: string
+  role: 'student' | 'teacher'
   joined_at: string
 }
 
@@ -92,4 +93,30 @@ export interface Receipt {
   description: string
   paid_at: string
   receipt_number: string
+}
+
+export interface Role {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+export interface Permission {
+  id: string
+  key: string
+  description: string | null
+  created_at: string
+}
+
+export interface RolePermission {
+  role_id: string
+  permission_id: string
+}
+
+export interface UserRole {
+  user_id: string
+  role_id: string
+  granted_by: string | null
+  created_at: string
 }

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { isAdmin } from '@/lib/auth/permissions'
 import AdminSidebar from './AdminSidebar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -7,8 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const allowed = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
-  if (!allowed.includes(user.email?.toLowerCase() ?? '')) redirect('/dashboard')
+  if (!(await isAdmin(user.id))) redirect('/dashboard')
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
