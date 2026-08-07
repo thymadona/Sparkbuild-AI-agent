@@ -28,7 +28,6 @@ function tree(onMarkDone: () => void = () => {}) {
     <ActiveTaskPanel
       task={task}
       code={STARTER}
-      kidMode={false}
       isSaving={false}
       saveError={null}
       onMarkDone={onMarkDone}

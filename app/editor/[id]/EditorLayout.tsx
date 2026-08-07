@@ -347,17 +347,15 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   const activeLanguage = getLanguage(activeFile)
 
-  // Lesson projects get the simplified student layout. Free-form projects from
-  // /explore keep the full developer chrome.
-  const kidMode = lesson !== null
   const hasConsoleError = consoleLogs.some((entry) => entry.level === 'error')
-  // In kid mode the console is not a peer of Preview — it only appears once
-  // something has actually gone wrong.
-  const showConsoleTab = !kidMode || hasConsoleError
+  // Lesson projects get the simplified student layout: the console is not a
+  // peer of Preview — it only appears once something has actually gone
+  // wrong. Free-form projects from /explore keep the full developer chrome.
+  const showConsoleTab = lesson === null || hasConsoleError
 
   useEffect(() => {
-    if (kidMode && rightTab === 'console' && !hasConsoleError) setRightTab('preview')
-  }, [kidMode, rightTab, hasConsoleError])
+    if (lesson !== null && rightTab === 'console' && !hasConsoleError) setRightTab('preview')
+  }, [lesson, rightTab, hasConsoleError])
 
   return (
     <div className="flex h-screen flex-col bg-surface-900 font-body">
@@ -534,7 +532,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <Navigator
                   lesson={lesson}
                   code={files['index.html'] ?? ''}
-                  kidMode={kidMode}
                   progress={progress}
                 />
               </div>
@@ -544,7 +541,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <Homework
                   lesson={lesson}
                   code={files['index.html'] ?? ''}
-                  kidMode={kidMode}
                   progress={progress}
                   classSlots={classSlots}
                 />
@@ -663,19 +659,19 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
             {showConsoleTab && (
               <button
                 onClick={() => setRightTab('console')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 ${kidMode ? 'text-sm' : 'text-xs'} transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 ${lesson !== null ? 'text-sm' : 'text-xs'} transition-colors ${
                   rightTab === 'console'
                     ? 'bg-surface-700 text-fg-primary rounded-md my-1'
-                    : kidMode
+                    : lesson !== null
                       ? 'text-amber-600 dark:text-amber-400 hover:bg-surface-700/60 rounded-md my-1'
                       : 'text-fg-muted hover:bg-surface-700/60 hover:text-fg-secondary rounded-md my-1'
                 }`}
               >
-                <svg className={`h-3.5 w-3.5 shrink-0 ${kidMode ? 'text-amber-500' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={`h-3.5 w-3.5 shrink-0 ${lesson !== null ? 'text-amber-500' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3" />
                   <rect x="3" y="4" width="18" height="16" rx="2" />
                 </svg>
-                {kidMode ? 'Something went wrong' : 'Console'}
+                {lesson !== null ? 'Something went wrong' : 'Console'}
                 {hasConsoleError && (
                   <span className="ml-1 h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
                 )}

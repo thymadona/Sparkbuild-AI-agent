@@ -8,7 +8,6 @@ import { SCALE } from '@/lib/lesson-ui'
 interface ActiveTaskPanelProps {
   task: LessonTask
   code: string
-  kidMode: boolean
   isSaving: boolean
   saveError: string | null
   onMarkDone: () => void
@@ -20,7 +19,7 @@ interface ActiveTaskPanelProps {
  * done. Shared by the Tasks and Homework side panels since a student can only
  * ever be actively working one task at a time.
  */
-export default function ActiveTaskPanel({ task, code, kidMode, isSaving, saveError, onMarkDone }: ActiveTaskPanelProps) {
+export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMarkDone }: ActiveTaskPanelProps) {
   // Checks need a DOM, so they cannot run during server rendering. Evaluating
   // them only after mount keeps the server and first client render identical —
   // otherwise the fail-open path reports every check as passed on the server and
@@ -30,8 +29,6 @@ export default function ActiveTaskPanel({ task, code, kidMode, isSaving, saveErr
   // re-renders whenever `code` changes, so without a guard a satisfied task
   // would fire a fresh save request on every render.
   const calledRef = useRef(false)
-
-  const type = kidMode ? SCALE.kid : SCALE.pro
 
   useEffect(() => setMounted(true), [])
 
@@ -63,20 +60,20 @@ export default function ActiveTaskPanel({ task, code, kidMode, isSaving, saveErr
 
   return (
     <div className="shrink-0 border-t border-surface-600 p-3">
-      {saveError && <p className={`mb-2 text-center ${type.check} text-red-500`}>{saveError}</p>}
+      {saveError && <p className={`mb-2 text-center ${SCALE.check} text-red-500`}>{saveError}</p>}
 
       {hasChecks && !checksEvaluated && (
-        <p className={`mb-2 text-center ${type.check} text-fg-muted`}>Checking your code…</p>
+        <p className={`mb-2 text-center ${SCALE.check} text-fg-muted`}>Checking your code…</p>
       )}
 
       {hasChecks && checksEvaluated && !checksSatisfied && (
-        <p className={`mb-2 text-center ${type.check} text-fg-muted`}>
+        <p className={`mb-2 text-center ${SCALE.check} text-fg-muted`}>
           Keep going — <span className="text-fg-secondary">{task.chip}</span> marks itself done once your code matches.
         </p>
       )}
 
       {isSaving && (
-        <p className={`text-center ${type.check} text-fg-muted`}>Saving…</p>
+        <p className={`text-center ${SCALE.check} text-fg-muted`}>Saving…</p>
       )}
     </div>
   )

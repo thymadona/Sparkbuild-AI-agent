@@ -29,13 +29,12 @@ const NOTHING_SOLVED = 'intro anchor\ncolors anchor\ntheme anchor\nchoice anchor
 // Navigator is a thin presentational shell over useLessonProgress, which the
 // real app (EditorLayout) calls once and shares between the Tasks and
 // Homework panels. Mounting through this harness exercises the same wiring.
-function Harness({ testLesson = lesson, code, completedTaskIds, onHighlight, onPrompt, kidMode }: {
+function Harness({ testLesson = lesson, code, completedTaskIds, onHighlight, onPrompt }: {
   testLesson?: Lesson
   code: string
   completedTaskIds: string[]
   onHighlight: (line: number | null) => void
   onPrompt: (prompt: string) => void
-  kidMode?: boolean
 }) {
   const progress = useLessonProgress({
     lesson: testLesson,
@@ -45,13 +44,13 @@ function Harness({ testLesson = lesson, code, completedTaskIds, onHighlight, onP
     onHighlight,
     onPrompt,
   })
-  return <Navigator lesson={testLesson} code={code} kidMode={kidMode} progress={progress} />
+  return <Navigator lesson={testLesson} code={code} progress={progress} />
 }
 
-function renderNavigator(completedTaskIds: string[] = [], code: string = NOTHING_SOLVED, kidMode?: boolean) {
+function renderNavigator(completedTaskIds: string[] = [], code: string = NOTHING_SOLVED) {
   const onHighlight = jest.fn()
   const onPrompt = jest.fn()
-  render(<Harness code={code} completedTaskIds={completedTaskIds} onHighlight={onHighlight} onPrompt={onPrompt} kidMode={kidMode} />)
+  render(<Harness code={code} completedTaskIds={completedTaskIds} onHighlight={onHighlight} onPrompt={onPrompt} />)
   return { onHighlight, onPrompt }
 }
 
@@ -187,9 +186,9 @@ describe('Navigator task checks', () => {
   })
 })
 
-describe('Navigator kid mode', () => {
-  it('lists every task regardless of kid mode', () => {
-    renderNavigator([], NOTHING_SOLVED, true)
+describe('Navigator task list', () => {
+  it('lists every task', () => {
+    renderNavigator([], NOTHING_SOLVED)
 
     expect(screen.getByRole('button', { name: /Write your intro/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Choose colors/ })).toBeInTheDocument()
@@ -216,17 +215,11 @@ describe('Navigator kid mode', () => {
   })
 
   it('drops the 10px letterspaced caps and enlarges task text', () => {
-    const { container } = render(<Harness code={NOTHING_SOLVED} completedTaskIds={[]} onHighlight={jest.fn()} onPrompt={jest.fn()} kidMode />)
+    const { container } = render(<Harness code={NOTHING_SOLVED} completedTaskIds={[]} onHighlight={jest.fn()} onPrompt={jest.fn()} />)
 
     expect(container.querySelectorAll('.text-\\[10px\\]')).toHaveLength(0)
     expect(container.querySelectorAll('.uppercase')).toHaveLength(0)
     expect(screen.getAllByText('Core mission')[0].className).toContain('text-xs')
     expect(screen.getByRole('button', { name: /Write your intro/ }).className).toContain('text-lg')
-  })
-
-  it('still uses the compact scale when kid mode is off', () => {
-    const { container } = render(<Harness code={NOTHING_SOLVED} completedTaskIds={[]} onHighlight={jest.fn()} onPrompt={jest.fn()} />)
-
-    expect(container.querySelectorAll('.text-\\[10px\\]').length).toBeGreaterThan(0)
   })
 })
