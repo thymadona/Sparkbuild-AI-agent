@@ -85,6 +85,23 @@ describe('CodeEditor autosave', () => {
     expect(screen.getByTestId('code-input')).toHaveValue('<h1>AI wrote this</h1>')
   })
 
+  it('does not let a pending keystroke echo overwrite an AI generation that lands first', () => {
+    const onChange = jest.fn()
+    const { rerender } = render(<CodeEditor code={STARTER} onSave={jest.fn()} onChange={onChange} saveState="saved" />)
+
+    // Student types, but the 300ms live-echo timer hasn't fired yet.
+    type('<h1>Half typed</h1>')
+
+    // An AI generation for this file arrives before that timer fires (e.g. split view).
+    rerender(<CodeEditor code="<h1>AI wrote this</h1>" onSave={jest.fn()} onChange={onChange} saveState="saved" />)
+
+    // The stale timer from the earlier keystroke must not fire and clobber it.
+    act(() => { jest.advanceTimersByTime(300) })
+
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByTestId('code-input')).toHaveValue('<h1>AI wrote this</h1>')
+  })
+
   it('does not fight the student while they are typing', () => {
     const onChange = jest.fn()
     const { rerender } = render(<CodeEditor code={STARTER} onSave={jest.fn()} onChange={onChange} saveState="saved" />)
