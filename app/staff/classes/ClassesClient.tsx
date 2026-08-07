@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import CreateClassInline from '@/components/admin/CreateClassInline'
+import ClassFormModal, { type PersonOption } from '@/components/admin/ClassFormModal'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -47,7 +47,15 @@ function nextSession(schedules: ScheduleRow[]): string {
   return `${DAYS[best.day]} ${formatTime(best.time)}`
 }
 
-export default function ClassesClient({ classes }: { classes: ClassRow[] }) {
+export default function ClassesClient({
+  classes,
+  allTeachers,
+  allStudents,
+}: {
+  classes: ClassRow[]
+  allTeachers: PersonOption[]
+  allStudents: PersonOption[]
+}) {
   const [dayFilter, setDayFilter] = useState<number | null>(null)
   const [search, setSearch] = useState('')
 
@@ -88,7 +96,7 @@ export default function ClassesClient({ classes }: { classes: ClassRow[] }) {
             placeholder="Search classes…"
             className="w-48 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-gray-600 focus:outline-none"
           />
-          <CreateClassInline />
+          <ClassFormModal mode="create" allTeachers={allTeachers} allStudents={allStudents} />
         </div>
       </div>
 

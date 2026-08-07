@@ -15,15 +15,22 @@ export default async function StudentsPage() {
     { data: members },
     { data: classes },
     { data: invoices },
+    { data: staffRoleRows },
   ] = await Promise.all([
     supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
     supabaseAdmin.from('student_profiles').select('*'),
     supabaseAdmin.from('class_members').select('user_id, class_id, classes(name)'),
     supabaseAdmin.from('classes').select('id, name, description, created_at').order('name'),
     supabaseAdmin.from('invoices').select('user_id, status'),
+    supabaseAdmin.from('user_roles').select('user_id'),
   ])
 
-  const users = usersData?.users ?? []
+  // Only 'admin' and 'teacher' roles exist in user_roles — a student never
+  // has a row there. An account can hold a student_profiles row *and* a
+  // staff role at once (e.g. a teacher's own test account), so exclude
+  // anyone with a platform role instead of trusting the profile alone.
+  const staffIds = new Set((staffRoleRows ?? []).map((r) => r.user_id))
+  const users = (usersData?.users ?? []).filter((u) => !staffIds.has(u.id))
   const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p]))
 
   const classMap: Record<string, string[]> = {}

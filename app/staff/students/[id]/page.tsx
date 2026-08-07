@@ -6,6 +6,7 @@ import DeactivateToggle from '@/components/admin/DeactivateToggle'
 import EditStudentModal from '@/components/admin/EditStudentModal'
 import CreateInvoiceModal from '@/components/admin/CreateInvoiceModal'
 import AddToClassModal from '@/components/admin/AddToClassModal'
+import BuildModeToggle from '@/components/BuildModeToggle'
 import type { Class } from '@/types'
 
 function formatAmount(cents: number) {
@@ -34,6 +35,9 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
     { data: memberships },
     { data: invoices },
     { data: allClasses },
+    { count: promptCount },
+    { count: projectCount },
+    { data: buildMode },
   ] = await Promise.all([
     supabaseAdmin.auth.admin.getUserById(userId),
     supabaseAdmin.from('student_profiles').select('*').eq('user_id', userId).maybeSingle(),
@@ -47,6 +51,9 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
     supabaseAdmin.from('classes').select('id, name, description, created_at').order('name'),
+    supabaseAdmin.from('prompts').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    supabaseAdmin.from('user_build_mode').select('enabled').eq('user_id', userId).maybeSingle(),
   ])
 
   const user = userData?.user
@@ -176,6 +183,27 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
               <p className="mt-1 text-sm text-gray-300 whitespace-pre-wrap rounded-lg bg-gray-800 px-3 py-2">{profile.notes}</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Activity */}
+      <div className="rounded-xl border border-gray-800 bg-gray-900">
+        <div className="px-5 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Activity</p>
+          <div className="flex items-center gap-8 text-sm">
+            <div>
+              <span className="text-gray-500">AI requests</span>
+              <p className="text-gray-100 mt-0.5 text-lg font-semibold tabular-nums">{promptCount ?? 0}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Projects</span>
+              <p className="text-gray-100 mt-0.5 text-lg font-semibold tabular-nums">{projectCount ?? 0}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-gray-500">Build mode</span>
+              <BuildModeToggle userId={userId} initialEnabled={buildMode?.enabled === true} />
+            </div>
+          </div>
         </div>
       </div>
 

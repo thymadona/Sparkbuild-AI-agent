@@ -6,13 +6,23 @@ import OverviewTab from './OverviewTab'
 
 function Skeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
-      <div className="grid grid-cols-5 gap-4">
-        {Array.from({ length: 5 }).map((_, i) => (
+    <div className="space-y-6 animate-pulse">
+      <div className="grid grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
         ))}
       </div>
-      <div className="h-48 rounded-lg bg-gray-900 border border-gray-800" />
+      <div className="grid grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
+        ))}
+      </div>
+      <div className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
     </div>
   )
 }
