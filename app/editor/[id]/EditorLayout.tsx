@@ -38,7 +38,7 @@ interface Props {
 const MAX_CONSOLE_ENTRIES = 200
 
 type RightTab = 'code' | 'preview' | 'console'
-type Activity = 'explorer' | 'chat' | 'navigator' | 'homework'
+type Activity = 'explorer' | 'navigator' | 'homework' | 'chat'
 
 function getLanguage(filename: string): 'html' | 'css' | 'js' {
   if (filename.endsWith('.css')) return 'css'
@@ -60,8 +60,17 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [savingTitle, setSavingTitle] = useState(false)
   const [rightTab, setRightTab] = useState<RightTab>('preview')
   const [splitView, setSplitView] = useState(false)
-  const [activity, setActivity] = useState<Activity>(lesson ? 'navigator' : 'explorer')
+  // Lesson projects default to the Tasks tab so the task list is the first
+  // thing a student sees; /explore projects default straight to Chat, where
+  // chat (build mode) is the primary UI.
+  const [activity, setActivity] = useState<Activity>(lesson ? 'navigator' : 'chat')
   const [sideOpen, setSideOpen] = useState(true)
+  // Chat can float free of the sidebar or be docked into it as a regular tab.
+  // Only one <Editor> is ever mounted — floating or docked, never both — so
+  // message/generation state isn't duplicated across two instances. Docked
+  // by default; chatOpen only matters once a student undocks it.
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatDocked, setChatDocked] = useState(true)
   const [sideWidth, setSideWidth] = useState(380)
   const [previewBlocked, setPreviewBlocked] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{ text: string; startLine: number; endLine: number } | null>(null)
@@ -174,9 +183,20 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   const combinedHtml = buildCombinedHtml(files)
 
+  // Reveals chat regardless of whether it's currently docked in the sidebar
+  // or floating — docked, switching activity is what makes it visible;
+  // `setChatOpen` only does anything for the floating panel.
+  function openChat() {
+    if (chatDocked) {
+      setActivity('chat')
+      setSideOpen(true)
+    } else {
+      setChatOpen(true)
+    }
+  }
+
   function handleTaskPrompt(p: string) {
-    setActivity('chat')
-    setSideOpen(true)
+    openChat()
     setPendingPrompt(p)
   }
 
@@ -201,8 +221,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   })
 
   const hasHomework = lesson ? lesson.tasks.some((task) => task.type === 'homework') : false
-  const coreTasks = lesson ? lesson.tasks.filter((task) => task.type === 'core') : []
-  const coreComplete = coreTasks.length > 0 && coreTasks.every((task) => progress.done.has(task.id))
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -314,6 +332,19 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     }
   }
 
+  function dockChat() {
+    setChatDocked(true)
+    setActivity('chat')
+    setSideOpen(true)
+    setChatOpen(false)
+  }
+
+  function undockChat() {
+    setChatDocked(false)
+    setActivity(lesson ? 'navigator' : 'explorer')
+    setChatOpen(true)
+  }
+
   const activeLanguage = getLanguage(activeFile)
 
   // Lesson projects get the simplified student layout. Free-form projects from
@@ -395,27 +426,29 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
             </button>
           )}
 
-          {/* Chat icon */}
-          <button
-            onClick={() => handleActivity('chat')}
-            className={`flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
-              activity === 'chat' && sideOpen
-                ? 'bg-brand-500/15 text-brand-600 dark:text-brand-300 rounded-md'
-                : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-600/50 rounded-md'
-            }`}
-            title="Chat"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span className="text-[10px] font-medium leading-none">Chat</span>
-          </button>
+          {/* Chat icon — only appears once chat has been docked to the sidebar */}
+          {chatDocked && (
+            <button
+              onClick={() => handleActivity('chat')}
+              className={`flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
+                activity === 'chat' && sideOpen
+                  ? 'bg-brand-500/15 text-brand-600 dark:text-brand-300 rounded-md'
+                  : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-600/50 rounded-md'
+              }`}
+              title="AI Tutor"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-[10px] font-medium leading-none">Chat</span>
+            </button>
+          )}
 
           {/* Homework icon — only for lessons that assign homework */}
           {lesson && hasHomework && (
             <button
               onClick={() => handleActivity('homework')}
-              className={`relative flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
+              className={`flex flex-col items-center gap-0.5 w-full py-2.5 rounded transition-colors ${
                 activity === 'homework' && sideOpen
                   ? 'bg-brand-500/15 text-brand-600 dark:text-brand-300 rounded-md'
                   : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-600/50 rounded-md'
@@ -426,9 +459,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-9 9 9M4 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" />
               </svg>
               <span className="text-[10px] font-medium leading-none">Homework</span>
-              {!coreComplete && (
-                <span className="absolute top-1 right-2 text-[9px]" aria-hidden="true">🔒</span>
-              )}
             </button>
           )}
 
@@ -456,15 +486,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         >
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-surface-600 shrink-0">
             <div className="flex items-center gap-2">
-              {activity === 'chat' && (
-                <>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                  </span>
-                  <span className="text-sm font-semibold text-fg-primary">AI Tutor</span>
-                </>
-              )}
               {activity === 'navigator' && (
                 <span className="text-sm font-semibold text-fg-primary">Tasks</span>
               )}
@@ -474,14 +495,30 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               {activity === 'explorer' && (
                 <span className="text-sm font-semibold text-fg-primary">Files</span>
               )}
+              {activity === 'chat' && (
+                <span className="text-sm font-semibold text-fg-primary">AI Tutor</span>
+              )}
             </div>
-            <button
-              onClick={() => setSideOpen(false)}
-              className="text-fg-muted hover:text-fg-secondary transition-colors p-1 rounded hover:bg-surface-700"
-              title="Close panel"
-            >
-              &times;
-            </button>
+            <div className="flex items-center gap-1">
+              {activity === 'chat' && (
+                <button
+                  onClick={undockChat}
+                  className="text-fg-muted hover:text-fg-secondary transition-colors p-1 rounded hover:bg-surface-700"
+                  title="Pop out to floating chat"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={() => setSideOpen(false)}
+                className="text-fg-muted hover:text-fg-secondary transition-colors p-1 rounded hover:bg-surface-700"
+                title="Close panel"
+              >
+                &times;
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-hidden relative">
             <div className={activity === 'explorer' ? 'h-full' : 'hidden'}>
@@ -490,25 +527,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 activeFile={activeFile}
                 onFileClick={handleFileClick}
                 onAddFile={handleAddFile}
-              />
-            </div>
-            <div className={activity === 'chat' ? 'h-full' : 'hidden'}>
-              <Editor
-                projectId={project.id}
-                files={files}
-                onBeforeGenerate={() => setUndoFiles(files)}
-                onFilesUpdate={(newFiles) => {
-                  setFiles(newFiles)
-                  setRightTab('preview')
-                  setConsoleLogs([])
-                }}
-                activeFile={activeFile}
-                messages={messages}
-                onMessagesChange={setMessages}
-                selectedCode={selectedCode}
-                onClearSelection={() => setSelectedCode(null)}
-                pendingPrompt={pendingPrompt}
-                onPromptConsumed={() => setPendingPrompt(null)}
               />
             </div>
             {lesson && (
@@ -532,6 +550,27 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 />
               </div>
             )}
+            {chatDocked && (
+              <div className={activity === 'chat' ? 'h-full' : 'hidden'}>
+                <Editor
+                  projectId={project.id}
+                  files={files}
+                  onBeforeGenerate={() => setUndoFiles(files)}
+                  onFilesUpdate={(newFiles) => {
+                    setFiles(newFiles)
+                    setRightTab('preview')
+                    setConsoleLogs([])
+                  }}
+                  activeFile={activeFile}
+                  messages={messages}
+                  onMessagesChange={setMessages}
+                  selectedCode={selectedCode}
+                  onClearSelection={() => setSelectedCode(null)}
+                  pendingPrompt={pendingPrompt}
+                  onPromptConsumed={() => setPendingPrompt(null)}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -545,7 +584,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         )}
 
         {/* Main area: Code + Preview tabs */}
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="relative flex flex-1 flex-col overflow-hidden">
           {/* Undo the last AI change */}
           {undoFiles && (
             <div className="flex items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-50 px-3 py-1.5 dark:bg-amber-900/20">
@@ -693,8 +732,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   onSelectionChange={(sel) => {
                     setSelectedCode(sel)
                     if (sel) {
-                      setActivity('chat')
-                      setSideOpen(true)
+                      openChat()
                     }
                   }}
                 />
@@ -720,8 +758,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   onSelectionChange={(sel) => {
                     setSelectedCode(sel)
                     if (sel) {
-                      setActivity('chat')
-                      setSideOpen(true)
+                      openChat()
                     }
                   }}
                 />
@@ -779,6 +816,88 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Floating chat bubble — the only trigger for chat now that it's not
+              in the activity bar. Hidden while the panel itself is open, since
+              the panel has its own close button in the same corner. Hidden
+              entirely once chat is docked into the sidebar. */}
+          {!chatOpen && !chatDocked && (
+            <button
+              onClick={() => setChatOpen(true)}
+              className="absolute bottom-4 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-2xl hover:bg-brand-400 hover:scale-105 active:scale-95 transition-all animate-pop-in"
+              title="Chat with AI Tutor"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </button>
+          )}
+
+          {/* Floating chat panel — deliberately not a sidebar tab, so a lesson's
+              Tasks/Homework list stays visible while the student is chatting.
+              Kept mounted at all times (visibility/transform toggled, never
+              unmounted) so an in-flight generation and pendingPrompt handoff
+              survive open/close, and so open/close can animate smoothly.
+              Anchored to this main (code/preview) column, not the viewport,
+              so it never overlaps the sidebar. Unmounted once docked, since
+              the sidebar copy takes over as the single <Editor> instance. */}
+          {!chatDocked && (
+            <div
+              className={`absolute bottom-4 right-4 z-30 flex h-[32rem] w-96 max-w-[calc(100%-2rem)] max-h-[70%] origin-bottom-right flex-col overflow-hidden rounded-xl border border-surface-600 bg-surface-800 shadow-2xl transition-all duration-200 ease-out ${
+                chatOpen
+                  ? 'opacity-100 scale-100 translate-y-0'
+                  : 'opacity-0 scale-90 translate-y-3 pointer-events-none invisible'
+              }`}
+            >
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-surface-600 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                  <span className="text-sm font-semibold text-fg-primary">AI Tutor</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={dockChat}
+                    className="text-fg-muted hover:text-fg-secondary transition-colors p-1 rounded hover:bg-surface-700"
+                    title="Dock to sidebar"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v16" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    className="text-fg-muted hover:text-fg-secondary transition-colors p-1 rounded hover:bg-surface-700"
+                    title="Close chat"
+                  >
+                    &times;
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <Editor
+                  projectId={project.id}
+                  files={files}
+                  onBeforeGenerate={() => setUndoFiles(files)}
+                  onFilesUpdate={(newFiles) => {
+                    setFiles(newFiles)
+                    setRightTab('preview')
+                    setConsoleLogs([])
+                  }}
+                  activeFile={activeFile}
+                  messages={messages}
+                  onMessagesChange={setMessages}
+                  selectedCode={selectedCode}
+                  onClearSelection={() => setSelectedCode(null)}
+                  pendingPrompt={pendingPrompt}
+                  onPromptConsumed={() => setPendingPrompt(null)}
+                />
+              </div>
             </div>
           )}
         </div>
