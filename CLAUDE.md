@@ -131,11 +131,6 @@ typing upward after 300ms (driving preview and checks); `EditorLayout` writes to
 emissions (`lastEmitted`), or a generation arriving while mounted in split view gets
 overwritten. One step of undo is kept in `undoFiles`, discarded as soon as the student types.
 
-**`kidMode` is on for any lesson project** (`kidMode = lesson !== null`). It raises the type
-scale, collapses the task list to one task at a time, and hides the console until a real error
-occurs. It's a proxy for "young student," not a real age signal — there's no age or grade field
-on `student_profiles`.
-
 **Admin API routes re-verify authorization themselves.** Middleware only guards page
 navigation under `/admin`/`/teacher`. Every admin route file calls
 `hasPermission(user.id, '<key>')` from `lib/auth/permissions.ts` (backed by `public.roles`,

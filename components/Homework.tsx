@@ -11,15 +11,13 @@ import type { useLessonProgress } from '@/hooks/useLessonProgress'
 interface HomeworkProps {
   lesson: Lesson
   code: string
-  kidMode?: boolean
   progress: ReturnType<typeof useLessonProgress>
   // The student's weekly class slots. Homework is due before the next one.
   classSlots?: ClassSlot[]
 }
 
-export default function Homework({ lesson, code, kidMode = false, progress, classSlots = [] }: HomeworkProps) {
+export default function Homework({ lesson, code, progress, classSlots = [] }: HomeworkProps) {
   const { done, activeIndex, activeTask, isSaving, saveError, submission, isSubmitting, submitError, activateTask, markDone, submitHomework } = progress
-  const type = kidMode ? SCALE.kid : SCALE.pro
 
   const coreTasks = lesson.tasks.filter((task) => task.type === 'core')
   const completedCore = coreTasks.filter((task) => done.has(task.id)).length
@@ -37,19 +35,19 @@ export default function Homework({ lesson, code, kidMode = false, progress, clas
       <div className="flex-1 overflow-y-auto p-3">
         <div className="rounded-xl border border-surface-600 bg-surface-700/40 p-3">
           <div className="mb-1.5 flex items-center gap-1">
-            <p className={`flex-1 ${type.label} text-fg-muted`}>Homework · {completedHomework}/{homework.length}</p>
+            <p className={`flex-1 ${SCALE.label} text-fg-muted`}>Homework · {completedHomework}/{homework.length}</p>
             {lesson.homeworkBrief && <SpeakButton text={lesson.homeworkBrief} label="Read the homework out loud" />}
           </div>
 
           {!coreComplete ? (
-            <p className={`${type.check} text-fg-muted`}>Finish your mission first. Then homework opens.</p>
+            <p className={`${SCALE.check} text-fg-muted`}>Finish your mission first. Then homework opens.</p>
           ) : (
             <>
               {lesson.homeworkBrief && (
-                <p className={`mb-1 ${type.check} text-fg-secondary`}>{lesson.homeworkBrief}</p>
+                <p className={`mb-1 ${SCALE.check} text-fg-secondary`}>{lesson.homeworkBrief}</p>
               )}
               {due && submission !== 'approved' && submission !== 'submitted' && (
-                <p className={`mb-2 ${type.check} font-medium text-amber-600 dark:text-amber-400`}>{due}</p>
+                <p className={`mb-2 ${SCALE.check} font-medium text-amber-600 dark:text-amber-400`}>{due}</p>
               )}
               <div className="mb-2 flex flex-col gap-1.5">
                 {homework.map((task) => {
@@ -61,7 +59,7 @@ export default function Homework({ lesson, code, kidMode = false, progress, clas
                       key={task.id}
                       onClick={() => activateTask(index)}
                       disabled={isDone}
-                      className={`flex items-start gap-2 rounded-lg px-2.5 py-2 text-left ${type.check} transition-colors disabled:cursor-default ${
+                      className={`flex items-start gap-2 rounded-lg px-2.5 py-2 text-left ${SCALE.check} transition-colors disabled:cursor-default ${
                         isDone
                           ? 'text-fg-muted'
                           : isActive
@@ -76,21 +74,21 @@ export default function Homework({ lesson, code, kidMode = false, progress, clas
                 })}
               </div>
 
-              {submitError && <p className={`mb-1.5 ${type.check} text-red-500`}>{submitError}</p>}
+              {submitError && <p className={`mb-1.5 ${SCALE.check} text-red-500`}>{submitError}</p>}
 
               {submission === 'approved' ? (
-                <p className={`text-center ${type.check} font-semibold text-teal-600 dark:text-teal-400`}>🎉 Your teacher said yes!</p>
+                <p className={`text-center ${SCALE.check} font-semibold text-teal-600 dark:text-teal-400`}>🎉 Your teacher said yes!</p>
               ) : submission === 'submitted' ? (
-                <p className={`text-center ${type.check} text-fg-muted`}>Handed in. Your teacher will look soon.</p>
+                <p className={`text-center ${SCALE.check} text-fg-muted`}>Handed in. Your teacher will look soon.</p>
               ) : (
                 <>
                   {submission === 'needs_work' && (
-                    <p className={`mb-1.5 ${type.check} text-amber-600 dark:text-amber-400`}>Your teacher asked for one more change. Look in the chat.</p>
+                    <p className={`mb-1.5 ${SCALE.check} text-amber-600 dark:text-amber-400`}>Your teacher asked for one more change. Look in the chat.</p>
                   )}
                   <button
                     onClick={() => submitHomework(homeworkReady)}
                     disabled={!homeworkReady || isSubmitting}
-                    className={`w-full rounded-md px-4 ${kidMode ? 'py-2.5' : 'py-2'} ${type.button} font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`w-full rounded-md px-4 py-2.5 ${SCALE.button} font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       homeworkReady ? 'bg-brand-500 hover:bg-brand-600' : 'bg-surface-600'
                     }`}
                   >
@@ -107,7 +105,6 @@ export default function Homework({ lesson, code, kidMode = false, progress, clas
         <ActiveTaskPanel
           task={activeTask}
           code={code}
-          kidMode={kidMode}
           isSaving={isSaving}
           saveError={saveError}
           onMarkDone={() => markDone(activeIndex)}
