@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { cached } from '@/lib/cache'
 
 export class ForbiddenError extends Error {
   constructor(message = 'Forbidden') {
@@ -26,21 +27,25 @@ export async function getUserRoles(userId: string): Promise<string[]> {
 // access: this guards admin/PII surfaces, where the safe default is "no
 // access", not "any access".
 export async function hasPermission(userId: string, key: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin.rpc('has_permission', { p_user_id: userId, p_key: key })
-  if (error) {
-    console.error(`hasPermission(${key}) failed:`, error)
-    return false
-  }
-  return data === true
+  return cached(`perm:${userId}:${key}`, 30, async () => {
+    const { data, error } = await supabaseAdmin.rpc('has_permission', { p_user_id: userId, p_key: key })
+    if (error) {
+      console.error(`hasPermission(${key}) failed:`, error)
+      return false
+    }
+    return data === true
+  })
 }
 
 export async function isAdmin(userId: string): Promise<boolean> {
-  const { data, error } = await supabaseAdmin.rpc('is_admin', { p_user_id: userId })
-  if (error) {
-    console.error('isAdmin failed:', error)
-    return false
-  }
-  return data === true
+  return cached(`role:admin:${userId}`, 30, async () => {
+    const { data, error } = await supabaseAdmin.rpc('is_admin', { p_user_id: userId })
+    if (error) {
+      console.error('isAdmin failed:', error)
+      return false
+    }
+    return data === true
+  })
 }
 
 // True if userId holds the teacher role, regardless of class assignment —
@@ -49,12 +54,14 @@ export async function isAdmin(userId: string): Promise<boolean> {
 // isAdmin, rather than throwing like getUserRoles, so a lookup failure here
 // denies the bypass instead of crashing the page/route calling it.
 export async function isTeacher(userId: string): Promise<boolean> {
-  try {
-    const roles = await getUserRoles(userId)
-    return roles.includes('teacher')
-  } catch {
-    return false
-  }
+  return cached(`role:teacher:${userId}`, 30, async () => {
+    try {
+      const roles = await getUserRoles(userId)
+      return roles.includes('teacher')
+    } catch {
+      return false
+    }
+  })
 }
 
 export async function requirePermission(userId: string, key: string): Promise<void> {

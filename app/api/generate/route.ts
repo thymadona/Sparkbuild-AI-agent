@@ -6,6 +6,7 @@ import { parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 import { getLessonForProject } from '@/lib/lessons'
 import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
+import { cached } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
@@ -48,15 +49,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'prompt and projectId are required' }, { status: 400 })
   }
 
-  // Verify project ownership — single query, ownership enforced by user_id filter
-  const { data: project } = await supabaseAdmin
-    .from('projects')
-    .select('user_id, lesson_id, lesson_version')
-    .eq('id', projectId)
-    .eq('user_id', user.id)
-    .single()
+  // Verify project ownership — cached, since lesson_id/lesson_version never
+  // change after project creation, but user_id is still checked below on
+  // every request (caching the row doesn't skip the ownership check).
+  const project = await cached(`project-meta:${projectId}`, 3600, async () => {
+    const { data } = await supabaseAdmin
+      .from('projects')
+      .select('user_id, lesson_id, lesson_version')
+      .eq('id', projectId)
+      .single()
+    return data
+  })
 
-  if (!project) {
+  if (!project || project.user_id !== user.id) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   }
 
@@ -64,22 +69,26 @@ export async function POST(req: Request) {
   let openTask = null
   if (project.lesson_id != null) {
     const lesson = getLessonForProject(project.lesson_id, project.lesson_version)
-    const { data: progress } = await supabaseAdmin
-      .from('lesson_progress')
-      .select('completed_task_ids')
-      .eq('project_id', projectId)
-      .maybeSingle()
+    // Short TTL backstop only — the PUT lesson-progress route explicitly
+    // invalidates this key, since it directly feeds build-mode gating.
+    const progress = await cached(`lesson-progress:${projectId}`, 15, async () => {
+      const { data } = await supabaseAdmin
+        .from('lesson_progress')
+        .select('completed_task_ids')
+        .eq('project_id', projectId)
+        .maybeSingle()
+      return data
+    })
     openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
   }
 
   // 3b. Resolve effective mode — check per-user permission (server is authoritative)
   let effectiveMode: 'ask' | 'build' = 'ask'
   if (mode === 'build' && !openTask) {
-    const { data: setting } = await supabaseAdmin
-      .from('user_build_mode')
-      .select('enabled')
-      .eq('user_id', user.id)
-      .single()
+    const setting = await cached(`build-mode:${user.id}`, 30, async () => {
+      const { data } = await supabaseAdmin.from('user_build_mode').select('enabled').eq('user_id', user.id).single()
+      return data
+    })
     if (setting?.enabled === true) effectiveMode = 'build'
   }
   const BASE_SYSTEM_PROMPT = effectiveMode === 'build' ? BUILD_SYSTEM_PROMPT : ASK_SYSTEM_PROMPT

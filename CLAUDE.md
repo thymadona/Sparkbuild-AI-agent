@@ -147,9 +147,22 @@ role assignment lives in `user_roles`, editable from `/admin/users`.
 **Middleware treats a missing `student_profiles` row as "not a student" and allows it through.**
 Only an explicit `is_active === false` redirects to `/login?reason=deactivated`.
 
-**Rate limiting fails open and uses `prompts` as its ledger.** `lib/ratelimit.ts` counts rows in
-the last hour against a limit of 20; a failed count query allows the request. Admins bypass it
-entirely. Deleting prompt rows resets a user's quota.
+**Rate limiting fails open and is backed by Upstash Redis.** `lib/ratelimit.ts` uses
+`@upstash/ratelimit`'s sliding-window limiter (50 requests/hour, keyed by user id); a failed
+Redis call allows the request. Admins and teachers bypass it entirely
+(`app/api/generate/route.ts`). `prompts` remains the permanent log of every prompt (used by
+homework review and admin views) but is no longer read to compute the limit.
+
+**Read caching is a thin Redis wrapper, not a framework feature.** `lib/cache.ts`'s `cached()`
+helper (get-or-set against Upstash Redis, used via `lib/redis.ts`) wraps a handful of
+high-traffic, low-volatility reads: role/permission checks (`lib/auth/permissions.ts` —
+`hasPermission`, `isAdmin`, `isTeacher`, 30s TTL), a project's `lesson_id`/`lesson_version`
+(`app/api/generate/route.ts`, 1h TTL — these never change post-creation), a project's
+`lesson_progress` (15s TTL plus explicit invalidation from the lesson-progress PUT route, since
+it directly feeds build-mode task gating), a user's `user_build_mode.enabled` (30s TTL plus
+explicit invalidation from `POST /api/admin/settings`), and a student's enabled-lesson ids
+(`lib/lesson-availability.ts`, 60s TTL, no invalidation). A cache read/write failure never
+changes the answer — it just falls through to the original fail-open or fail-closed DB call.
 
 **Lesson versioning uses parallel catalogs, not migrations.** `getLessonForProject` reads the
 current catalog only when a project's `lesson_version` equals `CURRENT_LESSON_VERSION`, else
@@ -189,6 +202,8 @@ SUPABASE_SERVICE_ROLE_KEY=       # server-side only
 DATABASE_URL=                    # server-side only; Postgres pooler URL for Drizzle, bypasses RLS like supabaseAdmin
 DEEPSEEK_API_KEY=                # server-side only
 TELEGRAM_BOT_TOKEN=              # server-side only
+UPSTASH_REDIS_REST_URL=          # server-side only; backs lib/ratelimit.ts and lib/cache.ts
+UPSTASH_REDIS_REST_TOKEN=        # server-side only
 ```
 
 ## Security Constraints
@@ -207,9 +222,9 @@ TELEGRAM_BOT_TOKEN=              # server-side only
 
 Pre-existing on a clean checkout — don't attribute these to your change:
 
-- `bun run test` fails 3 suites / 7 tests because tests encode stale values: a rate limit of 10
-  (code uses 20), a default project title of `"Untitled"` (code generates a random name), and a
-  request field named `currentCode` (code uses `selectedCode`).
+- `bun run test` fails 2 suites / 2 tests because tests encode stale values: a default project
+  title of `"Untitled"` (code generates a random name) and a request field named `currentCode`
+  (code uses `selectedCode`).
 - `bun run test:unit` and `bun run test:integration` find nothing — they pass
   `--selectProjects` but `jest.config.ts` defines no `projects`. Use `bun run test` or a path
   filter.
@@ -260,6 +275,8 @@ when available, and include screenshots for visible UI changes.
 | Supabase clients                             | `lib/supabase-server.ts`, `lib/supabase-browser.ts` |
 | Lesson catalog + versioning                  | `lib/lessons.ts`                                    |
 | Task verification                            | `lib/task-checks.ts`                                |
+| Rate limiting (Upstash)                      | `lib/ratelimit.ts`                                  |
+| Read caching (Upstash)                       | `lib/cache.ts`, `lib/redis.ts`                      |
 | Schema of record                             | `supabase/migrations/`                              |
 
 ## Reference Docs
