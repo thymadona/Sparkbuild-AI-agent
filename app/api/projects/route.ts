@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
+import { getDisabledLessonIdsForUser } from '@/lib/lesson-availability'
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
@@ -47,6 +48,13 @@ export async function POST(req: Request) {
   const randomTitle = `${ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]} ${NOUNS[Math.floor(Math.random() * NOUNS.length)]}`
   const title = body.title || randomTitle
   const { templateHtml, lessonId, lessonVersion } = body
+
+  if (typeof lessonId === 'number') {
+    const disabledLessonIds = await getDisabledLessonIdsForUser(user.id)
+    if (disabledLessonIds.has(lessonId)) {
+      return NextResponse.json({ error: 'This lesson is not available for your class right now' }, { status: 403 })
+    }
+  }
 
   const insertData: Record<string, unknown> = {
     user_id: user.id,

@@ -73,6 +73,13 @@ export interface ClassSchedule {
   label: string | null
 }
 
+export interface ClassDisabledLesson {
+  class_id: string
+  lesson_id: number
+  disabled_by: string | null
+  disabled_at: string
+}
+
 export interface Invoice {
   id: string
   user_id: string

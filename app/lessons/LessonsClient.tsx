@@ -9,9 +9,11 @@ import ThemeToggle from '@/components/ThemeToggle'
 interface Props {
   lessons: Lesson[]
   userProjects: { id: string; lesson_id: number | null; updated_at: string }[]
+  disabledLessonIds?: number[]
 }
 
-export default function LessonsClient({ lessons, userProjects }: Props) {
+export default function LessonsClient({ lessons, userProjects, disabledLessonIds = [] }: Props) {
+  const disabledSet = new Set(disabledLessonIds)
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -99,6 +101,7 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
           <div className="space-y-4">
             {lessons.map((lesson, i) => {
               const isStarted = projectByLessonId.has(lesson.id)
+              const isLocked = !isStarted && disabledSet.has(lesson.id)
               const stars = difficulty[i]
               return (
                 <div key={lesson.id} className="flex gap-5 relative">
@@ -128,17 +131,23 @@ export default function LessonsClient({ lessons, userProjects }: Props) {
                     </div>
                     <div className="mt-4 flex items-center gap-3">
                       <span className="text-xs text-fg-muted">{lesson.tasks.length} tasks</span>
-                      <button
-                        onClick={() => handleStart(lesson)}
-                        disabled={loadingId !== null}
-                        className={`ml-auto rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
-                          isStarted
-                            ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 hover:bg-teal-500/25'
-                            : 'bg-brand-500 text-white hover:bg-brand-600'
-                        }`}
-                      >
-                        {loadingId === lesson.id ? 'Starting...' : isStarted ? 'Resume →' : 'Start'}
-                      </button>
+                      {isLocked ? (
+                        <span className="ml-auto rounded-lg bg-surface-700 px-5 py-2 text-sm font-semibold text-fg-muted">
+                          Not open yet
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleStart(lesson)}
+                          disabled={loadingId !== null}
+                          className={`ml-auto rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                            isStarted
+                              ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 hover:bg-teal-500/25'
+                              : 'bg-brand-500 text-white hover:bg-brand-600'
+                          }`}
+                        >
+                          {loadingId === lesson.id ? 'Starting...' : isStarted ? 'Resume →' : 'Start'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
