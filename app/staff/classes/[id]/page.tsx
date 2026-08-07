@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { hasPermission, isAdmin, isTeacherOfClass } from '@/lib/auth/permissions'
-import { getLessonForProject } from '@/lib/lessons'
+import { getLessonForProject, LESSONS, type LessonTaskType } from '@/lib/lessons'
 import { homeworkTasks } from '@/lib/task-guard'
 import type { ClassSchedule, SubmissionStatus } from '@/types'
 import ClassDetailClient from './ClassDetailClient'
@@ -19,6 +19,28 @@ export interface TeacherSubmissionRow {
   homeworkDone: number
   homeworkTotal: number
   updatedAt: string
+}
+
+export interface StudentTaskProgress {
+  id: string
+  chip: string
+  type: LessonTaskType
+  done: boolean
+}
+
+export interface StudentLessonProgress {
+  userId: string
+  name: string
+  email: string
+  tasks: StudentTaskProgress[]
+}
+
+export interface LessonProgressEntry {
+  lessonId: number
+  title: string
+  description: string
+  enabled: boolean
+  students: StudentLessonProgress[]
 }
 
 // Same URL, two genuinely different feature sets — not a UI skin
@@ -185,6 +207,65 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     })
   }
 
+  const enabledLessonIds = (enabledLessons ?? []).map((d) => d.lesson_id)
+  const blankTasks = (lesson: (typeof LESSONS)[number]) =>
+    lesson.tasks.map((t) => ({ id: t.id, chip: t.chip, type: t.type, done: false }))
+
+  let lessonsProgress: LessonProgressEntry[] = LESSONS.map((lesson) => ({
+    lessonId: lesson.id,
+    title: lesson.title,
+    description: lesson.description,
+    enabled: enabledLessonIds.includes(lesson.id),
+    students: students.map((s) => ({ userId: s.userId, name: s.name, email: s.email, tasks: blankTasks(lesson) })),
+  }))
+
+  if (studentIds.length > 0) {
+    // Every project a student has started, one row per (student, lesson) at
+    // most since we keep only the most recently updated per pair below —
+    // unlike homeworkRows above, this isn't limited to submitted homework.
+    const { data: allProjects } = await supabaseAdmin
+      .from('projects')
+      .select('id, user_id, lesson_id, lesson_version, updated_at')
+      .in('user_id', studentIds)
+      .not('lesson_id', 'is', null)
+      .order('updated_at', { ascending: false })
+
+    const projectRows = allProjects ?? []
+    const allProgressById = new Map<string, string[]>()
+    if (projectRows.length > 0) {
+      const { data: progressRows } = await supabaseAdmin
+        .from('lesson_progress')
+        .select('project_id, completed_task_ids')
+        .in('project_id', projectRows.map((p) => p.id))
+      for (const row of progressRows ?? []) allProgressById.set(row.project_id, row.completed_task_ids ?? [])
+    }
+
+    const latestByStudentLesson = new Map<string, (typeof projectRows)[number]>()
+    for (const p of projectRows) {
+      const key = `${p.user_id}:${p.lesson_id}`
+      if (!latestByStudentLesson.has(key)) latestByStudentLesson.set(key, p)
+    }
+
+    lessonsProgress = LESSONS.map((lesson) => ({
+      lessonId: lesson.id,
+      title: lesson.title,
+      description: lesson.description,
+      enabled: enabledLessonIds.includes(lesson.id),
+      students: students.map((s) => {
+        const project = latestByStudentLesson.get(`${s.userId}:${lesson.id}`)
+        if (!project) return { userId: s.userId, name: s.name, email: s.email, tasks: blankTasks(lesson) }
+        const resolved = getLessonForProject(project.lesson_id, project.lesson_version) ?? lesson
+        const doneIds = new Set(allProgressById.get(project.id) ?? [])
+        return {
+          userId: s.userId,
+          name: s.name,
+          email: s.email,
+          tasks: resolved.tasks.map((t) => ({ id: t.id, chip: t.chip, type: t.type, done: doneIds.has(t.id) })),
+        }
+      }),
+    }))
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
@@ -193,10 +274,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
         <span className="text-gray-300">{cls.name}</span>
       </div>
 
-      <div className="space-y-6">
-        <TeacherClassClient className={cls.name} students={students} homeworkRows={homeworkRows} />
-        <LessonsPanel classId={cls.id} enabledLessonIds={(enabledLessons ?? []).map((d) => d.lesson_id)} />
-      </div>
+      <TeacherClassClient
+        classId={cls.id}
+        className={cls.name}
+        homeworkRows={homeworkRows}
+        lessonsProgress={lessonsProgress}
+      />
     </div>
   )
 }
