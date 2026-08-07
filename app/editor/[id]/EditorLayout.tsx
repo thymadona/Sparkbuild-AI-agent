@@ -191,9 +191,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     onHighlight: (line) => {
       setHighlightLine(line)
       setHighlightNonce((n) => n + 1)
-      // Code beside preview, so the student sees the line they are
-      // changing and the result of changing it at the same time.
-      setSplitView(true)
+      setActiveFile('index.html')
       setRightTab('code')
     },
     onPrompt: handleTaskPrompt,
