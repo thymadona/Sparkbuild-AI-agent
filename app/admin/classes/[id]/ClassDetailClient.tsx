@@ -213,13 +213,19 @@ function AddSlotRow({ classId }: { classId: string }) {
   )
 }
 
-// ── Add student dropdown ──────────────────────────────────────────────
-function AddStudentRow({
+// ── Add student/teacher dropdown ────────────────────────────────────────
+function AddMemberRow({
   classId,
   available,
+  role,
+  label,
+  emptyLabel,
 }: {
   classId: string
   available: AvailableStudent[]
+  role: 'student' | 'teacher'
+  label: string
+  emptyLabel: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -236,7 +242,7 @@ function AddStudentRow({
     await fetch(`/api/admin/classes/${classId}/members`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, role }),
     })
     setAdding(null)
     setOpen(false)
@@ -250,7 +256,7 @@ function AddStudentRow({
         onClick={() => setOpen(true)}
         className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-500 transition-colors"
       >
-        + Add Student
+        + {label}
       </button>
     )
   }
@@ -263,14 +269,14 @@ function AddStudentRow({
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search students…"
+            placeholder="Search…"
             className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-violet-500 focus:outline-none"
           />
         </div>
         <div className="max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
             <p className="px-3 py-4 text-center text-xs text-gray-600">
-              {available.length === 0 ? 'All students are enrolled.' : 'No matches.'}
+              {available.length === 0 ? emptyLabel : 'No matches.'}
             </p>
           ) : (
             filtered.map((s) => (
@@ -309,6 +315,8 @@ export default function ClassDetailClient({
   schedules,
   students,
   availableStudents,
+  teachers,
+  availableTeachers,
 }: {
   classId: string
   className: string
@@ -316,6 +324,8 @@ export default function ClassDetailClient({
   schedules: ClassSchedule[]
   students: Student[]
   availableStudents: AvailableStudent[]
+  teachers: AvailableStudent[]
+  availableTeachers: AvailableStudent[]
 }) {
   const router = useRouter()
   const [removing, setRemoving] = useState<string | null>(null)
@@ -328,7 +338,7 @@ export default function ClassDetailClient({
     router.refresh()
   }
 
-  async function removeStudent(userId: string) {
+  async function removeMember(userId: string) {
     setRemoving(userId)
     await fetch(`/api/admin/classes/${classId}/members?userId=${userId}`, { method: 'DELETE' })
     router.refresh()
@@ -414,12 +424,66 @@ export default function ClassDetailClient({
         <AddSlotRow classId={classId} />
       </div>
 
+      {/* Teachers */}
+      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
+          <h3 className="text-sm font-semibold text-gray-300">Teachers ({teachers.length})</h3>
+          <div className="relative">
+            <AddMemberRow
+              classId={classId}
+              available={availableTeachers}
+              role="teacher"
+              label="Add Teacher"
+              emptyLabel="No platform teachers available — grant the teacher role from Admin → Users first."
+            />
+          </div>
+        </div>
+        {teachers.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-gray-600">
+            No teacher assigned to this class yet — students in this class won&apos;t appear in anyone&apos;s /teacher dashboard until one is.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-500">Name</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-500">Email</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {teachers.map((t) => (
+                <tr key={t.userId} className="hover:bg-gray-800/30 transition-colors">
+                  <td className="px-4 py-3 font-medium text-gray-100">{t.name || <span className="italic text-gray-600">No name</span>}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{t.email}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => removeMember(t.userId)}
+                      disabled={removing === t.userId}
+                      className="rounded bg-red-950 border border-red-900 px-2 py-1 text-xs text-red-400 hover:bg-red-900 disabled:opacity-50 transition-colors"
+                    >
+                      {removing === t.userId ? '…' : 'Remove'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {/* Students */}
       <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
           <h3 className="text-sm font-semibold text-gray-300">Students ({students.length})</h3>
           <div className="relative">
-            <AddStudentRow classId={classId} available={availableStudents} />
+            <AddMemberRow
+              classId={classId}
+              available={availableStudents}
+              role="student"
+              label="Add Student"
+              emptyLabel="All students are enrolled."
+            />
           </div>
         </div>
         {students.length === 0 ? (
@@ -448,7 +512,7 @@ export default function ClassDetailClient({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => removeStudent(s.userId)}
+                      onClick={() => removeMember(s.userId)}
                       disabled={removing === s.userId}
                       className="rounded bg-red-950 border border-red-900 px-2 py-1 text-xs text-red-400 hover:bg-red-900 disabled:opacity-50 transition-colors"
                     >
