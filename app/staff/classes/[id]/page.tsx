@@ -85,16 +85,18 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       email: userMap[userId] ?? userId.slice(0, 8),
     })).sort((a, b) => a.name.localeCompare(b.name))
 
+    const roleRows = (teacherRoleRows ?? []) as unknown as { user_id: string; roles: { name: string } | null }[]
+    // Only 'admin' and 'teacher' roles exist in user_roles — a student never
+    // has a row there. An account can hold a student_profiles row *and* a
+    // staff role at once (e.g. a teacher's own test account), so keep staff
+    // out of the student picker even if they have a profile.
+    const staffIds = new Set(roleRows.map((r) => r.user_id))
     const availableStudents = (profiles ?? [])
-      .filter((p) => !memberIds.has(p.user_id))
+      .filter((p) => !memberIds.has(p.user_id) && !staffIds.has(p.user_id))
       .map((p) => ({ userId: p.user_id, name: p.full_name, email: userMap[p.user_id] ?? '' }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    const platformTeacherIds = new Set(
-      ((teacherRoleRows ?? []) as unknown as { user_id: string; roles: { name: string } | null }[])
-        .filter((r) => r.roles?.name === 'teacher')
-        .map((r) => r.user_id)
-    )
+    const platformTeacherIds = new Set(roleRows.filter((r) => r.roles?.name === 'teacher').map((r) => r.user_id))
     const availableTeachers = Array.from(platformTeacherIds)
       .filter((userId) => !teacherMemberIds.has(userId))
       .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))

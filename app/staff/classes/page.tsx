@@ -23,15 +23,22 @@ export default async function ClassesPage() {
       { data: members },
       { data: schedules },
       { data: invoices },
+      { data: usersData },
+      { data: profiles },
+      { data: teacherRoleRows },
     ] = await Promise.all([
       supabaseAdmin.from('classes').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('class_members').select('class_id, user_id'),
+      supabaseAdmin.from('class_members').select('class_id, user_id, role'),
       supabaseAdmin.from('class_schedules').select('*').order('day_of_week').order('start_time'),
       supabaseAdmin.from('invoices').select('user_id, status'),
+      supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+      supabaseAdmin.from('student_profiles').select('user_id, full_name'),
+      supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
     ])
 
     const membersByClass: Record<string, string[]> = {}
     for (const m of members ?? []) {
+      if (m.role !== 'student') continue
       if (!membersByClass[m.class_id]) membersByClass[m.class_id] = []
       membersByClass[m.class_id].push(m.user_id)
     }
@@ -59,13 +66,30 @@ export default async function ClassesPage() {
       }
     })
 
+    const userMap = Object.fromEntries((usersData?.users ?? []).map((u) => [u.id, u.email ?? '']))
+    const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.full_name]))
+    const roleRows = (teacherRoleRows ?? []) as unknown as { user_id: string; roles: { name: string } | null }[]
+    const platformTeacherIds = new Set(roleRows.filter((r) => r.roles?.name === 'teacher').map((r) => r.user_id))
+    // Only 'admin' and 'teacher' roles exist in user_roles — a student never
+    // has a row there. An account can hold a student_profiles row *and* a
+    // staff role at once (e.g. a teacher's own test account), so keep staff
+    // out of the student picker even if they have a profile.
+    const staffIds = new Set(roleRows.map((r) => r.user_id))
+    const allTeachers = Array.from(platformTeacherIds)
+      .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+    const allStudents = (profiles ?? [])
+      .filter((p) => !staffIds.has(p.user_id))
+      .map((p) => ({ userId: p.user_id, name: p.full_name, email: userMap[p.user_id] ?? '' }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+
     return (
       <div>
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-gray-100">Classes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Filter by day, view schedules, and open class details</p>
         </div>
-        <ClassesClient classes={rows} />
+        <ClassesClient classes={rows} allTeachers={allTeachers} allStudents={allStudents} />
       </div>
     )
   }
