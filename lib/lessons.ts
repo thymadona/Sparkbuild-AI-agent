@@ -547,7 +547,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 6,
     title: 'Week #6 — Bright Idea',
-    homeworkBrief: 'Save the ideas your app gives you.',
+    homeworkBrief: 'Save what your app gives you.',
     description: 'Pitch and prototype a small app that solves a real problem for someone.',
     templateFile: 'my-project.html',
     tasks: [
@@ -614,10 +614,10 @@ export const LESSONS: Lesson[] = [
         type: 'homework',
         chip: 'Homework: save a list',
         success: 'Your app keeps a list.',
-        prompt: 'I want my app to remember the ideas it gives me in a list.',
+        prompt: 'I want my app to remember things it shows me, so I can see them again.',
         commentAnchor: 'TASK: first feature',
         checks: [
-          { kind: 'sourceMatches', pattern: '\\.push\\(', min: 1, example: 'saved.push(idea)', label: 'Your code saves to a list', hint: 'Use push to add to an array.' },
+          { kind: 'sourceMatches', pattern: '\\.push\\(', min: 1, example: 'items.push(entry)', label: 'Your code saves to a list', hint: 'Use push to add to an array.' },
         ],
       },
       {
@@ -625,10 +625,10 @@ export const LESSONS: Lesson[] = [
         type: 'homework',
         chip: 'Homework: second button',
         success: 'Your app has two buttons.',
-        prompt: 'I want a second button that shows the list my app saved.',
+        prompt: 'I want a second button that shows everything my app has saved.',
         commentAnchor: 'TASK: first feature',
         checks: [
-          { kind: 'sourceMatches', pattern: '<button', min: 2, example: '<button onclick="showSaved()">See my list</button>', label: 'There are two buttons', hint: 'Add one more button to your page.' },
+          { kind: 'sourceMatches', pattern: '<button', min: 2, example: '<button onclick="showList()">See my list</button>', label: 'There are two buttons', hint: 'Add one more button to your page.' },
         ],
       },
     ],
