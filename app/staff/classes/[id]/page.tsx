@@ -7,6 +7,7 @@ import { homeworkTasks } from '@/lib/task-guard'
 import type { ClassSchedule, SubmissionStatus } from '@/types'
 import ClassDetailClient from './ClassDetailClient'
 import TeacherClassClient from './TeacherClassClient'
+import LessonsPanel from './LessonsPanel'
 
 export interface TeacherSubmissionRow {
   projectId: string
@@ -42,6 +43,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       { data: usersData },
       { data: profiles },
       { data: teacherRoleRows },
+      { data: enabledLessons },
     ] = await Promise.all([
       supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
       supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
@@ -50,6 +52,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
       supabaseAdmin.from('student_profiles').select('user_id, full_name'),
       supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
+      supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
     ])
 
     if (!cls) notFound()
@@ -105,16 +108,19 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
           <span className="text-gray-300">{cls.name}</span>
         </div>
 
-        <ClassDetailClient
-          classId={cls.id}
-          className={cls.name}
-          description={cls.description}
-          schedules={(schedules ?? []) as ClassSchedule[]}
-          students={students}
-          availableStudents={availableStudents}
-          teachers={teachers}
-          availableTeachers={availableTeachers}
-        />
+        <div className="space-y-6">
+          <ClassDetailClient
+            classId={cls.id}
+            className={cls.name}
+            description={cls.description}
+            schedules={(schedules ?? []) as ClassSchedule[]}
+            students={students}
+            availableStudents={availableStudents}
+            teachers={teachers}
+            availableTeachers={availableTeachers}
+          />
+          <LessonsPanel classId={cls.id} enabledLessonIds={(enabledLessons ?? []).map((d) => d.lesson_id)} />
+        </div>
       </div>
     )
   }
@@ -122,11 +128,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   const allowed = await isTeacherOfClass(user.id, params.id)
   if (!allowed) redirect('/staff/classes')
 
-  const [{ data: cls }, { data: members }, { data: usersData }, { data: profiles }] = await Promise.all([
+  const [{ data: cls }, { data: members }, { data: usersData }, { data: profiles }, { data: enabledLessons }] = await Promise.all([
     supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
     supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
     supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
     supabaseAdmin.from('student_profiles').select('user_id, full_name'),
+    supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
   ])
 
   if (!cls) redirect('/staff/classes')
@@ -184,7 +191,10 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
         <span className="text-gray-300">{cls.name}</span>
       </div>
 
-      <TeacherClassClient className={cls.name} students={students} homeworkRows={homeworkRows} />
+      <div className="space-y-6">
+        <TeacherClassClient className={cls.name} students={students} homeworkRows={homeworkRows} />
+        <LessonsPanel classId={cls.id} enabledLessonIds={(enabledLessons ?? []).map((d) => d.lesson_id)} />
+      </div>
     </div>
   )
 }
