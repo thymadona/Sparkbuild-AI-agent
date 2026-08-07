@@ -51,20 +51,19 @@ function markup() {
 describe('ActiveTaskPanel server rendering', () => {
   // Regression: checks fail open when they cannot run, and they can never run
   // during server rendering. Evaluating them there reported every check as
-  // passed, which would auto-complete a task — with no button left to
-  // second-guess it — the moment the page hydrated, even though the student
-  // had not actually finished it.
+  // passed, which would render the Mark done button enabled the moment the
+  // page hydrated, even though the student had not actually finished it.
   it('renders a neutral placeholder until the checks can run', () => {
     expect(markup()).toContain('Checking your code')
   })
 
-  it('does not claim the task is already satisfied in the server-rendered markup', () => {
+  it('does not render an enabled Mark done button in the server-rendered markup', () => {
     const html = markup()
 
-    expect(html).not.toContain('marks itself done')
+    expect(html).not.toContain('Mark done')
   })
 
-  it('does not auto-complete on hydration, and reports no hydration mismatch', async () => {
+  it('keeps Mark done disabled after hydration, and reports no hydration mismatch', async () => {
     const onMarkDone = jest.fn()
     const errors: string[] = []
     const spy = jest.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
@@ -82,7 +81,11 @@ describe('ActiveTaskPanel server rendering', () => {
     spy.mockRestore()
     expect(errors.filter((message) => /hydrat/i.test(message))).toEqual([])
     // After mount the checks have run against the starter file: nothing passes.
-    expect(container.textContent).toContain('marks itself done')
+    const button = container.querySelector('button')!
+    expect(button.textContent).toContain('Not yet')
+    expect(button.disabled).toBe(true)
+
+    await act(async () => { button.click() })
     expect(onMarkDone).not.toHaveBeenCalled()
   })
 })
