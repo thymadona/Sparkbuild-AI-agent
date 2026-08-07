@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { hasPermission } from '@/lib/auth/permissions'
+import { invalidate } from '@/lib/cache'
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabaseClient()
@@ -27,6 +28,8 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: 'Failed to update setting' }, { status: 500 })
   }
+
+  await invalidate(`build-mode:${userId}`)
 
   return NextResponse.json({ ok: true })
 }

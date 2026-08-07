@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { getLessonForProject } from '@/lib/lessons'
+import { invalidate } from '@/lib/cache'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -70,5 +71,8 @@ export async function PUT(req: Request, props: Props) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await invalidate(`lesson-progress:${params.id}`)
+
   return NextResponse.json({ completedTaskIds: data.completed_task_ids })
 }
