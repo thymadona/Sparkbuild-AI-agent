@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import type { SubmissionStatus } from '@/types'
 
 interface Props {
@@ -12,7 +13,10 @@ const REVIEWABLE: SubmissionStatus[] = ['approved', 'needs_work']
  * Teacher review of a homework submission.
  *
  * Middleware only guards page navigation under /admin, so this route checks
- * admin rights itself — see AGENTS.md.
+ * authorization itself. homework:review is granted to the teacher role,
+ * but teachers are scoped to their own classes' students — a bare
+ * permission check isn't enough, so non-admin callers get an extra
+ * class-ownership check below (after the project is fetched).
  */
 export async function POST(req: Request, props: Props) {
   const params = await props.params;
@@ -23,8 +27,8 @@ export async function POST(req: Request, props: Props) {
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
-  if (!adminEmails.includes(user.email?.toLowerCase() ?? '')) {
+  const admin = await isAdmin(user.id)
+  if (!admin && !(await hasPermission(user.id, 'homework:review'))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -49,6 +53,20 @@ export async function POST(req: Request, props: Props) {
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   if (project.submission_status == null) {
     return NextResponse.json({ error: 'This homework has not been handed in' }, { status: 409 })
+  }
+
+  if (!admin) {
+    const classIds = await getTeacherClassIds(user.id)
+    const { data: membership } = await supabaseAdmin
+      .from('class_members')
+      .select('class_id')
+      .eq('user_id', project.user_id)
+      .eq('role', 'student')
+      .in('class_id', classIds.length ? classIds : ['00000000-0000-0000-0000-000000000000'])
+
+    if (!membership || membership.length === 0) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
   }
 
   const { error: updateError } = await supabaseAdmin

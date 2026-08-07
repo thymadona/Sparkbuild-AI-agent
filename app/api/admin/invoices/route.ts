@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
-
-function isAdmin(email: string | undefined) {
-  const allowed = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
-  return allowed.includes(email?.toLowerCase() ?? '')
-}
+import { hasPermission } from '@/lib/auth/permissions'
 
 export async function GET(req: Request) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId')
@@ -27,7 +23,7 @@ export async function POST(req: Request) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!isAdmin(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { user_id, amount_cents, description, due_date } =
     await req.json() as {

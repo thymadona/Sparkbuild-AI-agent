@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { hasPermission } from '@/lib/auth/permissions'
 
 export async function POST(req: Request) {
   const supabase = await createServerSupabaseClient()
@@ -9,8 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
-  if (!adminEmails.includes(user.email?.toLowerCase() ?? '')) {
+  if (!(await hasPermission(user.id, 'students:manage'))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

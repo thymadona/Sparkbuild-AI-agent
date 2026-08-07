@@ -43,9 +43,13 @@ export const classMembers = pgTable(
   {
     classId: uuid('class_id').notNull().references(() => classes.id),
     userId: uuid('user_id').notNull().references(() => authUsers.id),
+    role: text('role').default('student').notNull(),
     joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.classId, t.userId] })]
+  (t) => [
+    primaryKey({ columns: [t.classId, t.userId] }),
+    check('class_members_role_check', sql`${t.role} = ANY (ARRAY['student', 'teacher'])`),
+  ]
 )
 
 export const classSchedules = pgTable(
@@ -161,3 +165,37 @@ export const appSettings = pgTable('app_settings', {
   value: jsonb('value').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
+
+export const roles = pgTable('roles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const permissions = pgTable('permissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  key: text('key').notNull().unique(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const rolePermissions = pgTable(
+  'role_permissions',
+  {
+    roleId: uuid('role_id').notNull().references(() => roles.id),
+    permissionId: uuid('permission_id').notNull().references(() => permissions.id),
+  },
+  (t) => [primaryKey({ columns: [t.roleId, t.permissionId] })]
+)
+
+export const userRoles = pgTable(
+  'user_roles',
+  {
+    userId: uuid('user_id').notNull().references(() => authUsers.id),
+    roleId: uuid('role_id').notNull().references(() => roles.id),
+    grantedBy: uuid('granted_by').references(() => authUsers.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.roleId] })]
+)
