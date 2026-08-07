@@ -77,7 +77,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([])
   const [highlightLine, setHighlightLine] = useState<number | null>(null)
   const [highlightNonce, setHighlightNonce] = useState(0)
-  const [undoFiles, setUndoFiles] = useState<Record<string, string> | null>(null)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const [confettiTrigger, setConfettiTrigger] = useState<string | null>(null)
   const consoleEndRef = useRef<HTMLDivElement>(null)
@@ -278,20 +277,24 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     pendingFilesRef.current = updatedFiles
     setSaveState('dirty')
     scheduleSave()
-    // Their own edits are now on top of the AI's; undoing would throw those away.
-    setUndoFiles(null)
   }
 
-  // Autosave means an AI generation overwrites the student's file with nothing
-  // to go back to. One step of undo, until the student edits again.
-  async function undoGeneration() {
-    if (!undoFiles) return
-    const restored = undoFiles
-    setUndoFiles(null)
+  // Escape valve for a wrecked file (e.g. the student deleted everything, or
+  // the task's commentAnchor comment got deleted and highlighting broke).
+  // Only touches index.html — lesson projects are seeded from templateHtml
+  // into that single file, so any other files the student added are kept.
+  async function resetToTemplate() {
+    if (!lesson) return
+    if (!confirm('Undo everything and start over from the template? This cannot be undone.')) return
+    const res = await fetch(`/templates/${lesson.templateFile}`)
+    const templateHtml = await res.text()
+    const restored = { ...files, 'index.html': templateHtml }
     setFiles(restored)
     pendingFilesRef.current = restored
     clearTimeout(saveTimerRef.current)
     await flushSave()
+    setActiveFile('index.html')
+    setRightTab('code')
   }
 
   function handleFileClick(filename: string) {
@@ -551,7 +554,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <Editor
                   projectId={project.id}
                   files={files}
-                  onBeforeGenerate={() => setUndoFiles(files)}
                   onFilesUpdate={(newFiles) => {
                     setFiles(newFiles)
                     setRightTab('preview')
@@ -581,27 +583,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
         {/* Main area: Code + Preview tabs */}
         <div className="relative flex flex-1 flex-col overflow-hidden">
-          {/* Undo the last AI change */}
-          {undoFiles && (
-            <div className="flex items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-50 px-3 py-1.5 dark:bg-amber-900/20">
-              <span className="text-xs text-amber-800 dark:text-amber-200">The AI changed your file.</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={undoGeneration}
-                  className="rounded border border-amber-500/40 px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-500/20 dark:text-amber-200"
-                >
-                  Go back to mine
-                </button>
-                <button
-                  onClick={() => setUndoFiles(null)}
-                  aria-label="Keep the AI change"
-                  className="rounded px-1 text-xs text-amber-800/70 hover:text-amber-900 dark:text-amber-200/70"
-                >
-                  Keep it
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Tab bar */}
           <div className="flex items-center border-b border-surface-600 bg-surface-900 px-2 gap-1">
@@ -679,6 +660,19 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
             )}
 
             <div className="flex-1" />
+
+            {lesson && (
+              <button
+                onClick={resetToTemplate}
+                className="flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded transition-colors text-fg-muted hover:text-fg-primary"
+                title="Reset to the starter template"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset
+              </button>
+            )}
 
             <button
               onClick={() => {
@@ -879,7 +873,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <Editor
                   projectId={project.id}
                   files={files}
-                  onBeforeGenerate={() => setUndoFiles(files)}
                   onFilesUpdate={(newFiles) => {
                     setFiles(newFiles)
                     setRightTab('preview')

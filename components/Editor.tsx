@@ -17,8 +17,6 @@ interface EditorProps {
   projectId: string;
   files: Record<string, string>;
   onFilesUpdate: (files: Record<string, string>) => void;
-  // Fired once before a generation, so the parent can snapshot for undo.
-  onBeforeGenerate?: () => void;
   activeFile?: string;
   messages: Message[];
   onMessagesChange: (msgs: Message[] | ((prev: Message[]) => Message[])) => void;
@@ -40,7 +38,6 @@ export default function Editor({
   projectId,
   files,
   onFilesUpdate,
-  onBeforeGenerate,
   activeFile,
   messages: messagesProp,
   onMessagesChange,
@@ -84,7 +81,6 @@ export default function Editor({
     const contextCode = selectedCode ?? null;
     setError("");
     setIsGenerating(true);
-    onBeforeGenerate?.();
     onClearSelection?.();
 
     const userMsg: Message = {
