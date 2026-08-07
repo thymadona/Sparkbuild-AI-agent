@@ -43,7 +43,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       { data: usersData },
       { data: profiles },
       { data: teacherRoleRows },
-      { data: disabledLessons },
+      { data: enabledLessons },
     ] = await Promise.all([
       supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
       supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
@@ -52,7 +52,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
       supabaseAdmin.from('student_profiles').select('user_id, full_name'),
       supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
-      supabaseAdmin.from('class_disabled_lessons').select('lesson_id').eq('class_id', params.id),
+      supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
     ])
 
     if (!cls) notFound()
@@ -119,7 +119,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
             teachers={teachers}
             availableTeachers={availableTeachers}
           />
-          <LessonsPanel classId={cls.id} disabledLessonIds={(disabledLessons ?? []).map((d) => d.lesson_id)} />
+          <LessonsPanel classId={cls.id} enabledLessonIds={(enabledLessons ?? []).map((d) => d.lesson_id)} />
         </div>
       </div>
     )
@@ -128,12 +128,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   const allowed = await isTeacherOfClass(user.id, params.id)
   if (!allowed) redirect('/staff/classes')
 
-  const [{ data: cls }, { data: members }, { data: usersData }, { data: profiles }, { data: disabledLessons }] = await Promise.all([
+  const [{ data: cls }, { data: members }, { data: usersData }, { data: profiles }, { data: enabledLessons }] = await Promise.all([
     supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
     supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
     supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
     supabaseAdmin.from('student_profiles').select('user_id, full_name'),
-    supabaseAdmin.from('class_disabled_lessons').select('lesson_id').eq('class_id', params.id),
+    supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
   ])
 
   if (!cls) redirect('/staff/classes')
@@ -193,7 +193,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
 
       <div className="space-y-6">
         <TeacherClassClient className={cls.name} students={students} homeworkRows={homeworkRows} />
-        <LessonsPanel classId={cls.id} disabledLessonIds={(disabledLessons ?? []).map((d) => d.lesson_id)} />
+        <LessonsPanel classId={cls.id} enabledLessonIds={(enabledLessons ?? []).map((d) => d.lesson_id)} />
       </div>
     </div>
   )

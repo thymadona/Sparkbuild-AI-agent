@@ -6,33 +6,33 @@ import { LESSONS } from '@/lib/lessons'
 
 interface Props {
   classId: string
-  disabledLessonIds: number[]
+  enabledLessonIds: number[]
 }
 
-export default function LessonsPanel({ classId, disabledLessonIds }: Props) {
+export default function LessonsPanel({ classId, enabledLessonIds }: Props) {
   const router = useRouter()
-  const [disabled, setDisabled] = useState(new Set(disabledLessonIds))
+  const [enabled, setEnabled] = useState(new Set(enabledLessonIds))
   const [busyId, setBusyId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function toggle(lessonId: number) {
     if (busyId !== null) return
-    const nextDisabled = !disabled.has(lessonId)
+    const nextEnabled = !enabled.has(lessonId)
     setBusyId(lessonId)
     setError(null)
     try {
       const res = await fetch(`/api/admin/classes/${classId}/lessons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonId, disabled: nextDisabled }),
+        body: JSON.stringify({ lessonId, enabled: nextEnabled }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error ?? 'Could not update the lesson')
       }
-      setDisabled((prev) => {
+      setEnabled((prev) => {
         const next = new Set(prev)
-        if (nextDisabled) next.add(lessonId)
+        if (nextEnabled) next.add(lessonId)
         else next.delete(lessonId)
         return next
       })
@@ -49,8 +49,8 @@ export default function LessonsPanel({ classId, disabledLessonIds }: Props) {
       <div className="border-b border-gray-800 px-5 py-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Lessons</p>
         <p className="mt-0.5 text-xs text-gray-600">
-          Turn a week off to hide it from this class until you turn it back on. Students already partway through a
-          week keep their work either way.
+          Weeks start locked for a new class. Turn a week on when this class is ready for it. Students already
+          partway through a week keep their work either way.
         </p>
       </div>
       {error && (
@@ -58,7 +58,7 @@ export default function LessonsPanel({ classId, disabledLessonIds }: Props) {
       )}
       <div className="divide-y divide-gray-800">
         {LESSONS.map((lesson) => {
-          const isOff = disabled.has(lesson.id)
+          const isOn = enabled.has(lesson.id)
           return (
             <div key={lesson.id} className="flex items-center justify-between gap-4 px-5 py-3">
               <div>
@@ -69,12 +69,12 @@ export default function LessonsPanel({ classId, disabledLessonIds }: Props) {
                 onClick={() => toggle(lesson.id)}
                 disabled={busyId !== null}
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                  isOff
-                    ? 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                    : 'bg-teal-950 border border-teal-800 text-teal-300 hover:bg-teal-900'
+                  isOn
+                    ? 'bg-teal-950 border border-teal-800 text-teal-300 hover:bg-teal-900'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                 }`}
               >
-                {busyId === lesson.id ? '…' : isOff ? 'Off' : 'On'}
+                {busyId === lesson.id ? '…' : isOn ? 'On' : 'Off'}
               </button>
             </div>
           )

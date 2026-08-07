@@ -73,11 +73,11 @@ export interface ClassSchedule {
   label: string | null
 }
 
-export interface ClassDisabledLesson {
+export interface ClassEnabledLesson {
   class_id: string
   lesson_id: number
-  disabled_by: string | null
-  disabled_at: string
+  enabled_by: string | null
+  enabled_at: string
 }
 
 export interface Invoice {

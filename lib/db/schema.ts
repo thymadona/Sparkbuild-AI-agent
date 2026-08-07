@@ -65,19 +65,19 @@ export const classSchedules = pgTable(
   (t) => [check('class_schedules_day_of_week_check', sql`${t.dayOfWeek} >= 0 AND ${t.dayOfWeek} <= 6`)]
 )
 
-// Presence of a row = that lesson week is turned off for that class;
-// absence = available (see supabase/migrations/20260807170000_class_disabled_lessons.sql).
-export const classDisabledLessons = pgTable(
-  'class_disabled_lessons',
+// Presence of a row = that lesson week is OPEN for that class; absence =
+// locked (see supabase/migrations/20260807180000_class_enabled_lessons.sql).
+export const classEnabledLessons = pgTable(
+  'class_enabled_lessons',
   {
     classId: uuid('class_id').notNull().references(() => classes.id),
     lessonId: smallint('lesson_id').notNull(),
-    disabledBy: uuid('disabled_by').references(() => authUsers.id),
-    disabledAt: timestamp('disabled_at', { withTimezone: true }).defaultNow().notNull(),
+    enabledBy: uuid('enabled_by').references(() => authUsers.id),
+    enabledAt: timestamp('enabled_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.classId, t.lessonId] }),
-    check('class_disabled_lessons_lesson_id_check', sql`${t.lessonId} > 0`),
+    check('class_enabled_lessons_lesson_id_check', sql`${t.lessonId} > 0`),
   ]
 )
 

@@ -9,11 +9,11 @@ import ThemeToggle from '@/components/ThemeToggle'
 interface Props {
   lessons: Lesson[]
   userProjects: { id: string; lesson_id: number | null; updated_at: string }[]
-  disabledLessonIds?: number[]
+  enabledLessonIds?: number[]
 }
 
-export default function LessonsClient({ lessons, userProjects, disabledLessonIds = [] }: Props) {
-  const disabledSet = new Set(disabledLessonIds)
+export default function LessonsClient({ lessons, userProjects, enabledLessonIds = [] }: Props) {
+  const enabledSet = new Set(enabledLessonIds)
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -101,7 +101,7 @@ export default function LessonsClient({ lessons, userProjects, disabledLessonIds
           <div className="space-y-4">
             {lessons.map((lesson, i) => {
               const isStarted = projectByLessonId.has(lesson.id)
-              const isLocked = !isStarted && disabledSet.has(lesson.id)
+              const isLocked = !isStarted && !enabledSet.has(lesson.id)
               const stars = difficulty[i]
               return (
                 <div key={lesson.id} className="flex gap-5 relative">
