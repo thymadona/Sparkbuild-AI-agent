@@ -7,9 +7,13 @@ export default async function LoginPage(props: { searchParams: Promise<{ reason?
   const searchParams = await props.searchParams;
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (user) redirect('/dashboard')
-
   const isDeactivated = searchParams.reason === 'deactivated'
+
+  // A deactivated account keeps a valid Supabase session (deactivation only
+  // flips student_profiles.is_active, it doesn't sign the user out), so
+  // `user` stays truthy here. Redirecting to /dashboard in that case would
+  // bounce straight back to this page via middleware's deactivation check.
+  if (user && !isDeactivated) redirect('/dashboard')
 
   return (
     <div className="min-h-screen bg-surface-900 font-body">
