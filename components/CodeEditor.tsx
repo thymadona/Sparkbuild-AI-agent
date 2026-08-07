@@ -74,6 +74,10 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
   // up ourselves comes back identical and is ignored.
   useEffect(() => {
     if (code === lastEmitted.current) return
+    // An external update supersedes any local edit still waiting on the live
+    // timer — otherwise that timer fires later with a stale value and
+    // clobbers what just arrived (e.g. an AI generation while split view is open).
+    clearTimeout(liveTimer.current)
     lastEmitted.current = code
     setDraft(code)
   }, [code])

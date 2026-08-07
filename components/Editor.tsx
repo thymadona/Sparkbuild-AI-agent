@@ -143,15 +143,31 @@ export default function Editor({
 
       const decoder = new TextDecoder();
       let accumulated = "";
+      // Streaming a chunk straight into `onFilesUpdate` reloads the sandboxed
+      // preview iframe's srcDoc on every network chunk — often 100+ times for
+      // one generation. Re-navigating that iframe that rapidly leaves Chromium's
+      // renderer stuck on a blank paint that never recovers until the page is
+      // reloaded. Throttle how often the stream pushes an update; the final
+      // push below (after the loop) always carries the complete file.
+      let lastEmitAt = 0;
+      const MIN_EMIT_INTERVAL_MS = 400;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        if (accumulated.trimStart().startsWith("--- FILE:")) {
+        if (accumulated.trimStart().startsWith("--- FILE:") && Date.now() - lastEmitAt >= MIN_EMIT_INTERVAL_MS) {
           const parsed = parseMultiFileResponse(accumulated);
-          if (parsed) onFilesUpdate(parsed);
+          if (parsed) {
+            onFilesUpdate(parsed);
+            lastEmitAt = Date.now();
+          }
         }
+      }
+
+      if (accumulated.trimStart().startsWith("--- FILE:")) {
+        const parsed = parseMultiFileResponse(accumulated);
+        if (parsed) onFilesUpdate(parsed);
       }
 
       const isCode = accumulated.trimStart().startsWith("--- FILE:");
