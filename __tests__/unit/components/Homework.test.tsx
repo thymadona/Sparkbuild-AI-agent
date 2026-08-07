@@ -20,7 +20,7 @@ const lesson: Lesson = {
     { id: 'theme', type: 'core', chip: 'Choose a theme', success: 'Done', prompt: 'theme', commentAnchor: 'theme anchor' },
     // Checks keyed to markers absent from the default test code, so a
     // homework task landing on it as the default active task (once core is
-    // done) does not auto-complete itself before a test can observe it.
+    // done) starts with Mark done disabled, before a test can observe it.
     { id: 'hw-one', type: 'homework', chip: 'Homework: add a chip', success: 'Your page has four chips.', prompt: 'hw one', commentAnchor: 'intro anchor', checks: [{ kind: 'sourceMatches', pattern: 'HW_ONE_DONE', label: 'Chip added', hint: 'Add a chip.' }] },
     { id: 'hw-two', type: 'homework', chip: 'Homework: add a picture', success: 'Your page shows a picture.', prompt: 'hw two', commentAnchor: 'intro anchor', checks: [{ kind: 'sourceMatches', pattern: 'HW_TWO_DONE', label: 'Picture added', hint: 'Add a picture.' }] },
   ],
@@ -88,14 +88,16 @@ describe('Homework', () => {
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
-  it('never renders a manual mark-done button for a homework task', () => {
+  it('renders Mark done disabled for a homework task until the check passes', () => {
     renderHomework(CORE_DONE)
 
-    expect(screen.queryByRole('button', { name: /mark done/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /not yet/i })).toBeDisabled()
   })
 
-  it('auto-completes a homework task once the code satisfies its check', async () => {
+  it('completes a homework task once the student clicks Mark done', async () => {
     render(<Harness completedTaskIds={CORE_DONE} code="intro anchor\nHW_ONE_DONE" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /mark done/i }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
       '/api/projects/project-1/lesson-progress',

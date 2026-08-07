@@ -8,8 +8,9 @@ import type { Lesson } from '@/lib/lessons'
 
 // Every task carries a check keyed to a marker string, so tests can control
 // whether a task is "solved" by including or omitting the marker from the
-// code passed in — this mirrors the checked shape every real lesson task has
-// (self-reporting was retired along with the mark-done button).
+// code passed in — this mirrors the checked shape every real lesson task
+// has. The check only gates the Mark done button; the student still clicks
+// it themselves.
 const lesson: Lesson = {
   id: 1,
   title: 'Week #1 — Profile Pop',
@@ -88,14 +89,23 @@ describe('Navigator', () => {
     expect(upcoming.className).not.toContain('ring-brand-400')
   })
 
-  it('never renders a manual mark-done button', () => {
+  it('renders Mark done disabled until the check passes', () => {
     renderNavigator(['intro'])
 
-    expect(screen.queryByRole('button', { name: /mark done/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /not yet/i })).toBeDisabled()
   })
 
-  it('auto-completes the active task once the code satisfies its check', async () => {
+  it('does nothing when Mark done is clicked while the check is unmet', () => {
+    renderNavigator(['intro'])
+
+    fireEvent.click(screen.getByRole('button', { name: /not yet/i }))
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('saves progress only once the student clicks Mark done', async () => {
     renderNavigator(['intro'], `${NOTHING_SOLVED}\nCOLORS_DONE`)
+
+    fireEvent.click(await screen.findByRole('button', { name: /mark done/i }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
       '/api/projects/project-1/lesson-progress',
@@ -117,11 +127,12 @@ describe('Navigator', () => {
     expect(screen.getByText('Bonus challenges: 0/1')).toBeInTheDocument()
   })
 
-  it('auto-completes a bonus task the same way as core tasks', async () => {
+  it('completes a bonus task the same way as core tasks', async () => {
     // With core done, the next unfinished task by default is 'choice', not
-    // 'bonus' — select the bonus task explicitly before its check can fire.
+    // 'bonus' — select the bonus task explicitly before its check can pass.
     renderNavigator(['intro', 'colors', 'theme'], `${NOTHING_SOLVED}\nBONUS_DONE`)
     fireEvent.click(screen.getByRole('button', { name: /Bonus: surprise/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /mark done/i }))
 
     await waitFor(() => expect(screen.getByText('Bonus challenges: 1/1')).toBeInTheDocument())
     expect(screen.getByText('🎉 Core mission complete!')).toBeInTheDocument()
@@ -167,7 +178,8 @@ describe('Navigator task checks', () => {
   it('shows a waiting message while the code is unchanged', () => {
     renderChecked(STARTER)
 
-    expect(screen.getByText(/marks itself done once your code matches/)).toBeInTheDocument()
+    expect(screen.getByText(/is not done yet/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /not yet/i })).toBeDisabled()
   })
 
   it('does not save progress while the code is unchanged', () => {
@@ -176,8 +188,12 @@ describe('Navigator task checks', () => {
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
-  it('auto-completes once the code satisfies the check', async () => {
+  it('enables Mark done once the check passes, and saves on click', async () => {
     renderChecked(EDITED)
+
+    const button = await screen.findByRole('button', { name: /mark done/i })
+    expect(button).toBeEnabled()
+    fireEvent.click(button)
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
       '/api/projects/project-1/lesson-progress',
