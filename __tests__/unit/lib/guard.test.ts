@@ -6,6 +6,7 @@ const BASE: GuardInput = {
   isDeactivated: false,
   isAdmin: false,
   hasTeacherAccess: false,
+  needsClassAssignment: false,
 }
 
 describe('decideGuard — unauthenticated', () => {
@@ -31,6 +32,34 @@ describe('decideGuard — deactivated student', () => {
 
   it('does not gate /admin on deactivation when the user is admin', () => {
     expect(decideGuard({ ...BASE, pathname: '/admin', isDeactivated: true, isAdmin: true })).toBeNull()
+  })
+})
+
+describe('decideGuard — needs class assignment', () => {
+  it('redirects to /no-class on a protected path', () => {
+    expect(decideGuard({ ...BASE, pathname: '/dashboard', needsClassAssignment: true })).toEqual({
+      redirect: '/no-class',
+    })
+  })
+
+  it('redirects on /editor too', () => {
+    expect(decideGuard({ ...BASE, pathname: '/editor/1', needsClassAssignment: true })).toEqual({
+      redirect: '/no-class',
+    })
+  })
+
+  it('allows through when already assigned to a class', () => {
+    expect(decideGuard({ ...BASE, pathname: '/dashboard', needsClassAssignment: false })).toBeNull()
+  })
+
+  it('does not gate /admin or /teacher — those paths are never isProtected', () => {
+    expect(decideGuard({ ...BASE, pathname: '/admin', isAdmin: true, needsClassAssignment: true })).toBeNull()
+  })
+
+  it('deactivation takes priority over needing a class when both are true', () => {
+    expect(
+      decideGuard({ ...BASE, pathname: '/dashboard', isDeactivated: true, needsClassAssignment: true })
+    ).toEqual({ redirect: '/login', params: { reason: 'deactivated' } })
   })
 })
 

@@ -40,17 +40,26 @@ export async function middleware(request: NextRequest) {
   const isAdminPath = pathname.startsWith('/admin')
   const isTeacherPath = pathname.startsWith('/teacher')
 
-  // Deactivation check — block access for deactivated student accounts
+  // Deactivation + class-assignment checks — only meaningful for accounts
+  // that actually have a student_profiles row (admin/teacher accounts don't
+  // get one, per app/auth/callback/route.ts).
   let isDeactivated = false
+  let needsClassAssignment = false
   if (isProtected && user) {
-    const { data: profile } = await supabase
-      .from('student_profiles')
-      .select('is_active')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    const [{ data: profile }, enrollResult] = await Promise.all([
+      supabase.from('student_profiles').select('is_active').eq('user_id', user.id).maybeSingle(),
+      supabase.rpc('is_enrolled_in_class', { p_user_id: user.id }),
+    ])
 
     // profile == null means no student_profiles row (e.g. admin users) — allow through
     isDeactivated = profile !== null && profile?.is_active === false
+
+    if (enrollResult.error) console.error('middleware: is_enrolled_in_class RPC failed:', enrollResult.error)
+    // Fail open on RPC error, matching the profile-query behavior above —
+    // this gates product access, not an admin/PII surface, so a transient
+    // DB error shouldn't lock a real student out of their own dashboard.
+    const isEnrolled = enrollResult.error ? true : enrollResult.data === true
+    needsClassAssignment = profile !== null && !isEnrolled
   }
 
   // Only pay the RPC round-trip on /admin and /teacher navigations — every
@@ -78,6 +87,7 @@ export async function middleware(request: NextRequest) {
     isDeactivated,
     isAdmin: isAdminUser,
     hasTeacherAccess,
+    needsClassAssignment,
   })
 
   if (decision) {
