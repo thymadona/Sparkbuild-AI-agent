@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { LESSONS } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
-import { isAdmin } from '@/lib/auth/permissions'
+import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import LessonsClient from './LessonsClient'
 
 export default async function LessonsPage() {
@@ -15,7 +15,7 @@ export default async function LessonsPage() {
     redirect('/')
   }
 
-  const [{ data: userProjects }, enabledLessonIds, admin] = await Promise.all([
+  const [{ data: userProjects }, enabledLessonIds, admin, teacher] = await Promise.all([
     supabaseAdmin
       .from('projects')
       .select('id, lesson_id, updated_at')
@@ -24,11 +24,14 @@ export default async function LessonsPage() {
       .order('updated_at', { ascending: false }),
     getEnabledLessonIdsForUser(user.id),
     isAdmin(user.id),
+    isTeacher(user.id),
   ])
 
-  // Admins previewing the catalog aren't scoped to a class, so exempt them
-  // from the toggle entirely — same posture as rate limiting.
-  const enabledIds = admin ? LESSONS.map((l) => l.id) : Array.from(enabledLessonIds)
+  // Admins and teachers previewing the catalog aren't gated by the
+  // per-class toggle — that toggle exists to control student access, and a
+  // teacher assigned to no class (or none yet) should still see and open
+  // lessons — same posture as rate limiting.
+  const enabledIds = admin || teacher ? LESSONS.map((l) => l.id) : Array.from(enabledLessonIds)
 
   return (
     <LessonsClient
