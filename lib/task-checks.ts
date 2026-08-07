@@ -65,8 +65,12 @@ function evaluate(check: TaskCheck, code: string, doc: Document | null): boolean
       const current = normalize(element.textContent ?? '')
       return current.length > 0 && current !== normalize(check.from)
     }
-    case 'sourceOmits':
-      return !normalize(code).includes(normalize(check.snippet))
+    case 'sourceOmits': {
+      // An emptied file trivially "omits" the starter snippet — require the
+      // file to still hold real content, not just the snippet's absence.
+      const normalized = normalize(code)
+      return normalized.length > 0 && !normalized.includes(normalize(check.snippet))
+    }
     case 'sourceMatches': {
       const flags = check.flags?.includes('g') ? check.flags : `${check.flags ?? ''}g`
       try {

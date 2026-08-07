@@ -202,6 +202,20 @@ describe('runTaskChecks', () => {
     expect(allChecksPassed(runTaskChecks(task('reward').checks, edited))).toBe(true)
   })
 
+  it('fails sourceOmits checks when the file is emptied instead of edited', () => {
+    const emptyingBreaksEveryCheck: string[] = []
+    for (const lesson of LESSONS) {
+      for (const item of lesson.tasks) {
+        for (const check of item.checks ?? []) {
+          if (check.kind !== 'sourceOmits') continue
+          const [result] = runTaskChecks([check], '')
+          if (result.passed) emptyingBreaksEveryCheck.push(`${lesson.id}/${item.id}: ${check.label}`)
+        }
+      }
+    }
+    expect(emptyingBreaksEveryCheck).toEqual([])
+  })
+
   it('fails open on an invalid pattern instead of blocking the student', () => {
     const results = runTaskChecks(
       [{ kind: 'sourceMatches', pattern: '([unclosed', label: 'broken', hint: 'broken' }],
