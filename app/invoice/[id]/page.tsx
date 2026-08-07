@@ -14,7 +14,7 @@ export default async function InvoicePage(props: { params: Promise<{ id: string 
     .eq('id', params.id)
     .single()
 
-  if (error || !invoice) redirect('/admin/finance')
+  if (error || !invoice) redirect('/staff/finance')
 
   const { data: profile } = await supabaseAdmin
     .from('student_profiles')

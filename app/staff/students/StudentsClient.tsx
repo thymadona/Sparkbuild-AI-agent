@@ -172,7 +172,7 @@ export default function StudentsClient({
                       <CreateInvoiceModal userId={u.id} studentName={u.name || u.email} />
                     )}
                     <Link
-                      href={`/admin/students/${u.id}`}
+                      href={`/staff/students/${u.id}`}
                       className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
                     >
                       Details

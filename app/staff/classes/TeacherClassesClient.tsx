@@ -11,7 +11,7 @@ type ClassRow = {
   pendingReviewCount: number
 }
 
-export default function TeacherDashboardClient({ classes }: { classes: ClassRow[] }) {
+export default function TeacherClassesClient({ classes }: { classes: ClassRow[] }) {
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -63,7 +63,7 @@ export default function TeacherDashboardClient({ classes }: { classes: ClassRow[
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
-                    href={`/teacher/classes/${cls.id}`}
+                    href={`/staff/classes/${cls.id}`}
                     className="rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600 transition-colors"
                   >
                     Open →

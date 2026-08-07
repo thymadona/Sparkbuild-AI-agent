@@ -10,7 +10,7 @@ const BASE: GuardInput = {
 }
 
 describe('decideGuard — unauthenticated', () => {
-  it.each(['/dashboard', '/editor/1', '/profile', '/admin', '/teacher'])(
+  it.each(['/dashboard', '/editor/1', '/profile', '/admin', '/teacher', '/staff'])(
     'redirects to /login for %s',
     (pathname) => {
       expect(decideGuard({ ...BASE, pathname, user: null })).toEqual({ redirect: '/login' })
@@ -86,6 +86,28 @@ describe('decideGuard — /teacher', () => {
 
   it('does not auto-grant teacher access to admins — hasTeacherAccess must be computed by the caller', () => {
     expect(decideGuard({ ...BASE, pathname: '/teacher', isAdmin: true, hasTeacherAccess: false })).toEqual({
+      redirect: '/dashboard',
+    })
+  })
+})
+
+describe('decideGuard — /staff (unified admin+teacher dashboard)', () => {
+  it('redirects to /dashboard when hasTeacherAccess is false', () => {
+    expect(decideGuard({ ...BASE, pathname: '/staff', hasTeacherAccess: false })).toEqual({
+      redirect: '/dashboard',
+    })
+  })
+
+  it('allows through when hasTeacherAccess is true (admin-inclusive by contract)', () => {
+    expect(decideGuard({ ...BASE, pathname: '/staff', hasTeacherAccess: true })).toBeNull()
+  })
+
+  it('allows through nested /staff routes, e.g. /staff/classes/123', () => {
+    expect(decideGuard({ ...BASE, pathname: '/staff/classes/123', hasTeacherAccess: true })).toBeNull()
+  })
+
+  it('does not auto-grant staff access to admins — hasTeacherAccess must be computed by the caller', () => {
+    expect(decideGuard({ ...BASE, pathname: '/staff', isAdmin: true, hasTeacherAccess: false })).toEqual({
       redirect: '/dashboard',
     })
   })
