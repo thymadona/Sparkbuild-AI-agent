@@ -2,10 +2,21 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Check, Globe, ArrowRight } from 'lucide-react'
-import ThemeToggle from '@/components/ThemeToggle'
-import ProfileDropdown from '@/components/ProfileDropdown'
+import Link from 'next/link'
+import {
+  Plus, Globe, ArrowRight, Lock, Sparkles,
+  User, Palette, Flame, Zap, Lightbulb, Rocket,
+} from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import AppSidebar from '@/components/AppSidebar'
 import { LESSONS } from '@/lib/lessons'
+
+// Fixed dark text for chips whose fill stays bright in both themes —
+// fg-primary would flip to near-white in dark mode and vanish against them.
+const ON_CHIP = 'text-slate-900'
+
+const MODULE_ICONS = [User, Palette, Flame, Zap, Lightbulb, Rocket]
+const MODULE_CHIPS = ['bg-teal-400', 'bg-amber-300', 'bg-secondary', 'bg-teal-400', 'bg-amber-300', 'bg-secondary'] as const
 
 // Dashboard only ever renders these fields — the full Project type also
 // includes `files`, which would be a wasted fetch for a list view.
@@ -20,9 +31,11 @@ type ProjectListItem = {
 interface Props {
   initialProjects: ProjectListItem[]
   userEmail: string
+  enabledLessonIds?: number[]
 }
 
-export default function DashboardClient({ initialProjects, userEmail }: Props) {
+export default function DashboardClient({ initialProjects, userEmail, enabledLessonIds = [] }: Props) {
+  const enabledSet = new Set(enabledLessonIds)
   const [projects, setProjects] = useState(initialProjects)
   const [creating, setCreating] = useState(false)
   const [duplicating, setDuplicating] = useState<string | null>(null)
@@ -30,6 +43,14 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
   const firstName = userEmail.split('@')[0] || 'there'
   const lessonsStarted = new Set(projects.filter(p => p.lesson_id).map(p => p.lesson_id)).size
   const publicCount = projects.filter(p => p.is_public).length
+
+  // Projects arrive newest-first from the server, so the first lesson
+  // project is the most recently touched one — the natural "pick up where
+  // you left off" candidate.
+  const inProgressProject = projects.find(p => p.lesson_id !== null)
+  const inProgressLesson = inProgressProject
+    ? LESSONS.find(l => l.id === inProgressProject.lesson_id)
+    : undefined
 
   async function handleNewProject() {
     setCreating(true)
@@ -74,79 +95,104 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-surface-900 font-body">
-      {/* Top nav */}
-      <header className="sticky top-0 z-10 border-b border-surface-600/50 bg-surface-900/90 backdrop-blur-md px-6 py-3 flex items-center justify-between">
-        <a href="/" className="font-display text-lg font-bold text-fg-primary">
-          <span className="text-brand-600 dark:text-brand-400">Code</span>Builder
-        </a>
-        <nav className="flex items-center gap-4 text-sm">
-          <a href="/lessons" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Lessons</a>
-          <a href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</a>
-          <ThemeToggle />
-          <ProfileDropdown email={userEmail} />
-        </nav>
-      </header>
+    <div className="flex min-h-screen bg-surface-900 font-body">
+      <AppSidebar userEmail={userEmail} />
 
-      <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
+      <div className="min-w-0 flex-1">
+        <Navbar variant="app" withSidebar pageTitle="Dashboard" userEmail={userEmail} />
+
+        <main className="mx-auto max-w-5xl px-6 py-10 space-y-10">
         {/* Welcome banner */}
-        <section className="flex items-baseline justify-between gap-4 flex-wrap">
+        <section className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs text-fg-muted mb-1">Welcome back</p>
-            <h1 className="font-display text-2xl font-bold text-fg-primary">Hey, {firstName}. What are you building today?</h1>
+            <span className="inline-block rounded-full border-2 border-surface-600 bg-surface-800 px-4 py-1.5 text-label-caps uppercase text-fg-secondary">
+              Mission control
+            </span>
+            <h1 className="mt-4 font-display text-headline-lg-mobile text-fg-primary sm:text-headline-md">
+              Hey, {firstName}. Ready to write some code?
+            </h1>
           </div>
           <button
             onClick={handleNewProject}
             disabled={creating}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border-2 border-surface-600 bg-brand-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-hard transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
           >
             <Plus size={16} strokeWidth={2.5} />
             {creating ? 'Creating…' : 'New project'}
           </button>
         </section>
 
+        {/* Continue learning */}
+        {inProgressProject && inProgressLesson && (
+          <section className="relative overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 p-6 shadow-hard-lg sm:p-8">
+            <span className="inline-block rounded-full border-2 border-surface-600 bg-teal-400 px-3 py-1 text-label-caps uppercase text-slate-900">
+              In progress
+            </span>
+            <h2 className="mt-4 font-display text-2xl font-bold text-fg-primary">
+              {inProgressLesson.title.split('—')[1]?.trim() ?? inProgressLesson.title}
+            </h2>
+            <p className="mt-2 max-w-lg text-sm text-fg-secondary leading-relaxed">{inProgressLesson.description}</p>
+            <a
+              href={`/editor/${inProgressProject.id}`}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg border-2 border-surface-600 bg-brand-500 px-6 py-3 font-display text-sm font-bold text-white shadow-hard transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              Continue learning
+              <ArrowRight className="h-4 w-4" />
+            </a>
+            <Sparkles className="pointer-events-none absolute right-6 top-6 h-8 w-8 text-brand-500/20" />
+          </section>
+        )}
+
         {/* Stats */}
-        <section className="grid grid-cols-3 gap-3">
+        <section className="grid grid-cols-3 gap-4">
           {[
             { value: projects.length, label: 'Projects' },
             { value: `${lessonsStarted}/6`, label: 'Lessons started' },
             { value: publicCount, label: 'Shared publicly' },
           ].map(({ value, label }) => (
-            <div key={label} className="rounded-lg bg-surface-700 p-4">
+            <div key={label} className="rounded-xl border-2 border-surface-600 bg-surface-800 p-4 shadow-hard-sm">
               <p className="text-xs text-fg-secondary mb-1.5">{label}</p>
               <p className="font-display text-2xl font-bold text-fg-primary">{value}</p>
             </div>
           ))}
         </section>
 
-        {/* Lesson progress */}
+        {/* Modules */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-base font-semibold text-fg-primary">Your journey</h2>
-            <a href="/lessons" className="inline-flex items-center gap-1 text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
-              See all <ArrowRight size={14} />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-bold text-fg-primary">Your modules</h2>
+            <a href="/lessons" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
+              View all <ArrowRight size={14} />
             </a>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {LESSONS.map((lesson) => {
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {LESSONS.slice(0, 3).map((lesson, i) => {
               const started = projects.some(p => p.lesson_id === lesson.id)
+              const locked = !started && !enabledSet.has(lesson.id)
+              const Icon = MODULE_ICONS[i] ?? User
               return (
-                <div
-                  key={lesson.id}
-                  className={`shrink-0 flex items-center gap-2 rounded-full pl-2 pr-3.5 py-2 ${
-                    started ? 'bg-brand-100 dark:bg-brand-500/10' : 'bg-surface-700'
-                  }`}
-                >
-                  <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ${
-                      started ? 'bg-brand-500 text-white' : 'border border-surface-600 text-fg-muted'
-                    }`}
-                  >
-                    {started ? <Check size={12} strokeWidth={3} /> : lesson.id}
-                  </span>
-                  <span className={`text-xs font-semibold whitespace-nowrap ${started ? 'text-brand-700 dark:text-brand-300' : 'text-fg-secondary'}`}>
-                    Week {lesson.id}
-                  </span>
+                <div key={lesson.id} className={`rounded-xl border-2 border-surface-600 bg-surface-800 p-5 shadow-hard ${locked ? 'opacity-60' : ''}`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-surface-600 ${MODULE_CHIPS[i] ?? 'bg-teal-400'}`}>
+                    {locked ? <Lock className={`h-5 w-5 ${ON_CHIP}`} /> : <Icon className={`h-5 w-5 ${ON_CHIP}`} />}
+                  </div>
+                  <h3 className="mt-4 font-display text-base font-bold text-fg-primary">
+                    {lesson.title.split('—')[1]?.trim() ?? lesson.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm text-fg-secondary leading-relaxed line-clamp-2">{lesson.description}</p>
+                  <div className="mt-4">
+                    {locked ? (
+                      <span className="inline-block rounded-lg border-2 border-surface-600 bg-surface-700 px-4 py-2 text-sm font-semibold text-fg-muted">
+                        Not open yet
+                      </span>
+                    ) : (
+                      <Link
+                        href="/lessons"
+                        className="inline-flex items-center gap-1.5 rounded-lg border-2 border-surface-600 bg-brand-500 px-4 py-2 text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                      >
+                        {started ? 'Resume' : 'Start'}
+                      </Link>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -155,32 +201,32 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
 
         {/* Projects */}
         <section>
-          <h2 className="font-display text-base font-semibold text-fg-primary mb-4">
+          <h2 className="font-display text-lg font-bold text-fg-primary mb-4">
             My Projects
             <span className="ml-2 text-sm font-normal text-fg-muted">({projects.length})</span>
           </h2>
 
           {projects.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-surface-600 py-20 text-center">
+            <div className="rounded-xl border-2 border-dashed border-surface-600 py-20 text-center">
               <p className="text-5xl mb-4">🚀</p>
               <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet!</p>
               <p className="text-sm text-fg-muted mt-2 mb-6">Start a lesson or create a blank project.</p>
               <div className="flex gap-3 justify-center">
-                <a href="/lessons" className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
+                <a href="/lessons" className="rounded-lg border-2 border-surface-600 bg-brand-500 px-5 py-2.5 font-display text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
                   Start a lesson
                 </a>
-                <button onClick={handleNewProject} disabled={creating} className="rounded-xl border border-surface-600 px-5 py-2.5 text-sm text-fg-secondary hover:border-brand-400 transition-colors disabled:opacity-50">
+                <button onClick={handleNewProject} disabled={creating} className="rounded-lg border-2 border-surface-600 bg-surface-800 px-5 py-2.5 font-display text-sm font-bold text-fg-secondary shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50">
                   Blank project
                 </button>
               </div>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <div key={project.id} className="rounded-xl border border-surface-600 bg-surface-800 p-4 transition-colors dark:hover:border-surface-700">
+                <div key={project.id} className="rounded-xl border-2 border-surface-600 bg-surface-800 p-4 shadow-hard">
                   <div className="flex items-center justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 dark:bg-brand-500/10 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-surface-600 bg-brand-100 dark:bg-brand-500/10 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
                         {project.lesson_id ?? <Globe size={12} />}
                       </span>
                       <span className="text-xs text-fg-muted">
@@ -188,7 +234,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
                       </span>
                     </div>
                     {project.is_public && (
-                      <span className="rounded-md bg-teal-500/20 px-2 py-0.5 text-xs font-medium text-teal-700 dark:text-teal-400">Public</span>
+                      <span className="rounded-md border-2 border-surface-600 bg-teal-400 px-2 py-0.5 text-xs font-bold text-slate-900">Public</span>
                     )}
                   </div>
 
@@ -200,26 +246,26 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
                   <div className="flex items-center gap-1.5 text-xs">
                     <a
                       href={`/editor/${project.id}`}
-                      className="rounded-lg bg-brand-500 px-3 py-1.5 font-semibold text-white hover:bg-brand-600 transition-colors"
+                      className="rounded-lg border-2 border-surface-600 bg-brand-500 px-3 py-1.5 font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
                       Open
                     </a>
                     <button
                       onClick={() => handleTogglePublic(project)}
-                      className="rounded-lg bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors"
+                      className="rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors"
                     >
                       {project.is_public ? 'Unshare' : 'Share'}
                     </button>
                     <button
                       onClick={() => handleDuplicate(project)}
                       disabled={duplicating === project.id}
-                      className="rounded-lg bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors disabled:opacity-50"
+                      className="rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors disabled:opacity-50"
                     >
                       {duplicating === project.id ? '…' : 'Copy'}
                     </button>
                     <button
                       onClick={() => handleDelete(project.id)}
-                      className="ml-auto rounded-lg bg-surface-700 px-3 py-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      className="ml-auto rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                     >
                       Delete
                     </button>
@@ -227,7 +273,7 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
                   {project.is_public && (
                     <button
                       onClick={() => handleCopyLink(project.id)}
-                      className="mt-2.5 w-full rounded-lg bg-surface-700 py-1.5 text-xs text-fg-secondary hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                      className="mt-2.5 w-full rounded-lg border-2 border-surface-600 bg-surface-700 py-1.5 text-xs text-fg-secondary hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                     >
                       Copy share link
                     </button>
@@ -237,7 +283,8 @@ export default function DashboardClient({ initialProjects, userEmail }: Props) {
             </div>
           )}
         </section>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

@@ -38,6 +38,7 @@ export default async function LessonsPage() {
       lessons={LESSONS}
       userProjects={userProjects ?? []}
       enabledLessonIds={enabledIds}
+      userEmail={user.email ?? ''}
     />
   )
 }

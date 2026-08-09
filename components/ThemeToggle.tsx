@@ -59,14 +59,14 @@ export default function ThemeToggle() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-600 bg-surface-800 text-fg-secondary hover:text-fg-primary hover:border-surface-600 transition-colors"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-surface-600 bg-surface-800 text-fg-secondary shadow-hard-sm transition-all hover:text-fg-primary active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
         aria-label="Toggle theme"
       >
         <ActiveIcon />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 min-w-[130px] rounded-xl border border-surface-600 bg-surface-800 shadow-xl py-1 animate-pop-in">
+        <div className="absolute right-0 top-11 z-50 min-w-[130px] rounded-xl border-2 border-surface-600 bg-surface-800 shadow-hard py-1 animate-pop-in">
           {options.map(({ value, label, Icon }) => (
             <button
               key={value}

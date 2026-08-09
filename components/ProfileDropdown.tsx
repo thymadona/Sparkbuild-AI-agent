@@ -25,7 +25,7 @@ export default function ProfileDropdown({ email }: { email: string }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white shadow-sm hover:opacity-90 transition-opacity focus:outline-none ring-2 ring-transparent hover:ring-brand-500/30">
+      <DropdownMenuTrigger className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface-600 bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white shadow-hard-sm transition-all hover:opacity-90 focus:outline-none active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
         {initials}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 p-1.5">

@@ -9,6 +9,7 @@ const push = jest.fn()
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
+  usePathname: () => '/lessons',
 }))
 
 jest.mock('@/components/ThemeToggle', () => () => <div />)
