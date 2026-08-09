@@ -13,5 +13,5 @@ export default async function ExplorePage() {
     supabase.auth.getUser(),
   ])
 
-  return <ExploreClient projects={projects ?? []} isLoggedIn={!!user} />
+  return <ExploreClient projects={projects ?? []} isLoggedIn={!!user} userEmail={user?.email ?? ''} />
 }

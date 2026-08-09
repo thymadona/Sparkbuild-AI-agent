@@ -199,8 +199,8 @@ export default function Editor({
     <div className="flex h-full flex-col">
       {/* Mode toggle */}
       {buildModeAvailable && (
-        <div className="shrink-0 px-3 pt-3 pb-2 border-b border-surface-600">
-          <div className="flex rounded-lg bg-surface-700 p-0.5 w-fit">
+        <div className="shrink-0 px-3 pt-3 pb-2 border-b-2 border-surface-600">
+          <div className="flex rounded-lg border-2 border-surface-600 bg-surface-700 p-0.5 w-fit">
             <button
               type="button"
               onClick={() => setMode('ask')}
@@ -263,10 +263,10 @@ export default function Editor({
           >
             {msg.role === "teacher" ? (
               <div className="flex items-end gap-2 max-w-[90%]">
-                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-teal-500/20 ring-1 ring-teal-400/40 text-[10px] font-bold text-teal-700 dark:text-teal-300 mb-1">
+                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface-600 bg-teal-400 text-[10px] font-bold text-slate-900 mb-1">
                   T
                 </div>
-                <div className="w-fit rounded-2xl rounded-bl-sm border border-teal-500/30 bg-teal-50 px-4 py-2.5 text-sm text-teal-900 dark:bg-teal-900/20 dark:text-teal-100">
+                <div className="w-fit rounded-xl rounded-bl-sm border-2 border-surface-600 bg-teal-50 px-4 py-2.5 text-sm text-teal-900 shadow-hard-sm dark:bg-teal-900/20 dark:text-teal-100">
                   <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Your teacher</p>
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                   <div className="mt-1">
@@ -275,7 +275,7 @@ export default function Editor({
                 </div>
               </div>
             ) : msg.role === "user" ? (
-              <div className="max-w-[85%] w-fit rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm bg-brand-100 dark:bg-brand-500/15 text-fg-primary">
+              <div className="max-w-[85%] w-fit rounded-xl rounded-tr-sm border-2 border-surface-600 px-4 py-2.5 text-sm bg-brand-100 shadow-hard-sm dark:bg-brand-500/20 text-fg-primary">
                 <p className="whitespace-pre-wrap">{msg.content}</p>
                 <p className="mt-1 text-xs text-brand-700 dark:text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity">
                   {msg.timestamp.toLocaleTimeString([], {
@@ -286,10 +286,10 @@ export default function Editor({
               </div>
             ) : (
               <div className="flex items-end gap-2 max-w-[90%]">
-                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-700 dark:text-brand-300 mb-1">
+                <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface-600 bg-brand-500 text-[10px] font-bold text-white mb-1">
                   AI
                 </div>
-                <div className="w-fit rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm bg-surface-700 text-fg-secondary">
+                <div className="w-fit rounded-xl rounded-bl-sm border-2 border-surface-600 px-4 py-2.5 text-sm bg-pink-100 dark:bg-[#ff689a] text-fg-secondary dark:text-white shadow-hard-sm">
                   <div className="prose-chat">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -341,10 +341,10 @@ export default function Editor({
         ))}
         {isGenerating && (
           <div className="flex items-end gap-2 justify-start">
-            <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/20 ring-1 ring-brand-400/30 text-[10px] font-bold text-brand-700 dark:text-brand-300 mb-0.5">
+            <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface-600 bg-brand-500 text-[10px] font-bold text-white mb-0.5">
               AI
             </div>
-            <div className="rounded-2xl rounded-bl-sm bg-surface-700 px-4 py-3 flex items-center gap-1">
+            <div className="rounded-xl rounded-bl-sm border-2 border-surface-600 bg-pink-100 dark:bg-[#ff689a] px-4 py-3 shadow-hard-sm flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '0ms' }} />
               <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '150ms' }} />
               <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '300ms' }} />
@@ -397,8 +397,8 @@ export default function Editor({
 
       {/* Input form */}
       <form onSubmit={handleSubmit} className="shrink-0 px-3 pb-3 pt-2">
-        <div className={`flex items-end gap-2 rounded-2xl border bg-surface-800 px-3 py-2 transition-colors ${
-          prompt.length > 0 ? 'border-brand-500/60' : 'border-surface-600'
+        <div className={`flex items-end gap-2 rounded-lg border-2 bg-surface-800 px-3 py-2 transition-colors ${
+          prompt.length > 0 ? 'border-brand-500' : 'border-surface-600'
         }`}>
           <textarea
             ref={textareaRef}
@@ -423,10 +423,10 @@ export default function Editor({
           <button
             type="submit"
             disabled={isGenerating || !prompt.trim()}
-            className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all active:scale-90 ${
+            className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border-2 transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
               prompt.trim() && !isGenerating
-                ? 'bg-brand-500 text-white hover:bg-brand-400'
-                : 'bg-surface-700 text-fg-muted cursor-not-allowed'
+                ? 'border-surface-600 bg-brand-500 text-white shadow-hard-sm hover:bg-brand-400'
+                : 'border-surface-600 bg-surface-700 text-fg-muted cursor-not-allowed'
             }`}
           >
             {isGenerating ? (
