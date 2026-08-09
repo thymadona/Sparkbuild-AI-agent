@@ -34,24 +34,18 @@ export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMar
   const checksSatisfied = !hasChecks || (checksEvaluated && allChecksPassed(checkResults))
 
   return (
-    <div className="shrink-0 border-t border-surface-600 p-3">
+    <div className="shrink-0 border-t-2 border-surface-600 p-3">
       {saveError && <p className={`mb-2 text-center ${SCALE.check} text-red-500`}>{saveError}</p>}
 
       {hasChecks && !checksEvaluated && (
         <p className={`mb-2 text-center ${SCALE.check} text-fg-muted`}>Checking your code…</p>
       )}
 
-      {hasChecks && checksEvaluated && !checksSatisfied && (
-        <p className={`mb-2 text-center ${SCALE.check} text-fg-muted`}>
-          Keep going — <span className="text-fg-secondary">{task.chip}</span> is not done yet.
-        </p>
-      )}
-
       <button
         onClick={onMarkDone}
         disabled={isSaving || !checksSatisfied}
-        className={`w-full rounded-md px-4 py-2 ${SCALE.button} font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          checksSatisfied ? 'bg-teal-600 hover:bg-teal-500' : 'bg-surface-600'
+        className={`w-full rounded-lg border-2 border-surface-600 px-3 py-1.5 ${SCALE.button} font-bold shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:active:translate-x-0 disabled:active:translate-y-0 disabled:active:shadow-hard-sm ${
+          checksSatisfied ? 'bg-teal-500 hover:bg-teal-400 text-white' : 'bg-surface-600 text-fg-secondary'
         }`}
       >
         {isSaving ? 'Saving…' : checksSatisfied ? 'Mark done ✓' : 'Not yet — keep going'}
