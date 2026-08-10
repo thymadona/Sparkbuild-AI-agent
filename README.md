@@ -1,12 +1,24 @@
-# Student Code Builder
+# SparkBuild — Student Code Builder
 
-An AI-assisted coding platform for students aged 10–16. Students follow a 6-week lesson track building real websites — personal pages, interactive games, data-driven tools — with an AI tutor that guides instead of solving. Teachers manage classes, review homework, and communicate with parents through an admin back office.
+**Build the future, one line at a time.**
+
+SparkBuild is an AI-assisted coding platform for students aged 10–16. Over a 6-week guided track, students build real, shippable projects — personal profile pages, interactive games, data-driven tools — by prompting an LLM that nudges instead of solving, so what ships is actually theirs. Teachers run classes, review homework, and communicate with parents; admins manage invoices and receipts over Telegram — all through one back office.
+
+## Screenshots
+
+| Landing page | Guided lesson workspace |
+| --- | --- |
+| ![SparkBuild landing page — "Build the future, one line at a time" hero with an AI-assisted code preview](docs/screenshots/landing.png) | ![Week 1 lesson: task checklist, live HTML preview, and the AI tutor chat guiding color choices](docs/screenshots/editor.png) |
+
+The landing page introduces the pitch and curriculum. The workspace pairs a step-by-step task checklist with a live preview and an AI tutor that asks guiding questions ("Your colors live on line 8 — ready to put them in?") rather than handing over the answer.
 
 ## Features
 
 **Student Editor** — prompt-driven workspace where students type what they want to build and see a live HTML preview in a sandboxed iframe. Two modes: *ask* (the AI tutors) and *build* (the AI generates code). Build mode is server-gated behind task completion.
 
-**Guided Lessons** — 6 weekly lessons with structured tasks, automated code checks, and homework. Task verification is code-aware (checks run against the student's live file), so progress can't be self-reported past the system.
+**Guided Lessons** — 6 weekly lessons with structured tasks, bonus/mood-boost challenges, automated code checks, and homework. Task verification is code-aware (checks run against the student's live file), so progress can't be self-reported past the system. Copy is capped to an 8–13-year-old ESL reading level.
+
+**AI Tutor Chat** — a persistent, context-aware chat panel that answers questions about the student's own code (variable names, line numbers, next steps) without writing it for them in ask mode.
 
 **Admin Back Office** — manage students, classes with weekly schedules, invoices/receipts delivered over Telegram, homework review with mandatory feedback, and per-student build-mode control.
 
@@ -36,8 +48,8 @@ An AI-assisted coding platform for students aged 10–16. Students follow a 6-we
 ### Installation
 
 ```bash
-git clone <repo-url>
-cd student-code-builder
+git clone https://github.com/thymadona/Sparkbuild-AI-agent.git
+cd Sparkbuild-AI-agent
 bun install
 ```
 
@@ -55,9 +67,11 @@ cp .env.local.example .env.local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + Server | Supabase anon/public key |
 | `NEXT_PUBLIC_SITE_URL` | Client + Server | Your deployment URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Supabase service role key (bypasses RLS) |
+| `DATABASE_URL` | Server only | Postgres pooler URL for Drizzle (bypasses RLS like the service role) |
 | `DEEPSEEK_API_KEY` | Server only | DeepSeek API key |
-| `ADMIN_EMAILS` | Server only | Comma-separated admin email addresses |
 | `TELEGRAM_BOT_TOKEN` | Server only | Telegram bot token for invoice delivery |
+| `UPSTASH_REDIS_REST_URL` | Server only | Backs rate limiting and read caching |
+| `UPSTASH_REDIS_REST_TOKEN` | Server only | Backs rate limiting and read caching |
 
 ### Database Setup
 
@@ -148,11 +162,11 @@ bunx jest __tests__/unit/lib/ratelimit.test.ts
 ## Architecture Notes
 
 - **Auth**: Supabase Auth with OAuth. Middleware refreshes sessions and guards `/dashboard`, `/editor`, `/profile`, and `/admin` routes.
-- **Admin access**: Controlled by the `ADMIN_EMAILS` environment variable. Each admin API route re-verifies authorization independently.
+- **Admin access**: Role-based via `public.user_roles` / `public.role_permissions`, checked per-route with `hasPermission()`. Each admin API route re-verifies authorization independently — middleware only guards page navigation.
 - **LLM pipeline**: `POST /api/generate` streams responses from DeepSeek. Build-mode responses use a `--- FILE: name ---` / `--- DONE ---` delimiter format parsed by `lib/parse-multi-file.ts`.
 - **Preview**: Pure `srcdoc` iframe with `sandbox="allow-scripts allow-forms"`. No external sandbox runtime. A console interceptor script is injected for error reporting.
 - **Autosave**: The editor writes to `/api/projects` after 1200ms of idle time. No manual save button for lesson projects.
-- **Rate limiting**: 20 prompts per hour per user. Fails open on query errors. Admins bypass.
+- **Rate limiting**: 50 prompts per hour per user via Upstash Redis (sliding window). Fails open on Redis errors. Admins and teachers bypass.
 - **Lesson versioning**: Parallel catalogs, not migrations. Old projects keep their task IDs intact.
 
 ## Testing
