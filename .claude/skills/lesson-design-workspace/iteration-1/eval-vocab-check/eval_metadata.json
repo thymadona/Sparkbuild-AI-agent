@@ -1,0 +1,23 @@
+{
+  "eval_id": 2,
+  "eval_name": "eval-vocab-check",
+  "prompt": "I added a hint that says 'Adjust the gradient's duration to feel more energetic' — is that okay for a 10 year old, or too advanced?",
+  "assertions": [
+    {
+      "text": "Correctly identifies the hint as failing the vocabulary test",
+      "check": "Response says this hint is too advanced / would fail, not 'seems fine'"
+    },
+    {
+      "text": "Names the specific blocked words",
+      "check": "Response identifies at least 'gradient' and 'duration' and 'energetic' as flagged terms, ideally by reading the live TOO_ADVANCED list in lesson-copy.test.ts rather than guessing"
+    },
+    {
+      "text": "Also checks the word-count budget, not just vocabulary",
+      "check": "Response notes the hint's word count relative to the 10-word hint budget (this hint is 9 words, under budget, but should still be checked)"
+    },
+    {
+      "text": "Offers a concrete simpler rewrite",
+      "check": "Response proposes alternative phrasing avoiding the flagged words"
+    }
+  ]
+}

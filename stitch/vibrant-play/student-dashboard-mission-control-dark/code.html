@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Student Dashboard - CodeVibe Lab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;800&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-fixed-dim": "#ffb1c5",
+                        "inverse-surface": "#fdf8ff",
+                        "surface-container": "#201c38",
+                        "surface-container-high": "#282442",
+                        "on-secondary-container": "#ffd9e1",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#ffd9e1",
+                        "surface-container-lowest": "#120f26",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#c8bfff",
+                        "inverse-primary": "#5a45cb",
+                        "on-primary-fixed": "#190064",
+                        "secondary-container": "#8d0644",
+                        "on-secondary-fixed": "#3f001a",
+                        "outline-variant": "#474554",
+                        "on-secondary-fixed-variant": "#8d0644",
+                        "on-surface-variant": "#c9c4d6",
+                        "on-tertiary-fixed": "#2c1700",
+                        "error": "#ffb4ab",
+                        "background": "#16132d",
+                        "secondary": "#ffb1c5",
+                        "primary-fixed-dim": "#c8bfff",
+                        "surface-dim": "#16132d",
+                        "tertiary-fixed": "#ffdcbb",
+                        "on-tertiary-container": "#ffdcbb",
+                        "on-background": "#e5e0ec",
+                        "surface-container-low": "#1c1b23",
+                        "on-surface": "#e5e0ec",
+                        "surface-variant": "#474554",
+                        "primary-fixed": "#e5deff",
+                        "tertiary-fixed-dim": "#ffb869",
+                        "on-tertiary": "#462a00",
+                        "on-error-container": "#ffdad6",
+                        "tertiary": "#ffb869",
+                        "outline": "#928f9f",
+                        "primary": "#c8bfff",
+                        "on-primary-container": "#e5deff",
+                        "surface-bright": "#312f38",
+                        "surface-container-highest": "#312f38",
+                        "tertiary-container": "#673d00",
+                        "surface": "#16132d",
+                        "primary-container": "#442bb5",
+                        "on-error": "#690005",
+                        "error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "on-primary-fixed-variant": "#442bb5",
+                        "inverse-on-surface": "#1c1b23"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "body": ["Hanken Grotesk"],
+                        "label": ["Hanken Grotesk"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .neo-shadow { box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); }
+        .neo-shadow-lg { box-shadow: 8px 8px 0px 0px rgba(0,0,0,1); }
+        .neo-button:active { transform: translate(4px, 4px); box-shadow: none; }
+        .border-thick { border-width: 2px; border-color: #000000; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body antialiased min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Web) -->
+<nav class="hidden lg:flex flex-col h-screen fixed left-0 top-0 pt-24 pb-8 bg-surface-container border-r-2 border-black shadow-[4px_0px_0px_0px_rgba(0,0,0,1)] w-64 z-40">
+<div class="px-6 mb-8 flex flex-col items-center border-b-2 border-black pb-6">
+<img alt="CodeVibe Student" class="w-20 h-20 rounded-full border-thick neo-shadow mb-4 object-cover" data-alt="A stylized, vibrant 2D vector portrait avatar of a young student coder in a neo-brutalist style, featuring thick black outlines, bright yellow and purple colors, flat shading, and a playful expression, set against a solid off-white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAovtY6vf5xw3L9SV00Rm5e_taRcTtOcDDEVWFAhK9Cf1MzAEx6JJTa_bsv07PEwBHJjnAGNW6bi93PGjzHSFonRn60hYAYhFvquw5z62P4pj_Jk_gjDJMCQzsZNlIOo3UojxvKoxVzTWBAAHnsGCSjlAERH0-t_Hf0F69rakGQdK_-xGDvJ8ynTbO26ST2f5yHk2K9DoQP5cluQnuj9Zf_apXi4SZlecX2_tntV_XoIqHXrlBNukIK"/>
+<h2 class="font-headline text-[1.5rem] font-bold text-on-surface text-center">Level 12 Coder</h2>
+<span class="text-sm font-bold text-on-surface-variant mt-1">Streak: 15 Days</span>
+</div>
+<div class="flex-1 overflow-y-auto">
+<a class="flex items-center gap-3 bg-secondary text-on-secondary border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg mx-2 my-1 px-4 py-3 font-body text-[12px] font-[800] tracking-[0.1em] uppercase" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+                Home
+            </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg font-body text-[12px] font-[800] tracking-[0.1em] uppercase" href="#">
+<span class="material-symbols-outlined">insights</span>
+                My Progress
+            </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg font-body text-[12px] font-[800] tracking-[0.1em] uppercase" href="#">
+<span class="material-symbols-outlined">map</span>
+                Roadmap
+            </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg font-body text-[12px] font-[800] tracking-[0.1em] uppercase" href="#">
+<span class="material-symbols-outlined">code_blocks</span>
+                Sandbox
+            </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg font-body text-[12px] font-[800] tracking-[0.1em] uppercase" href="#">
+<span class="material-symbols-outlined">groups</span>
+                Forum
+            </a>
+</div>
+<div class="px-4 mt-auto">
+<button class="w-full bg-primary text-black border-thick neo-shadow rounded-lg py-3 font-bold hover:bg-primary-container transition-colors neo-button font-headline">
+                Start Daily Challenge
+            </button>
+</div>
+</nav>
+<!-- TopNavBar (Mobile & Web Header) -->
+<div class="flex-1 flex flex-col lg:ml-64">
+<header class="sticky top-0 w-full z-50 flex justify-between items-center px-6 h-20 bg-background border-b-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+<div class="flex items-center gap-4">
+<button class="lg:hidden text-on-surface">
+<span class="material-symbols-outlined text-3xl">menu</span>
+</button>
+<h1 class="font-headline text-[2rem] font-extrabold text-primary tracking-tighter">CodeVibe Lab</h1>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary font-black border-b-4 border-primary pb-1" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-bold hover:text-primary transition-colors" href="#">Courses</a>
+<a class="text-on-surface-variant font-bold hover:text-primary transition-colors" href="#">Lessons</a>
+<a class="text-on-surface-variant font-bold hover:text-primary transition-colors" href="#">Community</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full border-thick bg-secondary text-black flex items-center justify-center neo-shadow neo-button hover:bg-secondary-fixed-dim">
+<span class="material-symbols-outlined">bolt</span>
+</button>
+<button class="w-10 h-10 rounded-full border-thick bg-surface-container text-on-surface flex items-center justify-center neo-shadow neo-button hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<img alt="Student Profile" class="w-10 h-10 rounded-full border-thick object-cover hidden md:block" data-alt="A stylized 2D vector portrait of a young student coder, thick black outlines, bright colors, neo-brutalist style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYklTnXPF3Y1HRS30cfUiyE26ygojXaq2Ol1TYPOZGADQu17PJirwDzFDEnzRBskM4tsdxWd4joN19oa7bCr5r64vwozfau5iDoPhs0EUqZpDSvPBtC2qPqSCs6hI6_jhNnySFJanVmKWrY88GXXefmgAbi_KNNS_TB8HIvZweJ6l9hErM4HjbdYUJHtj3yV_K2iscaeA7PGKrG2XthHDOw1d1AQyWuk6dILKTNdZYzPkhX6hOFZAF"/>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 p-6 md:p-12 lg:px-20 lg:py-12 max-w-[1200px] mx-auto w-full">
+<!-- Hero / Mission Control -->
+<section class="mb-12">
+<h2 class="font-headline text-[3rem] md:text-[4.5rem] font-[800] leading-[1.1] tracking-[-0.04em] text-on-background mb-2">Mission Control</h2>
+<p class="font-body text-[18px] font-[500] text-on-surface-variant">Welcome back, Alex. Ready to write some code?</p>
+</section>
+<!-- Top Grid: Stats & Streak -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+<!-- Streak Card -->
+<div class="lg:col-span-1 bg-surface-container border-thick rounded-[16px] p-6 neo-shadow-lg relative overflow-hidden flex flex-col justify-between h-64">
+<div class="absolute -right-4 -top-4 w-32 h-32 bg-tertiary border-thick rounded-full opacity-20 pointer-events-none"></div>
+<div>
+<span class="font-body text-[12px] font-[800] tracking-[0.1em] uppercase text-black bg-tertiary px-2 py-1 rounded border-thick neo-shadow inline-block mb-4">Current Streak</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-[4rem] font-[800] text-tertiary leading-none">15</span>
+<span class="font-body text-[18px] font-[800] text-tertiary">Days</span>
+</div>
+</div>
+<!-- Mini Calendar Viz -->
+<div class="flex gap-2 mt-4">
+<div class="w-8 h-8 rounded-full border-thick bg-tertiary text-black flex items-center justify-center neo-shadow"><span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span></div>
+<div class="w-8 h-8 rounded-full border-thick bg-tertiary text-black flex items-center justify-center neo-shadow"><span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span></div>
+<div class="w-8 h-8 rounded-full border-thick bg-tertiary text-black flex items-center justify-center neo-shadow"><span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span></div>
+<div class="w-8 h-8 rounded-full border-thick bg-surface-container-high flex items-center justify-center"><span class="text-xs font-bold text-on-surface-variant">T</span></div>
+<div class="w-8 h-8 rounded-full border-thick bg-surface-container-high flex items-center justify-center"><span class="text-xs font-bold text-on-surface-variant">F</span></div>
+</div>
+</div>
+<!-- Featured Course (Large) -->
+<div class="lg:col-span-2 bg-surface-container border-thick rounded-[16px] p-6 lg:p-8 neo-shadow-lg flex flex-col md:flex-row gap-6 items-center">
+<div class="flex-1">
+<span class="font-body text-[12px] font-[800] tracking-[0.1em] uppercase text-black bg-primary px-2 py-1 rounded border-thick neo-shadow inline-block mb-4">In Progress</span>
+<h3 class="font-headline text-[2rem] font-[700] text-on-surface mb-2">Intro to WebGL</h3>
+<p class="font-body text-[16px] text-on-surface-variant mb-6">Master the basics of rendering 2D and 3D graphics in the browser.</p>
+<div class="w-full bg-surface-container-high border-thick rounded-full h-4 mb-2 overflow-hidden">
+<div class="bg-primary h-full border-r-2 border-black w-[65%]"></div>
+</div>
+<div class="flex justify-between text-sm font-bold text-on-surface mb-6">
+<span>65% Complete</span>
+<span>Lesson 4/6</span>
+</div>
+<button class="bg-primary text-black border-thick neo-shadow rounded-lg px-6 py-3 font-bold hover:bg-primary-container transition-colors neo-button font-headline inline-flex items-center gap-2">
+                            Continue Learning <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="w-full md:w-48 h-48 rounded-[16px] border-thick neo-shadow overflow-hidden bg-surface flex-shrink-0">
+<img alt="WebGL Course Illustration" class="w-full h-full object-cover" data-alt="A vibrant, stylized 3D rendered cube floating over a grid, featuring thick black outlines and bright primary colors in a neo-brutalist aesthetic, representing WebGL graphics, set on a light background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBp1vftymnTre764azJTGq2KJjLE_tvgKjYfp7_ajUrQ92ByP2yKt5qj_FHCZyj9PitZR4m9D0FmgWBtoVMiNom96n8Z0m0XT84goEVxsHSWiJKljvz5r_JWHp6NeG5CBJuYruN5TCoJwI8SXU3CVQpA8yqPLSz52_7R4uvgTPc_VDNyCwbDfexV6Dwj4hfTsRhTw-NKpxZ1WJdVJm4-b-8znOqN7cuPrJbvFBnGZvvCvIiGFhlOtSH"/>
+</div>
+</div>
+</div>
+<!-- Active Courses Grid -->
+<section>
+<div class="flex justify-between items-end mb-6">
+<h3 class="font-headline text-[2rem] font-[800] text-on-background">Your Modules</h3>
+<a class="font-bold text-primary hover:underline flex items-center gap-1" href="#">View All <span class="material-symbols-outlined text-sm">chevron_right</span></a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Course Card 1 -->
+<div class="bg-surface-container border-thick rounded-[16px] p-6 neo-shadow flex flex-col h-full hover:-translate-y-1 transition-transform">
+<div class="w-12 h-12 rounded-lg bg-secondary border-thick neo-shadow flex items-center justify-center mb-4 text-black">
+<span class="material-symbols-outlined text-2xl">sports_esports</span>
+</div>
+<h4 class="font-headline text-[1.5rem] font-bold text-on-surface mb-2">Game Physics 101</h4>
+<p class="font-body text-on-surface-variant text-sm mb-6 flex-1">Understand gravity, collisions, and movement vectors.</p>
+<div class="w-full bg-surface-container-high border-thick rounded-full h-3 mb-4 overflow-hidden">
+<div class="bg-secondary h-full border-r-2 border-black w-[30%]"></div>
+</div>
+<button class="w-full bg-surface-container-high text-on-surface border-thick neo-shadow rounded-lg py-2 font-bold hover:bg-surface-container-highest transition-colors neo-button text-sm">
+                            Resume
+                        </button>
+</div>
+<!-- Course Card 2 -->
+<div class="bg-surface-container border-thick rounded-[16px] p-6 neo-shadow flex flex-col h-full hover:-translate-y-1 transition-transform">
+<div class="w-12 h-12 rounded-lg bg-tertiary border-thick neo-shadow flex items-center justify-center mb-4 text-black">
+<span class="material-symbols-outlined text-2xl">database</span>
+</div>
+<h4 class="font-headline text-[1.5rem] font-bold text-on-surface mb-2">Data Structures</h4>
+<p class="font-body text-on-surface-variant text-sm mb-6 flex-1">Trees, graphs, and the building blocks of efficiency.</p>
+<div class="w-full bg-surface-container-high border-thick rounded-full h-3 mb-4 overflow-hidden">
+<div class="bg-tertiary h-full border-r-2 border-black w-[85%]"></div>
+</div>
+<button class="w-full bg-surface-container-high text-on-surface border-thick neo-shadow rounded-lg py-2 font-bold hover:bg-surface-container-highest transition-colors neo-button text-sm">
+                            Resume
+                        </button>
+</div>
+<!-- Locked Course Card -->
+<div class="bg-surface-container-low border-thick rounded-[16px] p-6 border-dashed flex flex-col h-full items-center justify-center text-center opacity-70">
+<div class="w-12 h-12 rounded-lg bg-surface-container border-thick flex items-center justify-center mb-4 text-outline">
+<span class="material-symbols-outlined text-2xl">lock</span>
+</div>
+<h4 class="font-headline text-[1.25rem] font-bold text-on-surface mb-2">Advanced Shaders</h4>
+<p class="font-body text-outline text-sm">Unlocks at Level 15</p>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

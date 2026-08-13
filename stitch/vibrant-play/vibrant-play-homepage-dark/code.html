@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CodeVibe Lab | Build the future, one vibe at a time.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Hanken+Grotesk:wght@400;500;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#6a0031",
+                        "surface-container-low": "#f7f1fd",
+                        "on-primary": "#ffffff",
+                        "background": "#16132D",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#c8bfff",
+                        "secondary-container": "#fd6799",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#f1ecf8",
+                        "on-background": "#e6e1e5",
+                        "on-error-container": "#93000a",
+                        "outline": "#787585",
+                        "error-container": "#ffdad6",
+                        "surface-variant": "#221d42",
+                        "on-tertiary-container": "#fffbff",
+                        "tertiary-fixed-dim": "#ffb869",
+                        "on-primary-fixed-variant": "#442bb5",
+                        "surface-container-high": "#ebe6f2",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#fdf8ff",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#f4effb",
+                        "on-primary-container": "#fffbff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary": "#855000",
+                        "surface-dim": "#ddd8e4",
+                        "surface": "#221d42",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "outline-variant": "#c9c4d6",
+                        "primary": "#5a45cb",
+                        "inverse-surface": "#312f38",
+                        "surface-tint": "#5c47cd",
+                        "on-tertiary-fixed": "#2c1700",
+                        "primary-fixed": "#e5deff",
+                        "on-surface": "#e6e1e5",
+                        "inverse-primary": "#c8bfff",
+                        "on-secondary-fixed-variant": "#8d0644",
+                        "tertiary-container": "#a76500",
+                        "on-surface-variant": "#e6e1e5",
+                        "on-primary-fixed": "#190064",
+                        "primary-container": "#7360e5",
+                        "secondary-fixed-dim": "#ffb1c5",
+                        "surface-container-highest": "#221d42",
+                        "on-secondary-fixed": "#3f001a",
+                        "tertiary-fixed": "#ffdcbb",
+                        "secondary-fixed": "#ffd9e1",
+                        "secondary": "#ae285c",
+                        "accent-pink": "#fd6799",
+                        "accent-teal": "#4cd9a8",
+                        "accent-yellow": "#ffda6b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "body": ["Hanken Grotesk"],
+                        "label": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "display-xl": ["72px", { lineHeight: "1.1", letterSpacing: "-0.04em", fontWeight: "800" }],
+                        "headline-lg": ["48px", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "800" }],
+                        "headline-md": ["32px", { lineHeight: "1.3", fontWeight: "700" }],
+                        "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "500" }],
+                        "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "label-caps": ["12px", { lineHeight: "1", letterSpacing: "0.1em", fontWeight: "800" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .neo-brutalist-border {
+            border: 2px solid #080614;
+        }
+        .neo-brutalist-shadow {
+            box-shadow: 4px 4px 0px 0px #080614;
+        }
+        .neo-brutalist-shadow-lg {
+            box-shadow: 8px 8px 0px 0px #080614;
+        }
+        .neo-brutalist-hover:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px #080614;
+        }
+        .neo-brutalist-hover-lg:hover {
+            transform: translate(4px, 4px);
+            box-shadow: 4px 4px 0px 0px #080614;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-[#16132D] text-[#e6e1e5] font-body min-h-screen flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<nav class="bg-[#16132D] dark:bg-[#16132D] text-primary-fixed-dim dark:text-primary-fixed-dim font-headline text-body-lg font-bold sticky top-0 w-full border-b-2 border-[#080614] dark:border-[#080614] shadow-[4px_4px_0px_0px_#080614] dark:shadow-[4px_4px_0px_0px_#080614] z-50">
+<div class="flex justify-between items-center px-6 py-4 max-w-[1200px] mx-auto">
+<a class="text-headline-md font-extrabold tracking-tight text-white dark:text-white" href="#">CodeVibe Lab</a>
+<div class="hidden md:flex gap-8 items-center">
+<!-- Assume Home is active for this landing page -->
+<a class="text-primary-fixed-dim dark:text-primary-fixed-dim underline decoration-2 underline-offset-4 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none" href="#">Curriculum</a>
+<a class="text-[#e6e1e5] dark:text-[#e6e1e5] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none" href="#">Projects</a>
+<a class="text-[#e6e1e5] dark:text-[#e6e1e5] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none" href="#">Mentors</a>
+<a class="text-[#e6e1e5] dark:text-[#e6e1e5] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none" href="#">Pricing</a>
+</div>
+<button class="bg-primary-fixed-dim text-[#080614] px-6 py-2 rounded-lg neo-brutalist-border neo-brutalist-shadow neo-brutalist-hover transition-transform duration-150 hidden md:block">Join the Lab</button>
+</div>
+</nav>
+<main class="flex-grow">
+<!-- Hero Section -->
+<section class="py-20 px-6 max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+<div class="space-y-8">
+<h1 class="text-display-xl font-display text-white leading-tight">Build the future, one <span class="bg-secondary-container text-[#080614] px-2 inline-block -rotate-2 neo-brutalist-border">vibe</span> at a time.</h1>
+<p class="text-body-lg text-[#e6e1e5]">Learn to code with high-energy projects, creative mentors, and a community that doesn't take itself too seriously.</p>
+<div class="flex gap-4">
+<button class="bg-primary text-white px-8 py-4 rounded-lg font-headline font-bold text-body-lg neo-brutalist-border neo-brutalist-shadow-lg neo-brutalist-hover-lg transition-transform duration-150">Start Coding</button>
+<button class="bg-accent-pink text-[#080614] px-8 py-4 rounded-lg font-headline font-bold text-body-lg neo-brutalist-border neo-brutalist-shadow-lg neo-brutalist-hover-lg transition-transform duration-150">View Curriculum</button>
+</div>
+</div>
+<div class="relative h-[500px] bg-accent-yellow rounded-xl neo-brutalist-border neo-brutalist-shadow-lg overflow-hidden flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A highly stylized, flat-vector illustration in a neo-brutalist aesthetic showing a diverse group of young creators collaborating around a glowing, oversized laptop. The scene is bursting with geometric shapes, squiggles, and vibrant colors like primary purple, bright yellow, and hot pink against a light off-white background. The mood is energetic, playful, and creative." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAO-iS4cSr_tfcO9lCvwQVcmP-mLyg1q-GO9tGYwJVwlihFKzTmuZEwe_fzeltE0gRbjHtlkuwsrkY-8aOIUSvhhnT40L8Y2d4Sf2vYJl9OJkkIKdXda9h0XOEU4tiGtweNAp1Zx29hV-sEpJX3u427Q9uNLqqxbTjCOvk3s0IoTGHRHxFsnzUI6ewBzspW2sk7uHCOewCptSDVLy4ZUEtYEUZI9jHnlOGcYlwipM07jlTfM3uL3j0m"/>
+<!-- Playful decorative elements -->
+<div class="absolute top-4 right-4 bg-white p-2 rounded-full neo-brutalist-border">
+<span class="material-symbols-outlined text-[#080614]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="absolute bottom-10 left-10 bg-accent-teal p-3 rounded-lg neo-brutalist-border rotate-12">
+<span class="material-symbols-outlined text-[#080614]" style="font-variation-settings: 'FILL' 1;">code</span>
+</div>
+</div>
+</section>
+<!-- Featured Courses Section -->
+<section class="py-20 bg-[#221d42] border-y-2 border-[#080614]">
+<div class="max-w-[1200px] mx-auto px-6">
+<h2 class="text-headline-lg font-headline text-center mb-16 text-white">Choose Your Flavor</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Course 1 -->
+<div class="bg-accent-teal rounded-xl p-8 neo-brutalist-border neo-brutalist-shadow-lg neo-brutalist-hover-lg transition-transform duration-150 flex flex-col h-full group">
+<div class="bg-white w-16 h-16 rounded-full flex items-center justify-center neo-brutalist-border mb-6 group-hover:-rotate-12 transition-transform">
+<span class="material-symbols-outlined text-[#080614] text-3xl">language</span>
+</div>
+<h3 class="text-headline-md font-headline mb-4 text-[#080614]">Web Experiments</h3>
+<p class="text-body-md text-[#080614] mb-8 flex-grow">Break the rules of layout. Learn HTML/CSS by building interactive, weird web experiences.</p>
+<button class="bg-[#16132D] text-white font-bold py-3 px-6 rounded-lg neo-brutalist-border neo-brutalist-shadow w-full hover:bg-[#312a5c] transition-colors">Explore Track</button>
+</div>
+<!-- Course 2 -->
+<div class="bg-accent-pink rounded-xl p-8 neo-brutalist-border neo-brutalist-shadow-lg neo-brutalist-hover-lg transition-transform duration-150 flex flex-col h-full group">
+<div class="bg-white w-16 h-16 rounded-full flex items-center justify-center neo-brutalist-border mb-6 group-hover:rotate-12 transition-transform">
+<span class="material-symbols-outlined text-[#080614] text-3xl">sports_esports</span>
+</div>
+<h3 class="text-headline-md font-headline mb-4 text-[#080614]">Game Dev</h3>
+<p class="text-body-md text-[#080614] mb-8 flex-grow">Code logic, design mechanics, and ship your first playable indie game in JavaScript.</p>
+<button class="bg-[#16132D] text-white font-bold py-3 px-6 rounded-lg neo-brutalist-border neo-brutalist-shadow w-full hover:bg-[#312a5c] transition-colors">Explore Track</button>
+</div>
+<!-- Course 3 -->
+<div class="bg-accent-yellow rounded-xl p-8 neo-brutalist-border neo-brutalist-shadow-lg neo-brutalist-hover-lg transition-transform duration-150 flex flex-col h-full group">
+<div class="bg-white w-16 h-16 rounded-full flex items-center justify-center neo-brutalist-border mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[#080614] text-3xl">palette</span>
+</div>
+<h3 class="text-headline-md font-headline mb-4 text-[#080614]">Creative Coding</h3>
+<p class="text-body-md text-[#080614] mb-8 flex-grow">Turn algorithms into art. Master generative design, canvas elements, and WebGL basics.</p>
+<button class="bg-[#16132D] text-white font-bold py-3 px-6 rounded-lg neo-brutalist-border neo-brutalist-shadow w-full hover:bg-[#312a5c] transition-colors">Explore Track</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Call to Action -->
+<section class="py-24 bg-primary text-white text-center px-6 border-b-2 border-[#080614] relative overflow-hidden">
+<!-- Background pattern (CSS only) -->
+<div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 1px, transparent 0); background-size: 24px 24px;"></div>
+<div class="max-w-[800px] mx-auto relative z-10">
+<h2 class="text-display-xl font-display mb-8">Ready to get weird?</h2>
+<p class="text-body-lg mb-12 opacity-90">Join thousands of creators building the next generation of the web.</p>
+<button class="bg-accent-yellow text-[#080614] px-10 py-5 rounded-xl font-headline font-extrabold text-headline-md neo-brutalist-border neo-brutalist-shadow-lg neo-brutalist-hover-lg transition-transform duration-150 inline-flex items-center gap-4">
+                    Join the Lab
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 700;">arrow_forward</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="bg-[#221d42] dark:bg-[#221d42] text-primary-fixed-dim dark:text-primary-fixed-dim font-body text-body-md w-full rounded-t-xl border-t-2 border-[#080614] dark:border-[#080614] flat no shadows">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 py-12 gap-8 max-w-[1200px] mx-auto">
+<div class="text-headline-md font-extrabold text-white">CodeVibe Lab</div>
+<div class="flex flex-wrap gap-6 justify-center">
+<a class="text-[#e6e1e5] hover:text-primary-fixed-dim transition-colors active:opacity-80" href="#">Privacy Policy</a>
+<a class="text-[#e6e1e5] hover:text-primary-fixed-dim transition-colors active:opacity-80" href="#">Terms of Service</a>
+<a class="text-[#e6e1e5] hover:text-primary-fixed-dim transition-colors active:opacity-80" href="#">Discord Community</a>
+<a class="text-[#e6e1e5] hover:text-primary-fixed-dim transition-colors active:opacity-80" href="#">GitHub</a>
+</div>
+<div class="text-[#e6e1e5]">© 2024 CodeVibe Lab. Stay Weird.</div>
+</div>
+</footer>
+</body></html>

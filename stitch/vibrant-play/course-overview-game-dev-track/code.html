@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Game Dev Track - Course Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;800&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#ffb1c5",
+                        "inverse-surface": "#312f38",
+                        "surface-container": "#f1ecf8",
+                        "surface-container-high": "#ebe6f2",
+                        "on-secondary-container": "#6a0031",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#ffd9e1",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#5c47cd",
+                        "inverse-primary": "#c8bfff",
+                        "on-primary-fixed": "#190064",
+                        "secondary-container": "#fd6799",
+                        "on-secondary-fixed": "#3f001a",
+                        "outline-variant": "#c9c4d6",
+                        "on-secondary-fixed-variant": "#8d0644",
+                        "on-surface-variant": "#474554",
+                        "on-tertiary-fixed": "#2c1700",
+                        "error": "#ba1a1a",
+                        "background": "#fdf8ff",
+                        "secondary": "#ae285c",
+                        "primary-fixed-dim": "#c8bfff",
+                        "surface-dim": "#ddd8e4",
+                        "tertiary-fixed": "#ffdcbb",
+                        "on-tertiary-container": "#fffbff",
+                        "on-background": "#1c1b23",
+                        "surface-container-low": "#f7f1fd",
+                        "on-surface": "#1c1b23",
+                        "surface-variant": "#e5e0ec",
+                        "primary-fixed": "#e5deff",
+                        "tertiary-fixed-dim": "#ffb869",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#855000",
+                        "outline": "#787585",
+                        "primary": "#5a45cb",
+                        "on-primary-container": "#fffbff",
+                        "surface-bright": "#fdf8ff",
+                        "surface-container-highest": "#e5e0ec",
+                        "tertiary-container": "#a76500",
+                        "surface": "#fdf8ff",
+                        "primary-container": "#7360e5",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "on-primary-fixed-variant": "#442bb5",
+                        "inverse-on-surface": "#f4effb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "body": ["Hanken Grotesk"],
+                        "label": ["Hanken Grotesk"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .neo-shadow { box-shadow: 4px 4px 0px 0px rgba(28,27,35,1); }
+        .neo-shadow-lg { box-shadow: 8px 8px 0px 0px rgba(28,27,35,1); }
+        .neo-border { border: 2px solid #1c1b23; }
+        .roadmap-line {
+            position: absolute;
+            top: 24px;
+            bottom: -24px;
+            left: 23px;
+            width: 4px;
+            background-color: #1c1b23;
+            z-index: 0;
+        }
+        .roadmap-line-completed {
+            background-color: #5c47cd;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen">
+<!-- TopNavBar -->
+<nav class="sticky top-0 w-full z-50 flex justify-between items-center px-6 h-20 border-b-2 border-on-surface bg-background shadow-[4px_4px_0px_0px_rgba(28,27,35,1)]">
+<div class="flex items-center gap-8">
+<div class="text-headline-md font-extrabold text-primary dark:text-inverse-primary tracking-tighter">CodeVibe Lab</div>
+<div class="hidden md:flex gap-6">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-bold hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors px-3 py-2 rounded-lg" href="#">Dashboard</a>
+<a class="text-primary dark:text-inverse-primary font-black border-b-4 border-primary px-3 py-2" href="#">Courses</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-bold hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors px-3 py-2 rounded-lg" href="#">Lessons</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-bold hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors px-3 py-2 rounded-lg" href="#">Community</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-primary-fixed rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+</button>
+<button class="p-2 hover:bg-primary-fixed rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<img alt="Student Profile" class="w-10 h-10 rounded-full neo-border neo-shadow" data-alt="A stylized, colorful 3D avatar of a young developer with purple headphones, bright yellow background, wearing a teal hoodie. The lighting is soft and vibrant, fitting a playful modern UI style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA8tMWrWP3g51FnBlKm9jfz7262v7wKYWgV1XW6IC2GemGl2Gi16vMFjhZDtGniGMR1m4YFqY8IqGiVBkFuz8fS44HE6ONPeDTH9olBYDlYY9Nxatt7WwJrZ0kexX4amsV0942uCDkw95ur7SZhw2_Dtka3ZizZlJ1RgFO-JBo4XUE7JeQedbpbD6pCybdG59Oq2AY9kH9CxVwmU4HhtgrMvQqy62E5BsfGtN0b6h7Sd4iLzSSaDhy"/>
+</div>
+</nav>
+<div class="flex h-[calc(100vh-80px)] overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden lg:flex flex-col w-64 border-r-2 border-on-surface shadow-[4px_0px_0px_0px_rgba(28,27,35,1)] bg-surface-container dark:bg-inverse-surface pt-8 pb-8 z-40">
+<div class="px-6 mb-8 flex flex-col items-center text-center">
+<img alt="CodeVibe Student" class="w-20 h-20 rounded-full neo-border neo-shadow mb-4" data-alt="A stylized, colorful 3D avatar of a young developer with purple headphones, bright yellow background, wearing a teal hoodie. The lighting is soft and vibrant, fitting a playful modern UI style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-t60oe0iOiODAPkD62P3pxZSoZcdx_NzpsHqd-u7EaArII4BIaNK13-ygNJ2Y03bqaDpaxYZEMX4b2oBexUB_u1JZUDekkTMj1_K9KQ4xL5r-hGANRmj7zQfS5OizRa-gwGg0L7IWnDqQe6nuBzfx_1UlWDpZcLlg_2bCMMkxEc7yFjvuPJTwu2cTXisqEgq1xqfG6krLeyG8IZxAzpt0g4o7gm61gB3bDKew2rLWofq_WSX0NHLZ"/>
+<h2 class="font-headline font-black text-on-surface text-xl">Level 12 Coder</h2>
+<p class="text-sm font-bold text-on-surface-variant mt-1">Streak: 15 Days</p>
+<button class="mt-4 w-full bg-primary text-on-primary font-bold py-2 px-4 rounded-lg neo-border neo-shadow active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                     Start Daily Challenge
+                 </button>
+</div>
+<nav class="flex flex-col gap-2 px-4">
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span> Home
+                </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="insights">insights</span> My Progress
+                </a>
+<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(28,27,35,1)] rounded-lg mx-2 my-1 font-bold px-4 py-3" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span> Roadmap
+                </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="code_blocks">code_blocks</span> Sandbox
+                </a>
+<a class="flex items-center gap-3 text-on-surface font-bold px-4 py-3 mx-2 my-1 hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span> Forum
+                </a>
+</nav>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto p-6 md:p-12 bg-surface-container-low">
+<!-- Header -->
+<header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+<div>
+<span class="font-body text-label-caps uppercase tracking-widest text-on-surface-variant font-extrabold bg-tertiary-fixed px-3 py-1 rounded-full neo-border text-sm mb-4 inline-block">Track Overview</span>
+<h1 class="font-headline text-5xl md:text-6xl font-extrabold text-on-surface tracking-tight mt-2">Game Dev</h1>
+</div>
+<div class="bg-primary-container text-on-primary-container px-6 py-4 rounded-xl neo-border neo-shadow-lg flex items-center gap-4">
+<div class="w-16 h-16 rounded-full border-4 border-on-primary-container flex items-center justify-center font-headline font-bold text-xl relative">
+<svg class="absolute inset-0 w-full h-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-on-primary-container/30" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="4"></path>
+<path class="text-on-primary-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="65, 100" stroke-width="4"></path>
+</svg>
+                        65%
+                    </div>
+<div>
+<h3 class="font-bold text-lg">Course Progress</h3>
+<p class="text-sm opacity-90">13 of 20 Lessons Complete</p>
+</div>
+</div>
+</header>
+<div class="flex flex-col xl:flex-row gap-12">
+<!-- Lesson Roadmap -->
+<section class="flex-1">
+<h2 class="font-headline text-2xl font-bold mb-8">Lesson Roadmap</h2>
+<div class="relative pl-4">
+<!-- Completed Lesson 1 -->
+<div class="relative mb-8 z-10 flex gap-6 items-start group">
+<div class="roadmap-line roadmap-line-completed"></div>
+<div class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center neo-border neo-shadow flex-shrink-0 z-10">
+<span class="material-symbols-outlined font-bold" data-icon="check">check</span>
+</div>
+<div class="flex-1 bg-surface rounded-xl p-6 neo-border neo-shadow cursor-pointer hover:-translate-y-1 transition-transform">
+<span class="text-xs font-extrabold uppercase tracking-widest text-primary mb-2 block">Lesson 1</span>
+<h3 class="font-headline text-xl font-bold mb-2">Intro to Game Engines</h3>
+<p class="text-on-surface-variant">Understanding the core components of modern 2D and 3D engines.</p>
+</div>
+</div>
+<!-- Completed Lesson 2 -->
+<div class="relative mb-8 z-10 flex gap-6 items-start group">
+<div class="roadmap-line roadmap-line-completed"></div>
+<div class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center neo-border neo-shadow flex-shrink-0 z-10">
+<span class="material-symbols-outlined font-bold" data-icon="check">check</span>
+</div>
+<div class="flex-1 bg-surface rounded-xl p-6 neo-border neo-shadow cursor-pointer hover:-translate-y-1 transition-transform">
+<span class="text-xs font-extrabold uppercase tracking-widest text-primary mb-2 block">Lesson 2</span>
+<h3 class="font-headline text-xl font-bold mb-2">Physics &amp; Collisions</h3>
+<p class="text-on-surface-variant">Implementing basic physics, rigidbodies, and hitbox detection.</p>
+</div>
+</div>
+<!-- Current Lesson -->
+<div class="relative mb-8 z-10 flex gap-6 items-start group">
+<div class="roadmap-line"></div>
+<div class="w-12 h-12 rounded-full bg-secondary text-on-secondary flex items-center justify-center neo-border neo-shadow flex-shrink-0 z-10 animate-pulse">
+<span class="material-symbols-outlined font-bold" data-icon="play_arrow">play_arrow</span>
+</div>
+<div class="flex-1 bg-secondary-fixed rounded-xl p-6 neo-border neo-shadow-lg cursor-pointer hover:-translate-y-1 transition-transform transform scale-[1.02]">
+<span class="text-xs font-extrabold uppercase tracking-widest text-secondary mb-2 block">Lesson 3 • Current</span>
+<h3 class="font-headline text-2xl font-bold mb-2 text-on-secondary-fixed">Player Input &amp; Movement</h3>
+<p class="text-on-secondary-fixed-variant mb-4">Handling keyboard and gamepad inputs to control character movement fluidly.</p>
+<button class="bg-secondary text-on-secondary font-bold py-2 px-6 rounded-lg neo-border shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">Resume Lesson</button>
+</div>
+</div>
+<!-- Locked Lesson 1 -->
+<div class="relative mb-8 z-10 flex gap-6 items-start opacity-75">
+<div class="roadmap-line"></div>
+<div class="w-12 h-12 rounded-full bg-surface-dim text-outline flex items-center justify-center neo-border border-dashed flex-shrink-0 z-10">
+<span class="material-symbols-outlined" data-icon="lock">lock</span>
+</div>
+<div class="flex-1 bg-surface-container-lowest rounded-xl p-6 border-2 border-outline border-dashed">
+<span class="text-xs font-extrabold uppercase tracking-widest text-outline mb-2 block">Lesson 4</span>
+<h3 class="font-headline text-xl font-bold mb-2 text-on-surface-variant">Animation States</h3>
+<p class="text-outline">Blend trees, state machines, and sprite animation control.</p>
+</div>
+</div>
+<!-- Locked Lesson 2 -->
+<div class="relative z-10 flex gap-6 items-start opacity-75">
+<div class="w-12 h-12 rounded-full bg-surface-dim text-outline flex items-center justify-center neo-border border-dashed flex-shrink-0 z-10">
+<span class="material-symbols-outlined" data-icon="lock">lock</span>
+</div>
+<div class="flex-1 bg-surface-container-lowest rounded-xl p-6 border-2 border-outline border-dashed">
+<span class="text-xs font-extrabold uppercase tracking-widest text-outline mb-2 block">Lesson 5</span>
+<h3 class="font-headline text-xl font-bold mb-2 text-on-surface-variant">UI &amp; Menus</h3>
+<p class="text-outline">Creating main menus, HUDs, and pause screens.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Sidebar / Badges -->
+<aside class="w-full xl:w-80 flex flex-col gap-8">
+<div class="bg-surface rounded-xl p-6 neo-border neo-shadow">
+<h2 class="font-headline text-xl font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="military_tech" data-weight="fill">military_tech</span>
+                            Unlocked Badges
+                        </h2>
+<div class="grid grid-cols-2 gap-4">
+<!-- Badge 1 -->
+<div class="bg-tertiary-fixed rounded-lg p-4 flex flex-col items-center text-center neo-border shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] hover:-translate-y-1 transition-transform cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center mb-2 neo-border">
+<span class="material-symbols-outlined" data-icon="grid_on" data-weight="fill">grid_on</span>
+</div>
+<span class="font-bold text-sm leading-tight">Pixel<br/>Master</span>
+</div>
+<!-- Badge 2 -->
+<div class="bg-primary-fixed rounded-lg p-4 flex flex-col items-center text-center neo-border shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] hover:-translate-y-1 transition-transform cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center mb-2 neo-border">
+<span class="material-symbols-outlined" data-icon="psychology" data-weight="fill">psychology</span>
+</div>
+<span class="font-bold text-sm leading-tight">Logic<br/>Legend</span>
+</div>
+<!-- Badge 3 -->
+<div class="bg-secondary-fixed rounded-lg p-4 flex flex-col items-center text-center neo-border shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] hover:-translate-y-1 transition-transform cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-secondary text-on-secondary flex items-center justify-center mb-2 neo-border">
+<span class="material-symbols-outlined" data-icon="speed" data-weight="fill">speed</span>
+</div>
+<span class="font-bold text-sm leading-tight">Speed<br/>Runner</span>
+</div>
+<!-- Locked Badge Placeholder -->
+<div class="bg-surface-dim rounded-lg p-4 flex flex-col items-center text-center border-2 border-outline border-dashed opacity-70">
+<div class="w-12 h-12 rounded-full bg-surface text-outline flex items-center justify-center mb-2 neo-border border-dashed">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</div>
+<span class="font-bold text-sm text-outline leading-tight">???</span>
+</div>
+</div>
+</div>
+<div class="bg-inverse-surface text-inverse-on-surface rounded-xl p-6 neo-border shadow-[8px_8px_0px_0px_#fd6799]">
+<h3 class="font-headline font-bold text-lg mb-2">Need a refresher?</h3>
+<p class="text-sm opacity-80 mb-4">Jump back to the sandbox environment to practice older concepts.</p>
+<button class="w-full bg-surface text-on-surface font-bold py-2 px-4 rounded-lg neo-border hover:bg-surface-variant transition-colors">
+                            Open Sandbox
+                        </button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</body></html>

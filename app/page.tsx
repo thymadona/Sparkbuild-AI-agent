@@ -59,7 +59,8 @@ export default async function Home() {
                 Build the future, one{' '}
                 <span className="inline-block -rotate-2 rounded-md border-2 border-surface-600 bg-secondary px-2 text-white">
                   line
-                </span>{' '}
+                </span>
+                <br />
                 at a time.
               </h1>
               <p className="mt-6 max-w-md text-body-lg text-fg-secondary">

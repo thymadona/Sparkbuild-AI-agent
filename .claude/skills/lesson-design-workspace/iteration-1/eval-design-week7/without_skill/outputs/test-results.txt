@@ -1,0 +1,97 @@
+$ bunx jest __tests__/unit/lib/task-checks.test.ts __tests__/unit/lib/lesson-copy.test.ts
+
+FAIL __tests__/unit/lib/task-checks.test.ts
+  ● lesson check coverage › lesson 7 (Week #7 — List Lab) has no task that passes on the untouched template
+
+    ENOENT: no such file or directory, open '.../public/templates/todo-list.html'
+
+      10 |
+      11 | function readTemplate(file: string) {
+    > 12 |   return fs.readFileSync(path.join(process.cwd(), 'public/templates', file), 'utf8')
+         |             ^
+      13 | }
+      14 |
+      15 | const week3 = LESSONS.find((lesson) => lesson.id === 3)!
+
+      at readFileSync (__tests__/unit/lib/task-checks.test.ts:12:13)
+      at readTemplate (__tests__/unit/lib/task-checks.test.ts:31:23)
+
+  ● lesson check coverage › reports every individual check as unmet on the untouched template
+
+    ENOENT: no such file or directory, open '.../public/templates/todo-list.html'
+
+      10 |
+      11 | function readTemplate(file: string) {
+    > 12 |   return fs.readFileSync(path.join(process.cwd(), 'public/templates', file), 'utf8')
+         |             ^
+      13 | }
+      14 |
+      15 | const week3 = LESSONS.find((lesson) => lesson.id === 3)!
+
+      at readFileSync (__tests__/unit/lib/task-checks.test.ts:12:13)
+      at Object.readTemplate (__tests__/unit/lib/task-checks.test.ts:42:23)
+
+  ● lesson check coverage › anchors every textChanged check to a real element holding the starter text
+
+    ENOENT: no such file or directory, open '.../public/templates/todo-list.html'
+
+      10 |
+      11 | function readTemplate(file: string) {
+    > 12 |   return fs.readFileSync(path.join(process.cwd(), 'public/templates', file), 'utf8')
+         |             ^
+      13 | }
+      14 |
+      15 | const week3 = LESSONS.find((lesson) => lesson.id === 3)!
+
+      at readFileSync (__tests__/unit/lib/task-checks.test.ts:12:13)
+      at Object.readTemplate (__tests__/unit/lib/task-checks.test.ts:58:51)
+
+  ● lesson check coverage › lets a student satisfy every check with a real edit
+
+    ENOENT: no such file or directory, open '.../public/templates/todo-list.html'
+
+      10 |
+      11 | function readTemplate(file: string) {
+    > 12 |   return fs.readFileSync(path.join(process.cwd(), 'public/templates', file), 'utf8')
+         |             ^
+      13 | }
+      14 |
+      15 | const week3 = LESSONS.find((lesson) => lesson.id === 3)!
+
+      at readFileSync (__tests__/unit/lib/task-checks.test.ts:12:13)
+      at Object.readTemplate (__tests__/unit/lib/task-checks.test.ts:82:23)
+
+PASS __tests__/unit/lib/lesson-copy.test.ts
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       4 failed, 24 passed, 28 total
+Snapshots:   0 total
+Time:        0.965 s, estimated 1 s
+Ran all test suites matching __tests__/unit/lib/task-checks.test.ts|__tests__/unit/lib/lesson-copy.test.ts.
+
+---
+NOTES
+
+- lesson-copy.test.ts: PASSES (4/4). Word budget was the binding constraint:
+  before this change the six existing lessons totalled 1238 words against the
+  suite's 1400-word ceiling, leaving only ~160 words of headroom. The Week 7
+  lesson was deliberately trimmed to 3 core tasks + 2 homework tasks (no
+  choice/bonus task, unlike every other week) to fit inside that headroom.
+  New grand total: 1378 words (Week 7 alone contributes 140).
+
+- task-checks.test.ts: 24/28 PASS, 4 FAIL. The 4 failures are all the same
+  root cause: public/templates/todo-list.html does not exist. Four tests in
+  the "lesson check coverage" describe block read every lesson's template
+  file from disk via fs.readFileSync and throw ENOENT before any assertion
+  runs. This was expected and flagged in advance per the task instructions
+  (no real template file was authored). The tests that do NOT touch the
+  filesystem all pass, including:
+    - "gives every task in every current lesson at least one check"
+    - "documents an example for every sourceMatches check"
+    - "gives every lesson homework with checks"
+  Authoring public/templates/todo-list.html with the anchors/selectors/
+  starter strings the checks reference (see response.md) should turn the
+  remaining 4 failures into passes, since the checks were written to mirror
+  the existing templates' structure and the test suite's "starter text must
+  not satisfy its own check" and "a real edit must satisfy the check"
+  invariants.
