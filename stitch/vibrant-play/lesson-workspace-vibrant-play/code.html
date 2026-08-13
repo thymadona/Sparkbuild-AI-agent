@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CodeVibe Lab - Lesson Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Hanken+Grotesk:wght@400;500;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "secondary-fixed-dim": "#ffb1c5",
+                "inverse-surface": "#312f38",
+                "surface-container": "#f1ecf8",
+                "surface-container-high": "#ebe6f2",
+                "on-secondary-container": "#6a0031",
+                "on-primary": "#ffffff",
+                "secondary-fixed": "#ffd9e1",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary": "#ffffff",
+                "surface-tint": "#5c47cd",
+                "inverse-primary": "#c8bfff",
+                "on-primary-fixed": "#190064",
+                "secondary-container": "#fd6799",
+                "on-secondary-fixed": "#3f001a",
+                "outline-variant": "#c9c4d6",
+                "on-secondary-fixed-variant": "#8d0644",
+                "on-surface-variant": "#474554",
+                "on-tertiary-fixed": "#2c1700",
+                "error": "#ba1a1a",
+                "background": "#fdf8ff",
+                "secondary": "#ae285c",
+                "primary-fixed-dim": "#c8bfff",
+                "surface-dim": "#ddd8e4",
+                "tertiary-fixed": "#ffdcbb",
+                "on-tertiary-container": "#fffbff",
+                "on-background": "#1c1b23",
+                "surface-container-low": "#f7f1fd",
+                "on-surface": "#1c1b23",
+                "surface-variant": "#e5e0ec",
+                "primary-fixed": "#e5deff",
+                "tertiary-fixed-dim": "#ffb869",
+                "on-tertiary": "#ffffff",
+                "on-error-container": "#93000a",
+                "tertiary": "#855000",
+                "outline": "#787585",
+                "primary": "#5a45cb",
+                "on-primary-container": "#fffbff",
+                "surface-bright": "#fdf8ff",
+                "surface-container-highest": "#e5e0ec",
+                "tertiary-container": "#a76500",
+                "surface": "#fdf8ff",
+                "primary-container": "#7360e5",
+                "on-error": "#ffffff",
+                "error-container": "#ffdad6",
+                "on-tertiary-fixed-variant": "#673d00",
+                "on-primary-fixed-variant": "#442bb5",
+                "inverse-on-surface": "#f4effb"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {},
+        "fontFamily": {
+                "headline": [
+                        "Plus Jakarta Sans"
+                ],
+                "display": [
+                        "Plus Jakarta Sans"
+                ],
+                "body": [
+                        "Hanken Grotesk"
+                ],
+                "label": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {}
+},
+    },
+  }
+</script>
+<style>
+        /* Base styles */
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            background-color: #fdf8ff; /* background */
+            color: #1c1b23; /* on-surface */
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Material Icons setup */
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* Scrollbar styling for panels */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1ecf8; 
+            border-left: 2px solid #1c1b23;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #5a45cb; 
+            border: 2px solid #1c1b23;
+            border-radius: 4px;
+        }
+        
+        /* Code block styling */
+        pre code {
+            font-family: 'Courier New', Courier, monospace;
+            display: block;
+            padding: 1.5rem;
+            background-color: #312f38;
+            color: #f4effb;
+            border-radius: 0.5rem;
+            border: 2px solid #1c1b23;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-background">
+<!-- TopNavBar -->
+<nav class="sticky top-0 w-full z-50 flex justify-between items-center px-6 h-20 bg-background border-b-4 border-on-surface">
+<div class="flex items-center gap-8 h-full">
+<a class="text-headline-md font-extrabold text-primary tracking-tighter flex items-center gap-2" href="#">
+<span class="material-symbols-outlined fill text-[32px]">code_blocks</span>
+                CodeVibe Lab
+            </a>
+<div class="hidden md:flex h-full items-end gap-2">
+<!-- Inactive Tabs -->
+<a class="text-on-surface-variant font-bold hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors px-4 py-4" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-bold hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors px-4 py-4" href="#">Courses</a>
+<!-- Active Tab -->
+<a class="text-primary font-black border-b-4 border-primary px-4 py-4 bg-primary-fixed" href="#">Lessons</a>
+<a class="text-on-surface-variant font-bold hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors px-4 py-4" href="#">Community</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Lesson Progress -->
+<div class="hidden lg:flex items-center gap-3 bg-surface-container-high px-4 py-2 rounded-lg border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(28,27,35,1)]">
+<div class="font-body text-sm font-bold">Physics Engine: Part 3</div>
+<div class="w-32 h-3 bg-background border-2 border-on-surface rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-secondary-container"></div>
+</div>
+<span class="text-label-caps uppercase text-secondary font-bold">75%</span>
+</div>
+<!-- Trailing Icons -->
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-on-surface bg-surface-container-lowest hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors active:translate-x-1 active:translate-y-1 shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] active:shadow-none">
+<span class="material-symbols-outlined">bolt</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-on-surface bg-surface-container-lowest hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors active:translate-x-1 active:translate-y-1 shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] active:shadow-none">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<!-- Submit Button (Primary Accent) -->
+<button class="bg-secondary-container text-on-secondary-container font-headline font-bold px-6 py-2 rounded-lg border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(28,27,35,1)] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center gap-2 ml-2">
+<span class="material-symbols-outlined fill">check_circle</span>
+                Submit Build
+            </button>
+</div>
+</nav>
+<!-- Main Workspace (Split Screen) -->
+<main class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-background p-4 gap-4">
+<!-- Left Panel: Instructions (Rich Text & Code) -->
+<section class="flex-1 lg:w-1/2 flex flex-col bg-surface-container-low border-2 border-on-surface rounded-xl shadow-[8px_8px_0px_0px_rgba(28,27,35,1)] overflow-hidden">
+<!-- Panel Header -->
+<header class="bg-primary-fixed p-4 border-b-2 border-on-surface flex justify-between items-center">
+<h2 class="font-headline text-xl font-bold flex items-center gap-2 text-on-primary-fixed">
+<span class="material-symbols-outlined fill">menu_book</span>
+                    Instructions
+                </h2>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded border-2 border-on-surface bg-surface-container-lowest flex items-center justify-center hover:bg-surface-variant transition-colors shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded border-2 border-on-surface bg-surface-container-lowest flex items-center justify-center hover:bg-surface-variant transition-colors shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</header>
+<!-- Panel Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+<div class="mb-6">
+<span class="inline-block bg-tertiary-fixed text-on-tertiary-fixed font-label font-bold text-[12px] uppercase tracking-widest px-4 py-2 rounded-full border-2 border-on-surface mb-4 shadow-[4px_4px_0px_0px_rgba(28,27,35,1)]">Step 3 of 4</span>
+<h1 class="font-headline text-3xl font-extrabold mb-4 leading-tight">Implementing Gravity &amp; Collision</h1>
+<p class="font-body text-lg mb-4 text-on-surface-variant leading-relaxed">
+                        Now that we have our basic object structures, it's time to make them fall and bump into each other. A physics engine is all about updating positions based on velocity, and updating velocity based on acceleration (like gravity).
+                    </p>
+</div>
+<div class="bg-surface-container-high border-2 border-on-surface p-5 rounded-lg mb-8 shadow-[4px_4px_0px_0px_rgba(28,27,35,1)]">
+<h3 class="font-headline font-bold mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">lightbulb</span>
+                        The Goal
+                    </h3>
+<ul class="list-disc list-inside font-body text-on-surface-variant space-y-2">
+<li>Apply a constant downward force (gravity) to all dynamic objects.</li>
+<li>Implement a basic AABB (Axis-Aligned Bounding Box) collision check.</li>
+<li>Reverse velocity upon collision to simulate a bounce.</li>
+</ul>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3 mt-8">Applying Gravity</h3>
+<p class="font-body mb-4 text-on-surface-variant">In your update loop, add gravity to the y-velocity before updating the y-position.</p>
+<!-- Terminal/Code Block -->
+<div class="mb-8 relative group mt-6">
+<div class="absolute -top-4 left-4 bg-inverse-surface text-inverse-on-surface font-label text-xs font-bold px-3 py-1 rounded border-2 border-on-surface z-10 shadow-[2px_2px_0px_0px_rgba(28,27,35,1)]">physics.js</div>
+<pre><code class="language-javascript">
+function updatePhysics(object, deltaTime) {
+    const GRAVITY = 9.8;
+    
+    // Apply gravity to velocity
+    object.velocityY += GRAVITY * deltaTime;
+    
+    // Update position based on velocity
+    object.x += object.velocityX * deltaTime;
+    object.y += object.velocityY * deltaTime;
+    
+    // Check floor collision
+    if (object.y + object.height &gt; canvas.height) {
+        object.y = canvas.height - object.height;
+        // Bounce! (Damping factor of 0.8)
+        object.velocityY = -object.velocityY * 0.8;
+    }
+}
+                    </code></pre>
+<button class="absolute top-4 right-4 bg-surface-container-lowest border-2 border-on-surface rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-variant shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] active:translate-x-1 active:translate-y-1 active:shadow-none" title="Copy Code">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3">Collision Detection</h3>
+<p class="font-body mb-4 text-on-surface-variant">We'll use standard AABB checks for our rectangular bodies. Ensure you complete the `checkCollision` function in the playground before running.</p>
+</div>
+</section>
+<!-- Right Panel: Sandbox Playground -->
+<section class="flex-1 lg:w-1/2 flex flex-col bg-surface-container-lowest border-2 border-on-surface rounded-xl shadow-[8px_8px_0px_0px_rgba(28,27,35,1)] overflow-hidden relative">
+<!-- Sandbox Header -->
+<header class="bg-secondary-fixed-dim p-4 border-b-2 border-on-surface flex justify-between items-center">
+<h2 class="font-headline text-xl font-bold flex items-center gap-2 text-on-secondary-fixed">
+<span class="material-symbols-outlined fill">gamepad</span>
+                    Sandbox Playground
+                </h2>
+<div class="flex items-center gap-4">
+<button class="font-body font-bold text-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">refresh</span> Reset
+                    </button>
+<button class="bg-primary text-on-primary font-headline font-bold px-4 py-2 rounded-lg border-2 border-on-surface shadow-[4px_4px_0px_0px_rgba(28,27,35,1)] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
+<span class="material-symbols-outlined fill text-[20px]">play_arrow</span>
+                        Run Code
+                    </button>
+</div>
+</header>
+<!-- Sandbox Canvas Area -->
+<div class="flex-1 relative bg-inverse-surface overflow-hidden flex flex-col">
+<!-- Simulated Code Editor Toolbar -->
+<div class="bg-surface-container border-b-2 border-on-surface px-4 py-3 flex items-center gap-4 overflow-x-auto">
+<div class="font-label text-xs font-bold bg-background border-2 border-on-surface px-3 py-1 rounded shadow-[2px_2px_0px_0px_rgba(28,27,35,1)] text-primary">index.js</div>
+<div class="font-label text-xs font-bold text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">styles.css</div>
+</div>
+<!-- Simulated Editor Area (Visual Only for design) -->
+<div class="flex-1 relative">
+<!-- Background pattern simulating grid -->
+<div class="absolute inset-0" style="background-image: radial-gradient(#474554 1px, transparent 1px); background-size: 20px 20px; opacity: 0.2;"></div>
+<!-- Simulated interactive elements falling (static design) -->
+<div class="absolute bottom-0 w-full h-4 border-t-4 border-on-primary bg-on-surface"></div>
+<div class="absolute bottom-4 left-1/4 w-16 h-16 bg-secondary-container border-4 border-on-primary shadow-lg transform rotate-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container fill text-[32px]">close</span>
+</div>
+<div class="absolute bottom-20 left-1/2 w-20 h-20 rounded-full bg-primary-container border-4 border-on-primary shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container fill text-[32px]">face</span>
+</div>
+<div class="absolute top-20 right-1/4 w-12 h-12 bg-tertiary-container border-4 border-on-primary shadow-lg rotate-45"></div>
+<!-- Overlay Play button state -->
+<div class="absolute inset-0 bg-inverse-surface/50 backdrop-blur-sm flex items-center justify-center z-20">
+<button class="w-24 h-24 rounded-full bg-primary border-4 border-on-surface shadow-[8px_8px_0px_0px_rgba(28,27,35,1)] flex items-center justify-center hover:bg-primary-container transition-colors active:translate-x-2 active:translate-y-2 active:shadow-none group">
+<span class="material-symbols-outlined fill text-[48px] text-on-primary group-hover:scale-110 transition-transform">play_arrow</span>
+</button>
+</div>
+</div>
+<!-- Console/Output Area -->
+<div class="h-48 border-t-2 border-on-surface bg-surface-container-highest flex flex-col z-30">
+<div class="px-4 py-2 border-b-2 border-on-surface bg-surface-container-high flex justify-between items-center">
+<span class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+                            Console Output
+                        </span>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+<div class="flex-1 p-4 font-mono text-sm overflow-y-auto text-on-surface-variant bg-surface-bright">
+<div class="text-outline">&gt; Setting up physics environment...</div>
+<div class="text-outline">&gt; Initializing objects...</div>
+<div class="text-secondary-container font-bold">&gt; Waiting for execution...</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

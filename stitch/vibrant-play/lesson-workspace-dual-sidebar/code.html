@@ -1,0 +1,333 @@
+<!DOCTYPE html><html class="h-full dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CodeVibe Lab - Lesson Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=Hanken+Grotesk:wght@400;500;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-dim": "#ddd8e4",
+                "error-container": "#ffdad6",
+                "surface-container-lowest": "#ffffff",
+                "secondary": "#ae285c",
+                "primary-fixed": "#e5deff",
+                "primary-container": "#7360e5",
+                "inverse-surface": "#312f38",
+                "on-error": "#ffffff",
+                "surface": "#fdf8ff",
+                "outline-variant": "#c9c4d6",
+                "on-surface": "#1c1b23",
+                "surface-variant": "#e5e0ec",
+                "on-tertiary-fixed-variant": "#673d00",
+                "surface-container": "#f1ecf8",
+                "primary-fixed-dim": "#c8bfff",
+                "on-primary-container": "#fffbff",
+                "on-tertiary-fixed": "#2c1700",
+                "on-secondary-fixed": "#3f001a",
+                "on-primary-fixed-variant": "#442bb5",
+                "error": "#ba1a1a",
+                "tertiary": "#855000",
+                "on-tertiary": "#ffffff",
+                "secondary-fixed-dim": "#ffb1c5",
+                "surface-container-highest": "#e5e0ec",
+                "on-tertiary-container": "#fffbff",
+                "on-error-container": "#93000a",
+                "tertiary-container": "#a76500",
+                "on-surface-variant": "#474554",
+                "surface-container-low": "#f7f1fd",
+                "on-secondary": "#ffffff",
+                "on-primary": "#ffffff",
+                "on-secondary-fixed-variant": "#8d0644",
+                "background": "#fdf8ff",
+                "on-secondary-container": "#6a0031",
+                "surface-tint": "#5c47cd",
+                "inverse-primary": "#c8bfff",
+                "on-primary-fixed": "#190064",
+                "tertiary-fixed": "#ffdcbb",
+                "primary": "#5a45cb",
+                "outline": "#787585",
+                "secondary-fixed": "#ffd9e1",
+                "tertiary-fixed-dim": "#ffb869",
+                "surface-container-high": "#ebe6f2",
+                "secondary-container": "#fd6799",
+                "on-background": "#1c1b23",
+                "surface-bright": "#fdf8ff",
+                "inverse-on-surface": "#f4effb"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {},
+        "fontFamily": {
+                "headline": [
+                        "Plus Jakarta Sans"
+                ],
+                "display": [
+                        "Plus Jakarta Sans"
+                ],
+                "body": [
+                        "Hanken Grotesk"
+                ],
+                "label": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {}
+},
+    },
+  }
+</script>
+<style>
+        /* Base styles */
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            background-color: #fdf8ff; /* background */
+            color: #1c1b23; /* on-surface */
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Material Icons setup */
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* Scrollbar styling for panels */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1ecf8; 
+            border-left: 2px solid #5c586a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c8bfff; 
+            border: 2px solid #5c586a;
+            border-radius: 4px;
+        }
+        
+        /* Code block styling */
+        pre code {
+            font-family: 'Courier New', Courier, monospace;
+            display: block;
+            padding: 1.5rem;
+            background-color: #f7f1fd;
+            color: #1c1b23;
+            border-radius: 0.5rem;
+            border: 2px solid #5c586a;
+            overflow-x: auto;
+        }
+        
+        /* Code syntax highlighting overrides for dark mode */
+        .token.keyword { color: #fd6799; }
+        .token.function { color: #a76500; }
+        .token.string { color: #7360e5; }
+        .token.comment { color: #787585; }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-background">
+<!-- TopNavBar -->
+<nav class="sticky top-0 w-full z-50 flex justify-between items-center px-6 h-20 bg-background border-b-4 border-[#5c586a]">
+<div class="flex items-center gap-8 h-full">
+<a class="text-headline-md font-extrabold text-primary tracking-tighter flex items-center gap-2" href="#">
+<span class="material-symbols-outlined fill text-[32px]">code_blocks</span>
+                CodeVibe Lab
+            </a>
+<div class="hidden md:flex h-full items-end gap-2">
+<!-- Inactive Tabs -->
+<a class="text-on-surface-variant font-bold hover:bg-surface-container-high hover:text-on-surface transition-colors px-4 py-4" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-bold hover:bg-surface-container-high hover:text-on-surface transition-colors px-4 py-4" href="#">Courses</a>
+<!-- Active Tab -->
+<a class="text-primary font-black border-b-4 border-primary px-4 py-4 bg-surface-container-high" href="#">Lessons</a>
+<a class="text-on-surface-variant font-bold hover:bg-surface-container-high hover:text-on-surface transition-colors px-4 py-4" href="#">Community</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<!-- Lesson Progress -->
+<div class="hidden lg:flex items-center gap-3 bg-surface-container-high px-4 py-2 rounded-lg border-2 border-[#5c586a] shadow-[4px_4px_0px_0px_#5c586a]">
+<div class="font-body text-sm font-bold text-on-surface">Physics Engine: Part 3</div>
+<div class="w-32 h-3 bg-background border-2 border-[#5c586a] rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-secondary-container"></div>
+</div>
+<span class="text-label-caps uppercase text-secondary font-bold">75%</span>
+</div>
+<!-- Trailing Icons -->
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-[#5c586a] bg-surface-container-lowest hover:bg-surface-container-high hover:text-on-surface transition-colors active:translate-x-1 active:translate-y-1 shadow-[2px_2px_0px_0px_#5c586a] active:shadow-none text-on-surface">
+<span class="material-symbols-outlined">bolt</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-[#5c586a] bg-surface-container-lowest hover:bg-surface-container-high hover:text-on-surface transition-colors active:translate-x-1 active:translate-y-1 shadow-[2px_2px_0px_0px_#5c586a] active:shadow-none text-on-surface">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<!-- Submit Button (Primary Accent) -->
+<button class="bg-[#fd6799] hover:bg-[#ff89b4] text-white font-headline font-bold px-6 py-2 rounded-lg border-2 border-[#5c586a] shadow-[0_0_15px_rgba(253,103,153,0.5),4px_4px_0px_0px_#5c586a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center gap-2 ml-2">
+<span class="material-symbols-outlined fill">check_circle</span>
+                Submit Build
+            </button>
+</div>
+</nav>
+<!-- Main Workspace (Split Screen) -->
+<main class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-background p-4 gap-4">
+<!-- Left Panel: Dual-Section Sidebar -->
+<aside class="w-full lg:w-1/3 xl:w-[480px] flex flex-col gap-4 shrink-0 overflow-hidden">
+<!-- Tasks Section (Top) -->
+<div class="bg-surface-container-low border-2 border-[#5c586a] rounded-xl shadow-[8px_8px_0px_0px_#5c586a] overflow-hidden flex flex-col relative min-h-0 h-1/2">
+<header class="bg-surface-container-highest p-4 border-b-2 border-[#5c586a] flex justify-between items-center shrink-0">
+<h2 class="font-headline text-lg font-bold flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined fill text-primary">task_alt</span>
+                Tasks
+            </h2>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded border-2 border-[#5c586a] bg-surface-container-lowest flex items-center justify-center hover:bg-surface-variant transition-colors shadow-[2px_2px_0px_0px_#5c586a] active:translate-x-1 active:translate-y-1 active:shadow-none text-on-surface">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded border-2 border-[#5c586a] bg-surface-container-lowest flex items-center justify-center hover:bg-surface-variant transition-colors shadow-[2px_2px_0px_0px_#5c586a] active:translate-x-1 active:translate-y-1 active:shadow-none text-on-surface">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
+<div class="mb-4">
+<span class="inline-block bg-tertiary-fixed text-on-tertiary-fixed font-label font-bold text-[12px] uppercase tracking-widest px-4 py-1 rounded-full border-2 border-[#5c586a] mb-2 shadow-[2px_2px_0px_0px_#5c586a]">Step 3 of 4</span>
+<h3 class="font-headline text-xl font-bold text-on-surface leading-tight">Implementing Gravity &amp; Collision</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex items-start gap-3 bg-surface-container-highest p-3 rounded-lg border-2 border-[#5c586a] shadow-[2px_2px_0px_0px_#5c586a] opacity-60">
+<div class="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center shrink-0 mt-0.5 border-2 border-[#5c586a]">
+<span class="material-symbols-outlined text-white text-[16px] font-bold">check</span>
+</div>
+<div class="font-body text-sm text-on-surface line-through">Define a GRAVITY constant in updatePhysics.</div>
+</li>
+<li class="flex items-start gap-3 bg-surface-container-lowest p-3 rounded-lg border-2 border-primary shadow-[4px_4px_0px_0px_#7360e5]">
+<div class="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center shrink-0 mt-0.5 bg-background"></div>
+<div class="font-body text-sm font-bold text-on-surface">Apply gravity to the object's velocityY.</div>
+</li>
+<li class="flex items-start gap-3 bg-surface-container-lowest p-3 rounded-lg border-2 border-[#5c586a] shadow-[2px_2px_0px_0px_#5c586a]">
+<div class="w-6 h-6 rounded-full border-2 border-[#5c586a] flex items-center justify-center shrink-0 mt-0.5 bg-background"></div>
+<div class="font-body text-sm text-on-surface">Implement collision check and velocity reversal.</div>
+</li>
+</ul>
+<div class="mt-6 bg-surface-container-high border-2 border-[#5c586a] p-3 rounded-lg shadow-[2px_2px_0px_0px_#5c586a]">
+<h4 class="font-headline text-sm font-bold mb-2 flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-tertiary text-[18px]">lightbulb</span>
+                    Hint
+                </h4>
+<p class="font-body text-sm text-on-surface-variant">Multiply velocity by -0.8 on impact to lose 20% energy.</p>
+</div>
+</div>
+</div>
+<!-- Vibe Assistant Section (Bottom) -->
+<div class="min-h-[300px] bg-surface-container-low border-2 border-[#5c586a] rounded-xl shadow-[8px_8px_0px_0px_#5c586a] flex flex-col relative h-1/2">
+<header class="bg-surface-container-highest p-3 border-b-2 border-[#5c586a] flex justify-between items-center shrink-0">
+<h2 class="font-headline text-md font-bold flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined fill text-secondary">smart_toy</span>
+                Vibe Assistant
+            </h2>
+<button class="text-on-surface-variant hover:text-primary">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</button>
+</header>
+<div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-surface-container-lowest">
+<div class="flex flex-col items-start">
+<div class="bg-primary-container text-on-primary-container p-3 rounded-xl rounded-tl-none border-2 border-[#5c586a] shadow-[4px_4px_0px_0px_#5c586a] max-w-[90%] text-sm font-body">
+                    Yo! I'm your Vibe Assistant. Stuck on the gravity logic? 🍎
+                </div>
+</div>
+<div class="flex flex-col items-end">
+<div class="bg-secondary-container text-on-secondary-container p-3 rounded-xl rounded-tr-none border-2 border-[#5c586a] shadow-[4px_4px_0px_0px_#5c586a] max-w-[90%] text-sm font-body">
+                    How do I calculate the bounce damping?
+                </div>
+</div>
+<div class="flex flex-col items-start">
+<div class="bg-primary-container text-on-primary-container p-3 rounded-xl rounded-tl-none border-2 border-[#5c586a] shadow-[4px_4px_0px_0px_#5c586a] max-w-[90%] text-sm font-body">
+                    Check out the hint! We multiply the velocity by -0.8 to lose 20% energy on impact and reverse direction. 🏀
+                </div>
+</div>
+</div>
+<div class="p-3 border-t-2 border-[#5c586a] bg-surface-container-high shrink-0">
+<div class="flex gap-2">
+<input class="flex-1 bg-background border-2 border-[#5c586a] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary text-on-surface" placeholder="Ask Vibe..." type="text">
+<button class="bg-[#fd6799] hover:bg-[#ff89b4] text-white w-10 h-10 flex items-center justify-center rounded-lg border-2 border-[#5c586a] shadow-[2px_2px_0px_0px_#5c586a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+<span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+<!-- Right Panel: Sandbox Playground -->
+<section class="flex-1 flex flex-col bg-surface-container-low border-2 border-[#5c586a] rounded-xl shadow-[8px_8px_0px_0px_#5c586a] overflow-hidden relative">
+<!-- Sandbox Header -->
+<header class="bg-surface-container-highest p-4 border-b-2 border-[#5c586a] flex justify-between items-center shrink-0">
+<h2 class="font-headline text-xl font-bold flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined fill">gamepad</span>
+                    Sandbox Playground
+                </h2>
+<div class="flex items-center gap-4"><div class="flex bg-surface-container-low border-2 border-[#5c586a] rounded-lg p-1 shadow-[2px_2px_0px_0px_#5c586a]"><button class="px-3 py-1 text-xs font-bold bg-primary-container text-white rounded border border-[#5c586a]">Code</button><button class="px-3 py-1 text-xs font-bold text-on-surface-variant hover:bg-surface-container-high rounded transition-colors">Preview</button><button class="px-3 py-1 text-xs font-bold text-on-surface-variant hover:bg-surface-container-high rounded transition-colors">Split</button></div><div class="flex items-center gap-2 ml-2"><button class="w-8 h-8 flex items-center justify-center rounded border-2 border-[#5c586a] bg-surface-container-lowest hover:bg-surface-container-high shadow-[2px_2px_0px_0px_#5c586a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all" title="Reset"><span class="material-symbols-outlined text-[18px]">refresh</span></button><button class="w-8 h-8 flex items-center justify-center rounded border-2 border-[#5c586a] bg-surface-container-lowest hover:bg-surface-container-high shadow-[2px_2px_0px_0px_#5c586a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all" title="Open Full Screen"><span class="material-symbols-outlined text-[18px]">open_in_new</span></button></div></div>
+</header>
+<!-- Sandbox Canvas Area -->
+<div class="flex-1 relative bg-surface-container-lowest overflow-hidden flex flex-col">
+<!-- Simulated Code Editor Toolbar -->
+<div class="bg-surface-container border-b-2 border-[#5c586a] px-4 py-3 flex items-center gap-4 overflow-x-auto shrink-0"><div class="font-label text-xs font-bold text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">index.html</div>
+<div class="font-label text-xs font-bold bg-background border-2 border-[#5c586a] px-3 py-1 rounded shadow-[2px_2px_0px_0px_#5c586a] text-primary">index.js</div>
+<div class="font-label text-xs font-bold text-on-surface-variant hover:text-on-surface cursor-pointer transition-colors">styles.css</div>
+</div>
+<!-- Simulated Editor Area (Visual Only for design) -->
+<div class="flex-1 relative">
+<!-- Background pattern simulating grid -->
+<div class="absolute inset-0" style="background-image: radial-gradient(#5c586a 1px, transparent 1px); background-size: 20px 20px; opacity: 0.2;"></div>
+<!-- Simulated interactive elements falling (static design) -->
+<div class="absolute bottom-0 w-full h-4 border-t-4 border-[#5c586a] bg-surface-container-high"></div>
+<div class="absolute bottom-4 left-1/4 w-16 h-16 bg-secondary-container border-4 border-on-surface shadow-lg transform rotate-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container fill text-[32px]">close</span>
+</div>
+<div class="absolute bottom-20 left-1/2 w-20 h-20 rounded-full bg-primary-container border-4 border-on-surface shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container fill text-[32px]">face</span>
+</div>
+<div class="absolute top-20 right-1/4 w-12 h-12 bg-tertiary-container border-4 border-on-surface shadow-lg rotate-45"></div>
+<!-- Overlay Play button state -->
+<div class="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-20">
+<button class="w-24 h-24 rounded-full bg-[#7360e5] border-4 border-[#5c586a] shadow-[8px_8px_0px_0px_#5c586a] flex items-center justify-center hover:bg-[#8d7cff] transition-colors active:translate-x-2 active:translate-y-2 active:shadow-none group">
+<span class="material-symbols-outlined fill text-[48px] text-white group-hover:scale-110 transition-transform">play_arrow</span>
+</button>
+</div>
+</div>
+<!-- Console/Output Area -->
+<div class="h-48 border-t-2 border-[#5c586a] bg-surface-container-low flex flex-col z-30 shrink-0">
+<div class="px-4 py-2 border-b-2 border-[#5c586a] bg-surface-container-highest flex justify-between items-center">
+<span class="font-label text-xs font-bold uppercase tracking-wider text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+                            Console Output
+                        </span>
+<button class="text-on-surface-variant hover:text-error">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+</button>
+</div>
+<div class="flex-1 p-4 font-mono text-sm overflow-y-auto text-primary-fixed bg-surface-container-lowest">
+<div class="text-on-surface-variant">&gt; Setting up physics environment...</div>
+<div class="text-on-surface-variant">&gt; Initializing objects...</div>
+<div class="text-secondary font-bold">&gt; Waiting for execution...</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+
+</body></html>

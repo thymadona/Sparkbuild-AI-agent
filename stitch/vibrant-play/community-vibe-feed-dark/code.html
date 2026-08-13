@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Community / Vibe Feed</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;800&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config injected from Design System -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "obsidian": "#16132D",
+                        "navy-purple": "#2A2550",
+                        "brand-teal": "#00F0FF",
+                        "brand-pink": "#FF007F",
+                        "border-color": "#4A4676",
+                        "secondary-fixed-dim": "#ffb1c5",
+                        "inverse-surface": "#312f38",
+                        "surface-container": "#f1ecf8",
+                        "surface-container-high": "#ebe6f2",
+                        "on-secondary-container": "#6a0031",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#ffd9e1",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#5c47cd",
+                        "inverse-primary": "#c8bfff",
+                        "on-primary-fixed": "#190064",
+                        "secondary-container": "#fd6799",
+                        "on-secondary-fixed": "#3f001a",
+                        "outline-variant": "#c9c4d6",
+                        "on-secondary-fixed-variant": "#8d0644",
+                        "on-surface-variant": "#474554",
+                        "on-tertiary-fixed": "#2c1700",
+                        "error": "#ba1a1a",
+                        "background": "#16132D",
+                        "secondary": "#ae285c",
+                        "primary-fixed-dim": "#c8bfff",
+                        "surface-dim": "#ddd8e4",
+                        "tertiary-fixed": "#ffdcbb",
+                        "on-tertiary-container": "#fffbff",
+                        "on-background": "#ffffff",
+                        "surface-container-low": "#f7f1fd",
+                        "on-surface": "#ffffff",
+                        "surface-variant": "#2A2550",
+                        "primary-fixed": "#e5deff",
+                        "tertiary-fixed-dim": "#ffb869",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#855000",
+                        "outline": "#787585",
+                        "primary": "#5a45cb",
+                        "on-primary-container": "#fffbff",
+                        "surface-bright": "#fdf8ff",
+                        "surface-container-highest": "#e5e0ec",
+                        "tertiary-container": "#a76500",
+                        "surface": "#2A2550",
+                        "primary-container": "#7360e5",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "on-primary-fixed-variant": "#442bb5",
+                        "inverse-on-surface": "#f4effb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "body": ["Hanken Grotesk"],
+                        "label": ["Hanken Grotesk"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Base brutalist resets */
+        body {
+            background-color: #16132D;
+            color: #ffffff;
+        }
+        
+        /* Hide scrollbar for clean masonry look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .brutal-shadow {
+            box-shadow: 4px 4px 0px 0px #000000;
+        }
+        .brutal-shadow-lg {
+            box-shadow: 6px 6px 0px 0px #000000;
+        }
+        .brutal-border {
+            border-color: #000000;
+        }
+    </style>
+</head>
+<body class="bg-obsidian text-on-background font-body min-h-screen antialiased">
+<!-- TopNavBar (Shared Component) -->
+<nav class="bg-navy-purple dark:bg-navy-purple w-full border-b-2 border-black bg-navy-purple brutal-shadow sticky top-0 w-full z-50 flex justify-between items-center px-6 h-20">
+<!-- Brand/Search Left -->
+<div class="flex items-center gap-8">
+<a class="text-headline-md font-extrabold text-brand-teal tracking-tighter" href="#">
+                CodeVibe Lab
+            </a>
+<div class="hidden md:flex relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-2 border-2 border-black rounded-lg bg-obsidian text-white focus:outline-none focus:ring-0 focus:shadow-[4px_4px_0px_0px_#00F0FF] transition-all font-body placeholder-gray-400 font-bold w-64 group-hover:bg-navy-purple group-hover:border-brand-teal transition-colors" placeholder="Search vibes..." type="text"/>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="hidden lg:flex items-center gap-2">
+<a class="text-gray-300 font-bold hover:bg-obsidian hover:text-brand-teal transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none transition-all px-4 py-2 rounded-lg" href="#">
+                Dashboard
+            </a>
+<a class="text-gray-300 font-bold hover:bg-obsidian hover:text-brand-teal transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none transition-all px-4 py-2 rounded-lg" href="#">
+                Courses
+            </a>
+<a class="text-gray-300 font-bold hover:bg-obsidian hover:text-brand-teal transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none transition-all px-4 py-2 rounded-lg" href="#">
+                Lessons
+            </a>
+<!-- Active State: Community -->
+<a class="text-brand-teal font-black border-b-4 border-brand-teal hover:bg-obsidian transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none transition-all px-4 py-2" href="#">
+                Community
+            </a>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-black bg-brand-pink text-white shadow-[2px_2px_0px_0px_#000000] hover:bg-obsidian hover:text-brand-pink hover:border-brand-pink transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+<span class="material-symbols-outlined" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-black bg-obsidian text-white shadow-[2px_2px_0px_0px_#000000] hover:bg-brand-teal hover:text-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full border-2 border-black overflow-hidden shadow-[2px_2px_0px_0px_#000000] cursor-pointer hover:scale-105 active:scale-95 transition-transform">
+<img alt="Student Profile" class="w-full h-full object-cover" data-alt="A stylized 3D avatar of a young student with colorful purple and teal hair wearing cool digital augmented reality glasses. The avatar is set against a bright yellow background. The lighting is studio quality, emphasizing the Neo-Brutalist youthful aesthetic of a modern coding platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAo-qS4xArjK6UOMa_k6FAUdo3x-0m5zk4zcySxcwBW-oTNzM_xpa2D5WcrGSPlrfHaXpsxhP0Z6uaav329XvW5FqcVg3HrrDe9y72GyF0Dv1V3zVl-K0vDznDdkMS5xogX9H0yxAbZcrUmkbrXG22Je9apuCLog_JrrNy1FGzPtyW8IoTKiSVRpoWfaOZ8yxD9hTEsvIV9cggfro9db_GCvmT7kVl7ySkRJ5VPbAsQYcLk4k3mEVIx"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="max-w-[1400px] mx-auto px-6 py-8 md:py-12 flex flex-col xl:flex-row gap-8">
+<!-- Left/Main Feed Area -->
+<div class="flex-1 w-full">
+<!-- Feed Header & Filters -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+<div>
+<h1 class="font-headline text-[48px] font-extrabold leading-[1.1] tracking-[-0.04em] text-white mb-2 uppercase">Vibe Feed</h1>
+<p class="font-body text-body-lg text-gray-300 font-bold">See what the lab is cooking up today.</p>
+</div>
+<div class="flex flex-wrap gap-3">
+<button class="px-4 py-2 rounded-full border-2 border-black bg-brand-teal text-black font-label text-label-caps tracking-[0.1em] shadow-[3px_3px_0px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        All Vibes
+                    </button>
+<button class="px-4 py-2 rounded-full border-2 border-black bg-navy-purple text-white font-label text-label-caps tracking-[0.1em] hover:bg-obsidian hover:border-brand-teal shadow-[3px_3px_0px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        Following
+                    </button>
+<button class="px-4 py-2 rounded-full border-2 border-black bg-navy-purple text-white font-label text-label-caps tracking-[0.1em] hover:bg-obsidian hover:border-brand-teal shadow-[3px_3px_0px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        Trending
+                    </button>
+</div>
+</div>
+<!-- Masonry Grid -->
+<div class="columns-1 md:columns-2 gap-6 space-y-6">
+<!-- Experiment Card 1 -->
+<article class="break-inside-avoid bg-navy-purple border-2 border-black rounded-lg brutal-shadow-lg overflow-hidden flex flex-col group">
+<div class="relative w-full aspect-[4/3] border-b-2 border-black overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A vibrant digital screenshot of an interactive webGL physics simulation. Geometric shapes in bright cyan, magenta, and yellow are colliding in a playful, chaotic zero-gravity environment. The aesthetic is loud, energetic, and highly saturated, fitting perfectly into a brutalist modern portfolio showcase." src="https://lh3.googleusercontent.com/aida-public/AB6AXuARZQHU9BlgYlYM6FC9VAbipuEVoa46wOk5id14d4o5HqcrAMLYKWLb3KD86XBopD78yIaVjeyypoVKKtcLKazwj4jOApJJEh92JCeXkQ3u8FLTf-PGi0-m48AA7rTntxIl873YS0URSbD1fqA3B09EMcxO1a6IEL1RPa9FXPoZ2-Uv7jDvxOVbBSjpVSkRwODaNKOpQ-LQ_CYhq1cFBh1qrCvJr6bAhjqNRLZEhJdPQlBi4eT96wHh"/>
+<!-- Badges overlay -->
+<div class="absolute top-3 left-3 flex gap-2">
+<span class="bg-brand-pink text-white px-3 py-1 rounded-full border-2 border-black font-label text-label-caps shadow-[2px_2px_0px_0px_#000000]">Mind-Blowing</span>
+</div>
+</div>
+<div class="p-5 flex flex-col gap-4">
+<!-- Author -->
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border-2 border-black object-cover" data-alt="A small 3D profile picture of a young coder wearing headphones. Vivid teal background, high contrast lighting, Neo-Brutalist cartoon style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8vskIb28-gCdKdwlIKzRxxypwjuONw0415on5dYKSU5MRsJyBhqai7ob1XpdesMNpdH-7wRMLDhgp0i7PjVfEf-RYKDODZdbhOsMh7Q5QOFtLnsK40VrNmYRfzBOqGac7Hivuw5ChDvCfZVWL49a7VPT1dP0S4yPIqZUeYIDorOVeh7MPYy9gvIg-kEIdlAeE_oWcC2jMHk7uVmGOXkBkQXgzP0mwNmOgIk9jcXrBS0LgL3IQPMHd"/>
+<div>
+<h3 class="font-headline font-bold text-white leading-tight">Gravity Sandbox v2</h3>
+<p class="font-body text-sm font-bold text-gray-400">@pixel_ninja</p>
+</div>
+</div>
+<p class="font-body text-body-md text-gray-200 font-medium">Added reverse polarity to the physics engine. Things get weird when you click and hold!</p>
+<!-- Actions -->
+<div class="flex gap-3 pt-2 mt-auto">
+<button class="flex-1 py-3 bg-obsidian text-brand-pink border-2 border-brand-pink rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_#FF007F] hover:bg-brand-pink hover:text-white hover:border-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+                                2.4k
+                            </button>
+<button class="flex-1 py-3 bg-obsidian text-brand-teal border-2 border-brand-teal rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_#00F0FF] hover:bg-brand-teal hover:text-black hover:border-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined" data-icon="data_object">data_object</span>
+                                Remix
+                            </button>
+</div>
+</div>
+</article>
+<!-- Experiment Card 2 (Taller) -->
+<article class="break-inside-avoid bg-navy-purple border-2 border-black rounded-lg brutal-shadow-lg overflow-hidden flex flex-col group">
+<div class="relative w-full aspect-square border-b-2 border-black overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A stylized, high-contrast screenshot of a custom CSS animation interface. The screen shows thick, wavy neon borders pulsing against a dark obsidian background. Abstract UI elements float in a 3D space, capturing a playful, experimental, sticker-like aesthetic of modern web design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuANweu1rqZpCLErNfUllukY-9Z60RodI-irUxPlUiUlqWIm7L9lu-HKJIMQo2khgTZZ0_I1FO3sl3kygYTXRjLnkc8km4gyRwsfBN7JhvUhDnMIkPH7hpBlaFYvsVz3D1czHYMVTbHtnnK2QD2UzwiAVZ9p43uDgJcHrYja9FytSllDf5wSQtd-hexkIcARkvlS6NycHBmvmSByBaN_tp93sEmPylTA-6VLXDQsBPkxXEb61femO6XX"/>
+<div class="absolute top-3 left-3 flex gap-2">
+<span class="bg-[#8A2BE2] text-white px-3 py-1 rounded-full border-2 border-black font-label text-label-caps shadow-[2px_2px_0px_0px_#000000]">Smooth Interaction</span>
+<span class="bg-obsidian text-white px-3 py-1 rounded-full border-2 border-black font-label text-label-caps shadow-[2px_2px_0px_0px_#000000]">CSS Art</span>
+</div>
+</div>
+<div class="p-5 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border-2 border-black object-cover" data-alt="A stylized 3D avatar of an artist with a messy bun and thick-rimmed glasses. Bright orange background, high contrast lighting, Neo-Brutalist cartoon style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCo0xKfLlCldoNv9finPEr70dDc1uvJhHIDKpsqs8pztEQ250i5c0UFgytghnOsUcjmNiV2iSpAxPQEQE-uwi9EyUok3d35Mq6xxAQGgy-HX_8wzRjprfYdohvYsz8Dct-1fPEu0yODLq9V6djBHTLuLaTUO3kemjPsgcR9jkaO7RwFLBUxzGji-DP1RYTKW5kOJXJ_ZkWtBAsZBOIlvfsB7wkkJi02wwYM-R_zKoklwsnj4Ufibo11"/>
+<div>
+<h3 class="font-headline font-bold text-white leading-tight">Neon Pulse UI Kit</h3>
+<p class="font-body text-sm font-bold text-gray-400">@design_rebel</p>
+</div>
+</div>
+<p class="font-body text-body-md text-gray-200 font-medium">No JS, just pure CSS magic. Feel free to rip these keyframes for your next project.</p>
+<div class="flex gap-3 pt-2 mt-auto">
+<button class="flex-1 py-3 bg-obsidian text-brand-pink border-2 border-brand-pink rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_#FF007F] hover:bg-brand-pink hover:text-white hover:border-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+                                892
+                            </button>
+<button class="flex-1 py-3 bg-obsidian text-brand-teal border-2 border-brand-teal rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_#00F0FF] hover:bg-brand-teal hover:text-black hover:border-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined" data-icon="data_object">data_object</span>
+                                Remix
+                            </button>
+</div>
+</div>
+</article>
+<!-- Experiment Card 3 -->
+<article class="break-inside-avoid bg-navy-purple border-2 border-black rounded-lg brutal-shadow-lg overflow-hidden flex flex-col group">
+<div class="p-5 flex flex-col gap-4 border-b-2 border-black bg-navy-purple">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full border-2 border-black object-cover" data-alt="A minimalist 3D avatar of a robot head with glowing digital eyes. Deep purple background, sharp shadows, Neo-Brutalist style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4Nf16cCinXZMIP_NHd-TRWdtpkezm0nc62o1sr1YsR3vLUGEkkJ7_p1YXeQOqvd9BQWVXD9_m7iO2OK_FtTUA4NRG2NwbUUP4KOg30608OGd1LiiWmMiG9tnletK-qpg7KAvz9dis7kWA9K0sjQ9Ebre6v4hC9B_VbmMwyHaLKFPv70nFzwkAYMJfH6dw_RpRUC_4021ti33UY059Kq6brL5I5O_GFVh6dXc3ENJ2klfukd_XN4F2"/>
+<div>
+<h3 class="font-headline font-bold text-white leading-tight">Algorithm Visualizer</h3>
+<p class="font-body text-sm font-bold text-gray-400">@bot_smith</p>
+</div>
+</div>
+<span class="bg-[#4169E1] text-white px-3 py-1 rounded-full border-2 border-black font-label text-label-caps shadow-[2px_2px_0px_0px_#000000]">Big Brain</span>
+</div>
+<p class="font-body text-body-md text-gray-200 font-medium">Visualizing A* pathfinding. The grid generation logic is in the main.js file.</p>
+</div>
+<div class="p-5 bg-obsidian flex flex-col gap-4">
+<div class="w-full bg-black rounded-md h-32 flex items-center justify-center border-2 border-brand-teal shadow-[4px_4px_0px_0px_#00F0FF] relative overflow-hidden">
+<!-- Abstract geometric code representation -->
+<div class="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-teal to-transparent"></div>
+<span class="font-headline font-black text-2xl text-white tracking-widest z-10">RUN_SIM()</span>
+</div>
+<div class="flex gap-3 pt-2 mt-auto">
+<button class="flex-1 py-3 bg-obsidian text-brand-pink border-2 border-brand-pink rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_#FF007F] hover:bg-brand-pink hover:text-white hover:border-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+                                1.1k
+                            </button>
+<button class="flex-1 py-3 bg-obsidian text-brand-teal border-2 border-brand-teal rounded-lg font-headline font-bold text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_#00F0FF] hover:bg-brand-teal hover:text-black hover:border-black transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<span class="material-symbols-outlined" data-icon="data_object">data_object</span>
+                                Remix
+                            </button>
+</div>
+</div>
+</article>
+</div>
+</div>
+<!-- Right Sidebar (Sticky) -->
+<aside class="w-full xl:w-96 flex flex-col gap-8 flex-shrink-0">
+<!-- Trending Labs Widget -->
+<div class="bg-navy-purple border-2 border-black rounded-lg brutal-shadow-lg overflow-hidden">
+<div class="bg-obsidian text-brand-teal border-b-2 border-black p-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-3xl" data-icon="local_fire_department">local_fire_department</span>
+<h2 class="font-headline text-2xl font-black uppercase tracking-tight">Trending Labs</h2>
+</div>
+<div class="flex flex-col">
+<!-- Item 1 -->
+<a class="p-4 border-b-2 border-black flex items-center gap-4 hover:bg-obsidian transition-colors group" href="#">
+<div class="w-12 h-12 bg-brand-pink text-white rounded-lg border-2 border-black flex items-center justify-center font-headline font-black text-xl shadow-[2px_2px_0px_0px_#000000] group-hover:translate-x-1 group-hover:translate-y-1 group-hover:shadow-none transition-all">
+                            #1
+                        </div>
+<div class="flex-1">
+<h4 class="font-headline font-bold text-white text-lg leading-tight">React Three Fiber Basics</h4>
+<p class="font-body text-sm font-bold text-gray-400 mt-1">452 Remixes today</p>
+</div>
+</a>
+<!-- Item 2 -->
+<a class="p-4 border-b-2 border-black flex items-center gap-4 hover:bg-obsidian transition-colors group" href="#">
+<div class="w-12 h-12 bg-brand-teal text-black rounded-lg border-2 border-black flex items-center justify-center font-headline font-black text-xl shadow-[2px_2px_0px_0px_#000000] group-hover:translate-x-1 group-hover:translate-y-1 group-hover:shadow-none transition-all">
+                            #2
+                        </div>
+<div class="flex-1">
+<h4 class="font-headline font-bold text-white text-lg leading-tight">Tailwind Grid Masterclass</h4>
+<p class="font-body text-sm font-bold text-gray-400 mt-1">310 Remixes today</p>
+</div>
+</a>
+<!-- Item 3 -->
+<a class="p-4 flex items-center gap-4 hover:bg-obsidian transition-colors group" href="#">
+<div class="w-12 h-12 bg-[#8A2BE2] text-white rounded-lg border-2 border-black flex items-center justify-center font-headline font-black text-xl shadow-[2px_2px_0px_0px_#000000] group-hover:translate-x-1 group-hover:translate-y-1 group-hover:shadow-none transition-all">
+                            #3
+                        </div>
+<div class="flex-1">
+<h4 class="font-headline font-bold text-white text-lg leading-tight">GSAP ScrollTriggers</h4>
+<p class="font-body text-sm font-bold text-gray-400 mt-1">198 Remixes today</p>
+</div>
+</a>
+</div>
+</div>
+<!-- Top Vibes Widget (Tags/Categories) -->
+<div class="bg-navy-purple border-2 border-black rounded-lg brutal-shadow-lg p-6">
+<h2 class="font-headline text-2xl font-black uppercase tracking-tight text-white mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-pink" data-icon="stars">stars</span>
+                    Top Vibes
+                </h2>
+<div class="flex flex-wrap gap-3">
+<button class="px-4 py-2 bg-obsidian border-2 border-brand-teal rounded-full font-label text-label-caps tracking-widest text-brand-teal hover:bg-brand-teal hover:text-black shadow-[3px_3px_0px_0px_#00F0FF] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        UI/UX
+                    </button>
+<button class="px-4 py-2 bg-obsidian border-2 border-brand-pink rounded-full font-label text-label-caps tracking-widest text-brand-pink hover:bg-brand-pink hover:text-white shadow-[3px_3px_0px_0px_#FF007F] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        WEBGL
+                    </button>
+<button class="px-4 py-2 bg-obsidian border-2 border-[#00FF00] rounded-full font-label text-label-caps tracking-widest text-[#00FF00] hover:bg-[#00FF00] hover:text-black shadow-[3px_3px_0px_0px_#00FF00] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        PHYSICS
+                    </button>
+<button class="px-4 py-2 bg-obsidian border-2 border-[#FFFF00] rounded-full font-label text-label-caps tracking-widest text-[#FFFF00] hover:bg-[#FFFF00] hover:text-black shadow-[3px_3px_0px_0px_#FFFF00] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        TYPOGRAPHY
+                    </button>
+<button class="px-4 py-2 bg-obsidian border-2 border-[#8A2BE2] rounded-full font-label text-label-caps tracking-widest text-[#8A2BE2] hover:bg-[#8A2BE2] hover:text-white shadow-[3px_3px_0px_0px_#8A2BE2] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all">
+                        CSS ART
+                    </button>
+</div>
+</div>
+<!-- Call to Action Card -->
+<div class="bg-brand-teal border-2 border-black rounded-lg brutal-shadow-lg p-6 relative overflow-hidden group cursor-pointer hover:bg-[#00D0DD] transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none">
+<div class="relative z-10 flex flex-col items-start gap-4">
+<span class="material-symbols-outlined text-5xl text-black" data-icon="add_reaction">add_reaction</span>
+<div>
+<h3 class="font-headline text-2xl font-black text-black leading-tight mb-2">Create a New Vibe</h3>
+<p class="font-body text-black font-bold">Start an empty lab and show us what you got.</p>
+</div>
+<span class="mt-2 inline-flex items-center justify-center bg-black text-brand-teal px-6 py-3 rounded-lg font-headline font-bold border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-active:shadow-none group-active:translate-x-1 group-active:translate-y-1 transition-all">
+                        Open Sandbox
+                    </span>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

@@ -1,0 +1,44 @@
+{
+  "skill_name": "lesson-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you review Week 3 for me? I want to know if the pacing and checks are actually solid before I ship it.",
+      "expected_output": "A structured pedagogical review of lib/lessons.ts's Week 3 lesson: objective clarity, scaffolding/sequencing, whether each check is satisfiable by realistic student edits, reading level (checked against the live word budgets and TOO_ADVANCED list, not eyeballed), engagement, homework design, and differentiation (choice/bonus). Concrete, specific findings tied to actual task ids/fields, not generic curriculum-consultant filler.",
+      "files": [],
+      "assertions": [
+        "Review reads the live Week 3 lesson from lib/lessons.ts rather than inventing generic content",
+        "Checks each task's satisfiability, not just its wording",
+        "Reading level assessed against the actual enforced budgets/vocab list, not eyeballed",
+        "Covers homework and differentiation (choice/bonus), not just core tasks",
+        "No fabricated field names or task types"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to add a Week 7 lesson where students build a simple to-do list with localStorage. Can you draft the tasks and checks?",
+      "expected_output": "A drafted Lesson object (or task set) matching the real LessonTask/Lesson shape (success/prompt field names, correct task types, checks using textChanged/sourceOmits/sourceMatches appropriately), checked against remaining shared word-budget headroom, with satisfiable checks and at least one homework task with a homeworkBrief if homework is included. Should flag that a new templateFile/HTML template would be needed and that new task ids must not collide with or replace existing ones.",
+      "files": [],
+      "assertions": [
+        "Drafted task objects use the real field names (success, prompt, commentAnchor) not invented ones",
+        "Applied edit passes bunx jest __tests__/unit/lib/task-checks.test.ts __tests__/unit/lib/lesson-copy.test.ts",
+        "New task ids don't collide with existing ones and existing task ids are untouched",
+        "Checks are plausibly satisfiable for a to-do list app",
+        "Flags the shared 1400-word reading-load budget, not just per-item limits",
+        "Notes the new HTML template requirement"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I added a hint that says 'Adjust the gradient's duration to feel more energetic' — is that okay for a 10 year old, or too advanced?",
+      "expected_output": "Flags that 'gradient', 'duration', and 'energetic' are all on the live TOO_ADVANCED blocklist in __tests__/unit/lib/lesson-copy.test.ts, so this would fail the vocabulary test regardless of word count, plus a simpler rewrite suggestion. Should reference actually reading the current list rather than reasoning about difficulty in the abstract.",
+      "files": [],
+      "assertions": [
+        "Correctly identifies the hint as failing the vocabulary test",
+        "Names the specific blocked words (gradient, duration, energetic)",
+        "Also checks the word-count budget, not just vocabulary",
+        "Offers a concrete simpler rewrite"
+      ]
+    }
+  ]
+}

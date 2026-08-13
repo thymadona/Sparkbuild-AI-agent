@@ -1,0 +1,31 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-design-week7",
+  "prompt": "I want to add a Week 7 lesson where students build a simple to-do list with localStorage. Can you draft the tasks and checks?",
+  "assertions": [
+    {
+      "text": "Drafted task objects use the real field names (success, prompt, commentAnchor) not invented ones (goal, description, hints-on-task)",
+      "check": "Inspect response.md / the applied lib/lessons.ts diff for correct LessonTask shape"
+    },
+    {
+      "text": "Applied edit passes the acceptance gate",
+      "check": "test-results.txt shows both __tests__/unit/lib/task-checks.test.ts and __tests__/unit/lib/lesson-copy.test.ts passing"
+    },
+    {
+      "text": "New task ids don't collide with existing ones and existing task ids are untouched",
+      "check": "Diff against lib/lessons.ts only adds a new lesson entry; no existing task id renamed/removed"
+    },
+    {
+      "text": "Checks are plausibly satisfiable (uses textChanged/sourceOmits/sourceMatches appropriately for a to-do list app)",
+      "check": "Each check's kind matches something a to-do-list edit would plausibly produce, not a copy-pasted check from another lesson"
+    },
+    {
+      "text": "Flags the shared 1400-word reading-load budget, not just per-item limits",
+      "check": "Response mentions checking or respecting the catalog-wide word total, not only per-field caps"
+    },
+    {
+      "text": "Notes the new HTML template requirement",
+      "check": "Response acknowledges public/templates/<file>.html needs to be authored to match commentAnchor placements"
+    }
+  ]
+}

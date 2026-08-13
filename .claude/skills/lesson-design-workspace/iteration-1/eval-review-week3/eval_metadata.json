@@ -1,0 +1,27 @@
+{
+  "eval_id": 0,
+  "eval_name": "eval-review-week3",
+  "prompt": "Can you review Week 3 for me? I want to know if the pacing and checks are actually solid before I ship it.",
+  "assertions": [
+    {
+      "text": "Review reads the live Week 3 lesson from lib/lessons.ts rather than inventing generic content",
+      "check": "Response references actual task ids/chips/checks that exist in Week 3 of lib/lessons.ts"
+    },
+    {
+      "text": "Checks each task's satisfiability, not just its wording",
+      "check": "Response discusses whether at least one specific check could fail a reasonable student edit, not just prose quality"
+    },
+    {
+      "text": "Reading level assessed against the actual enforced budgets/vocab list, not eyeballed",
+      "check": "Response cites specific word-budget numbers (chip<=5, success<=8, label<=6, hint<=10) or the TOO_ADVANCED list, or explicitly confirms current copy is within them"
+    },
+    {
+      "text": "Covers homework and differentiation (choice/bonus), not just core tasks",
+      "check": "Response addresses homework task count/homeworkBrief and any choice/bonus tasks in Week 3"
+    },
+    {
+      "text": "No fabricated field names or task types",
+      "check": "Response does not reference nonexistent fields like 'goal' or 'description' on tasks, or invent task types beyond core/choice/bonus/homework"
+    }
+  ]
+}
