@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import ThemeToggle from './ThemeToggle'
 import ProfileDropdown from './ProfileDropdown'
+import Logo from './Logo'
 
 const LINKS = [
   { href: '/lessons', label: 'Lessons' },
@@ -43,9 +44,12 @@ export default function Navbar({
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link
           href={variant === 'app' ? '/dashboard' : '/'}
-          className={`font-display text-lg font-bold text-fg-primary ${collapseAtLg}`}
+          className={`flex items-center gap-2 font-display text-xl font-extrabold text-fg-primary ${collapseAtLg}`}
         >
-          <span className="text-brand-600 dark:text-brand-400">Code</span>Builder
+          <Logo className="h-10 w-10" />
+          <span>
+            <span className="text-[#503fcb]">Spark</span>Build
+          </span>
         </Link>
         {withSidebar && pageTitle && (
           <span className="hidden font-display text-lg font-bold text-fg-primary lg:block">{pageTitle}</span>
