@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, MessageSquareCode, Share2, Sparkles, Star } from 'lucide-react'
+import { ArrowRight, CheckCircle2, MessageSquareCode, PlayCircle, Share2, Star } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { LESSONS } from '@/lib/lessons'
@@ -83,34 +83,24 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Stylized editor mockup — stands in for a screenshot, stays true to the real product */}
-            <div className="relative mx-auto w-full max-w-md">
-              <div className="rounded-xl border-2 border-surface-600 bg-surface-800 shadow-hard-lg">
-                <div className="flex items-center gap-1.5 border-b-2 border-surface-600 px-4 py-3">
-                  <span className="h-3 w-3 rounded-full bg-secondary" />
-                  <span className="h-3 w-3 rounded-full bg-amber-300" />
-                  <span className="h-3 w-3 rounded-full bg-teal-400" />
-                  <span className="ml-3 text-xs text-fg-muted">week-3-streak-spark.html</span>
-                </div>
-                <div className="space-y-2 p-5 font-mono text-xs leading-relaxed text-fg-secondary">
-                  <p>
-                    <span className="text-brand-400">&lt;h1&gt;</span>Keep the streak alive<span className="text-brand-400">&lt;/h1&gt;</span>
-                  </p>
-                  <p className="text-fg-muted">// AI: try changing the streak color when it grows</p>
-                  <p>
-                    <span className="text-brand-400">function</span> <span className="text-secondary">bumpStreak</span>() {'{'}
-                  </p>
-                  <p className="pl-4 text-fg-muted">…</p>
-                  <p>{'}'}</p>
-                </div>
+            {/* Demo video — real product walkthrough, replaces a static screenshot */}
+            <div className="relative mx-auto w-full max-w-xl">
+              <div className="aspect-video w-full overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 shadow-hard-lg">
+                <iframe
+                  src="https://player.vimeo.com/video/1218045859?title=0&byline=0&portrait=0"
+                  className="h-full w-full"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  title="SparkBuild demo"
+                />
               </div>
               <div className="absolute -right-4 -top-4 flex h-14 w-14 rotate-6 items-center justify-center rounded-full border-2 border-surface-600 bg-amber-300 shadow-hard">
                 <Star className={`h-6 w-6 fill-current ${ON_CHIP}`} />
               </div>
               <div className="absolute -bottom-6 -left-6 -rotate-3 rounded-lg border-2 border-surface-600 bg-teal-400 px-4 py-2 shadow-hard">
                 <div className="flex items-center gap-2">
-                  <Sparkles className={`h-4 w-4 ${ON_CHIP}`} />
-                  <span className={`text-sm font-bold ${ON_CHIP}`}>Build mode unlocked</span>
+                  <PlayCircle className={`h-4 w-4 ${ON_CHIP}`} />
+                  <span className={`text-sm font-bold ${ON_CHIP}`}>Watch demo</span>
                 </div>
               </div>
             </div>
