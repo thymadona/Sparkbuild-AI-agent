@@ -10,8 +10,9 @@
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration",
     "lint": "eslint .",
-    "db:pull": "bun --env-file=.env.local run drizzle-kit pull",
-    "db:studio": "bun --env-file=.env.local run drizzle-kit studio"
+    "db:studio": "bun --env-file=.env.local run drizzle-kit studio",
+    "db:generate": "bun --env-file=.env.local run drizzle-kit generate",
+    "db:migrate": "bun --env-file=.env.local run drizzle-kit migrate"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

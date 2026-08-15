@@ -75,13 +75,13 @@ cp .env.local.example .env.local
 
 ### Database Setup
 
-Apply migrations in order from `supabase/migrations/`:
+Schema is Drizzle-native (`lib/db/schema.ts` → `./drizzle`). Apply the full migration history against `DATABASE_URL`:
 
 ```bash
-supabase db push
+bun run db:migrate
 ```
 
-Or apply them manually against your Supabase project's SQL editor.
+To change the schema afterward: edit `lib/db/schema.ts`, run `bun run db:generate` to derive DDL, then `bun run db:migrate` again. See `drizzle/README.md`.
 
 ### Development
 
@@ -137,7 +137,8 @@ lib/
 └── utils.ts             cn() and shared helpers
 
 types/index.ts           Shared TypeScript interfaces
-supabase/migrations/     Schema of record (SQL)
+lib/db/schema.ts         Drizzle schema — authoring entry point
+drizzle/                 Schema of record (applied SQL migrations)
 public/templates/        Lesson starter HTML files
 __tests__/               Unit and integration tests
 middleware.ts            Session refresh, route guards, admin gate
@@ -152,6 +153,9 @@ middleware.ts            Session refresh, route guards, admin gate
 | `bun run start` | Serve production build |
 | `bun run test` | Run all Jest tests |
 | `bun run lint` | Run ESLint |
+| `bun run db:generate` | Derive migration DDL from `lib/db/schema.ts` into `./drizzle` |
+| `bun run db:migrate` | Apply pending `./drizzle` migrations to `DATABASE_URL` |
+| `bun run db:studio` | Open Drizzle Studio against the live DB |
 
 Run a single test file:
 

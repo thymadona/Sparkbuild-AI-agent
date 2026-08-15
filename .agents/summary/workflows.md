@@ -180,7 +180,7 @@ Both `/invoice/[id]` and `/receipt/[id]` sit outside the middleware's protected 
 
 The repeatable procedure this repo implies:
 
-1. Add a dated SQL file to `supabase/migrations/` (`YYYYMMDD_short_description.sql`).
+1. Edit `lib/db/schema.ts` first, run `bun run db:generate` to derive DDL into `drizzle/`, hand-add whatever the DSL can't express (RLS, grants, functions, backfills), then `bun run db:migrate` to apply it — see `drizzle/README.md`. (`supabase/migrations/` no longer exists; `drizzle/` is the applied migration history.)
 2. Update the matching interface in `types/index.ts` by hand — nothing generates it.
 3. Update the route handlers that read or write the column; remember that `supabaseAdmin` bypasses RLS, so any new access rule must be written into the query or an explicit check.
 4. Add or extend tests under `__tests__/integration/api/` for new endpoint behavior.

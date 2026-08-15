@@ -6,7 +6,7 @@ Generated documentation for `student-code-builder`, a Next.js 14 App Router appl
 
 1. **Start here, not with the codebase.** This file alone is enough to route almost any question to the right document. Load the specific document only once you know which one you need.
 2. **Match the question to a document using the routing table below**, then read that document in full — each is written to be self-contained for its topic.
-3. **Treat `supabase/migrations/*.sql` and `types/index.ts` as authoritative over prose** when they conflict, and note the drift between them recorded in `review_notes.md`.
+3. **Treat `drizzle/` (via `lib/db/schema.ts`) and `types/index.ts` as authoritative over prose** when they conflict, and note the drift between them recorded in `review_notes.md`.
 4. **Read `review_notes.md` before making changes.** It documents known conflicts, currently failing tests, and security observations that will otherwise look like new problems you introduced.
 5. **Read the actual file before editing it.** These documents tell you where behavior lives and why; they are not a substitute for the code at the moment of modification.
 6. **Do not trust `CLAUDE.md`'s scope constraints.** They describe an earlier MVP; the discrepancies are itemized in `review_notes.md`.
