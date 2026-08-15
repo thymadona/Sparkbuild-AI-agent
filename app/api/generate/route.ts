@@ -37,14 +37,17 @@ export async function POST(req: Request) {
 
   // 3. Parse request body
   const body = await req.json()
-  const { prompt, projectId, files, history, selectedCode, mode } = body as {
+  const { prompt, projectId, files, history, selectedCode, mode, reasoningEffort } = body as {
     prompt: string
     projectId: string
     files?: Record<string, string>
     history?: { role: 'user' | 'assistant'; content: string }[]
     selectedCode?: string
     mode?: 'ask' | 'build'
+    reasoningEffort?: 'low' | 'high' | 'max'
   }
+  const VALID_REASONING_EFFORTS = ['low', 'high', 'max']
+  const effectiveReasoningEffort = VALID_REASONING_EFFORTS.includes(reasoningEffort ?? '') ? reasoningEffort! : 'low'
 
   if (!prompt || !projectId) {
     return NextResponse.json({ error: 'prompt and projectId are required' }, { status: 400 })
@@ -146,11 +149,12 @@ export async function POST(req: Request) {
         // mode is on by default for deepseek-v4-flash, which burns time on a
         // reasoning pass that's silently dropped below (only delta.content is
         // read, not delta.reasoning_content). Ask mode never needs it — replies
-        // are three short sentences. Build mode keeps light reasoning since it's
-        // rewriting a whole file, but at low effort instead of the default.
+        // are three short sentences. Build mode keeps thinking on since it's
+        // rewriting a whole file; effort defaults to low but the student can
+        // raise it from the editor for a bigger/trickier build.
         const reasoningParams =
           effectiveMode === 'build'
-            ? { thinking: { type: 'enabled' }, reasoning_effort: 'low' }
+            ? { thinking: { type: 'enabled' }, reasoning_effort: effectiveReasoningEffort }
             : { thinking: { type: 'disabled' } }
 
         const result = await deepseek.chat.completions.create({

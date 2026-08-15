@@ -53,6 +53,7 @@ export default function Editor({
   const [notice, setNotice] = useState<string | null>(null);
   const [mode, setMode] = useState<'ask' | 'build'>('ask');
   const [buildModeAvailable, setBuildModeAvailable] = useState(false);
+  const [reasoningEffort, setReasoningEffort] = useState<'low' | 'high' | 'max'>('low');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -108,6 +109,7 @@ export default function Editor({
           ),
           selectedCode: contextCode?.text,
           mode,
+          reasoningEffort: mode === 'build' ? reasoningEffort : undefined,
         }),
       });
 
@@ -199,7 +201,7 @@ export default function Editor({
     <div className="flex h-full flex-col">
       {/* Mode toggle */}
       {buildModeAvailable && (
-        <div className="shrink-0 px-3 pt-3 pb-2 border-b-2 border-surface-600">
+        <div className="shrink-0 px-3 pt-3 pb-2 border-b-2 border-surface-600 flex items-center justify-between gap-2">
           <div className="flex rounded-lg border-2 border-surface-600 bg-surface-700 p-0.5 w-fit">
             <button
               type="button"
@@ -220,6 +222,18 @@ export default function Editor({
               Build
             </button>
           </div>
+          {mode === 'build' && (
+            <select
+              value={reasoningEffort}
+              onChange={(e) => setReasoningEffort(e.target.value as 'low' | 'high' | 'max')}
+              title="How carefully the AI thinks before building — Low is faster, High/Max is slower but more careful on bigger builds"
+              className="rounded-md border-2 border-surface-600 bg-surface-700 px-2 py-1 text-xs font-medium text-fg-secondary hover:text-fg-primary transition-colors"
+            >
+              <option value="low">Low effort</option>
+              <option value="high">High effort</option>
+              <option value="max">Max effort</option>
+            </select>
+          )}
         </div>
       )}
 
