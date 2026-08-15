@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type OpenAI from 'openai'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
@@ -141,11 +142,26 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // DeepSeek-specific extension (not in the OpenAI SDK's types): thinking
+        // mode is on by default for deepseek-v4-flash, which burns time on a
+        // reasoning pass that's silently dropped below (only delta.content is
+        // read, not delta.reasoning_content). Ask mode never needs it — replies
+        // are three short sentences. Build mode keeps light reasoning since it's
+        // rewriting a whole file, but at low effort instead of the default.
+        const reasoningParams =
+          effectiveMode === 'build'
+            ? { thinking: { type: 'enabled' }, reasoning_effort: 'low' }
+            : { thinking: { type: 'disabled' } }
+
         const result = await deepseek.chat.completions.create({
           model: MODEL,
           stream: true,
           stream_options: { include_usage: true },
           messages: llmMessages,
+          ...reasoningParams,
+        } as OpenAI.Chat.ChatCompletionCreateParamsStreaming & {
+          thinking: { type: 'enabled' | 'disabled' }
+          reasoning_effort?: 'low' | 'high' | 'max'
         })
 
         for await (const chunk of result) {
@@ -158,9 +174,20 @@ export async function POST(req: Request) {
           // DeepSeek caches repeated prompt prefixes on disk automatically;
           // this surfaces the hit rate in logs (fields aren't in the OpenAI
           // SDK's types since they're a DeepSeek-specific extension).
-          const usage = chunk.usage as { prompt_cache_hit_tokens?: number; prompt_cache_miss_tokens?: number } | undefined
+          // reasoning_tokens separates thinking-mode cost from output length,
+          // to tell apart a slow reasoning pass from a long generated file.
+          const usage = chunk.usage as
+            | {
+                prompt_cache_hit_tokens?: number
+                prompt_cache_miss_tokens?: number
+                completion_tokens?: number
+                completion_tokens_details?: { reasoning_tokens?: number }
+              }
+            | undefined
           if (usage) {
-            console.log(`[deepseek cache] hit=${usage.prompt_cache_hit_tokens ?? 0} miss=${usage.prompt_cache_miss_tokens ?? 0}`)
+            console.log(
+              `[deepseek cache] hit=${usage.prompt_cache_hit_tokens ?? 0} miss=${usage.prompt_cache_miss_tokens ?? 0} reasoning_tokens=${usage.completion_tokens_details?.reasoning_tokens ?? 0} completion_tokens=${usage.completion_tokens ?? 0}`
+            )
           }
         }
 
