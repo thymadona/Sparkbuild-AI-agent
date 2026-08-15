@@ -61,11 +61,19 @@ instead of a cross-tenant write. Never import `supabaseAdmin` into a Client Comp
 
 **Drizzle** (`lib/db/client.ts`, `lib/db/schema.ts`) is available for new server-side code as a
 typed alternative to `supabaseAdmin` — same service-role Postgres connection, same RLS-bypass,
-same per-query ownership-check obligation. It's database-first: `supabase/migrations/*.sql` is
-still the schema source of truth. `bun run db:pull` does **not** work on this schema —
-`lib/db/schema.ts`'s header comment explains why (an upstream drizzle-kit bug) — so update
-`lib/db/schema.ts` by hand to match each migration instead. Existing `supabaseAdmin` call sites
-have not been migrated — this is additive, not a replacement.
+same per-query ownership-check obligation. As of 2026-08-15 this repo is Drizzle-native:
+`./drizzle` (applied via `bun run db:migrate`) is the schema of record — `supabase/migrations/`
+no longer exists. Workflow for a schema change: edit `lib/db/schema.ts` first, run
+`bun run db:generate` (diffs against the snapshot in `./drizzle`, safe — see below) to derive
+DDL into `./drizzle`, hand-add whatever Drizzle's DSL can't express (RLS policies, grants,
+security-definer functions, data backfills — `drizzle-kit generate --custom` for those), then
+`bun run db:migrate` to apply it directly against `DATABASE_URL`. `drizzle-kit push` and `pull`
+are permanently off limits against this schema — `drizzle.config.ts`'s header comment explains
+why (an upstream drizzle-kit bug makes them hang or crash; `lib/db/schema.ts`'s header and
+`drizzle/README.md` cover the rest of the workflow, including the consequence that Supabase's
+own migration dashboard/`db reset`/MCP branching tools no longer reflect schema state past the
+cutover point). Existing `supabaseAdmin` call sites have not been migrated — this is additive,
+not a replacement.
 
 **The LLM contract is delimiter-based and full-file.** Build responses must be
 `--- FILE: <name> ---` … `--- DONE ---` blocks followed by a summary sentence, parsed by
@@ -194,7 +202,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=
 SUPABASE_SERVICE_ROLE_KEY=       # server-side only
-DATABASE_URL=                    # server-side only; Postgres pooler URL for Drizzle, bypasses RLS like supabaseAdmin
+DATABASE_URL=                    # server-side only; Postgres pooler URL for Drizzle (bypasses RLS like supabaseAdmin) and for `bun run db:migrate`/`db:studio`
 DEEPSEEK_API_KEY=                # server-side only
 TELEGRAM_BOT_TOKEN=              # server-side only
 UPSTASH_REDIS_REST_URL=          # server-side only; backs lib/ratelimit.ts and lib/cache.ts
@@ -249,8 +257,8 @@ Jest is configured through `jest.config.ts` with Testing Library support. Name t
 dependencies, and cover error paths for API and persistence logic. Run focused tests during
 development, then `bun run test` before opening a pull request.
 
-Supabase schema changes go in `supabase/migrations/` using dated, descriptive filenames (e.g.
-`20260807_add_roles_permissions.sql`).
+Schema changes go through `lib/db/schema.ts` → `bun run db:generate` → `./drizzle` → `bun run
+db:migrate` — see the Drizzle paragraph above and `drizzle/README.md`.
 
 Commits: concise imperative style, preferably Conventional Commits —
 `feat(admin): add class schedule editor`, `fix: enforce rate limit`,
@@ -272,7 +280,7 @@ when available, and include screenshots for visible UI changes.
 | Task verification                            | `lib/task-checks.ts`                                |
 | Rate limiting (Upstash)                      | `lib/ratelimit.ts`                                  |
 | Read caching (Upstash)                       | `lib/cache.ts`, `lib/redis.ts`                      |
-| Schema of record                             | `supabase/migrations/`                              |
+| Schema of record                             | `drizzle/` (authored via `lib/db/schema.ts`)         |
 
 ## Reference Docs
 

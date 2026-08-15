@@ -32,7 +32,7 @@ Full dependency-by-dependency rationale lives in `dependencies.md`.
 ## Language and File-Type Coverage
 
 - **TypeScript / TSX** — all application code. Fully analyzed.
-- **SQL** — `supabase/migrations/*.sql`, the authoritative schema. Analyzed manually; see `data_models.md`.
+- **SQL** — `drizzle/*.sql`, the authoritative schema (applied via `bun run db:migrate`, authored through `lib/db/schema.ts`). Analyzed manually; see `data_models.md`.
 - **Standalone HTML** — `public/templates/*.html` lesson starter files. These are student-facing content, not application code; they contain `<!-- TASK: ... -->` / `CHANGE THIS:` anchor comments that `lib/lessons.ts` references by string match. Not symbol-analyzed.
 - **CSS** — `app/globals.css` defines the theme tokens used by every Tailwind class in the app. Not symbol-analyzed.
 
@@ -46,7 +46,7 @@ graph TB
     ROOT --> COMP["components/<br/>reusable UI"]
     ROOT --> LIB["lib/<br/>shared server + client utilities"]
     ROOT --> TYPES["types/<br/>shared TypeScript interfaces"]
-    ROOT --> SUPA["supabase/migrations/<br/>dated SQL schema changes"]
+    ROOT --> SUPA["drizzle/<br/>applied SQL schema migrations"]
     ROOT --> PUB["public/templates/<br/>lesson starter HTML"]
     ROOT --> TESTS["__tests__/<br/>unit + integration"]
     ROOT --> MW["middleware.ts<br/>session, route guards, admin gate"]
@@ -84,7 +84,7 @@ graph TB
 | LLM client and system prompts | `lib/gemini.ts` (DeepSeek, despite the filename) |
 | Supabase clients | `lib/supabase-server.ts`, `lib/supabase-browser.ts` |
 | Admin shell | `app/admin/layout.tsx`, `app/admin/AdminSidebar.tsx` |
-| Schema of record | `supabase/migrations/` |
+| Schema of record | `drizzle/` (authored via `lib/db/schema.ts`) |
 
 ## Configuration Files
 

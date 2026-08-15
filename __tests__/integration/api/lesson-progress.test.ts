@@ -47,7 +47,7 @@ beforeEach(() => jest.clearAllMocks())
 
 describe('lesson progress API', () => {
   it('uses a cascading project foreign key so progress is removed with its project', () => {
-    const migration = require('fs').readFileSync('supabase/migrations/20260727_lesson_progress.sql', 'utf8')
+    const migration = require('fs').readFileSync('drizzle/0006_lesson_progress.sql', 'utf8')
     expect(migration).toMatch(/project_id uuid primary key references projects\(id\) on delete cascade/i)
   })
 

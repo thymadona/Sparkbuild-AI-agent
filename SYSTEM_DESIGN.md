@@ -220,10 +220,13 @@ erDiagram
     }
 ```
 
-`supabase/migrations/*.sql` is the schema of record; `types/index.ts` is a hand-maintained
-mirror with no generator, so the two can drift (see `.agents/summary/review_notes.md`). Drizzle
-introspects the same database into `lib/db/schema.ts` via `bun run db:pull` — it's a second,
-typed read on the same tables, not a competing source of truth.
+`lib/db/schema.ts` is the authoring entry point and `./drizzle` (applied via `bun run
+db:migrate`) is the schema of record; `types/index.ts` is a separate hand-maintained mirror
+with no generator, so the two can drift (see `.agents/summary/review_notes.md`). `drizzle-kit
+pull`/`push` are permanently unusable against this schema — an upstream bug misclassifies
+foreign keys during introspection — so `bun run db:generate` (diffs `schema.ts` against a local
+snapshot, no DB connection) is the only path from schema change to applied migration. See
+`drizzle/README.md`.
 
 Field semantics worth knowing:
 - **`projects.files`** — flat `{ filename: contents }` JSONB. `index.html` is the assumed

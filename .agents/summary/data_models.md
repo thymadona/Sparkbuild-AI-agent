@@ -2,7 +2,7 @@
 
 The Postgres schema, its TypeScript mirror, and the constraints that matter when changing either.
 
-`supabase/migrations/*.sql` is the schema of record. `types/index.ts` is a hand-maintained mirror — there is no generated types file, so the two can drift.
+`drizzle/` (applied via `bun run db:migrate`) is the schema of record, authored through `lib/db/schema.ts` — see `drizzle/README.md`. `types/index.ts` is a hand-maintained mirror — there is no generated types file, so the two can drift.
 
 ## Entity Relationships
 
