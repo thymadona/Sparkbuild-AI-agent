@@ -21,10 +21,10 @@ needing a catch-up migration later.
 
 ## Before designing anything
 
-Read `.agents/summary/data_models.md` and recent files in `./drizzle` rather
-than guessing at conventions — id strategy, naming, cascade behavior,
-check-constraint-vs-enum choices, and RLS policy shape should match what's
-already there. The patterns below are what you'll find.
+Read recent files in `./drizzle` rather than guessing at conventions — id
+strategy, naming, cascade behavior, check-constraint-vs-enum choices, and RLS
+policy shape should match what's already there. The patterns below are what
+you'll find.
 
 ## 1. Author in `lib/db/schema.ts`, generate, apply — nothing is hand-written SQL by default
 
@@ -112,9 +112,9 @@ back when this was a hand-written-SQL schema. Do it right the first time:
   Write real ownership policies where a client actually needs one (e.g.
   `using (auth.uid() = user_id)`, matching `messages`/`projects`/`prompts`),
   not just the unconditional `using (true)` "admin full access" policies used
-  on admin-only tables — per `.agents/summary/data_models.md`, those `true`
-  policies are not a security boundary by themselves, enforcement there comes
-  from server routes checking `ADMIN_EMAILS`.
+  on admin-only tables — those `true` policies are not a security boundary by
+  themselves, enforcement there comes from server routes checking
+  `hasPermission()`.
 - Prefer `uuid('id').defaultRandom().primaryKey()` unless the table is a
   join table or a child whose identity is only meaningful within its parent
   (composite key, e.g. `class_members (class_id, user_id)`).

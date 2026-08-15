@@ -3,10 +3,6 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this
 repository.
 
-Deep-dive reference docs — full endpoint contracts, schema/RLS/cascades, end-to-end user
-journeys, and the dependency inventory — live in `.agents/summary/`; start with
-`.agents/summary/index.md` for anything not covered here.
-
 ## What This Project Is
 
 Student Code Builder: an AI-assisted coding platform for students aged 10–16. Students work
@@ -27,6 +23,7 @@ bun run build            # Production build
 bun run start             # Serve production build
 bun run test               # Run all Jest tests
 bun run lint                # ESLint (flat config)
+bun run db:studio           # Open Drizzle Studio against the live DB
 bunx jest __tests__/unit/lib/ratelimit.test.ts   # Single test file
 ```
 
@@ -38,8 +35,9 @@ bunx jest __tests__/unit/lib/ratelimit.test.ts   # Single test file
 Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
 
 1. **Editor** (`app/editor/[id]/`, `components/Editor.tsx`) — student prompts hit
-   `POST /api/generate`, which streams from DeepSeek (`lib/gemini.ts` — despite the filename,
-   no Gemini code) and renders into a sandboxed `srcdoc` iframe (`components/Preview.tsx`).
+   `POST /api/generate`, which streams from DeepSeek via the `openai` SDK pointed at DeepSeek's
+   `baseURL` (`lib/gemini.ts` — despite the filename, no Gemini code) and renders into a
+   sandboxed `srcdoc` iframe (`components/Preview.tsx`).
 2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/task-checks.ts`, `public/templates/`) —
    weekly lessons backed by HTML templates with in-file task anchors, code-aware task
    verification, and gated homework.
@@ -85,8 +83,10 @@ together. Model is pinned to `deepseek-v4-flash` via the native DeepSeek API for
 failures as `'OpenRouter stream error:'` — a stale provider name in the log line, not a real
 dependency.)
 
-**Preview is `srcdoc`-only, deliberately** — no WebContainer, Sandpack, or CodeSandbox SDK. A
-console-interceptor script is injected after `<head>` and forwards `console.*`/errors to the
+**Preview is `srcdoc`-only, deliberately** — no WebContainer, Sandpack, or CodeSandbox SDK. The
+iframe is sandboxed with `sandbox="allow-scripts allow-forms"` (no `allow-same-origin`, so the
+frame stays an opaque origin). A console-interceptor script is injected after `<head>` and
+forwards `console.*`/errors to the
 parent via `postMessage({ type: '__console__' })`; it also shims `localStorage`/`sessionStorage`
 (unavailable in the opaque-origin frame). `lib/combine.ts` inlines `style.css` and `script.js`
 by exact filename and strips external `<link>`/`<script src>` tags before rendering.
@@ -239,8 +239,13 @@ Pre-existing on a clean checkout — don't attribute these to your change:
 - `middleware.ts` still works but the filename is deprecated in Next 16 in favour of
   `proxy.ts`. Left as-is: `proxy` forces the Node runtime, and renaming it is a behavioral
   change worth doing on its own.
-
-Full detail and prioritized fixes: `.agents/summary/review_notes.md`.
+- If stray `.claude/worktrees/agent-*/` directories exist (leftover from prior agent
+  sessions — gitignored, don't delete without checking), both `bun run test` and
+  `bun run lint` pick up the copies inside them and inflate the failure counts far past
+  the numbers above (`testMatch`/ESLint both walk that dir). Scope Jest to the real tree
+  with `bunx jest --testPathIgnorePatterns='/node_modules/' '/.claude/worktrees/'`
+  (`--testPathPattern` was renamed `--testPathPatterns` in Jest 30 and is CLI-only, so it
+  can't go in `jest.config.ts`) to get the true 2-suite/2-test failure count.
 
 ## Coding Style, Testing & Commit Conventions
 
@@ -258,7 +263,8 @@ dependencies, and cover error paths for API and persistence logic. Run focused t
 development, then `bun run test` before opening a pull request.
 
 Schema changes go through `lib/db/schema.ts` → `bun run db:generate` → `./drizzle` → `bun run
-db:migrate` — see the Drizzle paragraph above and `drizzle/README.md`.
+db:migrate` — see the Drizzle paragraph above and `drizzle/README.md`. On a fresh database,
+`bun run db:migrate` alone applies the full migration history from `./drizzle`.
 
 Commits: concise imperative style, preferably Conventional Commits —
 `feat(admin): add class schedule editor`, `fix: enforce rate limit`,
@@ -281,19 +287,6 @@ when available, and include screenshots for visible UI changes.
 | Rate limiting (Upstash)                      | `lib/ratelimit.ts`                                  |
 | Read caching (Upstash)                       | `lib/cache.ts`, `lib/redis.ts`                      |
 | Schema of record                             | `drizzle/` (authored via `lib/db/schema.ts`)         |
-
-## Reference Docs
-
-| Document                           | Use for                                                          |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| `.agents/summary/index.md`         | Knowledge-base entry point and question routing                  |
-| `.agents/summary/codebase_info.md` | Stack, directory hierarchy, config inventory                     |
-| `.agents/summary/architecture.md`  | Layers, Supabase boundaries, middleware and generation pipelines |
-| `.agents/summary/components.md`    | Which file owns which piece of UI                                |
-| `.agents/summary/interfaces.md`    | Every endpoint's contract and status codes                       |
-| `.agents/summary/data_models.md`   | Schema, RLS, cascades, type mapping                              |
-| `.agents/summary/workflows.md`     | End-to-end user journeys                                         |
-| `.agents/summary/dependencies.md`  | Packages, external services, environment variables               |
 
 <!-- BEGIN:nextjs-agent-rules -->
 

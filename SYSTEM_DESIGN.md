@@ -5,10 +5,8 @@ track, prompting an LLM that either tutors (ask mode) or generates a complete HT
 (build mode), rendered live in a sandboxed iframe. Teachers and admins run classes, review
 homework, and manage invoices/receipts (delivered over Telegram) through a back office.
 
-This document is the high-level design. For exhaustive, code-verified detail, see
-`AGENTS.md` and `.agents/summary/*.md` (architecture, components, interfaces, data models,
-workflows, dependencies) — this file summarizes and cross-links them rather than duplicating
-every line.
+This document is the high-level design; `CLAUDE.md` covers day-to-day commands and
+codebase-specific conventions.
 
 ## 1. Goals and Non-Goals
 
@@ -222,7 +220,7 @@ erDiagram
 
 `lib/db/schema.ts` is the authoring entry point and `./drizzle` (applied via `bun run
 db:migrate`) is the schema of record; `types/index.ts` is a separate hand-maintained mirror
-with no generator, so the two can drift (see `.agents/summary/review_notes.md`). `drizzle-kit
+with no generator, so the two can drift. `drizzle-kit
 pull`/`push` are permanently unusable against this schema — an upstream bug misclassifies
 foreign keys during introspection — so `bun run db:generate` (diffs `schema.ts` against a local
 snapshot, no DB connection) is the only path from schema change to applied migration. See
@@ -424,12 +422,4 @@ per-user hourly prompt cap — changing providers/models requires explicit appro
 
 ## 9. Where to Go Deeper
 
-| Question | Document |
-| --- | --- |
-| Exact request/response shape for an endpoint | `.agents/summary/interfaces.md` |
-| Which file implements a given piece of UI | `.agents/summary/components.md` |
-| Table constraints, RLS policy text, cascade behavior | `.agents/summary/data_models.md` |
-| A full user journey traced through files | `.agents/summary/workflows.md` |
-| Package/service inventory and env var rules | `.agents/summary/dependencies.md` |
-| Known drift and rough edges | `.agents/summary/review_notes.md` |
-| Commands, environment variables, day-to-day guidance | `AGENTS.md`, `CLAUDE.md` |
+Commands, environment variables, and day-to-day conventions live in `CLAUDE.md`.
