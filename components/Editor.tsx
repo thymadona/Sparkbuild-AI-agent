@@ -20,7 +20,14 @@ interface EditorProps {
   activeFile?: string;
   messages: Message[];
   onMessagesChange: (msgs: Message[] | ((prev: Message[]) => Message[])) => void;
-  selectedCode?: { text: string; startLine: number; endLine: number } | null;
+  selectedCode?: {
+    text: string;
+    startLine: number;
+    endLine: number;
+    label?: string;
+    subtitle?: string;
+    kind?: "element" | "text";
+  } | null;
   onClearSelection?: () => void;
   pendingPrompt?: string | null;
   onPromptConsumed?: () => void;
@@ -369,29 +376,40 @@ export default function Editor({
         </div>
       )}
 
-      {/* Selected code context */}
+      {/* Selected code context — a compact pill, not the raw snippet: the
+          full text still rides along in selectedCode.text for the prompt,
+          it's just not shown here anymore. */}
       {selectedCode && (
-        <div className="mx-3 mb-2 rounded-md border border-brand-200 dark:border-brand-800 bg-surface-800">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-brand-200/60 dark:border-brand-800/60">
-            <span className="text-xs text-brand-600 dark:text-brand-400 font-mono">
-              {activeFile ?? "index.html"}:
-              {selectedCode.startLine === selectedCode.endLine
-                ? `${selectedCode.startLine}`
-                : `${selectedCode.startLine}–${selectedCode.endLine}`}
-            </span>
-            <button
-              onClick={onClearSelection}
-              className="text-fg-muted hover:text-fg-secondary transition-colors leading-none text-base"
-              title="Dismiss"
-            >
-              &times;
-            </button>
+        <div className="mx-3 mb-2 flex items-center gap-2 rounded-xl border border-brand-200 dark:border-brand-800 bg-surface-800 px-2 py-1.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-700 text-brand-500 dark:text-brand-400">
+            {selectedCode.kind === "element" ? (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
+              </svg>
+            )}
           </div>
-          <pre className="px-2 py-1.5 text-xs text-fg-secondary font-mono overflow-x-auto max-h-28 overflow-y-auto whitespace-pre-wrap break-all">
-            {selectedCode.text.length > 300
-              ? selectedCode.text.slice(0, 300) + "…"
-              : selectedCode.text}
-          </pre>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-fg-primary font-mono leading-tight">
+              {selectedCode.label ?? (activeFile ?? "index.html")}
+            </p>
+            <p className="truncate text-xs text-fg-muted leading-tight">
+              {selectedCode.subtitle ??
+                (selectedCode.startLine === selectedCode.endLine
+                  ? `Line ${selectedCode.startLine}`
+                  : `Lines ${selectedCode.startLine}–${selectedCode.endLine}`)}
+            </p>
+          </div>
+          <button
+            onClick={onClearSelection}
+            className="shrink-0 text-fg-muted hover:text-fg-secondary transition-colors leading-none text-base"
+            title="Dismiss"
+          >
+            &times;
+          </button>
         </div>
       )}
 

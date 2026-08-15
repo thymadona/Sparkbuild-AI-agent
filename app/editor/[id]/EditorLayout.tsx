@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@/components/Editor'
-import Preview from '@/components/Preview'
+import Preview, { type PickedElement } from '@/components/Preview'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
 import ConfettiBurst from '@/components/ConfettiBurst'
@@ -64,7 +64,15 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [chatDocked, setChatDocked] = useState(true)
   const [sideWidth, setSideWidth] = useState(420)
   const [previewBlocked, setPreviewBlocked] = useState(false)
-  const [selectedCode, setSelectedCode] = useState<{ text: string; startLine: number; endLine: number } | null>(null)
+  const [selectedCode, setSelectedCode] = useState<{
+    text: string
+    startLine: number
+    endLine: number
+    label?: string
+    subtitle?: string
+    kind?: 'element' | 'text'
+  } | null>(null)
+  const [inspectMode, setInspectMode] = useState(false)
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([])
   const [highlightLine, setHighlightLine] = useState<number | null>(null)
   const [highlightNonce, setHighlightNonce] = useState(0)
@@ -158,6 +166,13 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     }
   }, [consoleLogs, rightTab])
 
+  // The Pick button forces rightTab to 'preview' when arming, but nothing
+  // stops the student from tabbing away while still armed (in non-split
+  // view); disarm so the button's active state doesn't lie.
+  useEffect(() => {
+    if (!splitView && rightTab !== 'preview') setInspectMode(false)
+  }, [rightTab, splitView])
+
   // Refetches messages in case the browser served a stale cached RSC payload
   // (e.g. back/forward navigation after the chat moved on since first load).
   // Skipped when the project was created moments ago: no prior render of
@@ -184,6 +199,17 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   function handleTaskPrompt(p: string) {
     openChat()
     setPendingPrompt(p)
+  }
+
+  // Preview picks come with no reliable source line (the rendered DOM can
+  // drift from the raw file text — reformatted attributes, injected scripts),
+  // so the chip shows a tag label instead of a line range. One-shot: picking
+  // disarms inspect mode, same as devtools' "select element" tool.
+  function handleInspectPick(el: PickedElement) {
+    const subtitle = el.id ? `#${el.id}` : el.classes[0] ? `.${el.classes[0]}` : 'Element'
+    setSelectedCode({ text: el.outerHTML, startLine: 0, endLine: 0, label: el.tag, subtitle, kind: 'element' })
+    setInspectMode(false)
+    openChat()
   }
 
   // Drives Navigator, which renders both the task list and (once core tasks
@@ -564,6 +590,20 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
             <button
               onClick={() => {
+                if (!splitView) setRightTab('preview')
+                setInspectMode(v => !v)
+              }}
+              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded-md border-2 transition-colors ${inspectMode ? 'border-surface-600 bg-brand-500/20 text-brand-600 dark:text-brand-300 shadow-hard-sm' : 'border-transparent text-fg-muted hover:text-fg-primary'}`}
+              title="Pick an element from the preview"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
+              </svg>
+              Pick
+            </button>
+
+            <button
+              onClick={() => {
                 if (!splitView && rightTab === 'console') setRightTab('code')
                 setSplitView(v => !v)
               }}
@@ -608,7 +648,16 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   highlightLine={highlightLine}
                   highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
-                    setSelectedCode(sel)
+                    setSelectedCode(
+                      sel
+                        ? {
+                            ...sel,
+                            kind: 'text',
+                            label: sel.startLine === sel.endLine ? `Line ${sel.startLine}` : `Lines ${sel.startLine}–${sel.endLine}`,
+                            subtitle: activeFile,
+                          }
+                        : null
+                    )
                     if (sel) {
                       openChat()
                     }
@@ -617,7 +666,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               </Panel>
               <PanelResizeHandle className="w-1 bg-surface-600 hover:bg-brand-500 cursor-col-resize transition-colors" />
               <Panel defaultSize={50} minSize={20}>
-                <Preview code={combinedHtml} isDragging={previewBlocked} />
+                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
               </Panel>
             </PanelGroup>
           ) : (
@@ -634,7 +683,16 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   highlightLine={highlightLine}
                   highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
-                    setSelectedCode(sel)
+                    setSelectedCode(
+                      sel
+                        ? {
+                            ...sel,
+                            kind: 'text',
+                            label: sel.startLine === sel.endLine ? `Line ${sel.startLine}` : `Lines ${sel.startLine}–${sel.endLine}`,
+                            subtitle: activeFile,
+                          }
+                        : null
+                    )
                     if (sel) {
                       openChat()
                     }
@@ -644,7 +702,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
               {/* Preview — always mounted so iframe never reloads on tab switch */}
               <div className={`absolute inset-0 ${rightTab === 'preview' ? '' : 'invisible pointer-events-none'}`}>
-                <Preview code={combinedHtml} isDragging={previewBlocked} />
+                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
               </div>
 
               {/* Console */}
