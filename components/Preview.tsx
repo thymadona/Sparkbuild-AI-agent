@@ -1,8 +1,21 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
+export interface PickedElement {
+  tag: string
+  id: string | null
+  classes: string[]
+  outerHTML: string
+}
+
 interface PreviewProps {
   code: string
   isDragging?: boolean
+  // When true, hovering highlights elements in the preview and a click posts
+  // the element back instead of running the page's own handler.
+  inspectMode?: boolean
+  onInspectPick?: (element: PickedElement) => void
 }
 
 const CONSOLE_INTERCEPTOR = `<script>
@@ -41,8 +54,89 @@ const CONSOLE_INTERCEPTOR = `<script>
 })()
 </script>`
 
-export default function Preview({ code, isDragging }: PreviewProps) {
-  const injected = code ? code.replace(/<head>/i, '<head>' + CONSOLE_INTERCEPTOR) : code
+// Dormant until armed via postMessage — see the arm effect below. Announces
+// readiness on load so the parent can re-arm after every srcDoc reload
+// (combinedHtml, and therefore the iframe, is recreated on every keystroke).
+const INSPECTOR = `<script>
+;(function(){
+  var armed = false
+  var overlay = null
+  function ensureOverlay() {
+    if (overlay) return overlay
+    overlay = document.createElement('div')
+    overlay.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;' +
+      'background:rgba(99,102,241,0.25);border:2px solid rgb(99,102,241);border-radius:2px;display:none;'
+    document.documentElement.appendChild(overlay)
+    return overlay
+  }
+  function highlight(el) {
+    var o = ensureOverlay()
+    var r = el.getBoundingClientRect()
+    o.style.display = 'block'
+    o.style.left = r.left + 'px'
+    o.style.top = r.top + 'px'
+    o.style.width = r.width + 'px'
+    o.style.height = r.height + 'px'
+  }
+  function clearHighlight() {
+    if (overlay) overlay.style.display = 'none'
+  }
+  function pickable(el) {
+    return el && el.nodeType === 1 && el !== document.documentElement && el !== document.body
+  }
+  document.addEventListener('mousemove', function(e) {
+    if (!armed) return
+    if (!pickable(e.target)) { clearHighlight(); return }
+    highlight(e.target)
+  }, true)
+  document.addEventListener('click', function(e) {
+    if (!armed) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (!pickable(e.target)) return
+    var el = e.target
+    var classes = typeof el.className === 'string' ? el.className.trim().split(/\\s+/).filter(Boolean) : []
+    window.parent.postMessage({
+      type: '__inspect__',
+      element: { tag: el.tagName.toLowerCase(), id: el.id || null, classes: classes, outerHTML: el.outerHTML }
+    }, '*')
+    armed = false
+    clearHighlight()
+  }, true)
+  window.addEventListener('message', function(e) {
+    if (!e.data || e.data.type !== '__inspect_arm__') return
+    armed = !!e.data.on
+    if (!armed) clearHighlight()
+  })
+  window.parent.postMessage({ type: '__inspect_ready__' }, '*')
+})()
+</script>`
+
+export default function Preview({ code, isDragging, inspectMode = false, onInspectPick }: PreviewProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const injected = code ? code.replace(/<head>/i, '<head>' + CONSOLE_INTERCEPTOR + INSPECTOR) : code
+
+  // Owns the inspect protocol end to end: re-arms on every reload (the iframe
+  // reloads on every keystroke since srcDoc is recomputed) and forwards picks
+  // outward. Scoped to this iframe via e.source so it doesn't react to
+  // messages from some other preview instance (e.g. split view).
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (e.source !== iframeRef.current?.contentWindow) return
+      if (e.data?.type === '__inspect_ready__') {
+        iframeRef.current?.contentWindow?.postMessage({ type: '__inspect_arm__', on: inspectMode }, '*')
+      } else if (e.data?.type === '__inspect__') {
+        onInspectPick?.(e.data.element)
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [inspectMode, onInspectPick])
+
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage({ type: '__inspect_arm__', on: inspectMode }, '*')
+  }, [inspectMode])
+
   if (!code) {
     return (
       <div className="flex h-full items-center justify-center bg-surface-900 text-fg-muted text-sm">
@@ -66,9 +160,10 @@ export default function Preview({ code, isDragging }: PreviewProps) {
 
   return (
     <iframe
+      ref={iframeRef}
       srcDoc={injected}
       sandbox="allow-scripts allow-forms"
-      className={`h-full w-full border-0 bg-white ${isDragging ? 'pointer-events-none' : ''}`}
+      className={`h-full w-full border-0 bg-white ${isDragging ? 'pointer-events-none' : ''} ${inspectMode ? 'cursor-crosshair' : ''}`}
       title="Live preview"
     />
   )
