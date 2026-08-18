@@ -1,5 +1,16 @@
+const FILE_HEADER_RE = /^--- FILE: .+? ---$/m
+
+/**
+ * True once a well-formed file header has streamed in, even if the model
+ * prefixed it with a sentence of prose despite being told not to — DeepSeek
+ * doesn't always comply with the "no text before it" instruction.
+ */
+export function isCodeResponse(text: string): boolean {
+  return FILE_HEADER_RE.test(text)
+}
+
 export function parseMultiFileResponse(text: string): Record<string, string> | null {
-  if (!text.includes('--- FILE:')) return null
+  if (!FILE_HEADER_RE.test(text)) return null
   // Strip everything from --- DONE --- onward before parsing files
   const doneIdx = text.indexOf('--- DONE ---')
   const filesPart = doneIdx !== -1 ? text.slice(0, doneIdx) : text

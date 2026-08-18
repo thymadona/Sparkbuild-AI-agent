@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/types";
-import { parseMultiFileResponse, parseSummary } from "@/lib/parse-multi-file";
+import { isCodeResponse, parseMultiFileResponse, parseSummary } from "@/lib/parse-multi-file";
 import SpeakButton from "@/components/SpeakButton";
 
 interface ChatMessage {
@@ -161,7 +161,7 @@ export default function Editor({
         const { done, value } = await reader.read();
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
-        if (accumulated.trimStart().startsWith("--- FILE:") && Date.now() - lastEmitAt >= MIN_EMIT_INTERVAL_MS) {
+        if (isCodeResponse(accumulated) && Date.now() - lastEmitAt >= MIN_EMIT_INTERVAL_MS) {
           const parsed = parseMultiFileResponse(accumulated);
           if (parsed) {
             onFilesUpdate(parsed);
@@ -170,12 +170,12 @@ export default function Editor({
         }
       }
 
-      if (accumulated.trimStart().startsWith("--- FILE:")) {
+      if (isCodeResponse(accumulated)) {
         const parsed = parseMultiFileResponse(accumulated);
         if (parsed) onFilesUpdate(parsed);
       }
 
-      const isCode = accumulated.trimStart().startsWith("--- FILE:");
+      const isCode = isCodeResponse(accumulated);
       const assistantContent = isCode
         ? parseSummary(accumulated) ?? "I've built that for you! Check the preview."
         : accumulated;

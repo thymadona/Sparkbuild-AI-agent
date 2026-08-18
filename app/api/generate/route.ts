@@ -3,7 +3,7 @@ import type OpenAI from 'openai'
 import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
 import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
-import { parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
+import { isCodeResponse, parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 import { getLessonForProject } from '@/lib/lessons'
 import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
@@ -198,7 +198,7 @@ export async function POST(req: Request) {
         controller.close()
 
         // 7. Determine response type and save accordingly
-        const isCode = accumulated.trimStart().startsWith('--- FILE:')
+        const isCode = isCodeResponse(accumulated)
         let assistantContent = accumulated
 
         if (isCode) {
