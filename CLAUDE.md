@@ -76,25 +76,40 @@ those four tables therefore breaks auth at runtime with nothing failing at compi
 load-bearing: admin-provisioned students get a credential-less `users` row and claim it by
 signing in with Google on the matching address.
 
-**One Supabase client remains, for data only.** `supabaseAdmin` (`lib/supabase-server.ts`,
-service role, **bypasses RLS**) still backs ~38 files mid-conversion. Because it ignores RLS,
-authorization must be written into every query, e.g. `.eq('id', id).eq('user_id', user.id)`, so
-an owner mismatch yields zero rows instead of a cross-tenant write. The anon and browser clients
-are gone. Never import `supabaseAdmin` into a Client Component.
+**Drizzle over one `DATABASE_URL` is the only data path.** `lib/db/client.ts` exports the single
+`db` client; there is no Supabase client, no PostgREST, and no `@supabase/supabase-js`
+dependency. The database may still be *hosted* by Supabase — that is a hosting choice and
+nothing in the app knows about it.
 
-**Drizzle** (`lib/db/client.ts`, `lib/db/schema.ts`) is available for new server-side code as a
-typed alternative to `supabaseAdmin` — same service-role Postgres connection, same RLS-bypass,
-same per-query ownership-check obligation.
+It connects as the database owner and therefore **bypasses RLS**, so authorization is written
+into every query: `.where(and(eq(projects.id, id), eq(projects.userId, user.id)))`. Dropping the
+second clause is a horizontal privilege escalation, not a missing filter. Prefer a `where`
+predicate over fetching a row and comparing its `user_id` afterwards — a predicate cannot be
+forgotten further down the function.
+
+Two consequences of Postgres being reached directly rather than through PostgREST:
+
+- **A malformed id is an error, not an empty result.** PostgREST absorbed
+  `.eq('id', 'not-a-uuid')` as `{ data: null }`; Postgres raises `22P02` and Drizzle throws it,
+  which Next renders as a 500. Every handler that takes an id from the path or query string
+  guards it with `isUuid()` (`lib/db/uuid.ts`) so a mistyped URL is still a 404.
+- **Errors throw rather than arriving as `{ error }`.** A handler that answered 500 on a database
+  error needs a `try`/`catch` to keep doing so, and one that failed open or closed needs the
+  catch to preserve that choice — see `lib/auth/permissions.ts` (fails closed) against
+  `lib/ratelimit.ts` (fails open).
+
+Never import `db` into a Client Component.
 
 **Naming: camelCase in TypeScript, snake_case in Postgres.** Every column in `lib/db/schema.ts`
 carries an explicit name string — `userId: uuid('user_id')` — so the two sides are decoupled and
 renaming a property is DDL-neutral (`bun run db:generate` must report "No schema changes"). Do
 **not** adopt drizzle-kit's `casing: 'snake_case'` option and drop those strings: with it the DDL
 is derived from the property name, which turns every future rename into a silent schema change.
-Because `supabaseAdmin` still returns snake_case rows, `select({ ... })` objects deliberately keep
-snake_case *keys* (`select({ lesson_id: projects.lessonId })`) so JSON responses, `types/index.ts`
-and Client Components see one shape no matter which client produced the row. Those keys flip to
-camelCase in one pass once the last PostgREST call site is gone. As of 2026-08-15 this repo is Drizzle-native:
+`select({ ... })` objects deliberately keep snake_case *keys*
+(`select({ lesson_id: projects.lessonId })`) so JSON responses, `types/index.ts` and Client
+Components all see one shape. This outlived PostgREST on purpose: flipping ~60 read sites,
+`types/index.ts` and every client component to camelCase is its own change, not a rider on the
+data-client swap. `./drizzle` (applied via `bun run db:migrate`) is the schema of record:
 `./drizzle` (applied via `bun run db:migrate`) is the schema of record — `supabase/migrations/`
 no longer exists. Workflow for a schema change: edit `lib/db/schema.ts` first, run
 `bun run db:generate` (diffs against the snapshot in `./drizzle`, safe — see below) to derive
@@ -103,10 +118,9 @@ security-definer functions, data backfills — `drizzle-kit generate --custom` f
 `bun run db:migrate` to apply it directly against `DATABASE_URL`. `drizzle-kit push` and `pull`
 are permanently off limits against this schema — `drizzle.config.ts`'s header comment explains
 why (an upstream drizzle-kit bug makes them hang or crash; `lib/db/schema.ts`'s header and
-`drizzle/README.md` cover the rest of the workflow, including the consequence that Supabase's
-own migration dashboard/`db reset`/MCP branching tools no longer reflect schema state past the
-cutover point). Existing `supabaseAdmin` call sites have not been migrated — this is additive,
-not a replacement.
+`drizzle/README.md` cover the rest of the workflow, including the consequence that if the
+database is hosted on Supabase, that project's own migration dashboard/`db reset`/MCP branching
+tools no longer reflect schema state).
 
 **The LLM contract is delimiter-based and full-file.** Build responses must be
 `--- FILE: <name> ---` … `--- DONE ---` blocks followed by a summary sentence, parsed by
@@ -130,7 +144,7 @@ by exact filename and strips external `<link>`/`<script src>` tags before render
 `jest.config.ts` (`moduleNameMapper`).
 
 **Next.js 16 specifics**: `params` in every page and route handler is a `Promise` and must be
-awaited; `createServerSupabaseClient()` is async (`cookies()` is async) and must be awaited.
+awaited.
 
 ## Patterns That Deviate From Defaults
 
@@ -259,11 +273,8 @@ globally, so every `.tsx` test starts with `/** @jest-environment jsdom */`.
 ## Environment Variables
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=        # PostgREST only; the anon key is gone (see Security Constraints)
 NEXT_PUBLIC_SITE_URL=
-SUPABASE_SERVICE_ROLE_KEY=       # server-side only
-DATABASE_URL=                    # server-side only; Postgres for Drizzle (bypasses RLS) and for `bun run db:migrate`/`db:studio`.
-                                 # Must address the SAME database NEXT_PUBLIC_SUPABASE_URL serves while any supabaseAdmin call site remains.
+DATABASE_URL=                    # server-side only; the app's ONLY data connection (bypasses RLS), and the target of `bun run db:migrate`/`db:studio`
 TEST_DATABASE_URL=               # server-side only; separate LOCAL database for Jest — must differ from DATABASE_URL
 BETTER_AUTH_SECRET=              # server-side only; `openssl rand -base64 32`
 BETTER_AUTH_URL=                 # the app's own origin; Better Auth builds the OAuth redirect from it
@@ -278,22 +289,21 @@ TEST_REDIS_URL=                  # server-side only; used when NODE_ENV=test (de
 
 ## Security Constraints
 
-- Never expose `SUPABASE_SERVICE_ROLE_KEY`, `DEEPSEEK_API_KEY`, or `TELEGRAM_BOT_TOKEN` to the
-  browser; only `NEXT_PUBLIC_*` values may be referenced from `'use client'` files.
-- All writes go through server route handlers using `supabaseAdmin`, never from the browser.
-- Because `supabaseAdmin` bypasses RLS, every query needs its own ownership or admin check.
-- **RLS is on for all 21 tables with zero policies, and that is the design.** PostgREST is
-  still live for the `supabaseAdmin` call sites, and Supabase's default privileges would
-  otherwise expose every table to the public anon key — `sessions.token` is session forgery,
-  `user_roles` is privilege escalation. `drizzle/0002_postgrest_lockdown.sql` enables row
-  security on all of them and revokes every `anon`/`authenticated` grant, including the default
-  privileges. `service_role` and the owner hold `BYPASSRLS`, so both data clients are
-  unaffected. The old `"Admin full access"` `using (true)` policies were not carried through
-  the squash — they identified nobody and were never a boundary.
-  **A new table needs its own `enable row level security` line**; `bun run db:generate` will
-  not write one. That obligation ends with the last `supabaseAdmin` call site.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` is gone — no file references it, and `0002` revoked
-  everything it could reach. Do not reintroduce it.
+- Never expose `DATABASE_URL`, `DEEPSEEK_API_KEY`, or `TELEGRAM_BOT_TOKEN` to the browser; only
+  `NEXT_PUBLIC_*` values may be referenced from `'use client'` files.
+- All reads and writes go through server route handlers and Server Components using `db`, never
+  from the browser.
+- Because `db` connects as the owner and bypasses RLS, every query needs its own ownership or
+  admin check.
+- **RLS is on for all 21 tables with zero policies, and that is the design.**
+  `drizzle/0002_postgrest_lockdown.sql` enables row security and revokes every
+  `anon`/`authenticated` grant, including the default privileges. The application is unaffected
+  (the owner bypasses RLS), so this costs nothing and closes the hole that a Supabase-hosted
+  database leaves open: that project's PostgREST and its public anon key keep working whether or
+  not the app uses them, and Supabase's default privileges would otherwise expose every table —
+  reading `sessions.token` is session forgery, writing `user_roles` is privilege escalation.
+  **A new table needs its own `enable row level security` line**; `bun run db:generate` will not
+  write one.
 - `/invoice/[id]` and `/receipt/[id]` perform no authorization; the id is the only access
   control.
 
@@ -326,8 +336,11 @@ into them. Tailwind is the styling system — reuse `cn()` from `lib/utils.ts` a
 
 Jest is configured through `jest.config.ts` with Testing Library support. Name tests
 `*.test.ts`/`*.test.tsx`, place them under the matching `__tests__/unit/` or
-`__tests__/integration/` area. Test observable behavior, mock external Supabase/LLM
-dependencies, and cover error paths for API and persistence logic. Run focused tests during
+`__tests__/integration/` area. Test observable behavior against the real test database — mock
+only genuinely external services (DeepSeek, Telegram) — and cover error paths for API and
+persistence logic. `jest.config.ts` pins `maxWorkers: 1`: every database-backed suite shares one
+`TEST_DATABASE_URL` and truncates it between tests, so parallel workers wipe each other's rows
+and unrelated suites fail at random. Run focused tests during
 development, then `bun run test` before opening a pull request.
 
 Schema changes go through `lib/db/schema.ts` → `bun run db:generate` → `./drizzle` → `bun run
@@ -350,7 +363,7 @@ when available, and include screenshots for visible UI changes.
 | LLM pipeline                                 | `app/api/generate/route.ts`                         |
 | Project CRUD                                 | `app/api/projects/route.ts`                         |
 | LLM client + system prompts                  | `lib/gemini.ts`                                     |
-| Supabase client (data only, being removed)   | `lib/supabase-server.ts`                            |
+| Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schema.ts`              |
 | Lesson catalog + versioning                  | `lib/lessons.ts`                                    |
 | Task verification                            | `lib/task-checks.ts`                                |
 | Rate limiting (Redis + Lua)                  | `lib/ratelimit.ts`                                  |

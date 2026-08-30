@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { desc, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { users as usersTable } from '@/lib/db/schema'
+import { lessonProgress, projects, studentProfiles, users as usersTable } from '@/lib/db/schema'
 import { isAdmin } from '@/lib/auth/permissions'
 import { getLessonForProject } from '@/lib/lessons'
 import { homeworkTasks } from '@/lib/task-guard'
@@ -28,38 +28,43 @@ export default async function HomeworkPage() {
   // via their own class page.
   if (!user || !(await isAdmin(user.id))) redirect('/staff')
 
-  const [{ data: projects }, { data: usersData }, { data: profiles }] = await Promise.all([
-    supabaseAdmin
-      .from('projects')
-      .select('id, user_id, title, lesson_id, lesson_version, submission_status, updated_at')
-      .not('submission_status', 'is', null)
-      .order('updated_at', { ascending: false }),
-// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
-    // silently dropped every user past the thousandth. Kept in the PostgREST
-    // result shape so the mapping below is untouched; the surrounding queries
-    // move to Drizzle with the rest of this page.
+  const [submissions, allUsers, profiles] = await Promise.all([
     db
-      .select({ id: usersTable.id, email: usersTable.email })
-      .from(usersTable)
-      .then((rows) => ({ data: { users: rows } })),
-    supabaseAdmin.from('student_profiles').select('user_id, full_name'),
+      .select({
+        id: projects.id,
+        user_id: projects.userId,
+        title: projects.title,
+        lesson_id: projects.lessonId,
+        lesson_version: projects.lessonVersion,
+        submission_status: projects.submissionStatus,
+        updated_at: projects.updatedAt,
+      })
+      .from(projects)
+      .where(isNotNull(projects.submissionStatus))
+      .orderBy(desc(projects.updatedAt)),
+    // Reads public.users directly. The Supabase Auth admin listing this
+    // replaced was paginated at 1000 and silently dropped everyone past it.
+    db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
+    db
+      .select({ user_id: studentProfiles.userId, full_name: studentProfiles.fullName })
+      .from(studentProfiles),
   ])
 
-  const submissions = projects ?? []
   const progressById = new Map<string, string[]>()
   if (submissions.length > 0) {
-    const { data: progress } = await supabaseAdmin
-      .from('lesson_progress')
-      .select('project_id, completed_task_ids')
-      .in(
-        'project_id',
-        submissions.map((project) => project.id),
-      )
-    for (const row of progress ?? []) progressById.set(row.project_id, row.completed_task_ids ?? [])
+    const progress = await db
+      .select({
+        project_id: lessonProgress.projectId,
+        completed_task_ids: lessonProgress.completedTaskIds,
+      })
+      .from(lessonProgress)
+      .where(inArray(lessonProgress.projectId, submissions.map((project) => project.id)))
+
+    for (const row of progress) progressById.set(row.project_id, row.completed_task_ids)
   }
 
-  const emailById = Object.fromEntries((usersData?.users ?? []).map((u) => [u.id, u.email ?? u.id]))
-  const nameById = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.full_name]))
+  const emailById = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? u.id]))
+  const nameById = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
 
   const rows: SubmissionRow[] = submissions.map((project) => {
     const lesson = getLessonForProject(project.lesson_id ?? -1, project.lesson_version)

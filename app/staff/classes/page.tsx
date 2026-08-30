@@ -1,7 +1,17 @@
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { asc, desc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { users as usersTable } from '@/lib/db/schema'
+import {
+  classMembers,
+  classSchedules,
+  classes as classesTable,
+  invoices,
+  projects,
+  roles,
+  studentProfiles,
+  userRoles,
+  users as usersTable,
+} from '@/lib/db/schema'
 import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import ClassesClient from './ClassesClient'
 import TeacherClassesClient from './TeacherClassesClient'
@@ -20,48 +30,63 @@ export default async function ClassesPage() {
   const canManageAll = (await isAdmin(user.id)) || (await hasPermission(user.id, 'classes:manage'))
 
   if (canManageAll) {
-    const [
-      { data: classes },
-      { data: members },
-      { data: schedules },
-      { data: invoices },
-      { data: usersData },
-      { data: profiles },
-      { data: teacherRoleRows },
-    ] = await Promise.all([
-      supabaseAdmin.from('classes').select('*').order('created_at', { ascending: false }),
-      supabaseAdmin.from('class_members').select('class_id, user_id, role'),
-      supabaseAdmin.from('class_schedules').select('*').order('day_of_week').order('start_time'),
-      supabaseAdmin.from('invoices').select('user_id, status'),
-// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
-      // silently dropped every user past the thousandth. Kept in the PostgREST
-      // result shape so the mapping below is untouched; the surrounding queries
-      // move to Drizzle with the rest of this page.
-      db
-        .select({ id: usersTable.id, email: usersTable.email })
-        .from(usersTable)
-        .then((rows) => ({ data: { users: rows } })),
-      supabaseAdmin.from('student_profiles').select('user_id, full_name'),
-      supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
-    ])
+    const [classes, members, schedules, invoiceRows, allUsers, profiles, roleRows] =
+      await Promise.all([
+        db
+          .select({
+            id: classesTable.id,
+            name: classesTable.name,
+            description: classesTable.description,
+            created_at: classesTable.createdAt,
+          })
+          .from(classesTable)
+          .orderBy(desc(classesTable.createdAt)),
+        db
+          .select({
+            class_id: classMembers.classId,
+            user_id: classMembers.userId,
+            role: classMembers.role,
+          })
+          .from(classMembers),
+        db
+          .select({
+            class_id: classSchedules.classId,
+            day_of_week: classSchedules.dayOfWeek,
+            start_time: classSchedules.startTime,
+            duration_min: classSchedules.durationMin,
+          })
+          .from(classSchedules)
+          .orderBy(asc(classSchedules.dayOfWeek), asc(classSchedules.startTime)),
+        db.select({ user_id: invoices.userId, status: invoices.status }).from(invoices),
+        // Reads public.users directly. The Supabase Auth admin listing this
+        // replaced was paginated at 1000 and silently dropped everyone past it.
+        db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
+        db
+          .select({ user_id: studentProfiles.userId, full_name: studentProfiles.fullName })
+          .from(studentProfiles),
+        db
+          .select({ user_id: userRoles.userId, name: roles.name })
+          .from(userRoles)
+          .innerJoin(roles, eq(roles.id, userRoles.roleId)),
+      ])
 
     const membersByClass: Record<string, string[]> = {}
-    for (const m of members ?? []) {
+    for (const m of members) {
       if (m.role !== 'student') continue
       if (!membersByClass[m.class_id]) membersByClass[m.class_id] = []
       membersByClass[m.class_id].push(m.user_id)
     }
 
     const schedulesByClass: Record<string, { day_of_week: number; start_time: string; duration_min: number }[]> = {}
-    for (const s of schedules ?? []) {
+    for (const s of schedules) {
       if (!schedulesByClass[s.class_id]) schedulesByClass[s.class_id] = []
       schedulesByClass[s.class_id].push({ day_of_week: s.day_of_week, start_time: s.start_time, duration_min: s.duration_min })
     }
 
-    const paidUsers = new Set((invoices ?? []).filter((i) => i.status === 'paid').map((i) => i.user_id))
-    const unpaidUsers = new Set((invoices ?? []).filter((i) => i.status === 'unpaid').map((i) => i.user_id))
+    const paidUsers = new Set(invoiceRows.filter((i) => i.status === 'paid').map((i) => i.user_id))
+    const unpaidUsers = new Set(invoiceRows.filter((i) => i.status === 'unpaid').map((i) => i.user_id))
 
-    const rows = (classes ?? []).map((cls) => {
+    const rows = classes.map((cls) => {
       const userIds = membersByClass[cls.id] ?? []
       return {
         id: cls.id,
@@ -75,10 +100,9 @@ export default async function ClassesPage() {
       }
     })
 
-    const userMap = Object.fromEntries((usersData?.users ?? []).map((u) => [u.id, u.email ?? '']))
-    const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.full_name]))
-    const roleRows = (teacherRoleRows ?? []) as unknown as { user_id: string; roles: { name: string } | null }[]
-    const platformTeacherIds = new Set(roleRows.filter((r) => r.roles?.name === 'teacher').map((r) => r.user_id))
+    const userMap = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? '']))
+    const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
+    const platformTeacherIds = new Set(roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id))
     // Only 'admin' and 'teacher' roles exist in user_roles — a student never
     // has a row there. An account can hold a student_profiles row *and* a
     // staff role at once (e.g. a teacher's own test account), so keep staff
@@ -87,7 +111,7 @@ export default async function ClassesPage() {
     const allTeachers = Array.from(platformTeacherIds)
       .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
       .sort((a, b) => a.name.localeCompare(b.name))
-    const allStudents = (profiles ?? [])
+    const allStudents = profiles
       .filter((p) => !staffIds.has(p.user_id))
       .map((p) => ({ userId: p.user_id, name: p.full_name, email: userMap[p.user_id] ?? '' }))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -106,22 +130,40 @@ export default async function ClassesPage() {
   const classIds = await getTeacherClassIds(user.id)
   if (classIds.length === 0) redirect('/staff')
 
-  const [{ data: classes }, { data: members }, { data: projects }] = await Promise.all([
-    supabaseAdmin.from('classes').select('*').in('id', classIds).order('name'),
-    supabaseAdmin.from('class_members').select('class_id, user_id, role').in('class_id', classIds),
-    supabaseAdmin.from('projects').select('user_id, submission_status').eq('submission_status', 'submitted'),
+  const [classes, members, submitted] = await Promise.all([
+    db
+      .select({
+        id: classesTable.id,
+        name: classesTable.name,
+        description: classesTable.description,
+      })
+      .from(classesTable)
+      .where(inArray(classesTable.id, classIds))
+      .orderBy(asc(classesTable.name)),
+    db
+      .select({
+        class_id: classMembers.classId,
+        user_id: classMembers.userId,
+        role: classMembers.role,
+      })
+      .from(classMembers)
+      .where(inArray(classMembers.classId, classIds)),
+    db
+      .select({ user_id: projects.userId })
+      .from(projects)
+      .where(eq(projects.submissionStatus, 'submitted')),
   ])
 
   const studentIdsByClass: Record<string, string[]> = {}
-  for (const m of members ?? []) {
+  for (const m of members) {
     if (m.role !== 'student') continue
     if (!studentIdsByClass[m.class_id]) studentIdsByClass[m.class_id] = []
     studentIdsByClass[m.class_id].push(m.user_id)
   }
 
-  const pendingReviewUserIds = new Set((projects ?? []).map((p) => p.user_id))
+  const pendingReviewUserIds = new Set(submitted.map((p) => p.user_id))
 
-  const rows = (classes ?? []).map((cls) => {
+  const rows = classes.map((cls) => {
     const studentIds = studentIdsByClass[cls.id] ?? []
     return {
       id: cls.id,
