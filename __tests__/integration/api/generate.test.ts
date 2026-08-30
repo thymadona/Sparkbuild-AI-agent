@@ -1,10 +1,12 @@
 /**
- * Integration tests for /api/generate route handler.
- * DeepSeek client and Supabase are fully mocked.
+ * Integration tests for the /api/generate route handler.
+ *
+ * DeepSeek is mocked — it is an external paid service. The database is not:
+ * project ownership is a `where` predicate now, and the prompt log and chat
+ * messages are rows worth asserting on directly.
  */
 
 const mockGetSessionUser = jest.fn()
-const mockAdminFrom = jest.fn()
 const mockCheckRateLimit = jest.fn()
 const mockCreate = jest.fn()
 const mockIsAdmin = jest.fn()
@@ -12,12 +14,6 @@ const mockIsTeacher = jest.fn()
 
 jest.mock('@/lib/auth/session', () => ({
   getSessionUser: () => mockGetSessionUser(),
-}))
-
-jest.mock('@/lib/supabase-server', () => ({
-  supabaseAdmin: {
-    from: (...args: unknown[]) => mockAdminFrom(...args),
-  },
 }))
 
 jest.mock('@/lib/ratelimit', () => ({
@@ -46,10 +42,11 @@ jest.mock('next/headers', () => ({
   cookies: () => ({ getAll: () => [], set: jest.fn() }),
 }))
 
+import { eq } from 'drizzle-orm'
 import { POST } from '@/app/api/generate/route'
-
-const AUTHED_USER = { id: 'user-abc' }
-const VALID_PROJECT = { id: 'proj-1', user_id: AUTHED_USER.id }
+import { db } from '@/lib/db/client'
+import { messages, projects, prompts } from '@/lib/db/schema'
+import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 
 function makeRequest(body: object) {
   return new Request('http://localhost/api/generate', {
@@ -59,20 +56,17 @@ function makeRequest(body: object) {
   })
 }
 
-function makeAdminChain(singleResult: { data: unknown; error: unknown }) {
-  const chain: Record<string, jest.Mock> = {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockResolvedValue({ error: null }),
-    update: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue(singleResult),
+/** Drains a streamed response so the route's after-stream writes complete. */
+async function drain(res: Response): Promise<string> {
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+  let accumulated = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    accumulated += decoder.decode(value, { stream: true })
   }
-  Object.values(chain).forEach((fn) => {
-    if (fn !== chain.insert && fn !== chain.single) {
-      fn.mockReturnValue(chain)
-    }
-  })
-  return chain
+  return accumulated
 }
 
 /** Creates an async iterable that yields SSE-style chunks. */
@@ -92,10 +86,11 @@ function makeStreamChunks(texts: string[]) {
   }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks()
   mockIsAdmin.mockResolvedValue(false)
   mockIsTeacher.mockResolvedValue(false)
+  await resetDb()
 })
 
 describe('POST /api/generate', () => {
@@ -111,7 +106,7 @@ describe('POST /api/generate', () => {
   // ---- Rate limit checks ----------------------------------------------------
 
   it('returns 429 when the user has exceeded the hourly limit', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    mockGetSessionUser.mockResolvedValue(await makeUser())
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 10 })
 
     const res = await POST(makeRequest({ prompt: 'build something', projectId: 'p1' }))
@@ -122,41 +117,37 @@ describe('POST /api/generate', () => {
   })
 
   it('bypasses the rate limit for admins even when over the hourly limit', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
     mockIsAdmin.mockResolvedValue(true)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
-
-    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
-    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
-    chain.update.mockReturnValue(updateChain)
-    mockAdminFrom.mockReturnValue(chain)
     mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html></html>']))
 
-    const res = await POST(makeRequest({ prompt: 'build something', projectId: 'proj-1' }))
+    const res = await POST(makeRequest({ prompt: 'build something', projectId: project.id }))
     expect(res.status).toBe(200)
     expect(mockCheckRateLimit).not.toHaveBeenCalled()
+    await drain(res)
   })
 
   it('bypasses the rate limit for teachers even when over the hourly limit', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
     mockIsTeacher.mockResolvedValue(true)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
-
-    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
-    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
-    chain.update.mockReturnValue(updateChain)
-    mockAdminFrom.mockReturnValue(chain)
     mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html></html>']))
 
-    const res = await POST(makeRequest({ prompt: 'build something', projectId: 'proj-1' }))
+    const res = await POST(makeRequest({ prompt: 'build something', projectId: project.id }))
     expect(res.status).toBe(200)
     expect(mockCheckRateLimit).not.toHaveBeenCalled()
+    await drain(res)
   })
 
   // ---- Input validation -----------------------------------------------------
 
   it('returns 400 when prompt is missing', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    mockGetSessionUser.mockResolvedValue(await makeUser())
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
 
     const res = await POST(makeRequest({ projectId: 'p1' }))
@@ -164,106 +155,127 @@ describe('POST /api/generate', () => {
   })
 
   it('returns 400 when projectId is missing', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    mockGetSessionUser.mockResolvedValue(await makeUser())
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
 
     const res = await POST(makeRequest({ prompt: 'build a todo app' }))
     expect(res.status).toBe(400)
   })
 
-  it('returns 404 when project does not belong to the user', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+  // A mistyped project id used to be absorbed by PostgREST and answered 404.
+  // Postgres raises 22P02 for it, so the route guards the value itself.
+  it('returns 404 when projectId is not a uuid', async () => {
+    mockGetSessionUser.mockResolvedValue(await makeUser())
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
-
-    // SELECT filtered by id + user_id returns no row
-    const chain = makeAdminChain({ data: null, error: null })
-    mockAdminFrom.mockReturnValue(chain)
 
     const res = await POST(makeRequest({ prompt: 'build a todo app', projectId: 'p1' }))
     expect(res.status).toBe(404)
   })
 
-  // ---- Happy path: streaming ------------------------------------------------
-
-  it('streams HTML back and saves to DB on success', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+  it('returns 404 when the project belongs to a different user', async () => {
+    const owner = await makeUser()
+    const intruder = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(intruder)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
 
-    const htmlChunks = ['<!DOCTYPE html>', '<html><body>', 'Hello</body></html>']
+    const res = await POST(makeRequest({ prompt: 'build a todo app', projectId: project.id }))
+    expect(res.status).toBe(404)
+  })
 
-    // Admin DB: first call = project ownership check, rest = insert/update
-    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
-    chain.insert.mockResolvedValue({ error: null })
-    // update chain needs to resolve after .eq()
-    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
-    chain.update.mockReturnValue(updateChain)
-    mockAdminFrom.mockReturnValue(chain)
+  // ---- Happy path: streaming ------------------------------------------------
 
-    mockCreate.mockResolvedValue(makeStreamChunks(htmlChunks))
+  it('streams the model output back to the client', async () => {
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
+    mockCreate.mockResolvedValue(
+      makeStreamChunks(['<!DOCTYPE html>', '<html><body>', 'Hello</body></html>'])
+    )
 
-    const res = await POST(makeRequest({ prompt: 'build a todo app', projectId: 'proj-1' }))
+    const res = await POST(makeRequest({ prompt: 'build a todo app', projectId: project.id }))
 
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toMatch(/text/)
+    expect(await drain(res)).toBe('<!DOCTYPE html><html><body>Hello</body></html>')
+  })
 
-    // Read the full streamed body
-    const reader = res.body!.getReader()
-    const decoder = new TextDecoder()
-    let accumulated = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      accumulated += decoder.decode(value, { stream: true })
-    }
+  it('persists the user and assistant messages once the stream finishes', async () => {
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
+    mockCreate.mockResolvedValue(makeStreamChunks(['Try adding a button.']))
 
-    expect(accumulated).toBe('<!DOCTYPE html><html><body>Hello</body></html>')
+    await drain(await POST(makeRequest({ prompt: 'how do I add a button?', projectId: project.id })))
+
+    const rows = await db.select().from(messages).where(eq(messages.projectId, project.id))
+    expect(rows.map((r) => r.role).sort()).toEqual(['assistant', 'user'])
+    expect(rows.find((r) => r.role === 'user')!.content).toBe('how do I add a button?')
   })
 
   it('calls checkRateLimit with the authenticated user id', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    const user = await makeUser()
+    mockGetSessionUser.mockResolvedValue(user)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 1, count: 20 })
 
     await POST(makeRequest({ prompt: 'test', projectId: 'p1' }))
 
-    expect(mockCheckRateLimit).toHaveBeenCalledWith(AUTHED_USER.id)
+    expect(mockCheckRateLimit).toHaveBeenCalledWith(user.id)
   })
 
   it('logs the prompt to the DB before streaming', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
-
-    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
-    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
-    chain.update.mockReturnValue(updateChain)
-    mockAdminFrom.mockReturnValue(chain)
-
     mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html><html></html>']))
 
-    await POST(makeRequest({ prompt: 'make a clock', projectId: 'proj-1' }))
+    // Asserted before the stream is drained: `prompts` is the permanent log
+    // and is written on the way in, not as part of the stream's completion.
+    await POST(makeRequest({ prompt: 'make a clock', projectId: project.id }))
 
-    // Verify insert was called with the prompt content
-    expect(chain.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: AUTHED_USER.id,
-        project_id: 'proj-1',
-        content: 'make a clock',
-      })
+    const rows = await db.select().from(prompts).where(eq(prompts.projectId, project.id))
+    expect(rows).toHaveLength(1)
+    expect(rows[0].content).toBe('make a clock')
+    expect(rows[0].userId).toBe(user.id)
+  })
+
+  it('writes parsed build output back to the project files', async () => {
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
+    mockIsAdmin.mockResolvedValue(true)
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
+    mockCreate.mockResolvedValue(
+      makeStreamChunks([
+        '--- FILE: index.html ---\n<h1>Hi</h1>\n--- DONE ---\n',
+        'Built you a heading.',
+      ])
     )
+
+    await drain(await POST(makeRequest({ prompt: 'make a heading', projectId: project.id, mode: 'build' })))
+
+    const [row] = await db.select().from(projects).where(eq(projects.id, project.id))
+    expect(row.files).toEqual({ 'index.html': '<h1>Hi</h1>' })
   })
 
   it('injects the project files into the system prompt, with line numbers', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
-
-    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
-    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
-    chain.update.mockReturnValue(updateChain)
-    mockAdminFrom.mockReturnValue(chain)
-
     mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html><html></html>']))
 
     const existingCode = '<!DOCTYPE html><html><body>Old</body></html>'
-    await POST(makeRequest({ prompt: 'add a button', projectId: 'proj-1', files: { 'index.html': existingCode } }))
+    const res = await POST(
+      makeRequest({
+        prompt: 'add a button',
+        projectId: project.id,
+        files: { 'index.html': existingCode },
+      })
+    )
 
     const callArgs = mockCreate.mock.calls[0][0]
     const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
@@ -276,21 +288,20 @@ describe('POST /api/generate', () => {
     expect(systemMessage.content).toContain('--- FILE: index.html ---')
     expect(systemMessage.content).toContain(`1 | ${existingCode}`)
     expect(userMessage.content).toContain('add a button')
+    await drain(res)
   })
 
   it('injects selectedCode into the user message, not the system prompt', async () => {
-    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
-
-    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
-    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
-    chain.update.mockReturnValue(updateChain)
-    mockAdminFrom.mockReturnValue(chain)
-
     mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html><html></html>']))
 
     const highlighted = '<button>Old</button>'
-    await POST(makeRequest({ prompt: 'make it blue', projectId: 'proj-1', selectedCode: highlighted }))
+    const res = await POST(
+      makeRequest({ prompt: 'make it blue', projectId: project.id, selectedCode: highlighted })
+    )
 
     const callArgs = mockCreate.mock.calls[0][0]
     const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
@@ -302,5 +313,6 @@ describe('POST /api/generate', () => {
     expect(userMessage.content).toContain(highlighted)
     expect(userMessage.content).toContain('make it blue')
     expect(systemMessage.content).not.toContain(highlighted)
+    await drain(res)
   })
 })
