@@ -1,4 +1,4 @@
-// Pure decision logic for middleware.ts's route guards. No next/server,
+// Pure decision logic for proxy.ts's route guards. No next/server,
 // next/headers, or Supabase imports — middleware can't reach
 // lib/auth/permissions.ts (that module imports lib/supabase-server.ts,
 // which calls cookies() from next/headers and isn't valid in the Edge

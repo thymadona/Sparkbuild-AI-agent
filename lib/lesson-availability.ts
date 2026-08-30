@@ -5,7 +5,7 @@ import { cached } from '@/lib/cache'
 // turned it on for at least one class the student is a student-member of.
 // A student in no class at all sees nothing available — matches the app's
 // existing posture that class membership gates access (see the /no-class
-// flow in middleware.ts).
+// flow in proxy.ts).
 export async function getEnabledLessonIdsForUser(userId: string): Promise<Set<number>> {
   // Cached as an array — Sets don't round-trip through JSON. TTL-only, no
   // write-invalidation: this is written from several admin routes affecting
