@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { eq, sql } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { invoices, receipts } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 
@@ -8,53 +11,73 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  // Fetch invoice
-  const { data: invoice, error: fetchErr } = await supabaseAdmin
-    .from('invoices')
-    .select('*')
-    .eq('id', params.id)
-    .single()
-
-  if (fetchErr || !invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
-  if (invoice.status !== 'unpaid') {
-    return NextResponse.json({ error: `Invoice is already ${invoice.status}` }, { status: 400 })
-  }
-
-  // Generate receipt number: RCP-YYYY-NNNN
-  const { data: seqData, error: seqErr } = await supabaseAdmin
-    .rpc('nextval', { seq: 'receipt_number_seq' })
-
-  // Fallback: use timestamp if RPC not available
-  const seq = seqErr ? Date.now() : (seqData as number)
-  const year = new Date().getFullYear()
-  const receiptNumber = `RCP-${year}-${String(seq).padStart(4, '0')}`
+  if (!isUuid(params.id)) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
 
   const paidAt = new Date().toISOString()
 
-  // Create immutable receipt snapshot
-  const { data: receipt, error: receiptErr } = await supabaseAdmin
-    .from('receipts')
-    .insert({
-      invoice_id: invoice.id,
-      user_id: invoice.user_id,
-      amount_cents: invoice.amount_cents,
-      description: invoice.description,
-      paid_at: paidAt,
-      receipt_number: receiptNumber,
+  try {
+    // One transaction: the receipt is an immutable record that the invoice was
+    // paid, so it must not be able to exist beside an invoice still marked
+    // unpaid. Previously these were two independent statements and a failure
+    // between them left exactly that.
+    const result = await db.transaction(async (tx) => {
+      const [invoice] = await tx
+        .select({
+          id: invoices.id,
+          userId: invoices.userId,
+          amountCents: invoices.amountCents,
+          description: invoices.description,
+          status: invoices.status,
+        })
+        .from(invoices)
+        .where(eq(invoices.id, params.id))
+        .limit(1)
+
+      if (!invoice) return { error: 'Invoice not found', status: 404 } as const
+      if (invoice.status !== 'unpaid') {
+        return { error: `Invoice is already ${invoice.status}`, status: 400 } as const
+      }
+
+      // Receipt numbering: RCP-YYYY-NNNN, from the sequence
+      // drizzle/0001_functions_sequence_seed.sql creates. The PostgREST
+      // version called `.rpc('nextval', ...)`, which PostgREST does not
+      // expose, so it fell through to its `Date.now()` fallback on every
+      // call and numbered receipts with a 13-digit epoch.
+      const seqRows = (await tx.execute(
+        sql`select nextval('receipt_number_seq') as value`
+      )) as unknown as { value: string | number }[]
+
+      const seq = seqRows[0].value
+      const year = new Date().getFullYear()
+      const receiptNumber = `RCP-${year}-${String(seq).padStart(4, '0')}`
+
+      const [receipt] = await tx
+        .insert(receipts)
+        .values({
+          invoiceId: invoice.id,
+          userId: invoice.userId,
+          amountCents: invoice.amountCents,
+          description: invoice.description,
+          paidAt,
+          receiptNumber,
+        })
+        .returning({ id: receipts.id })
+
+      await tx
+        .update(invoices)
+        .set({ status: 'paid', paidAt })
+        .where(eq(invoices.id, params.id))
+
+      return { receipt_id: receipt.id, receipt_number: receiptNumber } as const
     })
-    .select()
-    .single()
 
-  if (receiptErr) return NextResponse.json({ error: receiptErr.message }, { status: 500 })
+    if ('error' in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status })
+    }
 
-  // Mark invoice paid
-  const { error: updateErr } = await supabaseAdmin
-    .from('invoices')
-    .update({ status: 'paid', paid_at: paidAt })
-    .eq('id', params.id)
-
-  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
-
-  return NextResponse.json({ receipt_id: receipt.id, receipt_number: receiptNumber })
+    return NextResponse.json(result)
+  } catch (err) {
+    console.error('POST /api/admin/invoices/[id]/pay failed:', err)
+    return NextResponse.json({ error: 'Failed to mark invoice paid' }, { status: 500 })
+  }
 }

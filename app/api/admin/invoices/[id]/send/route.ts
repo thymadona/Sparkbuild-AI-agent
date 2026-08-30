@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { invoices, receipts, studentProfiles } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 
@@ -16,23 +19,42 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not configured' }, { status: 500 })
 
-  // Fetch invoice
-  const { data: invoice, error: invErr } = await supabaseAdmin
-    .from('invoices')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  if (!isUuid(params.id)) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
 
-  if (invErr || !invoice) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+  // The invoice and the parent's chat id, in one join rather than two round
+  // trips. A student with no profile row yields no rows at all, which is the
+  // same "profile not found" answer the second query used to give.
+  const [row] = await db
+    .select({
+      id: invoices.id,
+      user_id: invoices.userId,
+      amount_cents: invoices.amountCents,
+      description: invoices.description,
+      due_date: invoices.dueDate,
+      status: invoices.status,
+      full_name: studentProfiles.fullName,
+      parent_telegram_chat_id: studentProfiles.parentTelegramChatId,
+    })
+    .from(invoices)
+    .innerJoin(studentProfiles, eq(studentProfiles.userId, invoices.userId))
+    .where(eq(invoices.id, params.id))
+    .limit(1)
 
-  // Fetch student profile for Telegram chat_id and name
-  const { data: profile, error: profErr } = await supabaseAdmin
-    .from('student_profiles')
-    .select('full_name, parent_telegram_chat_id')
-    .eq('user_id', invoice.user_id)
-    .single()
+  if (!row) {
+    // Distinguish the two, so an admin is told which thing is missing.
+    const [invoiceOnly] = await db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(eq(invoices.id, params.id))
+      .limit(1)
 
-  if (profErr || !profile) return NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
+    return invoiceOnly
+      ? NextResponse.json({ error: 'Student profile not found' }, { status: 404 })
+      : NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+  }
+
+  const invoice = row
+  const profile = row
   if (!profile.parent_telegram_chat_id) {
     return NextResponse.json({ error: 'Parent Telegram chat_id not set for this student' }, { status: 400 })
   }
@@ -43,11 +65,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   // Fetch receipt if paid
   let receiptUrl: string | null = null
   if (invoice.status === 'paid') {
-    const { data: receipt } = await supabaseAdmin
-      .from('receipts')
-      .select('id')
-      .eq('invoice_id', invoice.id)
-      .maybeSingle()
+    const [receipt] = await db
+      .select({ id: receipts.id })
+      .from(receipts)
+      .where(eq(receipts.invoiceId, invoice.id))
+      .limit(1)
+
     if (receipt) receiptUrl = `${baseUrl}/receipt/${receipt.id}`
   }
 
@@ -84,11 +107,16 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     return NextResponse.json({ error: tgData.description ?? 'Telegram send failed' }, { status: 500 })
   }
 
-  // Record sent_at
-  await supabaseAdmin
-    .from('invoices')
-    .update({ sent_at: new Date().toISOString() })
-    .eq('id', params.id)
+  // Record sent_at. The message is already delivered at this point, so a
+  // failure here is logged rather than reported as a failed send.
+  try {
+    await db
+      .update(invoices)
+      .set({ sentAt: new Date().toISOString() })
+      .where(eq(invoices.id, params.id))
+  } catch (err) {
+    console.error('invoice sent but sent_at not recorded:', err)
+  }
 
   return NextResponse.json({ ok: true })
 }
