@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { classMembers, classes, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
+import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
+import { classMembers, classes, projects, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
 
 // Reference data created by drizzle/0001_functions_sequence_seed.sql. The
 // authorization functions join through these, so truncating them would make
@@ -73,6 +74,26 @@ export async function makeStudentProfile(userId: string, overrides: Partial<type
   const [row] = await db
     .insert(studentProfiles)
     .values({ userId, fullName: 'Test Student', ...overrides })
+    .returning()
+  return row
+}
+
+/** Creates a project owned by `userId`. Defaults to a lesson-1 project on the
+ *  current catalog, which is what the lesson routes expect to find. */
+export async function makeProject(
+  userId: string,
+  overrides: Partial<typeof projects.$inferInsert> = {}
+) {
+  const [row] = await db
+    .insert(projects)
+    .values({
+      userId,
+      title: `Project ${uniq()}`,
+      files: { 'index.html': '<!doctype html>' },
+      lessonId: 1,
+      lessonVersion: CURRENT_LESSON_VERSION,
+      ...overrides,
+    })
     .returning()
   return row
 }

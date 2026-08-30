@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { and, eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { lessonProgress, projects } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { getLessonForProject } from '@/lib/lessons'
 import { homeworkComplete, homeworkTasks } from '@/lib/task-guard'
 import { getSessionUser } from '@/lib/auth/session'
@@ -18,13 +21,20 @@ export async function POST(_req: Request, props: Props) {
   const params = await props.params;
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isUuid(params.id)) {
+    return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
+  }
 
-  const { data: project } = await supabaseAdmin
-    .from('projects')
-    .select('id, lesson_id, lesson_version, submission_status')
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-    .single()
+  const [project] = await db
+    .select({
+      id: projects.id,
+      lesson_id: projects.lessonId,
+      lesson_version: projects.lessonVersion,
+      submission_status: projects.submissionStatus,
+    })
+    .from(projects)
+    .where(and(eq(projects.id, params.id), eq(projects.userId, user.id)))
+    .limit(1)
 
   if (!project || project.lesson_id == null) {
     return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
@@ -39,24 +49,28 @@ export async function POST(_req: Request, props: Props) {
     return NextResponse.json({ submissionStatus: project.submission_status })
   }
 
-  const { data: progress } = await supabaseAdmin
-    .from('lesson_progress')
-    .select('completed_task_ids')
-    .eq('project_id', params.id)
-    .maybeSingle()
+  const [progress] = await db
+    .select({ completed_task_ids: lessonProgress.completedTaskIds })
+    .from(lessonProgress)
+    .where(eq(lessonProgress.projectId, params.id))
+    .limit(1)
 
   const completed = progress?.completed_task_ids ?? []
   if (!homeworkComplete(lesson, completed)) {
     return NextResponse.json({ error: 'Finish your homework tasks first' }, { status: 409 })
   }
 
-  const { error } = await supabaseAdmin
-    .from('projects')
-    .update({ submission_status: 'submitted', updated_at: new Date().toISOString() })
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Drizzle throws where the PostgREST client returned `{ error }`, so the
+  // 500 path is a catch rather than a branch.
+  try {
+    await db
+      .update(projects)
+      .set({ submissionStatus: 'submitted', updatedAt: new Date().toISOString() })
+      .where(and(eq(projects.id, params.id), eq(projects.userId, user.id)))
+  } catch (err) {
+    console.error('submit: failed to mark project submitted:', err)
+    return NextResponse.json({ error: 'Failed to submit' }, { status: 500 })
+  }
 
   return NextResponse.json({ submissionStatus: 'submitted' })
 }
