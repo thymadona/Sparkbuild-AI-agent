@@ -19,11 +19,11 @@
 // drizzle-kit 0.31.10. `push` hits the same bug. Only `generate`/`migrate`
 // are used against this config.
 //
-// If ever reconciling this file against the live DB by hand,
-// `mcp__supabase__list_tables` alone is NOT enough — it omits FK delete
-// rules and indexes. Cross-check those against `pg_constraint.confdeltype`
-// and `pg_indexes` directly, or cascades and indexes silently go missing
-// (as they did once already).
+// If ever reconciling this file against a live database by hand, a table
+// listing alone is NOT enough — it omits FK delete rules and indexes.
+// Cross-check those against `pg_constraint.confdeltype` and `pg_indexes`
+// directly, or cascades and indexes silently go missing (as they did once
+// already).
 import { sql } from 'drizzle-orm'
 import {
   boolean,
