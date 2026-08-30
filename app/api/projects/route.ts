@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
+import { getSessionUser } from '@/lib/auth/session'
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -30,13 +28,8 @@ export async function GET() {
 
 // POST /api/projects — create a new project
 export async function POST(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
-  if (authError) console.error('POST /api/projects auth error:', authError)
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -258,10 +251,7 @@ export async function POST(req: Request) {
 
 // PATCH /api/projects — update title or is_public for a project
 export async function PATCH(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -297,10 +287,7 @@ export async function PATCH(req: Request) {
 
 // DELETE /api/projects — delete a project
 export async function DELETE(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

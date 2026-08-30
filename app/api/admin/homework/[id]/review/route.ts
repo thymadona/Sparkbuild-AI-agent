@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import type { SubmissionStatus } from '@/types'
+import { getSessionUser } from '@/lib/auth/session'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -20,10 +21,7 @@ const REVIEWABLE: SubmissionStatus[] = ['approved', 'needs_work']
  */
 export async function POST(req: Request, props: Props) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

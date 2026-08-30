@@ -1,12 +1,14 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { db } from '@/lib/db/client'
+import { users as usersTable } from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
 import StudentsClient from './StudentsClient'
 import type { Class } from '@/types'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function StudentsPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user || !(await hasPermission(user.id, 'students:manage'))) redirect('/staff')
 
   const [
@@ -17,7 +19,19 @@ export default async function StudentsPage() {
     { data: invoices },
     { data: staffRoleRows },
   ] = await Promise.all([
-    supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
+    // silently dropped every user past the thousandth. Kept in the PostgREST
+    // result shape so the mapping below is untouched; the surrounding queries
+    // move to Drizzle with the rest of this page.
+    db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        name: usersTable.name,
+        created_at: usersTable.createdAt,
+      })
+      .from(usersTable)
+      .then((rows) => ({ data: { users: rows } })),
     supabaseAdmin.from('student_profiles').select('*'),
     supabaseAdmin.from('class_members').select('user_id, class_id, classes(name)'),
     supabaseAdmin.from('classes').select('id, name, description, created_at').order('name'),
@@ -50,8 +64,8 @@ export default async function StudentsPage() {
 
   const rows = users.map((u) => ({
     id: u.id,
-    email: u.email ?? u.id,
-    name: profileMap[u.id]?.full_name || (u.user_metadata?.full_name as string) || '',
+    email: u.email || u.id,
+    name: profileMap[u.id]?.full_name || u.name || '',
     isActive: profileMap[u.id]?.is_active ?? true,
     hasProfile: !!profileMap[u.id],
     parentEmail: profileMap[u.id]?.parent_email ?? '',
@@ -59,7 +73,10 @@ export default async function StudentsPage() {
     notes: profileMap[u.id]?.notes ?? '',
     classes: classMap[u.id] ?? [],
     payment: paymentMap[u.id] ?? null,
-    createdAt: u.created_at,
+    // users.createdAt is a Date, not an ISO string: the Better Auth tables
+    // keep Drizzle's default `mode: 'date'` because the library reads and
+    // writes real Date objects, unlike the application tables.
+    createdAt: u.created_at.toISOString(),
   })).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return (

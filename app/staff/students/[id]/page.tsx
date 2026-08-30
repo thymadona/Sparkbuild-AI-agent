@@ -1,6 +1,10 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { desc, eq } from 'drizzle-orm'
+import { getSessionUser } from '@/lib/auth/session'
+import { db } from '@/lib/db/client'
+import { accounts, sessions, users as usersTable } from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
 import DeactivateToggle from '@/components/admin/DeactivateToggle'
 import EditStudentModal from '@/components/admin/EditStudentModal'
@@ -25,12 +29,11 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   const params = await props.params;
   const userId = params.id
 
-  const supabase = await createServerSupabaseClient()
-  const { data: { user: caller } } = await supabase.auth.getUser()
+  const caller = await getSessionUser()
   if (!caller || !(await hasPermission(caller.id, 'students:manage'))) redirect('/staff')
 
   const [
-    { data: userData },
+    accountRow,
     { data: profile },
     { data: memberships },
     { data: invoices },
@@ -39,7 +42,21 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
     { count: projectCount },
     { data: buildMode },
   ] = await Promise.all([
-    supabaseAdmin.auth.admin.getUserById(userId),
+    // Was supabaseAdmin.auth.admin.getUserById(). Sign-in provider comes from
+    // the linked OAuth account, and "last signed in" from the newest session
+    // row (Better Auth has no last_sign_in_at column of its own) — both
+    // backed by the sessions_user_id_idx / accounts_user_id_idx indexes.
+    db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        created_at: usersTable.createdAt,
+        provider_id: accounts.providerId,
+      })
+      .from(usersTable)
+      .leftJoin(accounts, eq(accounts.userId, usersTable.id))
+      .where(eq(usersTable.id, userId))
+      .limit(1),
     supabaseAdmin.from('student_profiles').select('*').eq('user_id', userId).maybeSingle(),
     supabaseAdmin
       .from('class_members')
@@ -56,8 +73,16 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
     supabaseAdmin.from('user_build_mode').select('enabled').eq('user_id', userId).maybeSingle(),
   ])
 
-  const user = userData?.user
+  const user = accountRow[0]
   if (!user) notFound()
+
+  // Newest session stands in for the old auth.users.last_sign_in_at.
+  const [lastSession] = await db
+    .select({ created_at: sessions.createdAt })
+    .from(sessions)
+    .where(eq(sessions.userId, userId))
+    .orderBy(desc(sessions.createdAt))
+    .limit(1)
 
   // Fetch schedules for enrolled classes
   const classIds = (memberships ?? []).map((m) => {
@@ -99,8 +124,8 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   const joinedDate = new Date(user.created_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
-  const lastSign = user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  const lastSign = lastSession
+    ? new Date(lastSession.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : 'Never'
 
   const today = new Date().toISOString().split('T')[0]
@@ -173,7 +198,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
             <div>
               <span className="text-gray-500">Auth provider</span>
               <p className="text-gray-100 mt-0.5 capitalize">
-                {user.app_metadata?.provider ?? 'email'}
+                {user.provider_id ?? 'not linked'}
               </p>
             </div>
           </div>

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { getLessonForProject } from '@/lib/lessons'
 import { invalidate } from '@/lib/cache'
+import { getSessionUser } from '@/lib/auth/session'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -22,8 +23,7 @@ async function getLessonProject(projectId: string, userId: string) {
 
 export async function GET(_req: Request, props: Props) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const lessonProject = await getLessonProject(params.id, user.id)
@@ -41,8 +41,7 @@ export async function GET(_req: Request, props: Props) {
 
 export async function PUT(req: Request, props: Props) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const lessonProject = await getLessonProject(params.id, user.id)

@@ -1,15 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { LESSONS } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import LessonsClient from './LessonsClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function LessonsPage() {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     redirect('/')

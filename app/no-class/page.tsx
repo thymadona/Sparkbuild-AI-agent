@@ -1,12 +1,9 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import NoClassClient from './NoClassClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function NoClassPage() {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) redirect('/')
 

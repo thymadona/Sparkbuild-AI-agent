@@ -1,10 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { db } from '@/lib/db/client'
+import { users as usersTable } from '@/lib/db/schema'
 import { isAdmin } from '@/lib/auth/permissions'
 import { getLessonForProject } from '@/lib/lessons'
 import { homeworkTasks } from '@/lib/task-guard'
 import type { SubmissionStatus } from '@/types'
 import HomeworkClient from './HomeworkClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 export interface SubmissionRow {
   projectId: string
@@ -19,8 +22,7 @@ export interface SubmissionRow {
 }
 
 export default async function HomeworkPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   // Cross-class queue — unlike /staff/classes/[id]'s homework table, this
   // has no per-teacher scoping, so it stays admin-only. Teachers review
   // via their own class page.
@@ -32,7 +34,14 @@ export default async function HomeworkPage() {
       .select('id, user_id, title, lesson_id, lesson_version, submission_status, updated_at')
       .not('submission_status', 'is', null)
       .order('updated_at', { ascending: false }),
-    supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
+    // silently dropped every user past the thousandth. Kept in the PostgREST
+    // result shape so the mapping below is untouched; the surrounding queries
+    // move to Drizzle with the rest of this page.
+    db
+      .select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable)
+      .then((rows) => ({ data: { users: rows } })),
     supabaseAdmin.from('student_profiles').select('user_id, full_name'),
   ])
 

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { hasPermission } from '@/lib/auth/permissions'
+import { getSessionUser } from '@/lib/auth/session'
 
 // PATCH: update student profile fields (is_active, full_name, parent_email, parent_telegram_chat_id, notes)
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!(await hasPermission(user.id, 'students:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

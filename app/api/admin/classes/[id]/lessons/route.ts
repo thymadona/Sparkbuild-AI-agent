@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { hasPermission, isTeacherOfClass } from '@/lib/auth/permissions'
 import { LESSONS } from '@/lib/lessons'
+import { getSessionUser } from '@/lib/auth/session'
 
 // Toggles a lesson week on/off for one class. isTeacherOfClass is already
 // admin-inclusive (see 20260807130000_class_members_role.sql), so this one
@@ -9,8 +10,7 @@ import { LESSONS } from '@/lib/lessons'
 // specific class" — the same two callers who reach /staff/classes/[id].
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const allowed = (await hasPermission(user.id, 'classes:manage')) || (await isTeacherOfClass(user.id, params.id))

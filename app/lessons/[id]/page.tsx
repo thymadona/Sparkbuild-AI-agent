@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { LESSONS } from '@/lib/lessons'
 import LessonDetailClient from './LessonDetailClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -9,10 +10,7 @@ interface Props {
 
 export default async function LessonPage(props: Props) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     redirect('/')

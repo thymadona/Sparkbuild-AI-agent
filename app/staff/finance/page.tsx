@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { hasPermission } from '@/lib/auth/permissions'
 import FinanceClient from './FinanceClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function FinancePage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user || !(await hasPermission(user.id, 'invoices:manage'))) redirect('/staff')
 
   const [

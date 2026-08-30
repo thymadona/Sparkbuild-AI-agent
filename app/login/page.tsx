@@ -1,12 +1,11 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import LoginForm from '@/app/LoginForm'
 import Navbar from '@/components/Navbar'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function LoginPage(props: { searchParams: Promise<{ reason?: string }> }) {
   const searchParams = await props.searchParams;
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   const isDeactivated = searchParams.reason === 'deactivated'
 
   // A deactivated account keeps a valid Supabase session (deactivation only

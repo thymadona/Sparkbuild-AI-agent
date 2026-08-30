@@ -1,35 +1,17 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-// Server client — used in Server Components and API routes (respects RLS)
-export async function createServerSupabaseClient() {
-  const cookieStore = await cookies()
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
-        } catch {
-          // setAll called from a Server Component — cookies can't be set
-          // Middleware handles session refresh
-        }
-      },
-    },
-  })
-}
-
-// Admin client — uses service role key, bypasses RLS
-// NEVER import this in client-side code or expose to browser
+// Data access only — authentication moved to Better Auth (lib/auth/), and the
+// anon/browser clients are gone with it. This client remains solely because
+// ~38 files still read and write through PostgREST; each one moves to Drizzle
+// (`@/lib/db/client`) in the data-layer conversion, and this file disappears
+// when the last one does.
+//
+// Uses the service role key, so it bypasses RLS: every query needs its own
+// ownership check, e.g. `.eq('id', id).eq('user_id', user.id)`.
+// NEVER import this in client-side code or expose it to the browser.
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: {
     autoRefreshToken: false,

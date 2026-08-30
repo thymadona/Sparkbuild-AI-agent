@@ -1,27 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { authClient } from '@/lib/auth/client'
 
 export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const supabase = createBrowserSupabaseClient()
 
   async function signInWithGoogle() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithOAuth({
+    // Straight to Google's consent screen. Previously this handed off to
+    // Supabase, which brokered the exchange and bounced back through
+    // /auth/callback; now the app talks to Google itself and Better Auth
+    // handles the callback at /api/auth/callback/google.
+    const { error } = await authClient.signIn.social({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      callbackURL: '/dashboard',
     })
 
     if (error) {
-      setError(error.message)
+      setError(error.message ?? 'Could not start sign-in')
       setLoading(false)
     }
     // On success, browser redirects to Google — no further action needed

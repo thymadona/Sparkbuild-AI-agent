@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { isAdmin } from '@/lib/auth/permissions'
 import OverviewTab from './OverviewTab'
 import TeacherOverviewTab from './TeacherOverviewTab'
+import { getSessionUser } from '@/lib/auth/session'
 
 function Skeleton() {
   return (
@@ -33,8 +33,7 @@ function Skeleton() {
 // instead gets TeacherOverviewTab, scoped to just the classes they teach
 // (StaffLayout already guarantees a non-admin here teaches at least one).
 export default async function StaffOverviewPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) redirect('/login')
 
   const admin = await isAdmin(user.id)

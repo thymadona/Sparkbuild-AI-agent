@@ -1,9 +1,10 @@
 import { redirect, notFound } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import type { Project, Message } from '@/types'
 import { getLessonForProject } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
 import EditorLayout from './EditorLayout'
+import { getSessionUser } from '@/lib/auth/session'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -11,10 +12,7 @@ interface Props {
 
 export default async function EditorPage(props: Props) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     redirect('/')

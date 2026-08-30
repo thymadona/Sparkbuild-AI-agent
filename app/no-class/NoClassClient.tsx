@@ -1,14 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { createBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { authClient } from '@/lib/auth/client'
 
 export default function NoClassClient({ email }: { email: string }) {
   const router = useRouter()
-  const supabase = createBrowserSupabaseClient()
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
+    await authClient.signOut()
     router.push('/')
     router.refresh()
   }

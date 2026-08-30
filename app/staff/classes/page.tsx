@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { db } from '@/lib/db/client'
+import { users as usersTable } from '@/lib/db/schema'
 import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import ClassesClient from './ClassesClient'
 import TeacherClassesClient from './TeacherClassesClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 // Two structurally different views live at one URL: someone who can
 // manage all classes gets the full admin roster/schedule/billing table;
@@ -11,8 +14,7 @@ import TeacherClassesClient from './TeacherClassesClient'
 // a user who qualifies for the other, so each still needs its own check —
 // this isn't just a nav-visibility split.
 export default async function ClassesPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) redirect('/login')
 
   const canManageAll = (await isAdmin(user.id)) || (await hasPermission(user.id, 'classes:manage'))
@@ -31,7 +33,14 @@ export default async function ClassesPage() {
       supabaseAdmin.from('class_members').select('class_id, user_id, role'),
       supabaseAdmin.from('class_schedules').select('*').order('day_of_week').order('start_time'),
       supabaseAdmin.from('invoices').select('user_id, status'),
-      supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
+      // silently dropped every user past the thousandth. Kept in the PostgREST
+      // result shape so the mapping below is untouched; the surrounding queries
+      // move to Drizzle with the rest of this page.
+      db
+        .select({ id: usersTable.id, email: usersTable.email })
+        .from(usersTable)
+        .then((rows) => ({ data: { users: rows } })),
       supabaseAdmin.from('student_profiles').select('user_id, full_name'),
       supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
     ])

@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { hasPermission } from '@/lib/auth/permissions'
+import { getSessionUser } from '@/lib/auth/session'
 
 // Returns recent Telegram updates so admin can look up a parent's chat_id
 // after the parent sends /start to the bot
 export async function GET() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!(await hasPermission(user.id, 'telegram:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

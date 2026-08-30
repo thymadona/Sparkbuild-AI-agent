@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { db } from '@/lib/db/client'
+import { users as usersTable } from '@/lib/db/schema'
 import { hasPermission, isAdmin, isTeacherOfClass } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS, type LessonTaskType } from '@/lib/lessons'
 import { homeworkTasks } from '@/lib/task-guard'
@@ -8,6 +10,7 @@ import type { ClassSchedule, SubmissionStatus } from '@/types'
 import ClassDetailClient from './ClassDetailClient'
 import TeacherClassClient from './TeacherClassClient'
 import LessonsPanel from './LessonsPanel'
+import { getSessionUser } from '@/lib/auth/session'
 
 export interface TeacherSubmissionRow {
   projectId: string
@@ -50,8 +53,7 @@ export interface LessonProgressEntry {
 // re-checks per class, since teaching one class grants nothing on another.
 export default async function ClassDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) redirect('/login')
 
   const canManageAll = (await isAdmin(user.id)) || (await hasPermission(user.id, 'classes:manage'))
@@ -71,7 +73,14 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
       supabaseAdmin.from('class_schedules').select('*').eq('class_id', params.id).order('day_of_week').order('start_time'),
       supabaseAdmin.from('invoices').select('user_id, status'),
-      supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
+      // silently dropped every user past the thousandth. Kept in the PostgREST
+      // result shape so the mapping below is untouched; the surrounding queries
+      // move to Drizzle with the rest of this page.
+      db
+        .select({ id: usersTable.id, email: usersTable.email })
+        .from(usersTable)
+        .then((rows) => ({ data: { users: rows } })),
       supabaseAdmin.from('student_profiles').select('user_id, full_name'),
       supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
       supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
@@ -155,7 +164,14 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   const [{ data: cls }, { data: members }, { data: usersData }, { data: profiles }, { data: enabledLessons }] = await Promise.all([
     supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
     supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
-    supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+// Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }) — a cap that
+    // silently dropped every user past the thousandth. Kept in the PostgREST
+    // result shape so the mapping below is untouched; the surrounding queries
+    // move to Drizzle with the rest of this page.
+    db
+      .select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable)
+      .then((rows) => ({ data: { users: rows } })),
     supabaseAdmin.from('student_profiles').select('user_id, full_name'),
     supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
   ])

@@ -1,15 +1,19 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { getSessionUser } from '@/lib/auth/session'
+import { db } from '@/lib/db/client'
+import { users as usersTable } from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
 import UsersClient from './UsersClient'
 
 export default async function UsersPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user: caller } } = await supabase.auth.getUser()
+  const caller = await getSessionUser()
   if (!caller || !(await hasPermission(caller.id, 'roles:manage'))) redirect('/staff')
 
-  const [{ data: usersData }, { data: profiles }, { data: userRoles }] = await Promise.all([
-    supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
+  const [allUsers, { data: profiles }, { data: userRoles }] = await Promise.all([
+    // Was supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }), which
+    // silently dropped every user past the thousandth.
+    db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
     supabaseAdmin.from('student_profiles').select('user_id, full_name'),
     supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
   ])
@@ -21,10 +25,10 @@ export default async function UsersPage() {
     rolesById[row.user_id].push(row.roles.name)
   }
 
-  const rows = (usersData?.users ?? [])
+  const rows = allUsers
     .map((u) => ({
       id: u.id,
-      email: u.email ?? u.id,
+      email: u.email || u.id,
       fullName: nameById[u.id] ?? '',
       roles: rolesById[u.id] ?? [],
     }))

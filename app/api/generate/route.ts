@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type OpenAI from 'openai'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { isCodeResponse, parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
@@ -8,15 +8,13 @@ import { getLessonForProject } from '@/lib/lessons'
 import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { cached } from '@/lib/cache'
+import { getSessionUser } from '@/lib/auth/session'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   // 1. Auth check
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
