@@ -15,6 +15,13 @@
       "when": 1787820646364,
       "tag": "0001_functions_sequence_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788070277369,
+      "tag": "0002_postgrest_lockdown",
+      "breakpoints": true
     }
   ]
 }
