@@ -1,5 +1,15 @@
 import Link from 'next/link'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { and, eq, gte, isNotNull } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import {
+  classMembers,
+  classes,
+  invoices,
+  projects,
+  prompts,
+  studentProfiles,
+  userRoles,
+} from '@/lib/db/schema'
 
 const INPUT_COST_PER_M = 0.15
 const OUTPUT_COST_PER_M = 0.60
@@ -26,41 +36,56 @@ export default async function OverviewTab() {
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString()
   const today = new Date().toISOString().split('T')[0]
 
+  // db.$count issues a real count(*). PostgREST counted with
+  // `select('*', { count: 'exact', head: true })`, which still planned a full
+  // select and threw every row away.
   const [
-    { count: totalClasses },
-    { data: activeStudentProfiles },
-    { data: teacherMembers },
-    { data: staffRoleRows },
-    { count: needsReview },
-    { data: unpaidInvoices },
-    { count: lessonsStartedThisWeek },
-    { count: submittedThisWeek },
-    { count: totalPrompts },
-    { count: promptsToday },
+    totalClasses,
+    activeStudentProfiles,
+    teacherMembers,
+    staffRoleRows,
+    needsReview,
+    unpaidInvoices,
+    lessonsStartedThisWeek,
+    submittedThisWeek,
+    totalPrompts,
+    promptsToday,
   ] = await Promise.all([
-    supabaseAdmin.from('classes').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('student_profiles').select('user_id').eq('is_active', true),
-    supabaseAdmin.from('class_members').select('user_id').eq('role', 'teacher'),
-    supabaseAdmin.from('user_roles').select('user_id'),
-    supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('submission_status', 'submitted'),
-    supabaseAdmin.from('invoices').select('due_date').eq('status', 'unpaid'),
-    supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).not('lesson_id', 'is', null).gte('created_at', weekAgo),
-    supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).not('submission_status', 'is', null).gte('updated_at', weekAgo),
-    supabaseAdmin.from('prompts').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('prompts').select('*', { count: 'exact', head: true }).gte('created_at', dayAgo),
+    db.$count(classes),
+    db
+      .select({ user_id: studentProfiles.userId })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.isActive, true)),
+    db
+      .select({ user_id: classMembers.userId })
+      .from(classMembers)
+      .where(eq(classMembers.role, 'teacher')),
+    db.select({ user_id: userRoles.userId }).from(userRoles),
+    db.$count(projects, eq(projects.submissionStatus, 'submitted')),
+    db
+      .select({ due_date: invoices.dueDate })
+      .from(invoices)
+      .where(eq(invoices.status, 'unpaid')),
+    db.$count(projects, and(isNotNull(projects.lessonId), gte(projects.createdAt, weekAgo))),
+    db.$count(
+      projects,
+      and(isNotNull(projects.submissionStatus), gte(projects.updatedAt, weekAgo))
+    ),
+    db.$count(prompts),
+    db.$count(prompts, gte(prompts.createdAt, dayAgo)),
   ])
 
-  const teacherIds = new Set((teacherMembers ?? []).map((m) => m.user_id))
+  const teacherIds = new Set(teacherMembers.map((m) => m.user_id))
   const teacherCount = teacherIds.size
   // Only 'admin' and 'teacher' roles exist in user_roles — a student never
   // has a row there. A profile can exist for someone who also holds a
   // staff role (e.g. a teacher or admin's own test account) — don't count
   // them as a student.
-  const staffIds = new Set((staffRoleRows ?? []).map((r) => r.user_id))
-  const activeStudentCount = (activeStudentProfiles ?? []).filter((p) => !staffIds.has(p.user_id)).length
-  const unpaidCount = unpaidInvoices?.length ?? 0
-  const overdueCount = (unpaidInvoices ?? []).filter((inv) => inv.due_date < today).length
-  const safeTotalPrompts = totalPrompts ?? 0
+  const staffIds = new Set(staffRoleRows.map((r) => r.user_id))
+  const activeStudentCount = activeStudentProfiles.filter((p) => !staffIds.has(p.user_id)).length
+  const unpaidCount = unpaidInvoices.length
+  const overdueCount = unpaidInvoices.filter((inv) => inv.due_date < today).length
+  const safeTotalPrompts = totalPrompts
 
   return (
     <div className="space-y-6">

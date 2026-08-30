@@ -1,9 +1,9 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, MessageSquareCode, PlayCircle, Share2, Star } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { LESSONS } from '@/lib/lessons'
+import { getSessionUser } from '@/lib/auth/session'
 
 // Fixed dark text for chips whose fill (teal-400/amber-300/secondary) stays
 // bright in both themes — fg-primary would flip to near-white in dark mode
@@ -32,8 +32,7 @@ const FEATURES = [
 ] as const
 
 export default async function Home() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   const isLoggedIn = !!user
 
   const heroCta = isLoggedIn

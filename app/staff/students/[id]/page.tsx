@@ -1,6 +1,23 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { asc, desc, eq, inArray } from 'drizzle-orm'
+import { getSessionUser } from '@/lib/auth/session'
+import { db } from '@/lib/db/client'
+import {
+  accounts,
+  classMembers,
+  classSchedules,
+  classes as classesTable,
+  invoices as invoicesTable,
+  projects,
+  prompts,
+  receipts,
+  sessions,
+  studentProfiles,
+  userBuildMode,
+  users as usersTable,
+} from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import DeactivateToggle from '@/components/admin/DeactivateToggle'
 import EditStudentModal from '@/components/admin/EditStudentModal'
@@ -25,82 +42,145 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   const params = await props.params;
   const userId = params.id
 
-  const supabase = await createServerSupabaseClient()
-  const { data: { user: caller } } = await supabase.auth.getUser()
+  const caller = await getSessionUser()
   if (!caller || !(await hasPermission(caller.id, 'students:manage'))) redirect('/staff')
+  if (!isUuid(userId)) notFound()
 
   const [
-    { data: userData },
-    { data: profile },
-    { data: memberships },
-    { data: invoices },
-    { data: allClasses },
-    { count: promptCount },
-    { count: projectCount },
-    { data: buildMode },
+    accountRow,
+    profileRows,
+    memberships,
+    invoices,
+    allClasses,
+    promptCount,
+    projectCount,
+    buildModeRows,
   ] = await Promise.all([
-    supabaseAdmin.auth.admin.getUserById(userId),
-    supabaseAdmin.from('student_profiles').select('*').eq('user_id', userId).maybeSingle(),
-    supabaseAdmin
-      .from('class_members')
-      .select('class_id, classes(id, name, description)')
-      .eq('user_id', userId),
-    supabaseAdmin
-      .from('invoices')
-      .select('*, receipts(id)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
-    supabaseAdmin.from('classes').select('id, name, description, created_at').order('name'),
-    supabaseAdmin.from('prompts').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-    supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-    supabaseAdmin.from('user_build_mode').select('enabled').eq('user_id', userId).maybeSingle(),
+    // Replaces the Supabase Auth admin user lookup. Sign-in provider comes from
+    // the linked OAuth account, and "last signed in" from the newest session
+    // row (Better Auth has no last_sign_in_at column of its own) — both
+    // backed by the sessions_user_id_idx / accounts_user_id_idx indexes.
+    db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        created_at: usersTable.createdAt,
+        provider_id: accounts.providerId,
+      })
+      .from(usersTable)
+      .leftJoin(accounts, eq(accounts.userId, usersTable.id))
+      .where(eq(usersTable.id, userId))
+      .limit(1),
+    db
+      .select({
+        user_id: studentProfiles.userId,
+        full_name: studentProfiles.fullName,
+        parent_email: studentProfiles.parentEmail,
+        parent_telegram_chat_id: studentProfiles.parentTelegramChatId,
+        notes: studentProfiles.notes,
+        is_active: studentProfiles.isActive,
+      })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, userId))
+      .limit(1),
+    // Was PostgREST's embedded `classes(...)`, which nested the joined row and
+    // needed a cast plus an Array.isArray check at every read site.
+    db
+      .select({
+        class_id: classMembers.classId,
+        name: classesTable.name,
+        description: classesTable.description,
+      })
+      .from(classMembers)
+      .innerJoin(classesTable, eq(classesTable.id, classMembers.classId))
+      .where(eq(classMembers.userId, userId)),
+    // Same for the embedded `receipts(id)`: a left join gives the receipt id
+    // flat, and null when the invoice has not been paid.
+    db
+      .select({
+        id: invoicesTable.id,
+        amount_cents: invoicesTable.amountCents,
+        description: invoicesTable.description,
+        due_date: invoicesTable.dueDate,
+        status: invoicesTable.status,
+        receipt_id: receipts.id,
+      })
+      .from(invoicesTable)
+      .leftJoin(receipts, eq(receipts.invoiceId, invoicesTable.id))
+      .where(eq(invoicesTable.userId, userId))
+      .orderBy(desc(invoicesTable.createdAt)),
+    db
+      .select({
+        id: classesTable.id,
+        name: classesTable.name,
+        description: classesTable.description,
+        created_at: classesTable.createdAt,
+      })
+      .from(classesTable)
+      .orderBy(asc(classesTable.name)),
+    db.$count(prompts, eq(prompts.userId, userId)),
+    db.$count(projects, eq(projects.userId, userId)),
+    db
+      .select({ enabled: userBuildMode.enabled })
+      .from(userBuildMode)
+      .where(eq(userBuildMode.userId, userId))
+      .limit(1),
   ])
 
-  const user = userData?.user
+  const user = accountRow[0]
   if (!user) notFound()
 
-  // Fetch schedules for enrolled classes
-  const classIds = (memberships ?? []).map((m) => {
-    const raw = m as unknown as { class_id: string; classes: { id: string; name: string; description: string } | null }
-    return raw.class_id
-  })
+  const profile = profileRows[0] ?? null
+  const buildMode = buildModeRows[0] ?? null
 
-  const { data: schedules } = classIds.length > 0
-    ? await supabaseAdmin
-        .from('class_schedules')
-        .select('*')
-        .in('class_id', classIds)
-        .order('day_of_week')
-        .order('start_time')
-    : { data: [] }
+  // Newest session stands in for the old auth.users.last_sign_in_at.
+  const [lastSession] = await db
+    .select({ created_at: sessions.createdAt })
+    .from(sessions)
+    .where(eq(sessions.userId, userId))
+    .orderBy(desc(sessions.createdAt))
+    .limit(1)
+
+  // Fetch schedules for enrolled classes
+  const classIds = memberships.map((m) => m.class_id)
+
+  const schedules = classIds.length > 0
+    ? await db
+        .select({
+          class_id: classSchedules.classId,
+          day_of_week: classSchedules.dayOfWeek,
+          start_time: classSchedules.startTime,
+          duration_min: classSchedules.durationMin,
+        })
+        .from(classSchedules)
+        .where(inArray(classSchedules.classId, classIds))
+        .orderBy(asc(classSchedules.dayOfWeek), asc(classSchedules.startTime))
+    : []
 
   const schedulesByClass: Record<string, { day_of_week: number; start_time: string; duration_min: number }[]> = {}
-  for (const s of schedules ?? []) {
+  for (const s of schedules) {
     if (!schedulesByClass[s.class_id]) schedulesByClass[s.class_id] = []
     schedulesByClass[s.class_id].push(s)
   }
 
-  const enrolledClasses = (memberships ?? []).map((m) => {
-    const raw = m as unknown as { class_id: string; classes: { id: string; name: string; description: string } | null }
-    return {
-      id: raw.class_id,
-      name: raw.classes?.name ?? raw.class_id,
-      description: raw.classes?.description ?? '',
-      schedules: schedulesByClass[raw.class_id] ?? [],
-    }
-  })
+  const enrolledClasses = memberships.map((m) => ({
+    id: m.class_id,
+    name: m.name,
+    description: m.description ?? '',
+    schedules: schedulesByClass[m.class_id] ?? [],
+  }))
 
   const enrolledIds = new Set(enrolledClasses.map((c) => c.id))
-  const availableClasses = (allClasses ?? []).filter((c) => !enrolledIds.has(c.id)) as Class[]
+  const availableClasses = allClasses.filter((c) => !enrolledIds.has(c.id)) as Class[]
 
-  const totalPaid = (invoices ?? []).filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount_cents, 0)
-  const totalUnpaid = (invoices ?? []).filter((i) => i.status === 'unpaid').reduce((s, i) => s + i.amount_cents, 0)
+  const totalPaid = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount_cents, 0)
+  const totalUnpaid = invoices.filter((i) => i.status === 'unpaid').reduce((s, i) => s + i.amount_cents, 0)
 
   const joinedDate = new Date(user.created_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
-  const lastSign = user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  const lastSign = lastSession
+    ? new Date(lastSession.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : 'Never'
 
   const today = new Date().toISOString().split('T')[0]
@@ -173,7 +253,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
             <div>
               <span className="text-gray-500">Auth provider</span>
               <p className="text-gray-100 mt-0.5 capitalize">
-                {user.app_metadata?.provider ?? 'email'}
+                {user.provider_id ?? 'not linked'}
               </p>
             </div>
           </div>
@@ -295,8 +375,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
             </thead>
             <tbody className="divide-y divide-gray-800">
               {(invoices ?? []).map((inv) => {
-                const raw = inv as typeof inv & { receipts: { id: string }[] | { id: string } | null }
-                const receiptId = Array.isArray(raw.receipts) ? raw.receipts[0]?.id : (raw.receipts as { id: string } | null)?.id
+                const receiptId = inv.receipt_id ?? undefined
                 const isOverdue = inv.status === 'unpaid' && inv.due_date < today
                 return (
                   <tr key={inv.id} className="hover:bg-gray-800/30">

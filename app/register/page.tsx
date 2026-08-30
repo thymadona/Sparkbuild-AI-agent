@@ -1,11 +1,10 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import LoginForm from '@/app/LoginForm'
 import Navbar from '@/components/Navbar'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function RegisterPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (user) redirect('/dashboard')
 
   return (

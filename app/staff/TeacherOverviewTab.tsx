@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { classMembers, classes, lessonProgress, projects as projectsTable } from '@/lib/db/schema'
 import { getTeacherClassIds } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS } from '@/lib/lessons'
 import type { SubmissionStatus } from '@/types'
@@ -108,15 +110,21 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
     )
   }
 
-  const [{ data: classesData }, { data: studentMembers }] = await Promise.all([
-    supabaseAdmin.from('classes').select('id, name').in('id', classIds),
-    supabaseAdmin.from('class_members').select('user_id, class_id').in('class_id', classIds).eq('role', 'student'),
+  const [classesData, studentMembers] = await Promise.all([
+    db
+      .select({ id: classes.id, name: classes.name })
+      .from(classes)
+      .where(inArray(classes.id, classIds)),
+    db
+      .select({ user_id: classMembers.userId, class_id: classMembers.classId })
+      .from(classMembers)
+      .where(and(inArray(classMembers.classId, classIds), eq(classMembers.role, 'student'))),
   ])
 
   const classStudentIds = new Map<string, Set<string>>()
   for (const id of classIds) classStudentIds.set(id, new Set())
-  for (const m of studentMembers ?? []) classStudentIds.get(m.class_id)?.add(m.user_id)
-  const studentIds = Array.from(new Set((studentMembers ?? []).map((m) => m.user_id)))
+  for (const m of studentMembers) classStudentIds.get(m.class_id)?.add(m.user_id)
+  const studentIds = Array.from(new Set(studentMembers.map((m) => m.user_id)))
 
   const statusCounts: Record<SubmissionStatus, number> = { submitted: 0, approved: 0, needs_work: 0 }
   let lessonsCompleted = 0
@@ -127,30 +135,55 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
   const classTasksCompleted = new Map<string, number>(classIds.map((id) => [id, 0]))
 
   if (studentIds.length > 0) {
-    const [{ data: submissions }, { data: projects }] = await Promise.all([
-      supabaseAdmin.from('projects').select('user_id, submission_status').not('submission_status', 'is', null).in('user_id', studentIds),
-      supabaseAdmin
-        .from('projects')
-        .select('id, user_id, lesson_id, lesson_version, updated_at')
-        .in('user_id', studentIds)
-        .not('lesson_id', 'is', null)
-        .order('updated_at', { ascending: false }),
+    const [submissions, projectRows] = await Promise.all([
+      db
+        .select({
+          user_id: projectsTable.userId,
+          submission_status: projectsTable.submissionStatus,
+        })
+        .from(projectsTable)
+        .where(
+          and(
+            isNotNull(projectsTable.submissionStatus),
+            inArray(projectsTable.userId, studentIds)
+          )
+        ),
+      db
+        .select({
+          id: projectsTable.id,
+          user_id: projectsTable.userId,
+          lesson_id: projectsTable.lessonId,
+          lesson_version: projectsTable.lessonVersion,
+          updated_at: projectsTable.updatedAt,
+        })
+        .from(projectsTable)
+        .where(
+          and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId))
+        )
+        .orderBy(desc(projectsTable.updatedAt)),
     ])
 
-    for (const row of submissions ?? []) {
+    for (const row of submissions) {
       const status = row.submission_status as SubmissionStatus
       if (status in statusCounts) statusCounts[status]++
     }
 
-    const projectRows = projects ?? []
     const progressById = new Map<string, { completedTaskIds: string[]; updatedAt: string }>()
     if (projectRows.length > 0) {
-      const { data: progressRows } = await supabaseAdmin
-        .from('lesson_progress')
-        .select('project_id, completed_task_ids, updated_at')
-        .in('project_id', projectRows.map((p) => p.id))
-      for (const row of progressRows ?? []) {
-        progressById.set(row.project_id, { completedTaskIds: row.completed_task_ids ?? [], updatedAt: row.updated_at })
+      const progressRows = await db
+        .select({
+          project_id: lessonProgress.projectId,
+          completed_task_ids: lessonProgress.completedTaskIds,
+          updated_at: lessonProgress.updatedAt,
+        })
+        .from(lessonProgress)
+        .where(inArray(lessonProgress.projectId, projectRows.map((p) => p.id)))
+
+      for (const row of progressRows) {
+        progressById.set(row.project_id, {
+          completedTaskIds: row.completed_task_ids,
+          updatedAt: row.updated_at,
+        })
       }
     }
 
@@ -164,6 +197,9 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
     const activeUserIds = new Set<string>()
     for (const project of latestByStudentLesson.values()) {
+      // The query filters on lesson_id IS NOT NULL, but the column is nullable
+      // so the select type still admits null. Restated here rather than cast.
+      if (project.lesson_id == null) continue
       const resolved = getLessonForProject(project.lesson_id, project.lesson_version)
       if (!resolved || resolved.tasks.length === 0) continue
       const progress = progressById.get(project.id)

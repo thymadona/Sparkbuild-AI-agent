@@ -2,121 +2,157 @@ import {
   getUserRoles,
   hasPermission,
   isAdmin,
+  isTeacher,
   requirePermission,
   isTeacherOfClass,
   getTeacherClassIds,
   ForbiddenError,
 } from '@/lib/auth/permissions'
+import { db } from '@/lib/db/client'
+import { addClassMember, grantRole, makeClass, makeUser, resetDb } from '@/__tests__/helpers/db'
 
-const mockRpc = jest.fn()
-const mockFrom = jest.fn()
-jest.mock('@/lib/supabase-server', () => ({
-  supabaseAdmin: {
-    rpc: (...args: unknown[]) => mockRpc(...args),
-    from: (...args: unknown[]) => mockFrom(...args),
-  },
-}))
-
-const USER_ID = 'user-123'
-const CLASS_ID = 'class-456'
-
-// Supabase's query builder is itself awaitable (thenable) — select()/eq()
-// return `this`, and awaiting the chain resolves to the query result.
-function makeFromChain(result: { data: unknown; error: unknown }) {
-  const chain: Record<string, unknown> = {}
-  chain.select = jest.fn(() => chain)
-  chain.eq = jest.fn(() => chain)
-  chain.then = (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve)
-  return chain
-}
-
-beforeEach(() => {
-  jest.clearAllMocks()
-})
+// These run against the real TEST_DATABASE_URL rather than a mocked query
+// builder. The rules under test live in Postgres security-definer functions
+// (drizzle/0001_functions_sequence_seed.sql), so a mock could only assert
+// that we called them — not that they answer correctly. The previous version
+// of this file stubbed the PostgREST wire shape, which no longer exists.
+beforeEach(resetDb)
+afterAll(() => db.$client.end())
 
 describe('hasPermission', () => {
-  it('returns true when the RPC reports the permission is granted', async () => {
-    mockRpc.mockResolvedValue({ data: true, error: null })
-    await expect(hasPermission(USER_ID, 'invoices:manage')).resolves.toBe(true)
-    expect(mockRpc).toHaveBeenCalledWith('has_permission', { p_user_id: USER_ID, p_key: 'invoices:manage' })
+  it('grants a permission that the user’s role actually carries', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'admin')
+    await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(true)
   })
 
-  it('returns false when the RPC reports the permission is denied', async () => {
-    mockRpc.mockResolvedValue({ data: false, error: null })
-    await expect(hasPermission(USER_ID, 'invoices:manage')).resolves.toBe(false)
+  it('denies a permission the user’s role does not carry', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'teacher')
+    // The teacher role is seeded with homework:review and students:message only.
+    await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(false)
+    await expect(hasPermission(user.id, 'homework:review')).resolves.toBe(true)
   })
 
-  it('fails closed (denies) when the RPC errors', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'DB unavailable' } })
-    await expect(hasPermission(USER_ID, 'invoices:manage')).resolves.toBe(false)
+  it('denies a user with no roles at all', async () => {
+    const user = await makeUser()
+    await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(false)
+  })
+
+  it('fails closed (denies) when the query throws', async () => {
+    // A malformed uuid makes the cast in the query throw, standing in for any
+    // database-level failure. Drizzle throws where Supabase returned
+    // `{ error }`, so this is the path that must not escape as an exception.
+    await expect(hasPermission('not-a-uuid', 'invoices:manage')).resolves.toBe(false)
   })
 })
 
 describe('isAdmin', () => {
-  it('returns true for an admin user', async () => {
-    mockRpc.mockResolvedValue({ data: true, error: null })
-    await expect(isAdmin(USER_ID)).resolves.toBe(true)
-    expect(mockRpc).toHaveBeenCalledWith('is_admin', { p_user_id: USER_ID })
+  it('is true for an admin and false for a teacher', async () => {
+    const admin = await makeUser()
+    const teacher = await makeUser()
+    await grantRole(admin.id, 'admin')
+    await grantRole(teacher.id, 'teacher')
+
+    await expect(isAdmin(admin.id)).resolves.toBe(true)
+    await expect(isAdmin(teacher.id)).resolves.toBe(false)
   })
 
-  it('fails closed (denies) when the RPC errors', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'DB unavailable' } })
-    await expect(isAdmin(USER_ID)).resolves.toBe(false)
+  it('fails closed (denies) when the query throws', async () => {
+    await expect(isAdmin('not-a-uuid')).resolves.toBe(false)
+  })
+})
+
+describe('isTeacher', () => {
+  it('is true for the teacher role regardless of class membership', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'teacher')
+    await expect(isTeacher(user.id)).resolves.toBe(true)
+  })
+
+  it('is false for a plain student', async () => {
+    const user = await makeUser()
+    await expect(isTeacher(user.id)).resolves.toBe(false)
   })
 })
 
 describe('requirePermission', () => {
   it('resolves when the permission is granted', async () => {
-    mockRpc.mockResolvedValue({ data: true, error: null })
-    await expect(requirePermission(USER_ID, 'classes:manage')).resolves.toBeUndefined()
+    const user = await makeUser()
+    await grantRole(user.id, 'admin')
+    await expect(requirePermission(user.id, 'classes:manage')).resolves.toBeUndefined()
   })
 
   it('rejects with ForbiddenError when the permission is denied', async () => {
-    mockRpc.mockResolvedValue({ data: false, error: null })
-    await expect(requirePermission(USER_ID, 'classes:manage')).rejects.toBeInstanceOf(ForbiddenError)
+    const user = await makeUser()
+    await expect(requirePermission(user.id, 'classes:manage')).rejects.toBeInstanceOf(ForbiddenError)
   })
 
-  it('rejects with ForbiddenError (fail closed) when the RPC errors', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'DB unavailable' } })
-    await expect(requirePermission(USER_ID, 'classes:manage')).rejects.toBeInstanceOf(ForbiddenError)
+  it('rejects with ForbiddenError (fail closed) when the query throws', async () => {
+    await expect(requirePermission('not-a-uuid', 'classes:manage')).rejects.toBeInstanceOf(ForbiddenError)
   })
 })
 
 describe('isTeacherOfClass', () => {
-  it('returns true when the RPC confirms teacher access', async () => {
-    mockRpc.mockResolvedValue({ data: true, error: null })
-    await expect(isTeacherOfClass(USER_ID, CLASS_ID)).resolves.toBe(true)
-    expect(mockRpc).toHaveBeenCalledWith('is_teacher_of_class', { p_user_id: USER_ID, p_class_id: CLASS_ID })
+  it('is true for the teacher of that specific class only', async () => {
+    const teacher = await makeUser()
+    const mine = await makeClass()
+    const theirs = await makeClass()
+    await addClassMember(mine.id, teacher.id, 'teacher')
+
+    await expect(isTeacherOfClass(teacher.id, mine.id)).resolves.toBe(true)
+    await expect(isTeacherOfClass(teacher.id, theirs.id)).resolves.toBe(false)
   })
 
-  it('fails closed (denies) when the RPC errors', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'DB unavailable' } })
-    await expect(isTeacherOfClass(USER_ID, CLASS_ID)).resolves.toBe(false)
+  it('is true for an admin on any class', async () => {
+    const admin = await makeUser()
+    await grantRole(admin.id, 'admin')
+    const someClass = await makeClass()
+    await expect(isTeacherOfClass(admin.id, someClass.id)).resolves.toBe(true)
+  })
+
+  it('is false for a student member of the class', async () => {
+    const student = await makeUser()
+    const someClass = await makeClass()
+    await addClassMember(someClass.id, student.id, 'student')
+    await expect(isTeacherOfClass(student.id, someClass.id)).resolves.toBe(false)
+  })
+
+  it('fails closed (denies) when the query throws', async () => {
+    await expect(isTeacherOfClass('not-a-uuid', 'also-not-a-uuid')).resolves.toBe(false)
   })
 })
 
 describe('getUserRoles', () => {
-  it('maps joined role rows to role names', async () => {
-    mockFrom.mockReturnValue(
-      makeFromChain({ data: [{ roles: { name: 'admin' } }, { roles: { name: 'teacher' } }], error: null })
-    )
-    await expect(getUserRoles(USER_ID)).resolves.toEqual(['admin', 'teacher'])
+  it('returns every role name held by the user', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'admin')
+    await grantRole(user.id, 'teacher')
+    await expect(getUserRoles(user.id)).resolves.toEqual(expect.arrayContaining(['admin', 'teacher']))
   })
 
-  it('throws (does not fail open) when the query errors', async () => {
-    mockFrom.mockReturnValue(makeFromChain({ data: null, error: { message: 'DB unavailable' } }))
-    await expect(getUserRoles(USER_ID)).rejects.toBeTruthy()
+  it('returns an empty list for a user with no roles', async () => {
+    const user = await makeUser()
+    await expect(getUserRoles(user.id)).resolves.toEqual([])
+  })
+
+  it('throws (does not fail open) when the query fails', async () => {
+    await expect(getUserRoles('not-a-uuid')).rejects.toBeTruthy()
   })
 })
 
 describe('getTeacherClassIds', () => {
-  it('maps rows to class ids', async () => {
-    mockFrom.mockReturnValue(makeFromChain({ data: [{ class_id: 'a' }, { class_id: 'b' }], error: null }))
-    await expect(getTeacherClassIds(USER_ID)).resolves.toEqual(['a', 'b'])
+  it('returns only classes where the user is a teacher, not a student', async () => {
+    const user = await makeUser()
+    const teaching = await makeClass()
+    const attending = await makeClass()
+    await addClassMember(teaching.id, user.id, 'teacher')
+    await addClassMember(attending.id, user.id, 'student')
+
+    await expect(getTeacherClassIds(user.id)).resolves.toEqual([teaching.id])
   })
 
-  it('throws (does not fail open) when the query errors', async () => {
-    mockFrom.mockReturnValue(makeFromChain({ data: null, error: { message: 'DB unavailable' } }))
-    await expect(getTeacherClassIds(USER_ID)).rejects.toBeTruthy()
+  it('throws (does not fail open) when the query fails', async () => {
+    await expect(getTeacherClassIds('not-a-uuid')).rejects.toBeTruthy()
   })
 })

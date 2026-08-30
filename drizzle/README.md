@@ -1,8 +1,8 @@
 # drizzle/ — the applied migration history
 
-This folder is the schema of record, applied via `bun run db:migrate`.
-`supabase/migrations/` no longer exists (removed 2026-08-15 in the cutover
-to this workflow) — `lib/db/schema.ts` + this folder replace it entirely.
+This folder is the schema of record, applied via `bun run db:migrate`
+against `DATABASE_URL`. `lib/db/schema.ts` is the authoring entry point;
+nothing else defines the schema.
 
 ## Workflow for a schema change
 
@@ -26,43 +26,74 @@ in `drizzle.__drizzle_migrations` — check via
 `select hash, created_at from drizzle.__drizzle_migrations order by id`). If
 one turns out wrong, fix forward with a new migration instead.
 
-## Consequence of this cutover, worth knowing
+## The squash to `0000_baseline.sql`
 
-Supabase's own migration tracking (`supabase_migrations.schema_migrations`)
-is no longer written to going forward. That means the Supabase dashboard's
-migration view, `supabase db reset`, and the Supabase MCP's
-`list_migrations`/`create_branch`/`merge_branch` tools will not reflect
-schema changes made after 2026-08-15 — they still see the old history up to
-the cutover point and nothing past it. `drizzle.__drizzle_migrations` is the
-real ledger now; query it directly if you need to check what's applied.
+The nineteen files `0000_messages.sql` … `0018_class_enabled_lessons.sql`
+now live in `_archive/`. They are kept for provenance only — **they are not
+runnable and are not part of the history any more.** Two reasons they had to
+go:
 
-## `0000_messages.sql` through `0018_class_enabled_lessons.sql`
+1. They were never actually executed. During the 2026-08-15 Supabase→Drizzle
+   cutover each one was hand-marked as applied (a row inserted straight into
+   `drizzle.__drizzle_migrations`) because the DDL was already live in the
+   hosted database. There was no database anywhere that those files had
+   built.
+2. They cannot build one. They reference `auth.users`, `auth.uid()`, and the
+   roles `authenticated`/`anon` — all Supabase/PostgREST constructs that do
+   not exist on plain Postgres.
 
-These 19 files are the actual, real history of how this schema got to its
-current state — recovered from the original `supabase/migrations/*.sql`
-files (17 of them straight from git history; `0013_revoke_anon_execute_role_functions.sql`
-and `0016_is_enrolled_in_class_fix_teacher_exemption.sql` were applied
-directly to the DB during earlier work and never had a local file, so their
-SQL was recovered from `supabase_migrations.schema_migrations` instead —
-same content, just a different recovery path). Renumbered sequentially and
-renamed to match the DB's canonical migration names (`bun
-run db:migrate` used to run them one at a time on the schema's original
-timeline; each `NNNN_*.sql` here is one of those, unchanged).
+`0000_baseline.sql` is generated from `lib/db/schema.ts` and creates the
+whole schema, including the four Better Auth tables (`users`, `sessions`,
+`accounts`, `verifications`) that replaced Supabase's `auth` schema. Every
+`user_id` FK that used to point at `auth.users(id)` now points at
+`public.users(id)`, with the original delete rules preserved — including the
+two deliberate deviations `lib/db/schema.ts` documents (`receipts` does not
+cascade; `user_roles` is NO ACTION).
 
-None of these 19 were re-executed during the reconstruction — they were
-already live in the database. Instead, each was hand-marked as applied: one
-row per file was inserted directly into `drizzle.__drizzle_migrations`,
-with that file's exact sha256 hash and a `created_at` derived from its
-original applied timestamp (so the ordering here matches the real
-chronology, not just alphabetical). Verified working: running `bun run
-db:migrate` right after logged only "already exists, skipping" for the
-tracking table itself, inserted zero new rows, and left every table's row
-count unchanged. `bunx drizzle-kit generate` was also re-verified afterward
-— it only reads the *latest* journal entry's snapshot (`meta/0018_snapshot.json`)
-to diff against `schema.ts`, so having 18 earlier entries with no snapshot
-file of their own (their `.sql` files are self-sufficient — the runtime
-migrator only ever reads `meta/_journal.json` + each tag's `.sql` file, never
-the snapshots) is expected and doesn't break anything.
+`0001_functions_sequence_seed.sql` carries forward everything the Drizzle
+DSL can't express: the five security-definer authorization functions
+(`has_permission`, `is_admin`, `is_teacher_of_class`,
+`can_access_teacher_dashboard`, `is_enrolled_in_class`), the
+`receipt_number_seq` sequence, and the roles/permissions seed rows. It is
+re-runnable — every statement is create-or-replace or `ON CONFLICT` guarded.
 
-Every migration after `0018_class_enabled_lessons.sql` represents a real,
-intentional schema change made after the cutover, generated the normal way.
+### What was deliberately dropped
+
+**The RLS policies** — the policies, not row security itself. Every policy in
+the archive predicated on `auth.uid()`, which only Supabase Auth populates and
+which is now always null. A policy set predicated on a null value reads as a
+boundary while enforcing nothing, so none were carried forward. Authorization
+lives in the route handlers and in the five functions above, and every query
+carries its own ownership predicate.
+
+**The `grant execute … to authenticated` lines.** Those roles are Supabase
+constructs and the application is the owner of these functions, so it needs no
+grant. The matching revokes moved to `0002` (below).
+
+## `0002_postgrest_lockdown.sql`
+
+Supabase is *not* gone. The hosted project stays live because ~41 files still
+read and write through PostgREST (`lib/supabase-server.ts`), and Supabase's
+default privileges (`alter default privileges in schema public grant all on
+tables to anon, authenticated, service_role`) mean every table `0000_baseline`
+creates is reachable by the anon key — a credential shipped to browsers by
+design.
+
+Left alone, that turns 21 tables into a public read/write surface:
+`sessions.token` is session forgery, `user_roles` is privilege escalation. So
+`0002` re-establishes a deny-by-default in two independent layers:
+
+1. `enable row level security` on all 21 tables with **zero policies**.
+   `service_role` and the table owner hold `BYPASSRLS`, so `supabaseAdmin` and
+   Drizzle are unaffected; `anon` and `authenticated` are denied outright.
+2. Every grant revoked from `anon`/`authenticated`, including the default
+   privileges, so a future `db:migrate` cannot silently re-grant on new tables.
+
+It is re-runnable, and the revokes are guarded on the role existing so the same
+file applies cleanly to a plain Postgres — local development and the CI service
+container, where `anon` and `authenticated` are not defined.
+
+**Anything added to `lib/db/schema.ts` from now on needs a matching
+`enable row level security` line** while PostgREST is still in the picture;
+`bun run db:generate` will not write one for you. That obligation ends with the
+last `supabaseAdmin` call site.

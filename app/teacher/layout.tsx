@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) redirect('/login')
 
   if (!(await isAdmin(user.id))) {

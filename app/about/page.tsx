@@ -1,11 +1,10 @@
 import { LESSONS } from '@/lib/lessons'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function AboutPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   return (
     <div className="min-h-screen bg-surface-900 font-body">

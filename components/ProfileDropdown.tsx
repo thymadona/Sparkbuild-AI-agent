@@ -8,17 +8,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
-import { createBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { authClient } from '@/lib/auth/client'
 import { LogOut, User } from 'lucide-react'
 
 export default function ProfileDropdown({ email }: { email: string }) {
   const router = useRouter()
-  const supabase = createBrowserSupabaseClient()
   const initials = email[0].toUpperCase()
   const username = email.split('@')[0]
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
+    await authClient.signOut()
     router.push('/')
     router.refresh()
   }

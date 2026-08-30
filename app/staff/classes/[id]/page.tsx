@@ -1,6 +1,21 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { and, asc, desc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import {
+  classEnabledLessons,
+  classMembers,
+  classSchedules,
+  classes as classesTable,
+  invoices,
+  lessonProgress,
+  projects,
+  roles,
+  studentProfiles,
+  userRoles,
+  users as usersTable,
+} from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { hasPermission, isAdmin, isTeacherOfClass } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS, type LessonTaskType } from '@/lib/lessons'
 import { homeworkTasks } from '@/lib/task-guard'
@@ -8,6 +23,7 @@ import type { ClassSchedule, SubmissionStatus } from '@/types'
 import ClassDetailClient from './ClassDetailClient'
 import TeacherClassClient from './TeacherClassClient'
 import LessonsPanel from './LessonsPanel'
+import { getSessionUser } from '@/lib/auth/session'
 
 export interface TeacherSubmissionRow {
   projectId: string
@@ -50,43 +66,76 @@ export interface LessonProgressEntry {
 // re-checks per class, since teaching one class grants nothing on another.
 export default async function ClassDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) redirect('/login')
+  if (!isUuid(params.id)) notFound()
 
   const canManageAll = (await isAdmin(user.id)) || (await hasPermission(user.id, 'classes:manage'))
 
   if (canManageAll) {
     const [
-      { data: cls },
-      { data: members },
-      { data: schedules },
-      { data: invoices },
-      { data: usersData },
-      { data: profiles },
-      { data: teacherRoleRows },
-      { data: enabledLessons },
+      classRows,
+      members,
+      schedules,
+      invoiceRows,
+      allUsers,
+      profiles,
+      roleRows,
+      enabledLessons,
     ] = await Promise.all([
-      supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
-      supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
-      supabaseAdmin.from('class_schedules').select('*').eq('class_id', params.id).order('day_of_week').order('start_time'),
-      supabaseAdmin.from('invoices').select('user_id, status'),
-      supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
-      supabaseAdmin.from('student_profiles').select('user_id, full_name'),
-      supabaseAdmin.from('user_roles').select('user_id, roles(name)'),
-      supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
+      db
+        .select({
+          id: classesTable.id,
+          name: classesTable.name,
+          description: classesTable.description,
+        })
+        .from(classesTable)
+        .where(eq(classesTable.id, params.id))
+        .limit(1),
+      db
+        .select({ user_id: classMembers.userId, role: classMembers.role })
+        .from(classMembers)
+        .where(eq(classMembers.classId, params.id)),
+      db
+        .select({
+          id: classSchedules.id,
+          class_id: classSchedules.classId,
+          day_of_week: classSchedules.dayOfWeek,
+          start_time: classSchedules.startTime,
+          duration_min: classSchedules.durationMin,
+          label: classSchedules.label,
+        })
+        .from(classSchedules)
+        .where(eq(classSchedules.classId, params.id))
+        .orderBy(asc(classSchedules.dayOfWeek), asc(classSchedules.startTime)),
+      db.select({ user_id: invoices.userId, status: invoices.status }).from(invoices),
+      // Reads public.users directly. The Supabase Auth admin listing this
+      // replaced was paginated at 1000 and silently dropped everyone past it.
+      db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
+      db
+        .select({ user_id: studentProfiles.userId, full_name: studentProfiles.fullName })
+        .from(studentProfiles),
+      db
+        .select({ user_id: userRoles.userId, name: roles.name })
+        .from(userRoles)
+        .innerJoin(roles, eq(roles.id, userRoles.roleId)),
+      db
+        .select({ lesson_id: classEnabledLessons.lessonId })
+        .from(classEnabledLessons)
+        .where(eq(classEnabledLessons.classId, params.id)),
     ])
 
+    const cls = classRows[0]
     if (!cls) notFound()
 
-    const memberIds = new Set((members ?? []).map((m) => m.user_id))
-    const teacherMemberIds = new Set((members ?? []).filter((m) => m.role === 'teacher').map((m) => m.user_id))
-    const studentMemberIds = new Set((members ?? []).filter((m) => m.role !== 'teacher').map((m) => m.user_id))
-    const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.full_name]))
-    const userMap = Object.fromEntries((usersData?.users ?? []).map((u) => [u.id, u.email ?? '']))
+    const memberIds = new Set(members.map((m) => m.user_id))
+    const teacherMemberIds = new Set(members.filter((m) => m.role === 'teacher').map((m) => m.user_id))
+    const studentMemberIds = new Set(members.filter((m) => m.role !== 'teacher').map((m) => m.user_id))
+    const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
+    const userMap = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? '']))
 
     const paymentMap: Record<string, { paid: number; unpaid: number }> = {}
-    for (const inv of invoices ?? []) {
+    for (const inv of invoiceRows) {
       if (!memberIds.has(inv.user_id)) continue
       if (!paymentMap[inv.user_id]) paymentMap[inv.user_id] = { paid: 0, unpaid: 0 }
       if (inv.status === 'paid') paymentMap[inv.user_id].paid++
@@ -107,18 +156,17 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       email: userMap[userId] ?? userId.slice(0, 8),
     })).sort((a, b) => a.name.localeCompare(b.name))
 
-    const roleRows = (teacherRoleRows ?? []) as unknown as { user_id: string; roles: { name: string } | null }[]
     // Only 'admin' and 'teacher' roles exist in user_roles — a student never
     // has a row there. An account can hold a student_profiles row *and* a
     // staff role at once (e.g. a teacher's own test account), so keep staff
     // out of the student picker even if they have a profile.
     const staffIds = new Set(roleRows.map((r) => r.user_id))
-    const availableStudents = (profiles ?? [])
+    const availableStudents = profiles
       .filter((p) => !memberIds.has(p.user_id) && !staffIds.has(p.user_id))
       .map((p) => ({ userId: p.user_id, name: p.full_name, email: userMap[p.user_id] ?? '' }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    const platformTeacherIds = new Set(roleRows.filter((r) => r.roles?.name === 'teacher').map((r) => r.user_id))
+    const platformTeacherIds = new Set(roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id))
     const availableTeachers = Array.from(platformTeacherIds)
       .filter((userId) => !teacherMemberIds.has(userId))
       .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
@@ -137,13 +185,13 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
             classId={cls.id}
             className={cls.name}
             description={cls.description}
-            schedules={(schedules ?? []) as ClassSchedule[]}
+            schedules={schedules as ClassSchedule[]}
             students={students}
             availableStudents={availableStudents}
             teachers={teachers}
             availableTeachers={availableTeachers}
           />
-          <LessonsPanel classId={cls.id} enabledLessonIds={(enabledLessons ?? []).map((d) => d.lesson_id)} />
+          <LessonsPanel classId={cls.id} enabledLessonIds={enabledLessons.map((d) => d.lesson_id)} />
         </div>
       </div>
     )
@@ -152,19 +200,38 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   const allowed = await isTeacherOfClass(user.id, params.id)
   if (!allowed) redirect('/staff/classes')
 
-  const [{ data: cls }, { data: members }, { data: usersData }, { data: profiles }, { data: enabledLessons }] = await Promise.all([
-    supabaseAdmin.from('classes').select('*').eq('id', params.id).single(),
-    supabaseAdmin.from('class_members').select('user_id, role').eq('class_id', params.id),
-    supabaseAdmin.auth.admin.listUsers({ perPage: 1000 }),
-    supabaseAdmin.from('student_profiles').select('user_id, full_name'),
-    supabaseAdmin.from('class_enabled_lessons').select('lesson_id').eq('class_id', params.id),
+  const [classRows, members, allUsers, profiles, enabledLessons] = await Promise.all([
+    db
+      .select({
+        id: classesTable.id,
+        name: classesTable.name,
+        description: classesTable.description,
+      })
+      .from(classesTable)
+      .where(eq(classesTable.id, params.id))
+      .limit(1),
+    db
+      .select({ user_id: classMembers.userId, role: classMembers.role })
+      .from(classMembers)
+      .where(eq(classMembers.classId, params.id)),
+    // Reads public.users directly. The Supabase Auth admin listing this
+    // replaced was paginated at 1000 and silently dropped everyone past it.
+    db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
+    db
+      .select({ user_id: studentProfiles.userId, full_name: studentProfiles.fullName })
+      .from(studentProfiles),
+    db
+      .select({ lesson_id: classEnabledLessons.lessonId })
+      .from(classEnabledLessons)
+      .where(eq(classEnabledLessons.classId, params.id)),
   ])
 
+  const cls = classRows[0]
   if (!cls) redirect('/staff/classes')
 
-  const studentIds = (members ?? []).filter((m) => m.role === 'student').map((m) => m.user_id)
-  const emailById = Object.fromEntries((usersData?.users ?? []).map((u) => [u.id, u.email ?? u.id]))
-  const nameById = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.full_name]))
+  const studentIds = members.filter((m) => m.role === 'student').map((m) => m.user_id)
+  const emailById = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? u.id]))
+  const nameById = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
 
   const students = studentIds
     .map((id) => ({ userId: id, name: nameById[id] ?? '', email: emailById[id] ?? id.slice(0, 8) }))
@@ -172,21 +239,31 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
 
   let homeworkRows: TeacherSubmissionRow[] = []
   if (studentIds.length > 0) {
-    const { data: projects } = await supabaseAdmin
-      .from('projects')
-      .select('id, user_id, title, lesson_id, lesson_version, submission_status, updated_at')
-      .not('submission_status', 'is', null)
-      .in('user_id', studentIds)
-      .order('updated_at', { ascending: false })
+    const submissions = await db
+      .select({
+        id: projects.id,
+        user_id: projects.userId,
+        title: projects.title,
+        lesson_id: projects.lessonId,
+        lesson_version: projects.lessonVersion,
+        submission_status: projects.submissionStatus,
+        updated_at: projects.updatedAt,
+      })
+      .from(projects)
+      .where(and(isNotNull(projects.submissionStatus), inArray(projects.userId, studentIds)))
+      .orderBy(desc(projects.updatedAt))
 
-    const submissions = projects ?? []
     const progressById = new Map<string, string[]>()
     if (submissions.length > 0) {
-      const { data: progress } = await supabaseAdmin
-        .from('lesson_progress')
-        .select('project_id, completed_task_ids')
-        .in('project_id', submissions.map((p) => p.id))
-      for (const row of progress ?? []) progressById.set(row.project_id, row.completed_task_ids ?? [])
+      const progress = await db
+        .select({
+          project_id: lessonProgress.projectId,
+          completed_task_ids: lessonProgress.completedTaskIds,
+        })
+        .from(lessonProgress)
+        .where(inArray(lessonProgress.projectId, submissions.map((p) => p.id)))
+
+      for (const row of progress) progressById.set(row.project_id, row.completed_task_ids)
     }
 
     homeworkRows = submissions.map((project) => {
@@ -223,21 +300,29 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     // Every project a student has started, one row per (student, lesson) at
     // most since we keep only the most recently updated per pair below —
     // unlike homeworkRows above, this isn't limited to submitted homework.
-    const { data: allProjects } = await supabaseAdmin
-      .from('projects')
-      .select('id, user_id, lesson_id, lesson_version, updated_at')
-      .in('user_id', studentIds)
-      .not('lesson_id', 'is', null)
-      .order('updated_at', { ascending: false })
+    const projectRows = await db
+      .select({
+        id: projects.id,
+        user_id: projects.userId,
+        lesson_id: projects.lessonId,
+        lesson_version: projects.lessonVersion,
+        updated_at: projects.updatedAt,
+      })
+      .from(projects)
+      .where(and(inArray(projects.userId, studentIds), isNotNull(projects.lessonId)))
+      .orderBy(desc(projects.updatedAt))
 
-    const projectRows = allProjects ?? []
     const allProgressById = new Map<string, string[]>()
     if (projectRows.length > 0) {
-      const { data: progressRows } = await supabaseAdmin
-        .from('lesson_progress')
-        .select('project_id, completed_task_ids')
-        .in('project_id', projectRows.map((p) => p.id))
-      for (const row of progressRows ?? []) allProgressById.set(row.project_id, row.completed_task_ids ?? [])
+      const progressRows = await db
+        .select({
+          project_id: lessonProgress.projectId,
+          completed_task_ids: lessonProgress.completedTaskIds,
+        })
+        .from(lessonProgress)
+        .where(inArray(lessonProgress.projectId, projectRows.map((p) => p.id)))
+
+      for (const row of progressRows) allProgressById.set(row.project_id, row.completed_task_ids)
     }
 
     const latestByStudentLesson = new Map<string, (typeof projectRows)[number]>()
@@ -254,7 +339,13 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       students: students.map((s) => {
         const project = latestByStudentLesson.get(`${s.userId}:${lesson.id}`)
         if (!project) return { userId: s.userId, name: s.name, email: s.email, tasks: blankTasks(lesson) }
-        const resolved = getLessonForProject(project.lesson_id, project.lesson_version) ?? lesson
+        // The query filters on lesson_id IS NOT NULL, but the column is
+        // nullable so the select type still admits null. Fall back to the
+        // lesson being rendered rather than casting.
+        const resolved =
+          project.lesson_id == null
+            ? lesson
+            : getLessonForProject(project.lesson_id, project.lesson_version) ?? lesson
         const doneIds = new Set(allProgressById.get(project.id) ?? [])
         return {
           userId: s.userId,

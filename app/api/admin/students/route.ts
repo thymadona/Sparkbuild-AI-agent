@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { db } from '@/lib/db/client'
+import { studentProfiles, users } from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
+import { getSessionUser } from '@/lib/auth/session'
 
 export async function POST(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!(await hasPermission(user.id, 'students:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -21,30 +22,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'email and full_name are required' }, { status: 400 })
   }
 
-  // Create the Supabase auth user (no password — magic link only)
-  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    email_confirm: true,
-    user_metadata: { full_name },
-  })
-  if (createErr) {
-    return NextResponse.json({ error: createErr.message }, { status: 400 })
+  // Creates the account with no credential. The student claims it by signing
+  // in with Google on this address — `email_verified` is what lets Better
+  // Auth's trusted-provider linking attach that identity to this row instead
+  // of creating a second user (see account.accountLinking in lib/auth/index.ts).
+  //
+  // One transaction, so a failure partway can't leave an account with no
+  // profile — the previous two-step version could, and the orphan was
+  // invisible to /staff/students.
+  try {
+    const newUserId = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(users)
+        .values({ name: full_name, email: email.trim().toLowerCase(), emailVerified: true })
+        .returning({ id: users.id })
+
+      await tx.insert(studentProfiles).values({
+        userId: created.id,
+        fullName: full_name,
+        parentEmail: parent_email ?? null,
+        parentTelegramChatId: parent_telegram_chat_id ?? null,
+        notes: notes ?? null,
+        createdBy: user.id,
+      })
+
+      return created.id
+    })
+
+    return NextResponse.json({ userId: newUserId })
+  } catch (err) {
+    // users.email is unique, so re-adding an existing student lands here.
+    const message = String((err as Error)?.message ?? '')
+    if (message.includes('users_email_unique') || message.includes('duplicate key')) {
+      return NextResponse.json({ error: 'A user with that email already exists' }, { status: 409 })
+    }
+    console.error('POST /api/admin/students failed:', err)
+    return NextResponse.json({ error: 'Could not create the student' }, { status: 500 })
   }
-
-  const newUserId = created.user.id
-
-  // Insert student profile
-  const { error: profileErr } = await supabaseAdmin.from('student_profiles').insert({
-    user_id: newUserId,
-    full_name,
-    parent_email: parent_email ?? null,
-    parent_telegram_chat_id: parent_telegram_chat_id ?? null,
-    notes: notes ?? null,
-    created_by: user.id,
-  })
-  if (profileErr) {
-    return NextResponse.json({ error: profileErr.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ userId: newUserId })
 }

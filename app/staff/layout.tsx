@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { isAdmin, hasPermission, getTeacherClassIds } from '@/lib/auth/permissions'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import type { StaffPermissions } from '@/lib/dashboard-nav'
+import { getSessionUser } from '@/lib/auth/session'
 
 // This layout only decides who may enter the /staff shell at all (any
 // admin, or anyone who teaches at least one class) and what the sidebar
@@ -13,8 +13,7 @@ import type { StaffPermissions } from '@/lib/dashboard-nav'
 // admin route. Nav visibility here is a convenience, not an access
 // boundary.
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user) redirect('/login')
 
   const [admin, canManageClasses, canManageStudents, canManageInvoices, canManageRoles, canManageTelegram, teacherClassIds] =

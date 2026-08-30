@@ -1,42 +1,62 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { and, desc, eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { messages, projects as projectsTable, prompts } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
+import { getSessionUser } from '@/lib/auth/session'
+import type { ProjectFiles } from '@/types'
+
+// The full row as the API has always shaped it: snake_case keys, matching
+// `Project` in types/index.ts and every client component that reads it. See
+// the naming note in CLAUDE.md — these flip to camelCase in one pass, later.
+const projectColumns = {
+  id: projectsTable.id,
+  user_id: projectsTable.userId,
+  title: projectsTable.title,
+  files: projectsTable.files,
+  is_public: projectsTable.isPublic,
+  lesson_id: projectsTable.lessonId,
+  lesson_version: projectsTable.lessonVersion,
+  submission_status: projectsTable.submissionStatus,
+  created_at: projectsTable.createdAt,
+  updated_at: projectsTable.updatedAt,
+}
 
 // GET /api/projects — list all projects for the authenticated user
 export async function GET() {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: projects, error } = await supabaseAdmin
-    .from('projects')
-    .select('id, title, lesson_id, updated_at, is_public')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false })
+  try {
+    const projects = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        lesson_id: projectsTable.lessonId,
+        updated_at: projectsTable.updatedAt,
+        is_public: projectsTable.isPublic,
+      })
+      .from(projectsTable)
+      .where(eq(projectsTable.userId, user.id))
+      .orderBy(desc(projectsTable.updatedAt))
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(projects)
+  } catch (err) {
+    console.error('GET /api/projects failed:', err)
+    return NextResponse.json({ error: 'Failed to load projects' }, { status: 500 })
   }
-
-  return NextResponse.json(projects)
 }
 
 // POST /api/projects — create a new project
 export async function POST(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
-  if (authError) console.error('POST /api/projects auth error:', authError)
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -57,14 +77,15 @@ export async function POST(req: Request) {
     }
   }
 
-  const insertData: Record<string, unknown> = {
-    user_id: user.id,
+  const insertData: typeof projectsTable.$inferInsert = {
+    userId: user.id,
     title,
-    is_public: false,
+    isPublic: false,
+    files: {},
   }
   if (lessonId !== undefined) {
-    insertData.lesson_id = lessonId
-    if (lessonVersion === CURRENT_LESSON_VERSION) insertData.lesson_version = CURRENT_LESSON_VERSION
+    insertData.lessonId = lessonId
+    if (lessonVersion === CURRENT_LESSON_VERSION) insertData.lessonVersion = CURRENT_LESSON_VERSION
   }
 
   if (templateHtml) {
@@ -242,26 +263,18 @@ export async function POST(req: Request) {
     }
   }
 
-  const { data: project, error } = await supabaseAdmin
-    .from('projects')
-    .insert(insertData)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('POST /api/projects error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  try {
+    const [project] = await db.insert(projectsTable).values(insertData).returning(projectColumns)
+    return NextResponse.json(project, { status: 201 })
+  } catch (err) {
+    console.error('POST /api/projects error:', err)
+    return NextResponse.json({ error: 'Failed to create project' }, { status: 500 })
   }
-
-  return NextResponse.json(project, { status: 201 })
 }
 
 // PATCH /api/projects — update title or is_public for a project
 export async function PATCH(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -274,33 +287,36 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Project id is required' }, { status: 400 })
   }
 
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
-  if (title !== undefined) updates.title = title
-  if (is_public !== undefined) updates.is_public = is_public
-  if (files !== undefined) updates.files = files
-
-  // Ownership enforced by filtering on both id and user_id in the UPDATE itself
-  const { data: project, error } = await supabaseAdmin
-    .from('projects')
-    .update(updates)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single()
-
-  if (error || !project) {
+  if (!isUuid(id)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  return NextResponse.json(project)
+  const updates: Partial<typeof projectsTable.$inferInsert> = { updatedAt: new Date().toISOString() }
+  if (title !== undefined) updates.title = title
+  if (is_public !== undefined) updates.isPublic = is_public
+  if (files !== undefined) updates.files = files as ProjectFiles
+
+  // Ownership enforced by filtering on both id and user_id in the UPDATE
+  // itself, so a mismatch updates zero rows rather than someone else's.
+  try {
+    const [project] = await db
+      .update(projectsTable)
+      .set(updates)
+      .where(and(eq(projectsTable.id, id), eq(projectsTable.userId, user.id)))
+      .returning(projectColumns)
+
+    if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    return NextResponse.json(project)
+  } catch (err) {
+    console.error('PATCH /api/projects failed:', err)
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 }
 
 // DELETE /api/projects — delete a project
 export async function DELETE(req: Request) {
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -313,16 +329,33 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Project id is required' }, { status: 400 })
   }
 
-  // Delete child rows first to avoid FK constraint violations
-  await supabaseAdmin.from('messages').delete().eq('project_id', id)
-  await supabaseAdmin.from('prompts').delete().eq('project_id', id)
-
-  // Ownership enforced by filtering on both id and user_id in the DELETE itself
-  const { error } = await supabaseAdmin.from('projects').delete().eq('id', id).eq('user_id', user.id)
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!isUuid(id)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ success: true })
+  try {
+    // Ownership is established BEFORE anything is deleted. The previous
+    // implementation cleared messages and prompts by project_id alone and only
+    // scoped the projects DELETE, so passing someone else's project id wiped
+    // their chat history and prompt log while the project itself survived.
+    const [owned] = await db
+      .select({ id: projectsTable.id })
+      .from(projectsTable)
+      .where(and(eq(projectsTable.id, id), eq(projectsTable.userId, user.id)))
+      .limit(1)
+
+    if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // messages cascades with its project, but prompts.project_id is NO ACTION
+    // (lib/db/schema.ts keeps the prompt log deliberately), so the child rows
+    // are still cleared explicitly before the parent.
+    await db.delete(messages).where(eq(messages.projectId, id))
+    await db.delete(prompts).where(eq(prompts.projectId, id))
+    await db.delete(projectsTable).where(eq(projectsTable.id, id))
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('DELETE /api/projects failed:', err)
+    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 })
+  }
 }

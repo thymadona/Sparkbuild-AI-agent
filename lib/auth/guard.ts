@@ -1,9 +1,11 @@
-// Pure decision logic for middleware.ts's route guards. No next/server,
-// next/headers, or Supabase imports — middleware can't reach
-// lib/auth/permissions.ts (that module imports lib/supabase-server.ts,
-// which calls cookies() from next/headers and isn't valid in the Edge
-// middleware request lifecycle), and this separation is also what makes
-// the guard testable without mocking NextRequest.
+// Pure decision logic for proxy.ts's route guards: which paths are protected,
+// and what a given user is allowed to reach. No next/server, next/headers or
+// database imports, so the rules can be tested directly as functions instead
+// of by mocking a NextRequest and a connection.
+//
+// (The original reason for the split — that middleware ran on the Edge runtime
+// and could not reach a module doing database work — no longer applies. Proxy
+// runs on Node and queries Postgres itself. The testability is why it stays.)
 
 export interface GuardUser {
   id: string

@@ -1,11 +1,10 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { hasPermission } from '@/lib/auth/permissions'
 import TelegramClient from './TelegramClient'
+import { getSessionUser } from '@/lib/auth/session'
 
 export default async function TelegramPage() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
   if (!user || !(await hasPermission(user.id, 'telegram:manage'))) redirect('/staff')
 
   return (

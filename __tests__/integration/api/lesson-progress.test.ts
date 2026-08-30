@@ -1,96 +1,128 @@
-const mockGetUser = jest.fn()
-const mockAdminFrom = jest.fn()
+const mockGetSessionUser = jest.fn()
 
-jest.mock('@/lib/supabase-server', () => ({
-  createServerSupabaseClient: () => ({ auth: { getUser: mockGetUser } }),
-  supabaseAdmin: { from: (...args: unknown[]) => mockAdminFrom(...args) },
+jest.mock('@/lib/auth/session', () => ({
+  getSessionUser: () => mockGetSessionUser(),
 }))
 
 jest.mock('next/headers', () => ({ cookies: () => ({ getAll: () => [], set: jest.fn() }) }))
 
 import { GET, PUT } from '@/app/api/projects/[id]/lesson-progress/route'
+import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 
-const user = { id: 'student-1' }
-const params = { params: Promise.resolve({ id: 'project-1' }) }
-
+// Real rows in a real database rather than a mocked PostgREST chain. The
+// ownership rule this route enforces is a `where` predicate now, so a mock
+// that returns whatever it was told would assert nothing about it.
 function request(body?: unknown) {
-  return new Request('http://localhost/api/projects/project-1/lesson-progress', {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  return new Request('http://localhost/api/projects/x/lesson-progress', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   })
 }
 
-function projectChain(project: unknown) {
-  const chain = { select: jest.fn(), eq: jest.fn(), single: jest.fn() }
-  chain.select.mockReturnValue(chain)
-  chain.eq.mockReturnValue(chain)
-  chain.single.mockResolvedValue({ data: project })
-  return chain
-}
+const props = (id: string) => ({ params: Promise.resolve({ id }) })
 
-function progressReadChain(progress: unknown) {
-  const chain = { select: jest.fn(), eq: jest.fn(), maybeSingle: jest.fn() }
-  chain.select.mockReturnValue(chain)
-  chain.eq.mockReturnValue(chain)
-  chain.maybeSingle.mockResolvedValue({ data: progress, error: null })
-  return chain
-}
-
-function progressWriteChain() {
-  const chain = { upsert: jest.fn(), select: jest.fn(), single: jest.fn() }
-  chain.upsert.mockReturnValue(chain)
-  chain.select.mockReturnValue(chain)
-  chain.single.mockResolvedValue({ data: { completed_task_ids: ['identity'] }, error: null })
-  return chain
-}
-
-beforeEach(() => jest.clearAllMocks())
+beforeEach(async () => {
+  jest.clearAllMocks()
+  await resetDb()
+})
 
 describe('lesson progress API', () => {
+  // Asserted against lib/db/schema.ts rather than a migration file: the
+  // schema is the authoring entry point, so that is where someone would
+  // break this. (This used to read drizzle/0006_lesson_progress.sql, which
+  // moved to drizzle/_archive/ when the history was squashed to
+  // 0000_baseline.sql.)
   it('uses a cascading project foreign key so progress is removed with its project', () => {
-    const migration = require('fs').readFileSync('drizzle/0006_lesson_progress.sql', 'utf8')
-    expect(migration).toMatch(/project_id uuid primary key references projects\(id\) on delete cascade/i)
+    const schema = require('fs').readFileSync('lib/db/schema.ts', 'utf8')
+    expect(schema).toMatch(
+      /projectId: uuid\('project_id'\)\.primaryKey\(\)\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
+    )
   })
 
   it('returns 401 when unauthenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
-    expect((await GET(new Request('http://localhost'), params)).status).toBe(401)
+    mockGetSessionUser.mockResolvedValue(null)
+    const res = await GET(new Request('http://localhost'), props('project-1'))
+    expect(res.status).toBe(401)
+  })
+
+  // A bad id used to reach PostgREST and come back as `{ data: null }`.
+  // Postgres raises 22P02 instead, so the route guards the param itself —
+  // this asserts a mistyped URL is still a 404 rather than a 500.
+  it('returns 404 for an id that is not a uuid', async () => {
+    const owner = await makeUser()
+    mockGetSessionUser.mockResolvedValue(owner)
+
+    const res = await GET(new Request('http://localhost'), props('project-1'))
+    expect(res.status).toBe(404)
   })
 
   it('loads progress only after confirming the project belongs to the student', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
-    const project = projectChain({ id: 'project-1', lesson_id: 1, lesson_version: 2 })
-    const progress = progressReadChain({ completed_task_ids: ['identity'] })
-    mockAdminFrom.mockImplementation((table: string) => table === 'projects' ? project : progress)
+    const owner = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(owner)
 
-    const response = await GET(new Request('http://localhost'), params)
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ completedTaskIds: ['identity'] })
-    expect(project.eq).toHaveBeenCalledWith('user_id', user.id)
+    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+
+    const res = await GET(new Request('http://localhost'), props(project.id))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
   })
 
   it('rejects task IDs that do not belong to the lesson', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
-    mockAdminFrom.mockReturnValue(projectChain({ id: 'project-1', lesson_id: 1, lesson_version: 2 }))
+    const owner = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(owner)
 
-    const response = await PUT(request({ completedTaskIds: ['not-a-task'] }), params)
-    expect(response.status).toBe(400)
+    const res = await PUT(request({ completedTaskIds: ['not-a-task'] }), props(project.id))
+    expect(res.status).toBe(400)
   })
 
   it('stores unique valid task IDs for the owner', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
-    const project = projectChain({ id: 'project-1', lesson_id: 1, lesson_version: 2 })
-    const progress = progressWriteChain()
-    mockAdminFrom.mockImplementation((table: string) => table === 'projects' ? project : progress)
+    const owner = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(owner)
 
-    const response = await PUT(request({ completedTaskIds: ['identity', 'identity'] }), params)
-    expect(response.status).toBe(200)
-    expect(progress.upsert).toHaveBeenCalledWith(expect.objectContaining({ project_id: 'project-1', completed_task_ids: ['identity'] }))
+    const res = await PUT(request({ completedTaskIds: ['identity', 'identity'] }), props(project.id))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
+  })
+
+  it('upserts rather than duplicating when progress is saved twice', async () => {
+    const owner = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(owner)
+
+    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+    const res = await PUT(request({ completedTaskIds: ['identity', 'interests'] }), props(project.id))
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ completedTaskIds: ['identity', 'interests'] })
   })
 
   it('returns 404 rather than exposing another student’s project', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
-    mockAdminFrom.mockReturnValue(projectChain(null))
+    const owner = await makeUser()
+    const intruder = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(intruder)
 
-    expect((await PUT(request({ completedTaskIds: [] }), params)).status).toBe(404)
+    const res = await PUT(request({ completedTaskIds: [] }), props(project.id))
+    expect(res.status).toBe(404)
+  })
+
+  it('does not write another student’s progress', async () => {
+    const owner = await makeUser()
+    const intruder = await makeUser()
+    const project = await makeProject(owner.id)
+
+    mockGetSessionUser.mockResolvedValue(owner)
+    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+
+    mockGetSessionUser.mockResolvedValue(intruder)
+    await PUT(request({ completedTaskIds: ['identity', 'interests'] }), props(project.id))
+
+    mockGetSessionUser.mockResolvedValue(owner)
+    const res = await GET(new Request('http://localhost'), props(project.id))
+    expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
   })
 })

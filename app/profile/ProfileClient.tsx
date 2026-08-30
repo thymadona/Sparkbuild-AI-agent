@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserSupabaseClient } from '@/lib/supabase-browser'
 
 interface Props {
   email: string
@@ -13,7 +12,6 @@ export default function ProfileClient({ email, initialName }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
-  const supabase = createBrowserSupabaseClient()
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -21,15 +19,18 @@ export default function ProfileClient({ email, initialName }: Props) {
     setSaved(false)
     setError('')
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { full_name: name },
+    const res = await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: name }),
     })
 
     setSaving(false)
-    if (updateError) {
-      setError(updateError.message)
-    } else {
+    if (res.ok) {
       setSaved(true)
+    } else {
+      const body = await res.json().catch(() => ({}))
+      setError(body.error ?? 'Could not save your name')
     }
   }
 

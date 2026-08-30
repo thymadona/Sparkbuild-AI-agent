@@ -16,8 +16,15 @@ interface Project {
   files: Record<string, string> | null
 }
 
+// Only the columns the explore grid actually renders. Narrower than Project
+// on purpose: this page is public, so the server select is deliberately
+// restricted, and the prop type should say so rather than imply a full row.
+export type ExploreProject = Pick<Project, 'id' | 'title' | 'lesson_id' | 'files'> & {
+  created_at: string
+}
+
 interface Props {
-  projects: Project[]
+  projects: ExploreProject[]
   isLoggedIn: boolean
   userEmail?: string
 }

@@ -1,22 +1,26 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { userBuildMode } from '@/lib/db/schema'
+import { getSessionUser } from '@/lib/auth/session'
 
 export async function GET() {
-  const supabase = await createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ buildModeEnabled: false })
   }
 
+  // Fails closed on a database error, as it did before: build mode is a
+  // granted capability, so "we don't know" has to mean "not enabled".
   try {
-    const { data } = await supabaseAdmin
-      .from('user_build_mode')
-      .select('enabled')
-      .eq('user_id', user.id)
-      .single()
+    const [row] = await db
+      .select({ enabled: userBuildMode.enabled })
+      .from(userBuildMode)
+      .where(eq(userBuildMode.userId, user.id))
+      .limit(1)
 
-    return NextResponse.json({ buildModeEnabled: data?.enabled === true })
+    return NextResponse.json({ buildModeEnabled: row?.enabled === true })
   } catch {
     return NextResponse.json({ buildModeEnabled: false })
   }

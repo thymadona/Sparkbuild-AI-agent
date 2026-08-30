@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { and, eq, inArray } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { classMembers, messages, projects } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import type { SubmissionStatus } from '@/types'
+import { getSessionUser } from '@/lib/auth/session'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -12,7 +16,7 @@ const REVIEWABLE: SubmissionStatus[] = ['approved', 'needs_work']
 /**
  * Teacher review of a homework submission.
  *
- * Middleware only guards page navigation under /admin, so this route checks
+ * The route guard (proxy.ts) only guards page navigation under /admin, so this route checks
  * authorization itself. homework:review is granted to the teacher role,
  * but teachers are scoped to their own classes' students — a bare
  * permission check isn't enough, so non-admin callers get an extra
@@ -20,10 +24,7 @@ const REVIEWABLE: SubmissionStatus[] = ['approved', 'needs_work']
  */
 export async function POST(req: Request, props: Props) {
   const params = await props.params;
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -44,11 +45,17 @@ export async function POST(req: Request, props: Props) {
     return NextResponse.json({ error: 'Feedback is required when asking for more work' }, { status: 400 })
   }
 
-  const { data: project } = await supabaseAdmin
-    .from('projects')
-    .select('id, user_id, submission_status')
-    .eq('id', params.id)
-    .single()
+  if (!isUuid(params.id)) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+
+  const [project] = await db
+    .select({
+      id: projects.id,
+      user_id: projects.userId,
+      submission_status: projects.submissionStatus,
+    })
+    .from(projects)
+    .where(eq(projects.id, params.id))
+    .limit(1)
 
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
   if (project.submission_status == null) {
@@ -57,33 +64,52 @@ export async function POST(req: Request, props: Props) {
 
   if (!admin) {
     const classIds = await getTeacherClassIds(user.id)
-    const { data: membership } = await supabaseAdmin
-      .from('class_members')
-      .select('class_id')
-      .eq('user_id', project.user_id)
-      .eq('role', 'student')
-      .in('class_id', classIds.length ? classIds : ['00000000-0000-0000-0000-000000000000'])
+    // A teacher of no classes can review nobody. Short-circuiting also keeps
+    // an empty list out of inArray, which would otherwise have to be spelled
+    // as a sentinel uuid the way the PostgREST version did.
+    if (classIds.length === 0) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
-    if (!membership || membership.length === 0) {
+    const membership = await db
+      .select({ class_id: classMembers.classId })
+      .from(classMembers)
+      .where(
+        and(
+          eq(classMembers.userId, project.user_id),
+          eq(classMembers.role, 'student'),
+          inArray(classMembers.classId, classIds)
+        )
+      )
+      .limit(1)
+
+    if (membership.length === 0) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
   }
 
-  const { error: updateError } = await supabaseAdmin
-    .from('projects')
-    .update({ submission_status: status, updated_at: new Date().toISOString() })
-    .eq('id', params.id)
+  // The status change and its feedback message are one unit: a `needs_work`
+  // recorded without the message explaining it sends the student back to their
+  // code with no reason given, which the validation above exists to prevent.
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(projects)
+        .set({ submissionStatus: status, updatedAt: new Date().toISOString() })
+        .where(eq(projects.id, params.id))
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
-
-  if (feedback) {
-    const { error: msgError } = await supabaseAdmin.from('messages').insert({
-      project_id: params.id,
-      user_id: project.user_id,
-      role: 'teacher',
-      content: feedback,
+      if (feedback) {
+        await tx.insert(messages).values({
+          projectId: params.id,
+          userId: project.user_id,
+          role: 'teacher',
+          content: feedback,
+        })
+      }
     })
-    if (msgError) return NextResponse.json({ error: msgError.message }, { status: 500 })
+  } catch (err) {
+    console.error('POST /api/admin/homework/[id]/review failed:', err)
+    return NextResponse.json({ error: 'Failed to record review' }, { status: 500 })
   }
 
   return NextResponse.json({ submissionStatus: status })

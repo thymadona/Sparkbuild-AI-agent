@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import type OpenAI from 'openai'
-import { createServerSupabaseClient, supabaseAdmin } from '@/lib/supabase-server'
+import { and, eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { lessonProgress, messages, projects, prompts, userBuildMode } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { isCodeResponse, parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
@@ -8,15 +11,13 @@ import { getLessonForProject } from '@/lib/lessons'
 import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { cached } from '@/lib/cache'
+import { getSessionUser } from '@/lib/auth/session'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   // 1. Auth check
-  const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getSessionUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,13 +57,25 @@ export async function POST(req: Request) {
   // Verify project ownership — cached, since lesson_id/lesson_version never
   // change after project creation, but user_id is still checked below on
   // every request (caching the row doesn't skip the ownership check).
+  if (!isUuid(projectId)) {
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  }
+
   const project = await cached(`project-meta:${projectId}`, 3600, async () => {
-    const { data } = await supabaseAdmin
-      .from('projects')
-      .select('user_id, lesson_id, lesson_version')
-      .eq('id', projectId)
-      .single()
-    return data
+    const [row] = await db
+      .select({
+        user_id: projects.userId,
+        lesson_id: projects.lessonId,
+        lesson_version: projects.lessonVersion,
+      })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1)
+
+    // `?? null` matters: cached() JSON-encodes what this returns, and
+    // JSON.stringify(undefined) is undefined — which ioredis would store as
+    // the literal string "undefined" and the next read would fail to parse.
+    return row ?? null
   })
 
   if (!project || project.user_id !== user.id) {
@@ -76,12 +89,13 @@ export async function POST(req: Request) {
     // Short TTL backstop only — the PUT lesson-progress route explicitly
     // invalidates this key, since it directly feeds build-mode gating.
     const progress = await cached(`lesson-progress:${projectId}`, 15, async () => {
-      const { data } = await supabaseAdmin
-        .from('lesson_progress')
-        .select('completed_task_ids')
-        .eq('project_id', projectId)
-        .maybeSingle()
-      return data
+      const [row] = await db
+        .select({ completed_task_ids: lessonProgress.completedTaskIds })
+        .from(lessonProgress)
+        .where(eq(lessonProgress.projectId, projectId))
+        .limit(1)
+
+      return row ?? null
     })
     openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
   }
@@ -90,19 +104,26 @@ export async function POST(req: Request) {
   let effectiveMode: 'ask' | 'build' = 'ask'
   if (mode === 'build' && !openTask) {
     const setting = await cached(`build-mode:${user.id}`, 30, async () => {
-      const { data } = await supabaseAdmin.from('user_build_mode').select('enabled').eq('user_id', user.id).single()
-      return data
+      const [row] = await db
+        .select({ enabled: userBuildMode.enabled })
+        .from(userBuildMode)
+        .where(eq(userBuildMode.userId, user.id))
+        .limit(1)
+
+      return row ?? null
     })
     if (setting?.enabled === true) effectiveMode = 'build'
   }
   const BASE_SYSTEM_PROMPT = effectiveMode === 'build' ? BUILD_SYSTEM_PROMPT : ASK_SYSTEM_PROMPT
 
-  // 4. Log prompt to DB (for rate limiting)
-  await supabaseAdmin.from('prompts').insert({
-    user_id: user.id,
-    project_id: projectId,
-    content: prompt,
-  })
+  // 4. Log prompt to DB (the permanent prompt log; the rate limit itself is
+  // enforced in Redis by lib/ratelimit.ts). A logging failure must not cost
+  // the student their generation.
+  try {
+    await db.insert(prompts).values({ userId: user.id, projectId, content: prompt })
+  } catch (err) {
+    console.error('prompt log insert failed:', err)
+  }
 
   // 5. Build messages
   let filesContext = ''
@@ -204,33 +225,26 @@ export async function POST(req: Request) {
         if (isCode) {
           const parsedFiles = parseMultiFileResponse(accumulated)
           if (parsedFiles) {
-            await supabaseAdmin
-              .from('projects')
-              .update({
-                files: parsedFiles,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', projectId)
+            // Ownership was established above, but the predicate is repeated
+            // here so the write cannot outlive that check if the code above is
+            // ever reordered.
+            await db
+              .update(projects)
+              .set({ files: parsedFiles, updatedAt: new Date().toISOString() })
+              .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
           }
           assistantContent = parseSummary(accumulated) ?? "I've built that for you! Check the preview."
         }
 
         // 8. Persist chat messages
-        const { error: msgError } = await supabaseAdmin.from('messages').insert([
-          {
-            project_id: projectId,
-            user_id: user.id,
-            role: 'user',
-            content: prompt,
-          },
-          {
-            project_id: projectId,
-            user_id: user.id,
-            role: 'assistant',
-            content: assistantContent,
-          },
-        ])
-        if (msgError) console.error('messages insert error:', msgError)
+        try {
+          await db.insert(messages).values([
+            { projectId, userId: user.id, role: 'user', content: prompt },
+            { projectId, userId: user.id, role: 'assistant', content: assistantContent },
+          ])
+        } catch (err) {
+          console.error('messages insert error:', err)
+        }
       } catch (err) {
         console.error('OpenRouter stream error:', err)
         controller.error(err)
