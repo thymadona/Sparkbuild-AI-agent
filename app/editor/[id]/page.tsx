@@ -1,5 +1,8 @@
 import { redirect, notFound } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { and, asc, eq, inArray } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { classMembers, classSchedules, lessonProgress as lessonProgressTable, messages as messagesTable, projects } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import type { Project, Message } from '@/types'
 import { getLessonForProject } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
@@ -18,19 +21,47 @@ export default async function EditorPage(props: Props) {
     redirect('/')
   }
 
-  // These don't depend on each other — messages are fetched for `params.id`
-  // regardless of ownership, and simply discarded if the check below fails.
-  const [{ data: project }, { data: messages }] = await Promise.all([
-    supabaseAdmin.from('projects').select('*').eq('id', params.id).single(),
-    supabaseAdmin
-      .from('messages')
-      .select('*')
-      .eq('project_id', params.id)
-      .order('created_at', { ascending: true })
+  if (!isUuid(params.id)) notFound()
+
+  // Both queries carry the ownership predicate, so a project belonging to
+  // someone else yields nothing from either. Previously the messages query
+  // was scoped by project id alone and relied on the result being discarded
+  // after the check below.
+  const [projectRows, messages] = await Promise.all([
+    db
+      .select({
+        id: projects.id,
+        user_id: projects.userId,
+        title: projects.title,
+        files: projects.files,
+        is_public: projects.isPublic,
+        lesson_id: projects.lessonId,
+        lesson_version: projects.lessonVersion,
+        submission_status: projects.submissionStatus,
+        created_at: projects.createdAt,
+        updated_at: projects.updatedAt,
+      })
+      .from(projects)
+      .where(and(eq(projects.id, params.id), eq(projects.userId, user.id)))
+      .limit(1),
+    db
+      .select({
+        id: messagesTable.id,
+        project_id: messagesTable.projectId,
+        user_id: messagesTable.userId,
+        role: messagesTable.role,
+        content: messagesTable.content,
+        created_at: messagesTable.createdAt,
+      })
+      .from(messagesTable)
+      .innerJoin(projects, eq(projects.id, messagesTable.projectId))
+      .where(and(eq(messagesTable.projectId, params.id), eq(projects.userId, user.id)))
+      .orderBy(asc(messagesTable.createdAt))
       .limit(100),
   ])
 
-  if (!project || project.user_id !== user.id) {
+  const project = projectRows[0]
+  if (!project) {
     notFound()
   }
 
@@ -44,26 +75,28 @@ export default async function EditorPage(props: Props) {
   let lessonProgress: { completed_task_ids: string[] } | null = null
 
   if (lesson) {
-    const [{ data: progress }, { data: memberships }] = await Promise.all([
-      supabaseAdmin
-        .from('lesson_progress')
-        .select('completed_task_ids')
-        .eq('project_id', params.id)
-        .maybeSingle(),
-      supabaseAdmin
-        .from('class_members')
-        .select('class_id')
-        .eq('user_id', user.id),
+    const [progressRows, memberships] = await Promise.all([
+      db
+        .select({ completed_task_ids: lessonProgressTable.completedTaskIds })
+        .from(lessonProgressTable)
+        .where(eq(lessonProgressTable.projectId, params.id))
+        .limit(1),
+      db
+        .select({ class_id: classMembers.classId })
+        .from(classMembers)
+        .where(eq(classMembers.userId, user.id)),
     ])
-    lessonProgress = progress
+    lessonProgress = progressRows[0] ?? null
 
-    const classIds = (memberships ?? []).map((row) => row.class_id)
+    const classIds = memberships.map((row) => row.class_id)
     if (classIds.length > 0) {
-      const { data: schedules } = await supabaseAdmin
-        .from('class_schedules')
-        .select('day_of_week, start_time')
-        .in('class_id', classIds)
-      classSlots = schedules ?? []
+      classSlots = await db
+        .select({
+          day_of_week: classSchedules.dayOfWeek,
+          start_time: classSchedules.startTime,
+        })
+        .from(classSchedules)
+        .where(inArray(classSchedules.classId, classIds))
     }
   }
 
@@ -71,7 +104,7 @@ export default async function EditorPage(props: Props) {
     <EditorLayout
       classSlots={classSlots}
       project={project as Project}
-      initialMessages={(messages ?? []) as Message[]}
+      initialMessages={messages as Message[]}
       lesson={lesson}
       initialCompletedTaskIds={lessonProgress?.completed_task_ids ?? []}
       userEmail={user.email ?? ''}

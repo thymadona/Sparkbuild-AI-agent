@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { desc, eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { projects } from '@/lib/db/schema'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { LESSONS } from '@/lib/lessons'
@@ -13,12 +15,18 @@ export default async function DashboardPage() {
     redirect('/')
   }
 
-  const [{ data: projects }, enabledLessonIds, admin, teacher] = await Promise.all([
-    supabaseAdmin
-      .from('projects')
-      .select('id, title, lesson_id, updated_at, is_public')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false }),
+  const [projectRows, enabledLessonIds, admin, teacher] = await Promise.all([
+    db
+      .select({
+        id: projects.id,
+        title: projects.title,
+        lesson_id: projects.lessonId,
+        updated_at: projects.updatedAt,
+        is_public: projects.isPublic,
+      })
+      .from(projects)
+      .where(eq(projects.userId, user.id))
+      .orderBy(desc(projects.updatedAt)),
     getEnabledLessonIdsForUser(user.id),
     isAdmin(user.id),
     isTeacher(user.id),
@@ -30,7 +38,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      initialProjects={projects ?? []}
+      initialProjects={projectRows}
       userEmail={user.email ?? ''}
       enabledLessonIds={enabledIds}
     />

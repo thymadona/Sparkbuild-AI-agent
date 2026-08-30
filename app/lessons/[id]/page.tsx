@@ -1,5 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { and, desc, eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { projects } from '@/lib/db/schema'
 import { LESSONS } from '@/lib/lessons'
 import LessonDetailClient from './LessonDetailClient'
 import { getSessionUser } from '@/lib/auth/session'
@@ -19,13 +21,12 @@ export default async function LessonPage(props: Props) {
   const lesson = LESSONS.find((l) => l.id === Number(params.id))
   if (!lesson) notFound()
 
-  const { data: existingProjects } = await supabaseAdmin
-    .from('projects')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('lesson_id', lesson.id)
-    .order('updated_at', { ascending: false })
+  const [existing] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.userId, user.id), eq(projects.lessonId, lesson.id)))
+    .orderBy(desc(projects.updatedAt))
     .limit(1)
 
-  return <LessonDetailClient lesson={lesson} existingProjectId={existingProjects?.[0]?.id ?? null} />
+  return <LessonDetailClient lesson={lesson} existingProjectId={existing?.id ?? null} />
 }

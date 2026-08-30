@@ -22,6 +22,13 @@
       "when": 1788070277369,
       "tag": "0002_postgrest_lockdown",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788076518008,
+      "tag": "0003_not_null_project_columns",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { invoices, studentProfiles } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import PrintButton from './PrintButton'
 
 function formatAmount(cents: number): string {
@@ -8,25 +11,36 @@ function formatAmount(cents: number): string {
 
 export default async function InvoicePage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const { data: invoice, error } = await supabaseAdmin
-    .from('invoices')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  if (!isUuid(params.id)) redirect('/staff/finance')
 
-  if (error || !invoice) redirect('/staff/finance')
+  // The invoice and the name it is billed to, in one left join: a student with
+  // no profile row still renders, falling back to "Student" below.
+  const [row] = await db
+    .select({
+      id: invoices.id,
+      amount_cents: invoices.amountCents,
+      description: invoices.description,
+      due_date: invoices.dueDate,
+      status: invoices.status,
+      created_at: invoices.createdAt,
+      full_name: studentProfiles.fullName,
+      parent_email: studentProfiles.parentEmail,
+    })
+    .from(invoices)
+    .leftJoin(studentProfiles, eq(studentProfiles.userId, invoices.userId))
+    .where(eq(invoices.id, params.id))
+    .limit(1)
 
-  const { data: profile } = await supabaseAdmin
-    .from('student_profiles')
-    .select('full_name, parent_email')
-    .eq('user_id', invoice.user_id)
-    .maybeSingle()
+  if (!row) redirect('/staff/finance')
+
+  const invoice = row
+  const profile = row.full_name === null ? null : row
 
   const dueDate = new Date(invoice.due_date).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 
-  const invoiceDate = new Date(invoice.created_at ?? invoice.due_date).toLocaleDateString('en-US', {
+  const invoiceDate = new Date(invoice.created_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 

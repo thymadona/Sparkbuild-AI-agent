@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { receipts, studentProfiles } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import PrintButton from './PrintButton'
 
 function formatAmount(cents: number): string {
@@ -8,19 +11,27 @@ function formatAmount(cents: number): string {
 
 export default async function ReceiptPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const { data: receipt, error } = await supabaseAdmin
-    .from('receipts')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  if (!isUuid(params.id)) redirect('/staff/finance')
 
-  if (error || !receipt) redirect('/staff/finance')
+  const [row] = await db
+    .select({
+      id: receipts.id,
+      amount_cents: receipts.amountCents,
+      description: receipts.description,
+      paid_at: receipts.paidAt,
+      receipt_number: receipts.receiptNumber,
+      full_name: studentProfiles.fullName,
+      parent_email: studentProfiles.parentEmail,
+    })
+    .from(receipts)
+    .leftJoin(studentProfiles, eq(studentProfiles.userId, receipts.userId))
+    .where(eq(receipts.id, params.id))
+    .limit(1)
 
-  const { data: profile } = await supabaseAdmin
-    .from('student_profiles')
-    .select('full_name, parent_email')
-    .eq('user_id', receipt.user_id)
-    .maybeSingle()
+  if (!row) redirect('/staff/finance')
+
+  const receipt = row
+  const profile = row.full_name === null ? null : row
 
   const paidDate = new Date(receipt.paid_at).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',

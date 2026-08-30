@@ -183,9 +183,13 @@ export const projects = pgTable(
     userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').default('Untitled').notNull(),
     files: jsonb('files').default({}).notNull(),
-    isPublic: boolean('is_public').default(false),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow(),
+    // notNull to match `Project` in types/index.ts, which declares all three
+    // non-null and which every consumer relies on. They carry defaults and no
+    // writer has ever left them unset, but the columns allowed NULL until the
+    // Drizzle conversion made the mismatch a type error rather than an `any`.
+    isPublic: boolean('is_public').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     lessonId: integer('lesson_id'),
     submissionStatus: text('submission_status'),
     lessonVersion: integer('lesson_version'),
@@ -222,7 +226,9 @@ export const prompts = pgTable(
     userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     projectId: uuid('project_id').references(() => projects.id),
     content: text('content').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
+    // notNull for the same reason as projects above: the prompt log is ordered
+    // by this column, and a NULL would sort unpredictably.
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
   },
   (t) => [index('prompts_user_id_created_at_idx').on(t.userId, t.createdAt)]
 )

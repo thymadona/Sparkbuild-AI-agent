@@ -1,5 +1,8 @@
 import { notFound } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { and, eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { projects } from '@/lib/db/schema'
+import { isUuid } from '@/lib/db/uuid'
 import type { Project } from '@/types'
 import Preview from '@/components/Preview'
 import ForkButton from './ForkButton'
@@ -11,12 +14,26 @@ interface Props {
 
 export default async function SharePage(props: Props) {
   const params = await props.params;
-  const { data: project } = await supabaseAdmin
-    .from('projects')
-    .select('*')
-    .eq('id', params.id)
-    .eq('is_public', true)
-    .single()
+  if (!isUuid(params.id)) notFound()
+
+  // is_public is part of the predicate, not a check on the fetched row — a
+  // private project yields nothing rather than being loaded and then rejected.
+  const [project] = await db
+    .select({
+      id: projects.id,
+      user_id: projects.userId,
+      title: projects.title,
+      files: projects.files,
+      is_public: projects.isPublic,
+      lesson_id: projects.lessonId,
+      lesson_version: projects.lessonVersion,
+      submission_status: projects.submissionStatus,
+      created_at: projects.createdAt,
+      updated_at: projects.updatedAt,
+    })
+    .from(projects)
+    .where(and(eq(projects.id, params.id), eq(projects.isPublic, true)))
+    .limit(1)
 
   if (!project) {
     notFound()
