@@ -3,13 +3,14 @@
  * Supabase clients are mocked so no real DB connection is needed.
  */
 
-const mockGetUser = jest.fn()
+const mockGetSessionUser = jest.fn()
 const mockAdminFrom = jest.fn()
 
+jest.mock('@/lib/auth/session', () => ({
+  getSessionUser: () => mockGetSessionUser(),
+}))
+
 jest.mock('@/lib/supabase-server', () => ({
-  createServerSupabaseClient: () => ({
-    auth: { getUser: mockGetUser },
-  }),
   supabaseAdmin: {
     from: (...args: unknown[]) => mockAdminFrom(...args),
   },
@@ -61,14 +62,14 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 describe('GET /api/projects', () => {
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetSessionUser.mockResolvedValue(null)
 
     const res = await GET()
     expect(res.status).toBe(401)
   })
 
   it('returns project list for authenticated user', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const projects = [{ id: 'p1', title: 'My App', user_id: AUTHED_USER.id }]
     const chain = makeAdminChain()
     chain.order.mockResolvedValue({ data: projects, error: null })
@@ -81,7 +82,7 @@ describe('GET /api/projects', () => {
   })
 
   it('returns 500 when supabase returns an error', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const chain = makeAdminChain()
     chain.order.mockResolvedValue({ data: null, error: { message: 'DB error' } })
     mockAdminFrom.mockReturnValue(chain)
@@ -96,14 +97,14 @@ describe('GET /api/projects', () => {
 // ---------------------------------------------------------------------------
 describe('POST /api/projects', () => {
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetSessionUser.mockResolvedValue(null)
 
     const res = await POST(makeRequest('POST', { title: 'Test' }))
     expect(res.status).toBe(401)
   })
 
   it('creates a project and returns 201 with the new project', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const newProject = { id: 'new-id', title: 'My App', user_id: AUTHED_USER.id, files: {}, is_public: false }
     const chain = makeAdminChain()
     chain.single.mockResolvedValue({ data: newProject, error: null })
@@ -116,17 +117,18 @@ describe('POST /api/projects', () => {
     expect(json.title).toBe('My App')
   })
 
-  it('uses "Untitled" as default title when none is provided', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+  it('generates a random two-word title when none is provided', async () => {
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const chain = makeAdminChain()
-    chain.single.mockResolvedValue({ data: { id: 'x', title: 'Untitled', files: {} }, error: null })
+    chain.single.mockResolvedValue({ data: { id: 'x', title: 'Cosmic Rocket', files: {} }, error: null })
     mockAdminFrom.mockReturnValue(chain)
 
     const res = await POST(makeRequest('POST', {}))
     expect(res.status).toBe(201)
-    // Verify insert was called — title defaults handled in route
+    // The route picks an "<Adjective> <Noun>" name rather than a fixed
+    // placeholder, so that a dashboard of new projects is scannable.
     expect(chain.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Untitled' })
+      expect.objectContaining({ title: expect.stringMatching(/^[A-Z][a-z]+ [A-Z][a-z]+$/) })
     )
   })
 })
@@ -136,19 +138,19 @@ describe('POST /api/projects', () => {
 // ---------------------------------------------------------------------------
 describe('PATCH /api/projects', () => {
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetSessionUser.mockResolvedValue(null)
     const res = await PATCH(makeRequest('PATCH', { id: 'p1', title: 'New' }))
     expect(res.status).toBe(401)
   })
 
   it('returns 400 when id is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const res = await PATCH(makeRequest('PATCH', { title: 'New' }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when project belongs to a different user', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const chain = makeAdminChain()
     // UPDATE with wrong user_id filter returns no row
     chain.single.mockResolvedValue({ data: null, error: null })
@@ -159,7 +161,7 @@ describe('PATCH /api/projects', () => {
   })
 
   it('updates and returns the project for the owner', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const updated = { id: 'p1', title: 'New Title', is_public: true, user_id: AUTHED_USER.id }
 
     const chain = makeAdminChain()
@@ -179,19 +181,19 @@ describe('PATCH /api/projects', () => {
 // ---------------------------------------------------------------------------
 describe('DELETE /api/projects', () => {
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetSessionUser.mockResolvedValue(null)
     const res = await DELETE(makeRequest('DELETE', undefined, 'http://localhost/api/projects?id=p1'))
     expect(res.status).toBe(401)
   })
 
   it('returns 400 when id query param is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const res = await DELETE(makeRequest('DELETE', undefined, 'http://localhost/api/projects'))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when project belongs to a different user', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const chain = makeAdminChain()
     // DELETE filtered by id + user_id — second eq resolves with error (no match)
     const deleteChain = {
@@ -207,7 +209,7 @@ describe('DELETE /api/projects', () => {
   })
 
   it('deletes the project and returns success for the owner', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     const chain = makeAdminChain()
     // DELETE filtered by id + user_id succeeds
     const deleteChain = {

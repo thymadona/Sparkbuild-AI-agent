@@ -3,17 +3,18 @@
  * DeepSeek client and Supabase are fully mocked.
  */
 
-const mockGetUser = jest.fn()
+const mockGetSessionUser = jest.fn()
 const mockAdminFrom = jest.fn()
 const mockCheckRateLimit = jest.fn()
 const mockCreate = jest.fn()
 const mockIsAdmin = jest.fn()
 const mockIsTeacher = jest.fn()
 
+jest.mock('@/lib/auth/session', () => ({
+  getSessionUser: () => mockGetSessionUser(),
+}))
+
 jest.mock('@/lib/supabase-server', () => ({
-  createServerSupabaseClient: () => ({
-    auth: { getUser: mockGetUser },
-  }),
   supabaseAdmin: {
     from: (...args: unknown[]) => mockAdminFrom(...args),
   },
@@ -101,7 +102,7 @@ describe('POST /api/generate', () => {
   // ---- Auth checks ----------------------------------------------------------
 
   it('returns 401 when user is not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetSessionUser.mockResolvedValue(null)
 
     const res = await POST(makeRequest({ prompt: 'build a todo app', projectId: 'p1' }))
     expect(res.status).toBe(401)
@@ -110,7 +111,7 @@ describe('POST /api/generate', () => {
   // ---- Rate limit checks ----------------------------------------------------
 
   it('returns 429 when the user has exceeded the hourly limit', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 10 })
 
     const res = await POST(makeRequest({ prompt: 'build something', projectId: 'p1' }))
@@ -121,7 +122,7 @@ describe('POST /api/generate', () => {
   })
 
   it('bypasses the rate limit for admins even when over the hourly limit', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockIsAdmin.mockResolvedValue(true)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
 
@@ -137,7 +138,7 @@ describe('POST /api/generate', () => {
   })
 
   it('bypasses the rate limit for teachers even when over the hourly limit', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockIsTeacher.mockResolvedValue(true)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 3, count: 20 })
 
@@ -155,7 +156,7 @@ describe('POST /api/generate', () => {
   // ---- Input validation -----------------------------------------------------
 
   it('returns 400 when prompt is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
 
     const res = await POST(makeRequest({ projectId: 'p1' }))
@@ -163,7 +164,7 @@ describe('POST /api/generate', () => {
   })
 
   it('returns 400 when projectId is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
 
     const res = await POST(makeRequest({ prompt: 'build a todo app' }))
@@ -171,7 +172,7 @@ describe('POST /api/generate', () => {
   })
 
   it('returns 404 when project does not belong to the user', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
 
     // SELECT filtered by id + user_id returns no row
@@ -185,7 +186,7 @@ describe('POST /api/generate', () => {
   // ---- Happy path: streaming ------------------------------------------------
 
   it('streams HTML back and saves to DB on success', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 5 })
 
     const htmlChunks = ['<!DOCTYPE html>', '<html><body>', 'Hello</body></html>']
@@ -219,7 +220,7 @@ describe('POST /api/generate', () => {
   })
 
   it('calls checkRateLimit with the authenticated user id', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 1, count: 20 })
 
     await POST(makeRequest({ prompt: 'test', projectId: 'p1' }))
@@ -228,7 +229,7 @@ describe('POST /api/generate', () => {
   })
 
   it('logs the prompt to the DB before streaming', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
 
     const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
@@ -250,8 +251,8 @@ describe('POST /api/generate', () => {
     )
   })
 
-  it('sends currentCode in the user message when provided', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: AUTHED_USER } })
+  it('injects the project files into the system prompt, with line numbers', async () => {
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
     mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
 
     const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
@@ -262,14 +263,44 @@ describe('POST /api/generate', () => {
     mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html><html></html>']))
 
     const existingCode = '<!DOCTYPE html><html><body>Old</body></html>'
-    await POST(makeRequest({ prompt: 'add a button', projectId: 'proj-1', currentCode: existingCode }))
+    await POST(makeRequest({ prompt: 'add a button', projectId: 'proj-1', files: { 'index.html': existingCode } }))
 
     const callArgs = mockCreate.mock.calls[0][0]
     const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
     const userMessage = callArgs.messages.find((m: { role: string }) => m.role === 'user')
-    // currentCode is injected into the system prompt
-    expect(systemMessage.content).toContain('CURRENT FILE: index.html')
-    expect(systemMessage.content).toContain(existingCode)
+
+    // The file arrives under the same `--- FILE: <name> ---` delimiter the
+    // model is asked to reply with, and each line is numbered so the model
+    // can refer to specific lines.
+    expect(systemMessage.content).toContain('Current project files:')
+    expect(systemMessage.content).toContain('--- FILE: index.html ---')
+    expect(systemMessage.content).toContain(`1 | ${existingCode}`)
     expect(userMessage.content).toContain('add a button')
+  })
+
+  it('injects selectedCode into the user message, not the system prompt', async () => {
+    mockGetSessionUser.mockResolvedValue(AUTHED_USER)
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
+
+    const chain = makeAdminChain({ data: VALID_PROJECT, error: null })
+    const updateChain = { eq: jest.fn().mockResolvedValue({ error: null }) }
+    chain.update.mockReturnValue(updateChain)
+    mockAdminFrom.mockReturnValue(chain)
+
+    mockCreate.mockResolvedValue(makeStreamChunks(['<!DOCTYPE html><html></html>']))
+
+    const highlighted = '<button>Old</button>'
+    await POST(makeRequest({ prompt: 'make it blue', projectId: 'proj-1', selectedCode: highlighted }))
+
+    const callArgs = mockCreate.mock.calls[0][0]
+    const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
+    const userMessage = callArgs.messages.find((m: { role: string }) => m.role === 'user')
+
+    // Selection is per-turn context, so it belongs with the turn's prompt
+    // rather than the system prompt, which is reused across the conversation.
+    expect(userMessage.content).toContain('Selected code:')
+    expect(userMessage.content).toContain(highlighted)
+    expect(userMessage.content).toContain('make it blue')
+    expect(systemMessage.content).not.toContain(highlighted)
   })
 })

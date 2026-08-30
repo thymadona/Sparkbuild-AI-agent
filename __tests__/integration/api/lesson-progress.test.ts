@@ -1,8 +1,11 @@
-const mockGetUser = jest.fn()
+const mockGetSessionUser = jest.fn()
 const mockAdminFrom = jest.fn()
 
+jest.mock('@/lib/auth/session', () => ({
+  getSessionUser: () => mockGetSessionUser(),
+}))
+
 jest.mock('@/lib/supabase-server', () => ({
-  createServerSupabaseClient: () => ({ auth: { getUser: mockGetUser } }),
   supabaseAdmin: { from: (...args: unknown[]) => mockAdminFrom(...args) },
 }))
 
@@ -46,18 +49,25 @@ function progressWriteChain() {
 beforeEach(() => jest.clearAllMocks())
 
 describe('lesson progress API', () => {
+  // Asserted against lib/db/schema.ts rather than a migration file: the
+  // schema is the authoring entry point, so that is where someone would
+  // break this. (This used to read drizzle/0006_lesson_progress.sql, which
+  // moved to drizzle/_archive/ when the history was squashed to
+  // 0000_baseline.sql.)
   it('uses a cascading project foreign key so progress is removed with its project', () => {
-    const migration = require('fs').readFileSync('drizzle/0006_lesson_progress.sql', 'utf8')
-    expect(migration).toMatch(/project_id uuid primary key references projects\(id\) on delete cascade/i)
+    const schema = require('fs').readFileSync('lib/db/schema.ts', 'utf8')
+    expect(schema).toMatch(
+      /projectId: uuid\('project_id'\)\.primaryKey\(\)\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
+    )
   })
 
   it('returns 401 when unauthenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetSessionUser.mockResolvedValue(null)
     expect((await GET(new Request('http://localhost'), params)).status).toBe(401)
   })
 
   it('loads progress only after confirming the project belongs to the student', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
+    mockGetSessionUser.mockResolvedValue(user)
     const project = projectChain({ id: 'project-1', lesson_id: 1, lesson_version: 2 })
     const progress = progressReadChain({ completed_task_ids: ['identity'] })
     mockAdminFrom.mockImplementation((table: string) => table === 'projects' ? project : progress)
@@ -69,7 +79,7 @@ describe('lesson progress API', () => {
   })
 
   it('rejects task IDs that do not belong to the lesson', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
+    mockGetSessionUser.mockResolvedValue(user)
     mockAdminFrom.mockReturnValue(projectChain({ id: 'project-1', lesson_id: 1, lesson_version: 2 }))
 
     const response = await PUT(request({ completedTaskIds: ['not-a-task'] }), params)
@@ -77,7 +87,7 @@ describe('lesson progress API', () => {
   })
 
   it('stores unique valid task IDs for the owner', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
+    mockGetSessionUser.mockResolvedValue(user)
     const project = projectChain({ id: 'project-1', lesson_id: 1, lesson_version: 2 })
     const progress = progressWriteChain()
     mockAdminFrom.mockImplementation((table: string) => table === 'projects' ? project : progress)
@@ -88,7 +98,7 @@ describe('lesson progress API', () => {
   })
 
   it('returns 404 rather than exposing another student’s project', async () => {
-    mockGetUser.mockResolvedValue({ data: { user } })
+    mockGetSessionUser.mockResolvedValue(user)
     mockAdminFrom.mockReturnValue(projectChain(null))
 
     expect((await PUT(request({ completedTaskIds: [] }), params)).status).toBe(404)

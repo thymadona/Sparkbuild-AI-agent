@@ -1,71 +1,140 @@
+import { randomUUID } from 'crypto'
+
+// jest.setup.ts stubs @/lib/redis for every suite so no test touches a real
+// server by accident. This is the one suite that must, so it opts out.
+jest.unmock('@/lib/redis')
+
 import { checkRateLimit } from '@/lib/ratelimit'
+import { redis } from '@/lib/redis'
 
-const mockLimit = jest.fn()
+// Runs against a real Redis (TEST_REDIS_URL, defaulting to db 15 on localhost),
+// for the same reason the database tests use a real Postgres: the limit is
+// enforced by a Lua script inside the server, so a mocked client could only
+// assert that we called it — never that it counts correctly, expires, or stays
+// atomic. The previous version of this file mocked @upstash/ratelimit entirely
+// and therefore only tested the arithmetic in the wrapper.
+//
+// Every test uses a fresh random user id, so tests never collide and nothing
+// needs flushing between them — which is also what keeps a misconfigured
+// TEST_REDIS_URL from destroying data.
+const HOURLY_LIMIT = 50
 
-jest.mock('@upstash/ratelimit', () => ({
-  Ratelimit: Object.assign(
-    jest.fn().mockImplementation(() => ({
-      limit: (...args: unknown[]) => mockLimit(...args),
-    })),
-    { slidingWindow: jest.fn() }
-  ),
-}))
+beforeAll(async () => {
+  if (!redis) throw new Error('TEST_REDIS_URL is not usable — is Redis running?')
+  try {
+    await redis.ping()
+  } catch {
+    throw new Error(
+      'Could not reach Redis for tests. Start one (`brew services start redis`) ' +
+        'or point TEST_REDIS_URL at another server.'
+    )
+  }
+})
 
-jest.mock('@/lib/redis', () => ({ redis: {} }))
-
-const USER_ID = 'user-123'
-const HOUR_MS = 60 * 60 * 1000
-
-beforeEach(() => {
-  jest.clearAllMocks()
+afterAll(async () => {
+  await redis?.quit()
 })
 
 describe('checkRateLimit', () => {
-  it('allows when under the 50-prompt hourly limit', async () => {
-    mockLimit.mockResolvedValue({ success: true, remaining: 45, reset: Date.now() + HOUR_MS })
-
-    const result = await checkRateLimit(USER_ID)
+  it('allows the first request and counts it', async () => {
+    const result = await checkRateLimit(randomUUID())
 
     expect(result.allowed).toBe(true)
-    expect(result.count).toBe(5)
+    expect(result.count).toBe(1)
     expect(result.hoursUntilReset).toBe(0)
   })
 
-  it('allows when exactly one request remains', async () => {
-    mockLimit.mockResolvedValue({ success: true, remaining: 1, reset: Date.now() + HOUR_MS })
+  it('counts requests cumulatively for the same user', async () => {
+    const userId = randomUUID()
 
-    const result = await checkRateLimit(USER_ID)
+    await checkRateLimit(userId)
+    await checkRateLimit(userId)
+    const third = await checkRateLimit(userId)
 
-    expect(result.allowed).toBe(true)
-    expect(result.count).toBe(49)
+    expect(third.allowed).toBe(true)
+    expect(third.count).toBe(3)
   })
 
-  it('blocks when the limit is reached', async () => {
-    mockLimit.mockResolvedValue({ success: false, remaining: 0, reset: Date.now() + HOUR_MS })
+  it('keeps separate counts per user', async () => {
+    const a = randomUUID()
+    const b = randomUUID()
 
-    const result = await checkRateLimit(USER_ID)
+    await checkRateLimit(a)
+    await checkRateLimit(a)
+    const forB = await checkRateLimit(b)
 
-    expect(result.allowed).toBe(false)
-    expect(result.count).toBe(50)
-    expect(result.hoursUntilReset).toBeGreaterThanOrEqual(1)
+    expect(forB.count).toBe(1)
   })
 
-  it('fails open (allows) when Upstash throws', async () => {
-    mockLimit.mockRejectedValue(new Error('network error'))
+  it('allows exactly the limit, then blocks', async () => {
+    const userId = randomUUID()
 
-    const result = await checkRateLimit(USER_ID)
+    for (let i = 1; i < HOURLY_LIMIT; i++) await checkRateLimit(userId)
+
+    const last = await checkRateLimit(userId)
+    expect(last.allowed).toBe(true)
+    expect(last.count).toBe(HOURLY_LIMIT)
+
+    const blocked = await checkRateLimit(userId)
+    expect(blocked.allowed).toBe(false)
+    expect(blocked.count).toBe(HOURLY_LIMIT)
+    expect(blocked.hoursUntilReset).toBeGreaterThanOrEqual(1)
+  })
+
+  it('stays atomic under concurrent requests from one user', async () => {
+    // The reason the check is a Lua script rather than ZCARD-then-ZADD: issued
+    // in parallel, separate round-trips would all read the same count and admit
+    // every request.
+    const userId = randomUUID()
+
+    const results = await Promise.all(
+      Array.from({ length: HOURLY_LIMIT + 10 }, () => checkRateLimit(userId))
+    )
+
+    expect(results.filter((r) => r.allowed)).toHaveLength(HOURLY_LIMIT)
+    expect(results.filter((r) => !r.allowed)).toHaveLength(10)
+  })
+
+  it('expires the window so the key does not leak', async () => {
+    const userId = randomUUID()
+    await checkRateLimit(userId)
+
+    const ttl = await redis!.pttl(`ratelimit:prompts:${userId}`)
+    expect(ttl).toBeGreaterThan(0)
+    expect(ttl).toBeLessThanOrEqual(60 * 60 * 1000)
+  })
+})
+
+describe('fail-open behaviour', () => {
+  afterEach(() => {
+    jest.resetModules()
+  })
+
+  it('allows the request when the Redis call throws', async () => {
+    jest.resetModules()
+    jest.doMock('@/lib/redis', () => ({
+      redis: {
+        defineCommand: jest.fn(),
+        slidingWindow: jest.fn().mockRejectedValue(new Error('ECONNREFUSED')),
+      },
+    }))
+    const { checkRateLimit: isolated } = await import('@/lib/ratelimit')
+
+    const result = await isolated('user-123')
 
     expect(result.allowed).toBe(true)
     expect(result.count).toBe(0)
     expect(result.hoursUntilReset).toBe(0)
   })
 
-  it('computes hoursUntilReset from the reset timestamp', async () => {
-    mockLimit.mockResolvedValue({ success: false, remaining: 0, reset: Date.now() + 0.5 * HOUR_MS })
+  it('allows the request when no Redis is configured at all', async () => {
+    jest.resetModules()
+    jest.doMock('@/lib/redis', () => ({ redis: null }))
+    const { checkRateLimit: isolated } = await import('@/lib/ratelimit')
 
-    const result = await checkRateLimit(USER_ID)
+    const result = await isolated('user-123')
 
-    expect(result.allowed).toBe(false)
-    expect(result.hoursUntilReset).toBe(1)
+    expect(result.allowed).toBe(true)
+    expect(result.count).toBe(0)
   })
 })
