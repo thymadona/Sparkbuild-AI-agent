@@ -34,7 +34,15 @@ export const auth = betterAuth({
     // Better Auth's model names are singular; ours are plural because `user`
     // is a reserved word in Postgres and an unquoted reference to it silently
     // resolves to `current_user`.
-    schema: { user: users, session: sessions, account: accounts, verification: verifications },
+    //
+    // These keys must be the *resolved* model names — i.e. the `modelName`
+    // values set below, not Better Auth's singular defaults. The adapter
+    // resolves `user` -> `users` through `modelName` first and only then does
+    // `schema[model]`, so keying this map by `user`/`session`/`account`/
+    // `verification` makes every lookup miss and throws
+    // `The model "users" was not found in the schema object` on the first
+    // query of a sign-in.
+    schema: { users, sessions, accounts, verifications },
   }),
 
   // Only `modelName` is overridden. Better Auth resolves each field by its
