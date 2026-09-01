@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
@@ -53,12 +54,12 @@ export default async function SharePage(props: Props) {
         </div>
         <div className="flex items-center gap-2">
           <ForkButton projectId={typedProject.id} />
-          <a
+          <Link
             href="/"
             className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
           >
             Build your own →
-          </a>
+          </Link>
         </div>
       </header>
       <div className="flex-1 overflow-hidden">

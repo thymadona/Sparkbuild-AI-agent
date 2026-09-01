@@ -2,9 +2,26 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
 export const metadata: Metadata = {
+  // Resolves app/icon.svg and app/opengraph-image.tsx to absolute URLs, which
+  // og:image requires — a relative one is ignored by every unfurler.
+  metadataBase: new URL(siteUrl),
   title: 'Student Code Builder',
   description: 'Build web apps with AI — type a prompt, get a live preview',
+  openGraph: {
+    type: 'website',
+    siteName: 'Student Code Builder',
+    title: 'Student Code Builder',
+    description: 'Build web apps with AI — type a prompt, get a live preview',
+    url: siteUrl,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Student Code Builder',
+    description: 'Build web apps with AI — type a prompt, get a live preview',
+  },
 }
 
 export default function RootLayout({
