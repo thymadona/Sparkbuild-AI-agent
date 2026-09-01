@@ -10,6 +10,22 @@ export class ForbiddenError extends Error {
   }
 }
 
+// The roles that mean "this account is staff". `student` is deliberately
+// absent: every non-staff account now holds a student row in user_roles
+// (lib/auth/student-defaults.ts), so "has any user_roles row" is no longer a
+// test for staff. The four pages under app/staff/ match on this list instead,
+// so a new staff role added here is picked up by all of them at once.
+export const STAFF_ROLES = ['admin', 'teacher'] as const
+
+// Looks up a seeded role's id by name, or null when that role is missing —
+// a database that has not had drizzle/0004_student_role.sql applied. Callers
+// degrade on null rather than throwing, because ensureStudentDefaults must
+// never block a sign-in over a missing role row.
+export async function roleIdByName(name: string): Promise<string | null> {
+  const [row] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, name)).limit(1)
+  return row?.id ?? null
+}
+
 export async function getUserRoles(userId: string): Promise<string[]> {
   const rows = await db
     .select({ name: roles.name })

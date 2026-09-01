@@ -47,8 +47,8 @@ export async function makeUser(overrides: Partial<typeof users.$inferInsert> = {
   return row
 }
 
-/** Grants a seeded platform role ('admin' | 'teacher') to a user. */
-export async function grantRole(userId: string, roleName: 'admin' | 'teacher') {
+/** Grants a seeded platform role to a user. */
+export async function grantRole(userId: string, roleName: 'admin' | 'teacher' | 'student') {
   const [role] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, roleName)).limit(1)
   if (!role) throw new Error(`role "${roleName}" is missing — is drizzle/0001 applied?`)
   await db.insert(userRoles).values({ userId, roleId: role.id }).onConflictDoNothing()

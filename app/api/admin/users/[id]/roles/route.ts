@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { roles, userRoles } from '@/lib/db/schema'
+import { userRoles } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
-import { hasPermission } from '@/lib/auth/permissions'
+import { hasPermission, roleIdByName } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
+// 'student' is deliberately NOT assignable. It is granted by
+// lib/auth/student-defaults.ts on every non-staff sign-in and shown as a
+// read-only badge in /staff/users — hand-revoking a role the auth hook
+// re-grants on the next sign-in would just desync the UI from reality.
 const ASSIGNABLE_ROLES = ['admin', 'teacher']
-
-async function roleIdFor(name: string): Promise<string | null> {
-  const [row] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, name)).limit(1)
-  return row?.id ?? null
-}
 
 export async function POST(req: Request, props: Props) {
   const params = await props.params
@@ -32,7 +31,7 @@ export async function POST(req: Request, props: Props) {
   }
 
   try {
-    const roleId = await roleIdFor(role)
+    const roleId = await roleIdByName(role)
     if (!roleId) return NextResponse.json({ error: 'Unknown role' }, { status: 400 })
 
     // Re-granting a role a user already holds is a no-op, not an error on the
@@ -69,7 +68,7 @@ export async function DELETE(req: Request, props: Props) {
   }
 
   try {
-    const roleId = await roleIdFor(role)
+    const roleId = await roleIdByName(role)
     if (!roleId) return NextResponse.json({ error: 'Unknown role' }, { status: 400 })
 
     await db

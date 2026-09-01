@@ -12,7 +12,7 @@ import {
   userRoles,
   users as usersTable,
 } from '@/lib/db/schema'
-import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
+import { STAFF_ROLES, hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import ClassesClient from './ClassesClient'
 import TeacherClassesClient from './TeacherClassesClient'
 import { getSessionUser } from '@/lib/auth/session'
@@ -103,11 +103,15 @@ export default async function ClassesPage() {
     const userMap = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? '']))
     const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
     const platformTeacherIds = new Set(roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id))
-    // Only 'admin' and 'teacher' roles exist in user_roles — a student never
-    // has a row there. An account can hold a student_profiles row *and* a
-    // staff role at once (e.g. a teacher's own test account), so keep staff
-    // out of the student picker even if they have a profile.
-    const staffIds = new Set(roleRows.map((r) => r.user_id))
+    // user_roles now holds a 'student' row for every non-staff account
+    // (lib/auth/student-defaults.ts), so match on STAFF_ROLES rather than on
+    // "has any role row" — the latter would empty this picker entirely. An
+    // account can hold a student_profiles row *and* a staff role at once
+    // (e.g. a teacher's own test account), so keep staff out of the student
+    // picker even if they have a profile.
+    const staffIds = new Set(
+      roleRows.filter((r) => (STAFF_ROLES as readonly string[]).includes(r.name)).map((r) => r.user_id)
+    )
     const allTeachers = Array.from(platformTeacherIds)
       .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
       .sort((a, b) => a.name.localeCompare(b.name))

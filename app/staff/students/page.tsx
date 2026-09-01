@@ -1,15 +1,16 @@
 import { redirect } from 'next/navigation'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import {
   classMembers,
   classes as classesTable,
   invoices,
+  roles,
   studentProfiles,
   userRoles,
   users as usersTable,
 } from '@/lib/db/schema'
-import { hasPermission } from '@/lib/auth/permissions'
+import { STAFF_ROLES, hasPermission } from '@/lib/auth/permissions'
 import StudentsClient from './StudentsClient'
 import type { Class } from '@/types'
 import { getSessionUser } from '@/lib/auth/session'
@@ -56,13 +57,19 @@ export default async function StudentsPage() {
       .from(classesTable)
       .orderBy(asc(classesTable.name)),
     db.select({ user_id: invoices.userId, status: invoices.status }).from(invoices),
-    db.select({ user_id: userRoles.userId }).from(userRoles),
+    db
+      .select({ user_id: userRoles.userId })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(inArray(roles.name, [...STAFF_ROLES])),
   ])
 
-  // Only 'admin' and 'teacher' roles exist in user_roles — a student never
-  // has a row there. An account can hold a student_profiles row *and* a
-  // staff role at once (e.g. a teacher's own test account), so exclude
-  // anyone with a platform role instead of trusting the profile alone.
+  // user_roles now holds a 'student' row for every non-staff account
+  // (lib/auth/student-defaults.ts), so the query above filters to STAFF_ROLES
+  // — without that filter this list would exclude every student and render
+  // empty. An account can also hold a student_profiles row *and* a staff role
+  // at once (e.g. a teacher's own test account), so exclude anyone with a
+  // staff role rather than trusting the profile alone.
   const staffIds = new Set(staffRoleRows.map((r) => r.user_id))
   const users = allUsers.filter((u) => !staffIds.has(u.id))
   const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p]))

@@ -45,7 +45,7 @@ export default async function UsersPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-100">Users</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Grant or revoke admin/teacher access.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Grant or revoke admin/teacher access. The student role is assigned automatically on sign-in.</p>
       </div>
       <UsersClient users={rows} />
     </div>

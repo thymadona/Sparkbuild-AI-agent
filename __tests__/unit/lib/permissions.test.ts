@@ -39,6 +39,21 @@ describe('hasPermission', () => {
     await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(false)
   })
 
+  it('denies everything to the student role, which is seeded with no permissions', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'student')
+    await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(false)
+    await expect(hasPermission(user.id, 'homework:review')).resolves.toBe(false)
+    await expect(hasPermission(user.id, 'roles:manage')).resolves.toBe(false)
+  })
+
+  it('does not mistake the student role for a staff role', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'student')
+    await expect(isAdmin(user.id)).resolves.toBe(false)
+    await expect(isTeacher(user.id)).resolves.toBe(false)
+  })
+
   it('fails closed (denies) when the query throws', async () => {
     // A malformed uuid makes the cast in the query throw, standing in for any
     // database-level failure. Drizzle throws where Supabase returned

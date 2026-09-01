@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
-import { studentProfiles, users } from '@/lib/db/schema'
-import { hasPermission } from '@/lib/auth/permissions'
+import { studentProfiles, userRoles, users } from '@/lib/db/schema'
+import { hasPermission, roleIdByName } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 
 export async function POST(req: Request) {
@@ -31,6 +31,8 @@ export async function POST(req: Request) {
   // profile — the previous two-step version could, and the orphan was
   // invisible to /staff/students.
   try {
+    const studentRoleId = await roleIdByName('student')
+
     const newUserId = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(users)
@@ -45,6 +47,18 @@ export async function POST(req: Request) {
         notes: notes ?? null,
         createdBy: user.id,
       })
+
+      // An admin creating a student is registering one, so grant the role
+      // now rather than waiting for their first sign-in — the same grant
+      // lib/auth/student-defaults.ts would make. Skipped (not failed) when
+      // the role is missing, so provisioning still works on a database that
+      // has not had drizzle/0004_student_role.sql applied.
+      if (studentRoleId) {
+        await tx
+          .insert(userRoles)
+          .values({ userId: created.id, roleId: studentRoleId, grantedBy: user.id })
+          .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
+      }
 
       return created.id
     })

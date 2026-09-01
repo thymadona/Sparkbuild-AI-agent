@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 
 type UserRow = { id: string; email: string; fullName: string; roles: string[] }
 
+// Only these two are toggleable. 'student' is granted automatically by
+// lib/auth/student-defaults.ts on every non-staff sign-in and the API rejects
+// it (ASSIGNABLE_ROLES in app/api/admin/users/[id]/roles/route.ts), so it
+// renders below as a read-only badge rather than a button.
 const ROLES = ['admin', 'teacher'] as const
 
 export default function UsersClient({ users }: { users: UserRow[] }) {
@@ -86,6 +90,14 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
                         </button>
                       )
                     })}
+                    {u.roles.includes('student') && (
+                      <span
+                        title="Assigned automatically on sign-in"
+                        className="rounded-md border border-gray-700 px-2.5 py-1 text-xs font-medium text-gray-500"
+                      >
+                        student
+                      </span>
+                    )}
                   </div>
                 </td>
               </tr>

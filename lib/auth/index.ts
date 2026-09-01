@@ -2,28 +2,8 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { accounts, sessions, studentProfiles, users, verifications } from '@/lib/db/schema'
-import { getUserRoles } from '@/lib/auth/permissions'
-
-// Every non-admin, non-teacher sign-in is a student by default. Ported from
-// the old app/auth/callback/route.ts, which ran this after Supabase's PKCE
-// exchange. Two properties are load-bearing and must survive:
-//   * idempotent — it runs on every sign-in, not just the first, and must
-//     never clobber an admin's edits to an existing profile;
-//   * never throws — a failure here must not block someone signing in.
-async function ensureStudentProfile(userId: string, name: string) {
-  try {
-    const roleNames = await getUserRoles(userId)
-    if (roleNames.includes('admin') || roleNames.includes('teacher')) return
-
-    await db
-      .insert(studentProfiles)
-      .values({ userId, fullName: name })
-      .onConflictDoNothing({ target: studentProfiles.userId })
-  } catch (err) {
-    console.error('ensureStudentProfile failed:', err)
-  }
-}
+import { accounts, sessions, users, verifications } from '@/lib/db/schema'
+import { ensureStudentDefaults } from '@/lib/auth/student-defaults'
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -83,7 +63,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await ensureStudentProfile(user.id, user.name ?? '')
+          await ensureStudentDefaults(user.id, user.name ?? '')
         },
       },
     },
@@ -97,7 +77,7 @@ export const auth = betterAuth({
             .from(users)
             .where(eq(users.id, session.userId))
             .limit(1)
-          await ensureStudentProfile(session.userId, row?.name ?? '')
+          await ensureStudentDefaults(session.userId, row?.name ?? '')
         },
       },
     },
