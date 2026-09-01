@@ -3,6 +3,7 @@ import { getStaffContext } from '@/lib/auth/permissions'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import { NAV_PERMISSION_KEYS, type StaffPermissions } from '@/lib/dashboard-nav'
 import { getSessionUser } from '@/lib/auth/session'
+import { logMarks, marks, timed } from '@/lib/timing'
 
 // A wedged request should fail fast and visibly rather than burn the
 // platform's default budget (300s on Vercel) behind a spinner that never
@@ -19,12 +20,18 @@ export const maxDuration = 20
 // admin route. Nav visibility here is a convenience, not an access
 // boundary.
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
-  const user = await getSessionUser()
+  const m = marks()
+  const started = Date.now()
+
+  // Timed to settle whether Better Auth's session read is implicated: it runs
+  // on every /staff page, and every sibling route already returns fast.
+  const user = await timed(m, 'session', () => getSessionUser())
   if (!user) redirect('/login')
 
   // One round trip, not seven — see getStaffContext for why that matters on
   // this particular layout.
-  const ctx = await getStaffContext(user.id, NAV_PERMISSION_KEYS)
+  const ctx = await timed(m, 'staff_ctx', () => getStaffContext(user.id, NAV_PERMISSION_KEYS))
+  logMarks('staff-layout', m, Date.now() - started)
 
   const permissions: StaffPermissions = {
     isAdmin: ctx.isAdmin,
