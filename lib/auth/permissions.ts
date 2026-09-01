@@ -1,5 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm'
-import { db } from '@/lib/db/client'
+import { db, rowsOf } from '@/lib/db/client'
 import { classMembers, roles, userRoles } from '@/lib/db/schema'
 import { cached } from '@/lib/cache'
 
@@ -43,7 +43,7 @@ export async function getUserRoles(userId: string): Promise<string[]> {
 // reimplementing multi-table joins on the app's authorization boundary would
 // be new places to get it wrong.
 async function callBooleanFn(query: ReturnType<typeof sql>): Promise<boolean> {
-  const rows = (await db.execute(query)) as unknown as { ok: boolean | null }[]
+  const rows = rowsOf<{ ok: boolean | null }>(await db.execute(query))
   return rows[0]?.ok === true
 }
 
@@ -101,33 +101,20 @@ export interface StaffContext {
   teacherClassIds: string[]
 }
 
-// Everything app/staff/layout.tsx needs, in one round trip instead of seven.
+// Everything app/staff/layout.tsx needs, batched into one round trip instead
+// of the seven cached() calls it used to make on every /staff page.
 //
-// That layout runs on every page under /staff, and it used to call isAdmin +
-// hasPermission x5 + getTeacherClassIds concurrently. Each of those is its own
-// cached() wrapper, so a cold cache meant seven simultaneous claimants on a
-// connection pool deliberately sized small for serverless (lib/db/client.ts).
-// That fan-out — not any single slow query — is what made the whole /staff
-// tree hang in production while localhost, whose `max: 1` pool serializes
-// everything against a local Postgres, was fine.
-//
-// This does NOT reimplement the authorization rules. It calls the same
-// security-definer functions as isAdmin/hasPermission, batched into a single
-// SELECT, so each rule still has exactly one definition
-// (drizzle/0001_functions_sequence_seed.sql) — the reason those functions
-// exist rather than Drizzle joins, per the note above callBooleanFn.
-//
-// Fails closed like its single-check counterparts, with the try/catch inside
-// the cached() callback for the reason given above hasPermission.
+// This does not reimplement the rules: it calls the same security-definer
+// functions as isAdmin/hasPermission, so each still has one definition. Fails
+// closed like they do, with the try/catch inside the cached() callback.
 export async function getStaffContext(
   userId: string,
   keys: readonly string[]
 ): Promise<StaffContext> {
   return cached(`staff:ctx:${userId}:${keys.join(',')}`, 30, async () => {
     try {
-      // Aliased positionally rather than by key: a permission key contains a
-      // colon, and quoting caller-supplied text into an identifier is a habit
-      // worth not forming even where the input is a local constant.
+      // Aliased positionally: permission keys contain colons, and quoting
+      // caller-supplied text into an identifier is a habit worth avoiding.
       const columns = keys.map(
         (key, i) =>
           sql`public.has_permission(${userId}::uuid, ${key}) as ${sql.identifier(`p${i}`)}`
@@ -143,7 +130,7 @@ export async function getStaffContext(
           .where(and(eq(classMembers.userId, userId), eq(classMembers.role, 'teacher'))),
       ])
 
-      const row = (rows as unknown as Record<string, boolean | null>[])[0] ?? {}
+      const row = rowsOf<Record<string, boolean | null>>(rows)[0] ?? {}
 
       return {
         isAdmin: row.is_admin === true,

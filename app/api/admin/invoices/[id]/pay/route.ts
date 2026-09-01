@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { eq, sql } from 'drizzle-orm'
-import { db } from '@/lib/db/client'
+import { db, rowsOf } from '@/lib/db/client'
 import { invoices, receipts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -43,11 +43,12 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
       // version called `.rpc('nextval', ...)`, which PostgREST does not
       // expose, so it fell through to its `Date.now()` fallback on every
       // call and numbered receipts with a 13-digit epoch.
-      const seqRows = (await tx.execute(
-        sql`select nextval('receipt_number_seq') as value`
-      )) as unknown as { value: string | number }[]
+      const seqRows = rowsOf<{ value: string | number }>(
+        await tx.execute(sql`select nextval('receipt_number_seq') as value`)
+      )
 
-      const seq = seqRows[0].value
+      const seq = seqRows[0]?.value
+      if (seq === undefined) throw new Error('receipt_number_seq returned no value')
       const year = new Date().getFullYear()
       const receiptNumber = `RCP-${year}-${String(seq).padStart(4, '0')}`
 

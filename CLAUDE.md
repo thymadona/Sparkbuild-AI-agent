@@ -148,6 +148,22 @@ awaited.
 
 ## Patterns That Deviate From Defaults
 
+**The driver is node-postgres, and that is load-bearing.** postgres.js loses queries on
+reused pooled connections against Supabase's pooler — they never settle and never reject.
+Measured at 8 concurrent queries x 3 rounds: postgres.js dropped 6, node-postgres 0. That hung
+every `/staff` page in production while being invisible locally, where round trips are ~0.1ms
+and queries rarely overlap. Two consequences in `lib/db/client.ts`: `db.execute()` returns a
+`QueryResult`, so every call site goes through `rowsOf()` (they all fail closed — the wrong
+shape denies access rather than throwing), and the timestamp parsers must be re-asserted on
+the pool because drizzle-orm/node-postgres overrides them per query.
+
+**Count in Postgres, and mind the round trips.** The `/staff` overview gathers ten numbers in
+a single `SELECT` of scalar subqueries (`app/staff/overview-stats.ts`), not ten queries in a
+`Promise.all`, and no page `select`s whole tables to compute `.length` in JS. Local
+development points `DATABASE_URL` at localhost, so latency bugs are invisible until deploy —
+test against the production database (`DATABASE_URL="<prod url>" bun run dev`) before trusting
+a page that issues several queries.
+
 **Homework is verified, gated, and reviewed.** Each lesson carries 2–3 `type: 'homework'` tasks
 plus a `homeworkBrief`. They're hidden in the task panel until every core task is done, live in
 their own section, and hold back build mode exactly like core tasks —

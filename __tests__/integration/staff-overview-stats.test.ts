@@ -10,12 +10,8 @@ import {
   resetDb,
 } from '@/__tests__/helpers/db'
 
-// These counts moved out of JS and into Postgres aggregates (see
-// app/staff/overview-stats.ts) to stop the admin dashboard pulling whole
-// tables across the wire. The risk in that change is arithmetic, not
-// performance, so every case below pins a number the old post-processing
-// produced: staff excluded from the student count, a teacher counted once
-// across several classes, and overdue judged against due_date.
+// The counts moved from JS into one Postgres query (app/staff/overview-stats.ts).
+// The risk there is arithmetic, so each case pins a number the old JS produced.
 beforeEach(resetDb)
 afterAll(() => db.$client.end())
 
@@ -39,8 +35,7 @@ describe('getSchoolOverviewStats', () => {
     await grantRole(inactive.id, 'student')
     await makeStudentProfile(inactive.id, { isActive: false })
 
-    // Staff who also hold a profile (a teacher's own test account) are not
-    // students — this is the anti-join that replaced a JS set difference.
+    // Staff who also hold a profile are not students.
     const teacher = await makeUser()
     await grantRole(teacher.id, 'teacher')
     await makeStudentProfile(teacher.id)
