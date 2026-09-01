@@ -1,12 +1,14 @@
 import Link from 'next/link'
-import { and, eq, gte, isNotNull } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
+import { STAFF_ROLES } from '@/lib/auth/permissions'
 import {
   classMembers,
   classes,
   invoices,
   projects,
   prompts,
+  roles,
   studentProfiles,
   userRoles,
 } from '@/lib/db/schema'
@@ -60,7 +62,11 @@ export default async function OverviewTab() {
       .select({ user_id: classMembers.userId })
       .from(classMembers)
       .where(eq(classMembers.role, 'teacher')),
-    db.select({ user_id: userRoles.userId }).from(userRoles),
+    db
+      .select({ user_id: userRoles.userId })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(inArray(roles.name, [...STAFF_ROLES])),
     db.$count(projects, eq(projects.submissionStatus, 'submitted')),
     db
       .select({ due_date: invoices.dueDate })
@@ -77,10 +83,11 @@ export default async function OverviewTab() {
 
   const teacherIds = new Set(teacherMembers.map((m) => m.user_id))
   const teacherCount = teacherIds.size
-  // Only 'admin' and 'teacher' roles exist in user_roles — a student never
-  // has a row there. A profile can exist for someone who also holds a
-  // staff role (e.g. a teacher or admin's own test account) — don't count
-  // them as a student.
+  // user_roles now holds a 'student' row for every non-staff account
+  // (lib/auth/student-defaults.ts), so "has a user_roles row" no longer means
+  // "is staff" — the query above filters to STAFF_ROLES for that reason. A
+  // profile can exist for someone who also holds a staff role (e.g. a teacher
+  // or admin's own test account); don't count them as a student.
   const staffIds = new Set(staffRoleRows.map((r) => r.user_id))
   const activeStudentCount = activeStudentProfiles.filter((p) => !staffIds.has(p.user_id)).length
   const unpaidCount = unpaidInvoices.length

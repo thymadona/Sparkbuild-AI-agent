@@ -196,6 +196,22 @@ guards page navigation under `/admin`/`/teacher`/`/staff`. Every admin route fil
 without that check is unprotected. `ADMIN_EMAILS` is no longer the enforcement mechanism —
 role assignment lives in `user_roles`, editable from `/admin/users`.
 
+**Three roles exist, and `student` is granted automatically.**
+`ensureStudentDefaults()` (`lib/auth/student-defaults.ts`, called from both `databaseHooks` in
+`lib/auth/index.ts`) gives every non-admin, non-teacher account a `student_profiles` row *and* a
+`student` role row on each sign-in — idempotent, and wrapped so it can never block a sign-in.
+The role is seeded with **zero** `role_permissions` rows on purpose: it is an identity marker,
+not a grant. It is system-managed, so `ASSIGNABLE_ROLES` in
+`app/api/admin/users/[id]/roles/route.ts` still refuses it and `/staff/users` renders it as a
+read-only badge. Roles are additive — a promoted student keeps both rows.
+
+The consequence: **"has a `user_roles` row" no longer means "is staff".** The four pages under
+`app/staff/` that need that distinction match against `STAFF_ROLES` from
+`lib/auth/permissions.ts`; dropping that filter makes `/staff/students` and both class
+student-pickers render empty. Note also that `class_members.role` uses the string `'student'`
+for a different thing — per-class membership, not a platform role. The two tables never
+interact.
+
 **The route guard treats a missing `student_profiles` row as "not a student" and allows it
 through.**
 Only an explicit `is_active === false` redirects to `/login?reason=deactivated`.
