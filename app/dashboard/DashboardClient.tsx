@@ -161,9 +161,9 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-lg font-bold text-fg-primary">Your modules</h2>
-            <a href="/lessons" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
+            <Link href="/lessons" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
               View all <ArrowRight size={14} />
-            </a>
+            </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {LESSONS.slice(0, 3).map((lesson, i) => {
@@ -212,9 +212,9 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
               <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet!</p>
               <p className="text-sm text-fg-muted mt-2 mb-6">Start a lesson or create a blank project.</p>
               <div className="flex gap-3 justify-center">
-                <a href="/lessons" className="rounded-lg border-2 border-surface-600 bg-brand-500 px-5 py-2.5 font-display text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
+                <Link href="/lessons" className="rounded-lg border-2 border-surface-600 bg-brand-500 px-5 py-2.5 font-display text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
                   Start a lesson
-                </a>
+                </Link>
                 <button onClick={handleNewProject} disabled={creating} className="rounded-lg border-2 border-surface-600 bg-surface-800 px-5 py-2.5 font-display text-sm font-bold text-fg-secondary shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50">
                   Blank project
                 </button>

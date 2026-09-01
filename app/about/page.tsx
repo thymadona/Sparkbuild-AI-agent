@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { LESSONS } from '@/lib/lessons'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -59,9 +60,9 @@ export default async function AboutPage() {
         </section>
 
         <section className="mt-16 text-center">
-          <a href="/" className="inline-block rounded-full bg-brand-500 px-8 py-3.5 font-semibold text-white hover:bg-brand-600 transition-colors shadow-lg shadow-brand-500/20">
+          <Link href="/" className="inline-block rounded-full bg-brand-500 px-8 py-3.5 font-semibold text-white hover:bg-brand-600 transition-colors shadow-lg shadow-brand-500/20">
             Get started free
-          </a>
+          </Link>
         </section>
       </main>
 
