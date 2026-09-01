@@ -20,6 +20,7 @@ export default async function StaffOverviewPage() {
   // falls through and this costs one round trip, as it always did.
   // getSessionUser above is deduped with the layout's call by React cache().
   const { isAdmin: admin } = await getStaffContext(user.id, NAV_PERMISSION_KEYS)
+  console.log(`[timing] staff-page branch=${admin ? 'admin' : 'teacher'}`)
 
   return (
     <div>

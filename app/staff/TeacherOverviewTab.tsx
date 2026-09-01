@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classMembers, classes, lessonProgress, projects as projectsTable } from '@/lib/db/schema'
 import { getTeacherClassIds } from '@/lib/auth/permissions'
+import { logMarks, marks, timed } from '@/lib/timing'
 import { getLessonForProject, LESSONS } from '@/lib/lessons'
 import type { SubmissionStatus } from '@/types'
 
@@ -100,7 +101,10 @@ function StatusBar({ counts }: { counts: Record<SubmissionStatus, number> }) {
 export default async function TeacherOverviewTab({ userId }: { userId: string }) {
   const weekAgo = new Date(Date.now() - WEEK_MS).toISOString()
 
-  const classIds = await getTeacherClassIds(userId)
+  const m = marks()
+  const started = Date.now()
+
+  const classIds = await timed(m, 'teacher_class_ids', () => getTeacherClassIds(userId))
 
   if (classIds.length === 0) {
     return (
@@ -111,14 +115,18 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
   }
 
   const [classesData, studentMembers] = await Promise.all([
-    db
-      .select({ id: classes.id, name: classes.name })
-      .from(classes)
-      .where(inArray(classes.id, classIds)),
-    db
-      .select({ user_id: classMembers.userId, class_id: classMembers.classId })
-      .from(classMembers)
-      .where(and(inArray(classMembers.classId, classIds), eq(classMembers.role, 'student'))),
+    timed(m, 'classes', () =>
+      db
+        .select({ id: classes.id, name: classes.name })
+        .from(classes)
+        .where(inArray(classes.id, classIds))
+    ),
+    timed(m, 'class_members', () =>
+      db
+        .select({ user_id: classMembers.userId, class_id: classMembers.classId })
+        .from(classMembers)
+        .where(and(inArray(classMembers.classId, classIds), eq(classMembers.role, 'student')))
+    ),
   ])
 
   const classStudentIds = new Map<string, Set<string>>()
@@ -136,19 +144,22 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
   if (studentIds.length > 0) {
     const [submissions, projectRows] = await Promise.all([
-      db
-        .select({
-          user_id: projectsTable.userId,
-          submission_status: projectsTable.submissionStatus,
-        })
-        .from(projectsTable)
-        .where(
-          and(
-            isNotNull(projectsTable.submissionStatus),
-            inArray(projectsTable.userId, studentIds)
+      timed(m, 'submissions', () =>
+        db
+          .select({
+            user_id: projectsTable.userId,
+            submission_status: projectsTable.submissionStatus,
+          })
+          .from(projectsTable)
+          .where(
+            and(
+              isNotNull(projectsTable.submissionStatus),
+              inArray(projectsTable.userId, studentIds)
+            )
           )
-        ),
-      db
+      ),
+      timed(m, 'projects', () =>
+        db
         .select({
           id: projectsTable.id,
           user_id: projectsTable.userId,
@@ -160,7 +171,8 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
         .where(
           and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId))
         )
-        .orderBy(desc(projectsTable.updatedAt)),
+          .orderBy(desc(projectsTable.updatedAt))
+      ),
     ])
 
     for (const row of submissions) {
@@ -176,7 +188,8 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
       // would not have been slow, they would have errored. The join re-uses the
       // same predicate as the projectRows query above, so the row set is
       // identical while only studentIds (bounded by roster size) is bound.
-      const progressRows = await db
+      const progressRows = await timed(m, 'lesson_progress', () =>
+        db
         .select({
           project_id: lessonProgress.projectId,
           completed_task_ids: lessonProgress.completedTaskIds,
@@ -187,6 +200,7 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
         .where(
           and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId))
         )
+      )
 
       for (const row of progressRows) {
         progressById.set(row.project_id, {
@@ -228,6 +242,8 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
     }
     activeThisWeek = activeUserIds.size
   }
+
+  logMarks('staff-teacher-overview', m, Date.now() - started)
 
   const weeklyProgress = LESSONS.map((lesson) => {
     const totals = weeklyTotals.get(lesson.id)!

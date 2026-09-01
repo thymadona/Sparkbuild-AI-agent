@@ -1,5 +1,6 @@
 import { and, count, countDistinct, eq, gte, inArray, isNotNull, notExists, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
+import { logMarks, marks, timed } from '@/lib/timing'
 import { STAFF_ROLES } from '@/lib/auth/permissions'
 import {
   classMembers,
@@ -34,14 +35,19 @@ export interface SchoolOverviewStats {
 // and it is O(1). reltuples is -1 on a table that has never been analyzed,
 // which is the one case worth an exact count: on such a table it is cheap by
 // definition.
-async function estimatePromptCount(): Promise<number> {
+async function estimatePromptCount(m: Record<string, number>): Promise<number> {
   try {
-    const rows = (await db.execute(
-      sql`select reltuples::bigint::int as n from pg_class where oid = 'public.prompts'::regclass`
-    )) as unknown as { n: number | null }[]
+    const rows = (await timed(m, 'prompts_reltuples', async () =>
+      (await db.execute(
+        sql`select reltuples::bigint::int as n from pg_class where oid = 'public.prompts'::regclass`
+      )) as unknown as { n: number | null }[]
+    ))
 
     const estimate = rows[0]?.n ?? -1
-    return estimate >= 0 ? estimate : await db.$count(prompts)
+    if (estimate >= 0) return estimate
+    // The expensive fallback. If this line dominates the timings, the fix is
+    // `analyze prompts` — no index can help an unfiltered count(*).
+    return await timed(m, 'prompts_exact_count_FALLBACK', () => db.$count(prompts))
   } catch (err) {
     console.error('estimatePromptCount failed:', err)
     return 0
@@ -67,6 +73,9 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString()
   const today = new Date().toISOString().split('T')[0]
 
+  const m = marks()
+  const started = Date.now()
+
   const [
     totalClasses,
     activeStudentCount,
@@ -78,14 +87,15 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
     promptsToday,
     totalPrompts,
   ] = await Promise.all([
-    db.$count(classes),
+    timed(m, 'classes', () => db.$count(classes)),
     // user_roles now holds a 'student' row for every non-staff account
     // (lib/auth/student-defaults.ts), so "has a user_roles row" no longer
     // means "is staff" — hence the STAFF_ROLES filter. A profile can exist for
     // someone who also holds a staff role (a teacher's own test account, say);
     // they are not a student. That was a second full-table select plus a JS
     // set difference; it is now one anti-join.
-    db.$count(
+    timed(m, 'active_students', () =>
+      db.$count(
       studentProfiles,
       and(
         eq(studentProfiles.isActive, true),
@@ -102,30 +112,41 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
             )
         )
       )
+      )
     ),
     // Distinct, because one person can teach several classes.
-    db
-      .select({ n: countDistinct(classMembers.userId) })
-      .from(classMembers)
-      .where(eq(classMembers.role, 'teacher')),
-    db.$count(projects, eq(projects.submissionStatus, 'submitted')),
+    timed(m, 'teachers', () =>
+      db
+        .select({ n: countDistinct(classMembers.userId) })
+        .from(classMembers)
+        .where(eq(classMembers.role, 'teacher'))
+    ),
+    timed(m, 'needs_review', () => db.$count(projects, eq(projects.submissionStatus, 'submitted'))),
     // Both invoice numbers in one pass rather than fetching every unpaid row
     // and filtering on due_date in JS.
-    db
-      .select({
-        unpaid: count(),
-        overdue: sql<number>`count(*) filter (where ${invoices.dueDate} < ${today})::int`,
-      })
-      .from(invoices)
-      .where(eq(invoices.status, 'unpaid')),
-    db.$count(projects, and(isNotNull(projects.lessonId), gte(projects.createdAt, weekAgo))),
-    db.$count(
-      projects,
-      and(isNotNull(projects.submissionStatus), gte(projects.updatedAt, weekAgo))
+    timed(m, 'invoices', () =>
+      db
+        .select({
+          unpaid: count(),
+          overdue: sql<number>`count(*) filter (where ${invoices.dueDate} < ${today})::int`,
+        })
+        .from(invoices)
+        .where(eq(invoices.status, 'unpaid'))
     ),
-    db.$count(prompts, gte(prompts.createdAt, dayAgo)),
-    estimatePromptCount(),
+    timed(m, 'lessons_started', () =>
+      db.$count(projects, and(isNotNull(projects.lessonId), gte(projects.createdAt, weekAgo)))
+    ),
+    timed(m, 'submitted_week', () =>
+      db.$count(
+        projects,
+        and(isNotNull(projects.submissionStatus), gte(projects.updatedAt, weekAgo))
+      )
+    ),
+    timed(m, 'prompts_today', () => db.$count(prompts, gte(prompts.createdAt, dayAgo))),
+    estimatePromptCount(m),
   ])
+
+  logMarks('staff-overview', m, Date.now() - started)
 
   return {
     totalClasses: totalClasses ?? 0,
