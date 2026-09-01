@@ -238,7 +238,8 @@ homework review and admin views) but is no longer read to compute the limit.
 helper (get-or-set against Redis via `lib/redis.ts`, JSON-encoded since ioredis stores strings)
 wraps a handful of
 high-traffic, low-volatility reads: role/permission checks (`lib/auth/permissions.ts` —
-`hasPermission`, `isAdmin`, `isTeacher`, 30s TTL), a project's `lesson_id`/`lesson_version`
+`hasPermission`, `isAdmin`, `isTeacher`, `getStaffContext`, 30s TTL), a project's
+`lesson_id`/`lesson_version`
 (`app/api/generate/route.ts`, 1h TTL — these never change post-creation), a project's
 `lesson_progress` (15s TTL plus explicit invalidation from the lesson-progress PUT route, since
 it directly feeds build-mode task gating), a user's `user_build_mode.enabled` (30s TTL plus

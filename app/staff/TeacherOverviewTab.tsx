@@ -170,6 +170,12 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
     const progressById = new Map<string, { completedTaskIds: string[]; updatedAt: string }>()
     if (projectRows.length > 0) {
+      // Joined to projects rather than `inArray(projectId, projectRows.map(...))`.
+      // That version bound one parameter per project row, and Postgres caps a
+      // statement at 65535 bind parameters — a teacher with enough students
+      // would not have been slow, they would have errored. The join re-uses the
+      // same predicate as the projectRows query above, so the row set is
+      // identical while only studentIds (bounded by roster size) is bound.
       const progressRows = await db
         .select({
           project_id: lessonProgress.projectId,
@@ -177,7 +183,10 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
           updated_at: lessonProgress.updatedAt,
         })
         .from(lessonProgress)
-        .where(inArray(lessonProgress.projectId, projectRows.map((p) => p.id)))
+        .innerJoin(projectsTable, eq(projectsTable.id, lessonProgress.projectId))
+        .where(
+          and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId))
+        )
 
       for (const row of progressRows) {
         progressById.set(row.project_id, {

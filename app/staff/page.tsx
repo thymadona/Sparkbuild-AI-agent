@@ -1,32 +1,11 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { isAdmin } from '@/lib/auth/permissions'
+import { getStaffContext } from '@/lib/auth/permissions'
 import OverviewTab from './OverviewTab'
 import TeacherOverviewTab from './TeacherOverviewTab'
+import OverviewSkeleton from './OverviewSkeleton'
+import { NAV_PERMISSION_KEYS } from '@/lib/dashboard-nav'
 import { getSessionUser } from '@/lib/auth/session'
-
-function Skeleton() {
-  return (
-    <div className="space-y-6 animate-pulse">
-      <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
-        ))}
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
-        ))}
-      </div>
-      <div className="h-20 rounded-lg bg-gray-900 border border-gray-800" />
-    </div>
-  )
-}
 
 // The whole-school overview (every user's request/project counts) is a
 // PII surface with no per-class scoping, so it's admin-only; a teacher
@@ -36,7 +15,11 @@ export default async function StaffOverviewPage() {
   const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  const admin = await isAdmin(user.id)
+  // Same arguments as StaffLayout, so this hits the cache entry the layout
+  // just populated instead of issuing its own query. With no Redis, cached()
+  // falls through and this costs one round trip, as it always did.
+  // getSessionUser above is deduped with the layout's call by React cache().
+  const { isAdmin: admin } = await getStaffContext(user.id, NAV_PERMISSION_KEYS)
 
   return (
     <div>
@@ -46,7 +29,7 @@ export default async function StaffOverviewPage() {
           {admin ? 'Overview of your school' : 'Overview of your classes'}
         </p>
       </div>
-      <Suspense fallback={<Skeleton />}>
+      <Suspense fallback={<OverviewSkeleton />}>
         {admin ? <OverviewTab /> : <TeacherOverviewTab userId={user.id} />}
       </Suspense>
     </div>
