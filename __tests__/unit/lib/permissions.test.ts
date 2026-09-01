@@ -6,6 +6,7 @@ import {
   requirePermission,
   isTeacherOfClass,
   getTeacherClassIds,
+  getStaffContext,
   ForbiddenError,
 } from '@/lib/auth/permissions'
 import { db } from '@/lib/db/client'
@@ -169,5 +170,97 @@ describe('getTeacherClassIds', () => {
 
   it('throws (does not fail open) when the query fails', async () => {
     await expect(getTeacherClassIds('not-a-uuid')).rejects.toBeTruthy()
+  })
+})
+
+// getStaffContext batches app/staff/layout.tsx's seven checks into one round
+// trip. The thing worth testing is not that it is fast but that batching did
+// not change any answer: every case below asserts it agrees with the
+// single-check helpers it replaced.
+describe('getStaffContext', () => {
+  const KEYS = [
+    'classes:manage',
+    'students:manage',
+    'invoices:manage',
+    'roles:manage',
+    'telegram:manage',
+  ] as const
+
+  it('agrees with isAdmin/hasPermission for an admin', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'admin')
+
+    const ctx = await getStaffContext(user.id, KEYS)
+
+    expect(ctx.isAdmin).toBe(true)
+    for (const key of KEYS) {
+      expect(ctx.permissions[key]).toBe(await hasPermission(user.id, key))
+      expect(ctx.permissions[key]).toBe(true)
+    }
+  })
+
+  it('agrees with hasPermission for a teacher, who carries none of the nav keys', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'teacher')
+
+    const ctx = await getStaffContext(user.id, KEYS)
+
+    expect(ctx.isAdmin).toBe(false)
+    for (const key of KEYS) {
+      expect(ctx.permissions[key]).toBe(await hasPermission(user.id, key))
+      expect(ctx.permissions[key]).toBe(false)
+    }
+  })
+
+  it('denies everything to a student', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'student')
+
+    const ctx = await getStaffContext(user.id, KEYS)
+
+    expect(ctx.isAdmin).toBe(false)
+    expect(Object.values(ctx.permissions).some(Boolean)).toBe(false)
+    expect(ctx.teacherClassIds).toEqual([])
+  })
+
+  it('returns the same class ids as getTeacherClassIds', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'teacher')
+    const taught = await makeClass()
+    const other = await makeClass()
+    await addClassMember(taught.id, user.id, 'teacher')
+    await addClassMember(other.id, user.id, 'student')
+
+    const ctx = await getStaffContext(user.id, KEYS)
+
+    expect(ctx.teacherClassIds).toEqual([taught.id])
+    expect(ctx.teacherClassIds).toEqual(await getTeacherClassIds(user.id))
+  })
+
+  it('resolves each key independently rather than sharing one answer', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'teacher')
+
+    // homework:review and students:message are the two the teacher role
+    // carries; the nav keys are not. A batched query that aliased its columns
+    // wrongly would return one value for all of them.
+    const ctx = await getStaffContext(user.id, ['homework:review', 'classes:manage'])
+
+    expect(ctx.permissions['homework:review']).toBe(true)
+    expect(ctx.permissions['classes:manage']).toBe(false)
+  })
+
+  it('fails closed (denies everything) when the query throws', async () => {
+    // Same malformed-uuid stand-in as the hasPermission case above: the whole
+    // point of the try/catch living inside the cached() callback is that this
+    // denies rather than crashing the layout that called it.
+    const ctx = await getStaffContext('not-a-uuid', KEYS)
+
+    expect(ctx.isAdmin).toBe(false)
+    expect(ctx.teacherClassIds).toEqual([])
+    // Every requested key is present and false — never absent.
+    for (const key of KEYS) {
+      expect(ctx.permissions[key]).toBe(false)
+    }
   })
 })

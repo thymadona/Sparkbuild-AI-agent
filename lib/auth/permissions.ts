@@ -93,6 +93,74 @@ export async function isTeacher(userId: string): Promise<boolean> {
   })
 }
 
+export interface StaffContext {
+  isAdmin: boolean
+  // Keyed by the permission keys passed in, so a caller reads back exactly
+  // what it asked for. A key that could not be resolved is false, never absent.
+  permissions: Record<string, boolean>
+  teacherClassIds: string[]
+}
+
+// Everything app/staff/layout.tsx needs, in one round trip instead of seven.
+//
+// That layout runs on every page under /staff, and it used to call isAdmin +
+// hasPermission x5 + getTeacherClassIds concurrently. Each of those is its own
+// cached() wrapper, so a cold cache meant seven simultaneous claimants on a
+// connection pool deliberately sized small for serverless (lib/db/client.ts).
+// That fan-out — not any single slow query — is what made the whole /staff
+// tree hang in production while localhost, whose `max: 1` pool serializes
+// everything against a local Postgres, was fine.
+//
+// This does NOT reimplement the authorization rules. It calls the same
+// security-definer functions as isAdmin/hasPermission, batched into a single
+// SELECT, so each rule still has exactly one definition
+// (drizzle/0001_functions_sequence_seed.sql) — the reason those functions
+// exist rather than Drizzle joins, per the note above callBooleanFn.
+//
+// Fails closed like its single-check counterparts, with the try/catch inside
+// the cached() callback for the reason given above hasPermission.
+export async function getStaffContext(
+  userId: string,
+  keys: readonly string[]
+): Promise<StaffContext> {
+  return cached(`staff:ctx:${userId}:${keys.join(',')}`, 30, async () => {
+    try {
+      // Aliased positionally rather than by key: a permission key contains a
+      // colon, and quoting caller-supplied text into an identifier is a habit
+      // worth not forming even where the input is a local constant.
+      const columns = keys.map(
+        (key, i) =>
+          sql`public.has_permission(${userId}::uuid, ${key}) as ${sql.identifier(`p${i}`)}`
+      )
+
+      const [rows, classRows] = await Promise.all([
+        db.execute(
+          sql`select ${sql.join([sql`public.is_admin(${userId}::uuid) as is_admin`, ...columns], sql`, `)}`
+        ),
+        db
+          .select({ class_id: classMembers.classId })
+          .from(classMembers)
+          .where(and(eq(classMembers.userId, userId), eq(classMembers.role, 'teacher'))),
+      ])
+
+      const row = (rows as unknown as Record<string, boolean | null>[])[0] ?? {}
+
+      return {
+        isAdmin: row.is_admin === true,
+        permissions: Object.fromEntries(keys.map((key, i) => [key, row[`p${i}`] === true])),
+        teacherClassIds: classRows.map((r) => r.class_id),
+      }
+    } catch (err) {
+      console.error('getStaffContext failed:', err)
+      return {
+        isAdmin: false,
+        permissions: Object.fromEntries(keys.map((key) => [key, false])),
+        teacherClassIds: [],
+      }
+    }
+  })
+}
+
 export async function requirePermission(userId: string, key: string): Promise<void> {
   if (!(await hasPermission(userId, key))) {
     throw new ForbiddenError(`Missing permission: ${key}`)

@@ -144,6 +144,9 @@ export const classMembers = pgTable(
     primaryKey({ columns: [t.classId, t.userId] }),
     check('class_members_role_check', sql`${t.role} = ANY (ARRAY['student', 'teacher'])`),
     index('class_members_user_id_idx').on(t.userId),
+    // The /staff overview counts distinct teachers school-wide, which filters
+    // on role alone and so cannot use the user_id index above.
+    index('class_members_role_idx').on(t.role),
   ]
 )
 
@@ -200,6 +203,12 @@ export const projects = pgTable(
       sql`${t.submissionStatus} = ANY (ARRAY['submitted', 'approved', 'needs_work'])`
     ),
     index('projects_user_id_idx').on(t.userId),
+    // The /staff overview counts submitted homework, lessons started this
+    // week and homework submitted this week. Each was a full sequential scan
+    // of this table — fine on a laptop, not on a real roster.
+    index('projects_submission_status_idx').on(t.submissionStatus),
+    index('projects_created_at_idx').on(t.createdAt.desc()),
+    index('projects_updated_at_idx').on(t.updatedAt.desc()),
   ]
 )
 
@@ -230,7 +239,12 @@ export const prompts = pgTable(
     // by this column, and a NULL would sort unpredictably.
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
   },
-  (t) => [index('prompts_user_id_created_at_idx').on(t.userId, t.createdAt)]
+  (t) => [
+    index('prompts_user_id_created_at_idx').on(t.userId, t.createdAt),
+    // The composite above leads on user_id, so it cannot serve the /staff
+    // overview's "prompts in the last 24h", which filters on created_at alone.
+    index('prompts_created_at_idx').on(t.createdAt.desc()),
+  ]
 )
 
 export const lessonProgress = pgTable(
@@ -259,6 +273,7 @@ export const invoices = pgTable(
   (t) => [
     check('invoices_amount_cents_check', sql`${t.amountCents} > 0`),
     check('invoices_status_check', sql`${t.status} = ANY (ARRAY['unpaid', 'paid', 'void'])`),
+    index('invoices_status_idx').on(t.status),
   ]
 )
 
@@ -274,16 +289,20 @@ export const receipts = pgTable('receipts', {
   receiptNumber: text('receipt_number').notNull().unique(),
 })
 
-export const studentProfiles = pgTable('student_profiles', {
-  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  fullName: text('full_name').default('').notNull(),
-  parentEmail: text('parent_email'),
-  parentTelegramChatId: text('parent_telegram_chat_id'),
-  notes: text('notes'),
-  isActive: boolean('is_active').default(true).notNull(),
-  createdBy: uuid('created_by').references(() => users.id),
-  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-})
+export const studentProfiles = pgTable(
+  'student_profiles',
+  {
+    userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    fullName: text('full_name').default('').notNull(),
+    parentEmail: text('parent_email'),
+    parentTelegramChatId: text('parent_telegram_chat_id'),
+    notes: text('notes'),
+    isActive: boolean('is_active').default(true).notNull(),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+  },
+  (t) => [index('student_profiles_is_active_idx').on(t.isActive)]
+)
 
 export const userBuildMode = pgTable('user_build_mode', {
   userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),

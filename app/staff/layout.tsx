@@ -1,8 +1,14 @@
 import { redirect } from 'next/navigation'
-import { isAdmin, hasPermission, getTeacherClassIds } from '@/lib/auth/permissions'
+import { getStaffContext } from '@/lib/auth/permissions'
 import DashboardShell from '@/components/dashboard/DashboardShell'
-import type { StaffPermissions } from '@/lib/dashboard-nav'
+import { NAV_PERMISSION_KEYS, type StaffPermissions } from '@/lib/dashboard-nav'
 import { getSessionUser } from '@/lib/auth/session'
+
+// A wedged request should fail fast and visibly rather than burn the
+// platform's default budget (300s on Vercel) behind a spinner that never
+// resolves. Nothing here legitimately takes 20s; lib/db/client.ts sets a 15s
+// statement_timeout, and this is the outer bound on top of it.
+export const maxDuration = 20
 
 // This layout only decides who may enter the /staff shell at all (any
 // admin, or anyone who teaches at least one class) and what the sidebar
@@ -16,31 +22,28 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  const [admin, canManageClasses, canManageStudents, canManageInvoices, canManageRoles, canManageTelegram, teacherClassIds] =
-    await Promise.all([
-      isAdmin(user.id),
-      hasPermission(user.id, 'classes:manage'),
-      hasPermission(user.id, 'students:manage'),
-      hasPermission(user.id, 'invoices:manage'),
-      hasPermission(user.id, 'roles:manage'),
-      hasPermission(user.id, 'telegram:manage'),
-      getTeacherClassIds(user.id),
-    ])
+  // One round trip, not seven — see getStaffContext for why that matters on
+  // this particular layout.
+  const ctx = await getStaffContext(user.id, NAV_PERMISSION_KEYS)
 
   const permissions: StaffPermissions = {
-    isAdmin: admin,
-    canManageClasses,
-    canManageStudents,
-    canManageInvoices,
-    canManageRoles,
-    canManageTelegram,
-    isTeacherOfAnyClass: teacherClassIds.length > 0,
+    isAdmin: ctx.isAdmin,
+    canManageClasses: ctx.permissions['classes:manage'],
+    canManageStudents: ctx.permissions['students:manage'],
+    canManageInvoices: ctx.permissions['invoices:manage'],
+    canManageRoles: ctx.permissions['roles:manage'],
+    canManageTelegram: ctx.permissions['telegram:manage'],
+    isTeacherOfAnyClass: ctx.teacherClassIds.length > 0,
   }
 
-  if (!admin && !permissions.isTeacherOfAnyClass) redirect('/dashboard')
+  if (!ctx.isAdmin && !permissions.isTeacherOfAnyClass) redirect('/dashboard')
 
   return (
-    <DashboardShell email={user.email ?? ''} roleLabel={admin ? 'Admin' : 'Teacher'} permissions={permissions}>
+    <DashboardShell
+      email={user.email ?? ''}
+      roleLabel={ctx.isAdmin ? 'Admin' : 'Teacher'}
+      permissions={permissions}
+    >
       {children}
     </DashboardShell>
   )

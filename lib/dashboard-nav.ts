@@ -17,6 +17,18 @@ export interface StaffPermissions {
   isTeacherOfAnyClass: boolean
 }
 
+// The permission keys the sidebar switches on. Both app/staff/layout.tsx and
+// app/staff/page.tsx pass this exact list to getStaffContext, which keys its
+// cache entry on it — so the page reads the entry the layout just populated
+// instead of issuing its own query. Adding a key here costs no round trip.
+export const NAV_PERMISSION_KEYS = [
+  'classes:manage',
+  'students:manage',
+  'invoices:manage',
+  'roles:manage',
+  'telegram:manage',
+] as const
+
 export type NavIcon = 'grid' | 'people' | 'book' | 'check' | 'card' | 'send' | 'shield'
 
 export interface NavItem {
