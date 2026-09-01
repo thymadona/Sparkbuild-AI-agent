@@ -173,10 +173,9 @@ describe('getTeacherClassIds', () => {
   })
 })
 
-// getStaffContext batches app/staff/layout.tsx's seven checks into one round
-// trip. The thing worth testing is not that it is fast but that batching did
-// not change any answer: every case below asserts it agrees with the
-// single-check helpers it replaced.
+// getStaffContext batches the layout's seven checks into one query. What
+// matters is that batching changed no answer, so each case asserts it agrees
+// with the single-check helper it replaced.
 describe('getStaffContext', () => {
   const KEYS = [
     'classes:manage',
@@ -241,9 +240,7 @@ describe('getStaffContext', () => {
     const user = await makeUser()
     await grantRole(user.id, 'teacher')
 
-    // homework:review and students:message are the two the teacher role
-    // carries; the nav keys are not. A batched query that aliased its columns
-    // wrongly would return one value for all of them.
+    // A batched query with mis-aliased columns would return one value for all.
     const ctx = await getStaffContext(user.id, ['homework:review', 'classes:manage'])
 
     expect(ctx.permissions['homework:review']).toBe(true)
@@ -251,9 +248,7 @@ describe('getStaffContext', () => {
   })
 
   it('fails closed (denies everything) when the query throws', async () => {
-    // Same malformed-uuid stand-in as the hasPermission case above: the whole
-    // point of the try/catch living inside the cached() callback is that this
-    // denies rather than crashing the layout that called it.
+    // Malformed uuid stands in for any DB failure: deny, don't crash.
     const ctx = await getStaffContext('not-a-uuid', KEYS)
 
     expect(ctx.isAdmin).toBe(false)

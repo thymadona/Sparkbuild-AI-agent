@@ -15,12 +15,10 @@ export default async function StaffOverviewPage() {
   const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  // Same arguments as StaffLayout, so this hits the cache entry the layout
-  // just populated instead of issuing its own query. With no Redis, cached()
-  // falls through and this costs one round trip, as it always did.
-  // getSessionUser above is deduped with the layout's call by React cache().
+  // Same arguments as StaffLayout, so this hits the cache entry it just
+  // populated. getSessionUser is deduped with the layout's call by React
+  // cache(); without Redis this costs one round trip, as it always did.
   const { isAdmin: admin } = await getStaffContext(user.id, NAV_PERMISSION_KEYS)
-  console.log(`[timing] staff-page branch=${admin ? 'admin' : 'teacher'}`)
 
   return (
     <div>

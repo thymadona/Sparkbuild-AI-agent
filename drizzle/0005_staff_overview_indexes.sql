@@ -1,10 +1,7 @@
--- Indexes for the /staff overview dashboard.
---
--- Each of these backs a count that was previously a full sequential scan:
--- submitted homework, lessons started and homework submitted this week
--- (projects), AI requests in the last 24h (prompts — the existing composite
--- leads on user_id and cannot serve a bare created_at range), unpaid invoices,
--- active student profiles, and the school-wide distinct teacher count.
+-- Indexes for the /staff overview dashboard: submitted homework, lessons
+-- started and homework submitted this week (projects), AI requests in the last
+-- 24h (prompts — the existing composite leads on user_id and cannot serve a
+-- bare created_at range), unpaid invoices, active profiles, teacher count.
 --
 -- Plain CREATE INDEX, not CONCURRENTLY: drizzle-kit runs each migration inside
 -- a transaction and CONCURRENTLY cannot run in one. These take a lock that

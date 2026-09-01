@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
-import { db } from '@/lib/db/client'
+import { db, rowsOf } from '@/lib/db/client'
 import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 import { classMembers, classes, projects, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
 
@@ -15,10 +15,10 @@ const SEEDED = ['roles', 'permissions', 'role_permissions', '__drizzle_migration
  * the catalog rather than hand-maintained.
  */
 export async function resetDb(): Promise<void> {
-  const rows = (await db.execute(sql`
+  const rows = rowsOf<{ table_name: string }>(await db.execute(sql`
     select table_name from information_schema.tables
     where table_schema = 'public' and table_type = 'BASE TABLE'
-  `)) as unknown as { table_name: string }[]
+  `))
 
   const targets = rows.map((r) => r.table_name).filter((t) => !SEEDED.includes(t))
   if (targets.length === 0) return

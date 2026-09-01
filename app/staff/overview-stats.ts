@@ -1,6 +1,5 @@
-import { and, count, countDistinct, eq, gte, inArray, isNotNull, notExists, sql } from 'drizzle-orm'
-import { db } from '@/lib/db/client'
-import { logMarks, marks, timed } from '@/lib/timing'
+import { sql } from 'drizzle-orm'
+import { db, rowsOf } from '@/lib/db/client'
 import { STAFF_ROLES } from '@/lib/auth/permissions'
 import {
   classMembers,
@@ -28,136 +27,78 @@ export interface SchoolOverviewStats {
   totalPrompts: number
 }
 
-// `prompts` is the largest table in the schema (one row per AI request, ever)
-// and an unfiltered count(*) can only ever be a sequential scan of it. The
-// tile this feeds is already labelled an estimate and only multiplies out an
-// average token cost, so the planner's own row estimate is accurate enough —
-// and it is O(1). reltuples is -1 on a table that has never been analyzed,
-// which is the one case worth an exact count: on such a table it is cheap by
-// definition.
-async function estimatePromptCount(m: Record<string, number>): Promise<number> {
-  try {
-    const rows = (await timed(m, 'prompts_reltuples', async () =>
-      (await db.execute(
-        sql`select reltuples::bigint::int as n from pg_class where oid = 'public.prompts'::regclass`
-      )) as unknown as { n: number | null }[]
-    ))
-
-    const estimate = rows[0]?.n ?? -1
-    if (estimate >= 0) return estimate
-    // The expensive fallback. If this line dominates the timings, the fix is
-    // `analyze prompts` — no index can help an unfiltered count(*).
-    return await timed(m, 'prompts_exact_count_FALLBACK', () => db.$count(prompts))
-  } catch (err) {
-    console.error('estimatePromptCount failed:', err)
-    return 0
-  }
-}
-
-// Split out of OverviewTab so these counts are testable against the real
-// database instead of being re-implemented in a test file — the queries here
-// are the ones that ship. Colocated under app/staff/ per the repo's
-// colocation rule: this is specific to the route, not shared UI.
-//
-// Every stat is counted *in Postgres*. An earlier version selected whole
-// tables (active profiles, teacher memberships, staff role rows, unpaid
-// invoices) and took .size/.length/.filter().length in JS, pulling every row
-// across the wire to produce a single integer — ten such queries at once,
-// against a connection pool deliberately sized small for serverless.
-//
-// db.$count issues a real count(*). PostgREST counted with
-// `select('*', { count: 'exact', head: true })`, which still planned a full
-// select and threw every row away.
+// One round trip for the whole dashboard: ten scalar subqueries in a single
+// SELECT rather than ten queries in a Promise.all. Counting happens in
+// Postgres, and the page pays one connection however many tiles it grows.
+// Names are interpolated from lib/db/schema.ts so renames propagate.
+// count() returns bigint, which the driver hands back as a string — hence ::int.
 export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
   const weekAgo = new Date(Date.now() - WEEK_MS).toISOString()
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString()
   const today = new Date().toISOString().split('T')[0]
+  const staffRoles = sql.join(
+    STAFF_ROLES.map((role) => sql`${role}`),
+    sql`, `
+  )
 
-  const m = marks()
-  const started = Date.now()
+  const result = await db.execute(sql`
+    select
+      (select count(*) from ${classes})::int as total_classes,
 
-  const [
-    totalClasses,
-    activeStudentCount,
-    teacherRows,
-    needsReview,
-    invoiceRows,
-    lessonsStartedThisWeek,
-    submittedThisWeek,
-    promptsToday,
-    totalPrompts,
-  ] = await Promise.all([
-    timed(m, 'classes', () => db.$count(classes)),
-    // user_roles now holds a 'student' row for every non-staff account
-    // (lib/auth/student-defaults.ts), so "has a user_roles row" no longer
-    // means "is staff" — hence the STAFF_ROLES filter. A profile can exist for
-    // someone who also holds a staff role (a teacher's own test account, say);
-    // they are not a student. That was a second full-table select plus a JS
-    // set difference; it is now one anti-join.
-    timed(m, 'active_students', () =>
-      db.$count(
-      studentProfiles,
-      and(
-        eq(studentProfiles.isActive, true),
-        notExists(
-          db
-            .select({ one: sql`1` })
-            .from(userRoles)
-            .innerJoin(roles, eq(roles.id, userRoles.roleId))
-            .where(
-              and(
-                eq(userRoles.userId, studentProfiles.userId),
-                inArray(roles.name, [...STAFF_ROLES])
-              )
-            )
-        )
-      )
-      )
-    ),
-    // Distinct, because one person can teach several classes.
-    timed(m, 'teachers', () =>
-      db
-        .select({ n: countDistinct(classMembers.userId) })
-        .from(classMembers)
-        .where(eq(classMembers.role, 'teacher'))
-    ),
-    timed(m, 'needs_review', () => db.$count(projects, eq(projects.submissionStatus, 'submitted'))),
-    // Both invoice numbers in one pass rather than fetching every unpaid row
-    // and filtering on due_date in JS.
-    timed(m, 'invoices', () =>
-      db
-        .select({
-          unpaid: count(),
-          overdue: sql<number>`count(*) filter (where ${invoices.dueDate} < ${today})::int`,
-        })
-        .from(invoices)
-        .where(eq(invoices.status, 'unpaid'))
-    ),
-    timed(m, 'lessons_started', () =>
-      db.$count(projects, and(isNotNull(projects.lessonId), gte(projects.createdAt, weekAgo)))
-    ),
-    timed(m, 'submitted_week', () =>
-      db.$count(
-        projects,
-        and(isNotNull(projects.submissionStatus), gte(projects.updatedAt, weekAgo))
-      )
-    ),
-    timed(m, 'prompts_today', () => db.$count(prompts, gte(prompts.createdAt, dayAgo))),
-    estimatePromptCount(m),
-  ])
+      -- user_roles holds a 'student' row for every non-staff account, so a
+      -- profile owner who also holds a staff role is not a student.
+      (select count(*) from ${studentProfiles}
+        where ${studentProfiles.isActive} = true
+          and not exists (
+            select 1 from ${userRoles}
+            join ${roles} on ${roles.id} = ${userRoles.roleId}
+            where ${userRoles.userId} = ${studentProfiles.userId}
+              and ${roles.name} in (${staffRoles})
+          ))::int as active_students,
 
-  logMarks('staff-overview', m, Date.now() - started)
+      -- Distinct, because one person can teach several classes.
+      (select count(distinct ${classMembers.userId}) from ${classMembers}
+        where ${classMembers.role} = 'teacher')::int as teachers,
+
+      (select count(*) from ${projects}
+        where ${projects.submissionStatus} = 'submitted')::int as needs_review,
+
+      (select count(*) from ${invoices}
+        where ${invoices.status} = 'unpaid')::int as unpaid,
+      (select count(*) from ${invoices}
+        where ${invoices.status} = 'unpaid'
+          and ${invoices.dueDate} < ${today})::int as overdue,
+
+      (select count(*) from ${projects}
+        where ${projects.lessonId} is not null
+          and ${projects.createdAt} >= ${weekAgo})::int as lessons_started,
+      (select count(*) from ${projects}
+        where ${projects.submissionStatus} is not null
+          and ${projects.updatedAt} >= ${weekAgo})::int as submitted_week,
+
+      (select count(*) from ${prompts}
+        where ${prompts.createdAt} >= ${dayAgo})::int as prompts_today,
+
+      -- The tile is labelled an estimate, and an unfiltered count(*) here can
+      -- only ever be a seq scan. reltuples is -1 until the table is analyzed;
+      -- only then does the caller pay for an exact count.
+      (select reltuples::bigint::int from pg_class
+        where oid = 'public.prompts'::regclass) as prompts_estimate
+  `)
+
+  const row = rowsOf<Record<string, number | null>>(result)[0] ?? {}
+  const promptsEstimate = row.prompts_estimate ?? -1
 
   return {
-    totalClasses: totalClasses ?? 0,
-    activeStudentCount,
-    teacherCount: teacherRows[0]?.n ?? 0,
-    needsReview: needsReview ?? 0,
-    unpaidCount: invoiceRows[0]?.unpaid ?? 0,
-    overdueCount: invoiceRows[0]?.overdue ?? 0,
-    lessonsStartedThisWeek: lessonsStartedThisWeek ?? 0,
-    submittedThisWeek: submittedThisWeek ?? 0,
-    promptsToday: promptsToday ?? 0,
-    totalPrompts,
+    totalClasses: row.total_classes ?? 0,
+    activeStudentCount: row.active_students ?? 0,
+    teacherCount: row.teachers ?? 0,
+    needsReview: row.needs_review ?? 0,
+    unpaidCount: row.unpaid ?? 0,
+    overdueCount: row.overdue ?? 0,
+    lessonsStartedThisWeek: row.lessons_started ?? 0,
+    submittedThisWeek: row.submitted_week ?? 0,
+    promptsToday: row.prompts_today ?? 0,
+    totalPrompts: promptsEstimate >= 0 ? promptsEstimate : await db.$count(prompts),
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { eq, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db/client'
+import { db, rowsOf } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 import { decideGuard } from '@/lib/auth/guard'
 
@@ -13,7 +13,7 @@ import { decideGuard } from '@/lib/auth/guard'
 
 async function booleanFn(query: ReturnType<typeof sql>): Promise<boolean | null> {
   try {
-    const rows = (await db.execute(query)) as unknown as { ok: boolean | null }[]
+    const rows = rowsOf<{ ok: boolean | null }>(await db.execute(query))
     return rows[0]?.ok === true
   } catch (err) {
     console.error('proxy: authorization function failed:', err)
