@@ -99,64 +99,64 @@ export async function POST(req: Request) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Start Building</title>
   <style>
+    :root { --ink: #18233f; --paper: #fffdf8; --pink: #ff6b9d; --purple: #7655e8; --yellow: #ffd86b; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       min-height: 100vh;
-      background: #080812;
-      font-family: system-ui, sans-serif;
+      color: var(--ink);
+      font-family: ui-rounded, "Nunito", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 8% 10%, #ffe3ef 0 11%, transparent 11.5%),
+        radial-gradient(circle at 92% 12%, #d9fff4 0 12%, transparent 12.5%),
+        #f4f1ff;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      color: #fff;
-    }
-
-    canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
+      padding: 24px;
     }
 
     .card {
-      position: relative;
-      z-index: 1;
+      width: min(620px, 100%);
       text-align: center;
-      padding: 2.5rem 2rem;
-      max-width: 520px;
+      padding: clamp(32px, 6vw, 56px);
+      border: 3px solid var(--ink);
+      border-radius: 28px;
+      background: var(--paper);
+      box-shadow: 10px 10px 0 var(--ink);
     }
 
     .badge {
       display: inline-block;
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #a78bfa;
-      background: rgba(139,92,246,0.12);
-      border: 1px solid rgba(139,92,246,0.3);
+      border: 2px solid var(--ink);
       border-radius: 999px;
-      padding: 0.3rem 0.9rem;
-      margin-bottom: 1.4rem;
+      background: var(--yellow);
+      box-shadow: 3px 3px 0 var(--ink);
+      padding: 0.45rem 0.8rem;
+      margin-bottom: 1.6rem;
     }
 
     h1 {
-      font-size: clamp(2rem, 6vw, 3rem);
-      font-weight: 800;
-      line-height: 1.15;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, #fff 30%, #a78bfa 70%, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      max-width: 14ch;
+      margin: 0 auto 1.2rem;
+      font-size: clamp(2.4rem, 7vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
     }
 
+    h1 .accent { color: var(--pink); }
+
     p {
-      font-size: 1rem;
-      color: #64748b;
-      line-height: 1.7;
-      margin-bottom: 2rem;
+      max-width: 40ch;
+      margin: 0 auto 2rem;
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--ink);
+      opacity: 0.75;
     }
 
     .ideas {
@@ -168,36 +168,33 @@ export async function POST(req: Request) {
     }
 
     .idea {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 0.55rem 1rem;
+      background: #fff;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 0.55rem 0.9rem;
       font-size: 0.85rem;
-      color: #cbd5e1;
+      font-weight: 800;
       cursor: default;
-      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      transition: transform 0.15s;
     }
 
     .idea:hover {
-      border-color: rgba(139,92,246,0.5);
-      background: rgba(139,92,246,0.08);
-      transform: translateY(-2px);
+      transform: translateY(-3px) rotate(-1deg);
     }
 
     .hint {
-      font-size: 0.75rem;
-      color: #334155;
+      font-size: 0.8rem;
+      font-weight: 700;
       letter-spacing: 0.04em;
+      color: var(--purple);
     }
   </style>
 </head>
 <body>
-  <canvas id="c"></canvas>
-
   <div class="card">
     <span class="badge">Your canvas is ready</span>
-    <h1>What will you<br>build today?</h1>
-    <p>Type an idea in the chat and the AI turns it into real,<br>working code — instantly.</p>
+    <h1>What will you<br>build <span class="accent">today?</span></h1>
+    <p>Type an idea in the chat and the AI turns it into real, working code — instantly.</p>
     <div class="ideas">
       <span class="idea">🎮 Quiz game</span>
       <span class="idea">⏱ Countdown timer</span>
@@ -210,54 +207,6 @@ export async function POST(req: Request) {
     </div>
     <p class="hint">Open the Chat panel and describe your idea &rarr;</p>
   </div>
-
-  <script>
-    const canvas = document.getElementById('c');
-    const ctx = canvas.getContext('2d');
-    let W, H, stars = [];
-
-    function resize() {
-      W = canvas.width  = window.innerWidth;
-      H = canvas.height = window.innerHeight;
-    }
-
-    function init() {
-      stars = Array.from({ length: 120 }, () => ({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        r: Math.random() * 1.2 + 0.2,
-        speed: Math.random() * 0.3 + 0.05,
-        opacity: Math.random(),
-        dir: Math.random() > 0.5 ? 1 : -1,
-      }));
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, W, H);
-      const t = Date.now() / 1000;
-      for (const s of stars) {
-        const pulse = 0.4 + 0.6 * Math.abs(Math.sin(t * s.speed + s.opacity * 10));
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = \`rgba(167,139,250,\${pulse * 0.7})\`;
-        ctx.fill();
-      }
-
-      // subtle nebula glow
-      const g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W * 0.55);
-      g.addColorStop(0, 'rgba(99,102,241,0.06)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-
-      requestAnimationFrame(draw);
-    }
-
-    resize();
-    init();
-    draw();
-    window.addEventListener('resize', () => { resize(); init(); });
-  </script>
 </body>
 </html>`,
     }
