@@ -62,6 +62,9 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   // by default; chatOpen only matters once a student undocks it.
   const [chatOpen, setChatOpen] = useState(false)
   const [chatDocked, setChatDocked] = useState(true)
+  // Which docked lesson panel the icon rail is showing — Tasks and AI Tutor
+  // no longer stack, they swap.
+  const [sidebarView, setSidebarView] = useState<'tasks' | 'chat'>('tasks')
   const [sideWidth, setSideWidth] = useState(420)
   const [previewBlocked, setPreviewBlocked] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{
@@ -194,6 +197,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   // `setChatOpen` only does anything for the floating panel.
   function openChat() {
     if (!chatDocked) setChatOpen(true)
+    else if (lesson) setSidebarView('chat')
   }
 
   function handleTaskPrompt(p: string) {
@@ -377,19 +381,18 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Side panel — no icon rail: a lesson project always shows Tasks
-            (plus the docked AI Tutor stacked under it); a free-form project
-            always shows AI Tutor. Nothing else to switch between, so the
-            panel is a fixed column, not a collapsible one. It still
-            auto-collapses to width 0 in the one state with nothing to show:
-            a free-form project with chat undocked (floating instead). */}
+        {/* Side panel. A lesson project with chat docked shows an icon rail
+            to switch between Tasks and AI Tutor; a free-form project always
+            shows AI Tutor, no rail needed. It still auto-collapses to width
+            0 in the one state with nothing to show: a free-form project
+            with chat undocked (floating instead). */}
         <div
           className={`flex flex-col border-r-2 border-surface-600 bg-surface-800 overflow-hidden shrink-0 ${previewBlocked ? '' : 'transition-[width] duration-200'}`}
           style={{ width: (lesson !== null || chatDocked) ? sideWidth : 0 }}
         >
           <div className="flex items-center justify-between px-3 py-2.5 border-b-2 border-surface-600 shrink-0">
             <span className="text-sm font-semibold text-fg-primary">
-              {lesson ? (chatDocked ? 'Tasks & AI Tutor' : 'Tasks') : 'AI Tutor'}
+              {lesson ? (chatDocked && sidebarView === 'chat' ? 'AI Tutor' : 'Tasks') : 'AI Tutor'}
             </span>
             {!lesson && chatDocked && (
               <button
@@ -403,33 +406,70 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               </button>
             )}
           </div>
-          <div className="flex-1 overflow-hidden relative">
-            {/* Lesson projects: Tasks (with homework folded in once core is
-                done) and the docked AI Tutor stack in one dual-section panel
-                (Vibrant Play "dual sidebar" layout) so a student can see
-                their task list and chat at once. Chat only joins the stack
-                while docked — undocking collapses this back to Tasks-only,
-                since the chat floats free instead. */}
-            {lesson && (
-              <div className="flex h-full flex-col">
-                <div className={`flex min-h-0 flex-col overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 m-2 mb-1 shadow-hard-sm ${chatDocked ? 'flex-1 basis-0' : 'flex-1'}`}>
-                  <div className="flex shrink-0 items-center gap-1.5 border-b-2 border-surface-600 bg-surface-700 px-3 py-1.5">
-                    <svg className="h-3.5 w-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm font-bold uppercase tracking-wide text-fg-secondary">Tasks</span>
-                  </div>
-                  <div className="min-h-0 flex-1">
-                    <Navigator
-                      lesson={lesson}
-                      code={files['index.html'] ?? ''}
-                      progress={progress}
-                      classSlots={classSlots}
-                    />
+          <div className="flex-1 overflow-hidden relative flex">
+            {/* Icon rail — only meaningful when a lesson has both Tasks and a
+                docked AI Tutor competing for the sidebar; switches which one
+                is shown instead of stacking them. */}
+            {lesson && chatDocked && (
+              <div className="flex w-10 shrink-0 flex-col items-center gap-1.5 border-r-2 border-surface-600 bg-surface-900/40 py-2">
+                <button
+                  onClick={() => setSidebarView('tasks')}
+                  title="Tasks"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 transition-colors ${
+                    sidebarView === 'tasks'
+                      ? 'border-brand-500 bg-brand-500/20 text-brand-600 dark:text-brand-300'
+                      : 'border-transparent text-fg-muted hover:bg-surface-700'
+                  }`}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setSidebarView('chat')}
+                  title="AI Tutor"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 transition-colors ${
+                    sidebarView === 'chat'
+                      ? 'border-brand-500 bg-brand-500/20 text-brand-600 dark:text-brand-300'
+                      : 'border-transparent text-fg-muted hover:bg-surface-700'
+                  }`}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              {/* Lesson projects: Tasks (with homework folded in once core is
+                  done) and the docked AI Tutor swap via the icon rail above —
+                  only one is visible at a time, kept mounted (not unmounted)
+                  so switching away mid-generation doesn't lose Editor state.
+                  Undocking always falls back to Tasks-only, since chat floats
+                  free instead. */}
+              {lesson && (
+                <div className={`h-full ${sidebarView === 'tasks' || !chatDocked ? '' : 'hidden'}`}>
+                  <div className="flex h-full flex-col overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 m-2 shadow-hard-sm">
+                    <div className="flex shrink-0 items-center gap-1.5 border-b-2 border-surface-600 bg-surface-700 px-3 py-1.5">
+                      <svg className="h-3.5 w-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-bold uppercase tracking-wide text-fg-secondary">Tasks</span>
+                    </div>
+                    <div className="min-h-0 flex-1">
+                      <Navigator
+                        lesson={lesson}
+                        code={files['index.html'] ?? ''}
+                        progress={progress}
+                        classSlots={classSlots}
+                      />
+                    </div>
                   </div>
                 </div>
-                {chatDocked && (
-                  <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 m-2 mt-1 shadow-hard-sm">
+              )}
+              {lesson && chatDocked && (
+                <div className={`h-full ${sidebarView === 'chat' ? '' : 'hidden'}`}>
+                  <div className="flex h-full flex-col overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 m-2 shadow-hard-sm">
                     <div className="flex shrink-0 items-center justify-between gap-1.5 border-b-2 border-surface-600 bg-surface-700 px-3 py-1.5">
                       <div className="flex items-center gap-1.5">
                         <svg className="h-3.5 w-3.5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -466,31 +506,31 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                       />
                     </div>
                   </div>
-                )}
-              </div>
-            )}
-            {/* Free-form /explore projects: chat is the whole panel, no lesson
-                Tasks to stack it against. */}
-            {chatDocked && !lesson && (
-              <div className="h-full">
-                <Editor
-                  projectId={project.id}
-                  files={files}
-                  onFilesUpdate={(newFiles) => {
-                    setFiles(newFiles)
-                    setRightTab('preview')
-                    setConsoleLogs([])
-                  }}
-                  activeFile={activeFile}
-                  messages={messages}
-                  onMessagesChange={setMessages}
-                  selectedCode={selectedCode}
-                  onClearSelection={() => setSelectedCode(null)}
-                  pendingPrompt={pendingPrompt}
-                  onPromptConsumed={() => setPendingPrompt(null)}
-                />
-              </div>
-            )}
+                </div>
+              )}
+              {/* Free-form /explore projects: chat is the whole panel, no lesson
+                  Tasks to switch away from. */}
+              {chatDocked && !lesson && (
+                <div className="h-full">
+                  <Editor
+                    projectId={project.id}
+                    files={files}
+                    onFilesUpdate={(newFiles) => {
+                      setFiles(newFiles)
+                      setRightTab('preview')
+                      setConsoleLogs([])
+                    }}
+                    activeFile={activeFile}
+                    messages={messages}
+                    onMessagesChange={setMessages}
+                    selectedCode={selectedCode}
+                    onClearSelection={() => setSelectedCode(null)}
+                    pendingPrompt={pendingPrompt}
+                    onPromptConsumed={() => setPendingPrompt(null)}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
