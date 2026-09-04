@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { LESSONS } from '@/lib/lessons'
-import { allChecksPassed, firstUnmetCheck, runTaskChecks } from '@/lib/task-checks'
+import { allChecksPassed, firstUnmetCheck, highlightLinesForTask, runTaskChecks } from '@/lib/task-checks'
 import fs from 'fs'
 import path from 'path'
 
@@ -12,8 +12,11 @@ function readTemplate(file: string) {
   return fs.readFileSync(path.join(process.cwd(), 'public/templates', file), 'utf8')
 }
 
+const week1 = LESSONS.find((lesson) => lesson.id === 1)!
 const week3 = LESSONS.find((lesson) => lesson.id === 3)!
 const task = (id: string) => week3.tasks.find((item) => item.id === id)!
+const week1Task = (id: string) => week1.tasks.find((item) => item.id === id)!
+const personalPage = readTemplate(week1.templateFile)
 
 describe('lesson check coverage', () => {
   it('gives every task in every current lesson at least one check', () => {
@@ -222,5 +225,56 @@ describe('runTaskChecks', () => {
       template,
     )
     expect(results[0].passed).toBe(true)
+  })
+})
+
+describe('highlightLinesForTask', () => {
+  it('returns only the anchor line when there are no checks', () => {
+    expect(highlightLinesForTask('a\nb\nTASK: x\nc', 'TASK: x')).toEqual([3])
+  })
+
+  it('returns nothing when the anchor is missing and no check resolves', () => {
+    expect(highlightLinesForTask('a\nb\nc', 'TASK: missing')).toEqual([])
+  })
+
+  it('resolves a textChanged check even when its starter text is split by a nested tag', () => {
+    // identity's h1 check text is split by <span>Your Name</span>, and its
+    // .lead check sits on a different, untagged line — both must resolve to
+    // their own line, distinct from the anchor.
+    const lines = highlightLinesForTask(personalPage, 'TASK: identity', week1Task('identity').checks)
+    expect(lines).toEqual([42, 44, 45])
+  })
+
+  it('resolves a textChanged check whose text is split across sibling tags', () => {
+    // interests' chip text is split across three <span class="chip"> siblings
+    // with no whitespace between them in the DOM's textContent.
+    const lines = highlightLinesForTask(personalPage, 'TASK: interests', week1Task('interests').checks)
+    expect(lines).toEqual([46, 47])
+  })
+
+  it('dedupes when two checks on the same task resolve to the same line', () => {
+    // goal's h1 and .subtitle checks both land on line 21 in this template.
+    const lines = highlightLinesForTask(template, 'TASK: goal name', task('goal').checks)
+    expect(lines).toEqual([20, 21])
+  })
+
+  it('deduplicates when multiple checks land on the same line', () => {
+    // All three milestone cheers live on one minified line below the anchor.
+    const lines = highlightLinesForTask(template, 'TASK: milestones', task('milestones').checks)
+    expect(lines).toEqual([29, 30])
+  })
+
+  it('finds every line a sourceMatches pattern matches, not just the first', () => {
+    const lines = highlightLinesForTask('foo\nbar\nfoo', 'TASK: none', [
+      { kind: 'sourceMatches', pattern: 'foo', label: 'l', hint: 'h' },
+    ])
+    expect(lines).toEqual([1, 3])
+  })
+
+  it('fails open on a malformed pattern instead of throwing', () => {
+    expect(() =>
+      highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [{ kind: 'sourceMatches', pattern: '([unclosed', label: 'l', hint: 'h' }]),
+    ).not.toThrow()
+    expect(highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [{ kind: 'sourceMatches', pattern: '([unclosed', label: 'l', hint: 'h' }])).toEqual([1])
   })
 })

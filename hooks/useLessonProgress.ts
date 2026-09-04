@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Lesson, LessonTask } from '@/lib/lessons'
+import { highlightLinesForTask } from '@/lib/task-checks'
 import type { SubmissionStatus } from '@/types'
 
 function firstUnfinishedTaskIndex(tasks: LessonTask[], completed: Set<string>) {
@@ -17,7 +18,7 @@ interface UseLessonProgressArgs {
   code: string
   initialCompletedTaskIds: string[]
   initialSubmissionStatus?: SubmissionStatus | null
-  onHighlight: (line: number | null) => void
+  onHighlight: (lines: number[]) => void
   onPrompt: (prompt: string) => void
   // Fired only after a task is actually saved as done — the cue for things
   // like a completion celebration, which should never fire on a failed save.
@@ -41,16 +42,11 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
 
   const activeTask = tasks[activeIndex]
 
-  function lineForTask(task: LessonTask) {
-    const lineIndex = code.split('\n').findIndex((line) => line.includes(task.commentAnchor))
-    return lineIndex >= 0 ? lineIndex + 1 : null
-  }
-
   function activateTask(index: number) {
     const task = tasks[index]
     if (!task || done.has(task.id)) return
     setActiveIndex(index)
-    onHighlight(lineForTask(task))
+    onHighlight(highlightLinesForTask(code, task.commentAnchor, task.checks))
     onPrompt(task.prompt)
   }
 

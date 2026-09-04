@@ -77,7 +77,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   } | null>(null)
   const [inspectMode, setInspectMode] = useState(false)
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([])
-  const [highlightLine, setHighlightLine] = useState<number | null>(null)
+  const [highlightLines, setHighlightLines] = useState<number[]>([])
   const [highlightNonce, setHighlightNonce] = useState(0)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const [confettiTrigger, setConfettiTrigger] = useState<string | null>(null)
@@ -224,8 +224,8 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     code: files['index.html'] ?? '',
     initialCompletedTaskIds,
     initialSubmissionStatus: project.submission_status,
-    onHighlight: (line) => {
-      setHighlightLine(line)
+    onHighlight: (lines) => {
+      setHighlightLines(lines)
       setHighlightNonce((n) => n + 1)
       setActiveFile('index.html')
       setRightTab('code')
@@ -685,7 +685,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   onSave={handleCodeSave}
                   onChange={handleCodeChange}
                   saveState={saveState}
-                  highlightLine={highlightLine}
+                  highlightLines={highlightLines}
                   highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
                     setSelectedCode(
@@ -720,7 +720,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   onSave={handleCodeSave}
                   onChange={handleCodeChange}
                   saveState={saveState}
-                  highlightLine={highlightLine}
+                  highlightLines={highlightLines}
                   highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
                     setSelectedCode(
