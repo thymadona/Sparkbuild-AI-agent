@@ -101,3 +101,39 @@ export function allChecksPassed(results: TaskCheckResult[]) {
 export function firstUnmetCheck(results: TaskCheckResult[]) {
   return results.find((result) => !result.passed) ?? null
 }
+
+// Every line the student actually needs to touch for a task: the anchor
+// comment plus one line per check whose target text/pattern is found in the
+// raw source. A check whose target isn't found (e.g. textChanged.from split
+// across tags) just contributes nothing — same fail-open spirit as evaluate().
+export function highlightLinesForTask(code: string, commentAnchor: string, checks?: TaskCheck[]): number[] {
+  const lines = code.split('\n')
+  const found = new Set<number>()
+
+  const anchorLine = lines.findIndex((line) => line.includes(commentAnchor))
+  if (anchorLine >= 0) found.add(anchorLine + 1)
+
+  for (const check of checks ?? []) {
+    if (check.kind === 'textChanged') {
+      // check.from is DOM textContent, but the source line it came from
+      // usually wraps part of it in an inline tag (e.g. <span>) — strip tags
+      // and normalize the same way evaluate() does before comparing.
+      const needle = normalize(check.from)
+      const idx = lines.findIndex((line) => normalize(line.replace(/<[^>]+>/g, '')).includes(needle))
+      if (idx >= 0) found.add(idx + 1)
+    } else if (check.kind === 'sourceOmits') {
+      const idx = lines.findIndex((line) => line.includes(check.snippet))
+      if (idx >= 0) found.add(idx + 1)
+    } else if (check.kind === 'sourceMatches') {
+      lines.forEach((line, i) => {
+        try {
+          if (new RegExp(check.pattern, check.flags).test(line)) found.add(i + 1)
+        } catch {
+          // bad pattern — fail open, no extra line
+        }
+      })
+    }
+  }
+
+  return Array.from(found).sort((a, b) => a - b)
+}

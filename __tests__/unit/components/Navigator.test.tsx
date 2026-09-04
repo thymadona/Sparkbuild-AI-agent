@@ -36,7 +36,7 @@ function Harness({ testLesson = lesson, code, completedTaskIds, onHighlight, onP
   testLesson?: Lesson
   code: string
   completedTaskIds: string[]
-  onHighlight: (line: number | null) => void
+  onHighlight: (lines: number[]) => void
   onPrompt: (prompt: string) => void
 }) {
   const progress = useLessonProgress({
@@ -219,7 +219,7 @@ describe('Navigator task list', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Write your intro/ }))
 
-    expect(onHighlight).toHaveBeenCalledWith(2)
+    expect(onHighlight).toHaveBeenCalledWith([2])
   })
 
   it('reports no line when the anchor comment is gone', () => {
@@ -228,7 +228,7 @@ describe('Navigator task list', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Write your intro/ }))
 
-    expect(onHighlight).toHaveBeenCalledWith(null)
+    expect(onHighlight).toHaveBeenCalledWith([])
   })
 
   it('drops the 10px letterspaced caps and enlarges task text', () => {

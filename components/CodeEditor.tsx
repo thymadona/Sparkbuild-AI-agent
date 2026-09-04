@@ -16,7 +16,7 @@ interface CodeEditorProps {
   onSave: (code: string) => void
   language?: 'html' | 'css' | 'js'
   onSelectionChange?: (selection: { text: string; startLine: number; endLine: number } | null) => void
-  highlightLine?: number | null
+  highlightLines?: number[] | null
   // Bumped every time the parent asks to point at a line, so asking twice for
   // the same line scrolls there again.
   highlightNonce?: number
@@ -30,7 +30,7 @@ interface CodeEditorProps {
 // every keystroke.
 const LIVE_DELAY_MS = 300
 
-const addHighlight = StateEffect.define<{ from: number; to: number }>()
+const addHighlight = StateEffect.define<{ from: number; to: number }[]>()
 const clearHighlight = StateEffect.define<null>()
 
 const highlightField = StateField.define<DecorationSet>({
@@ -42,7 +42,10 @@ const highlightField = StateField.define<DecorationSet>({
     for (const e of tr.effects) {
       if (e.is(addHighlight)) {
         const mark = Decoration.line({ class: 'cm-lesson-highlight' })
-        deco = Decoration.set([mark.range(e.value.from)])
+        deco = Decoration.set(
+          e.value.map((r) => mark.range(r.from)),
+          true
+        )
       } else if (e.is(clearHighlight)) {
         deco = Decoration.none
       }
@@ -59,7 +62,7 @@ const highlightTheme = EditorView.baseTheme({
   },
 })
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLine, highlightNonce, onChange, saveState }: CodeEditorProps) {
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
   const [viewReady, setViewReady] = useState(false)
@@ -104,26 +107,27 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
     const view = viewRef.current
     if (!view) return
 
-    if (highlightLine == null) {
+    if (!highlightLines?.length) {
       view.dispatch({ effects: clearHighlight.of(null) })
       return
     }
 
     const doc = view.state.doc
-    if (highlightLine < 1 || highlightLine > doc.lines) return
+    const validLines = highlightLines.filter((n) => n >= 1 && n <= doc.lines)
+    if (!validLines.length) return
 
-    const line = doc.line(highlightLine)
+    const ranges = validLines.map((n) => {
+      const line = doc.line(n)
+      return { from: line.from, to: line.to }
+    })
     view.dispatch({
-      effects: [
-        addHighlight.of({ from: line.from, to: line.to }),
-        EditorView.scrollIntoView(line.from, { y: 'center' }),
-      ],
+      effects: [addHighlight.of(ranges), EditorView.scrollIntoView(ranges[0].from, { y: 'center' })],
     })
     // The highlight stays until the student moves to another task. A three
     // second flash is not long enough for a child who reads slowly.
     // viewReady is a dependency because the editor is often mounted in the same
-    // click that sets highlightLine (task click turns on split view).
-  }, [highlightLine, highlightNonce, viewReady])
+    // click that sets highlightLines (task click turns on split view).
+  }, [highlightLines, highlightNonce, viewReady])
 
   function handleUpdate(vu: ViewUpdate) {
     // capture view ref
