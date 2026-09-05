@@ -420,7 +420,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         savingTitle={savingTitle}
         userEmail={userEmail}
         onBack={() => router.push('/dashboard')}
-        onDockPrompt={handleTaskPrompt}
       />
     )
   }
