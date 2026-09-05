@@ -61,10 +61,6 @@ interface Props {
   savingTitle: boolean
   userEmail: string
   onBack: () => void
-  // Same hand-off a task's "ask about this" button already uses
-  // (EditorLayout's handleTaskPrompt): stash the text as pendingPrompt and
-  // land on the Tutor tab, where <Editor>'s own effect auto-submits it.
-  onDockPrompt: (text: string) => void
 }
 
 const TAB_ICONS: Record<MobileTab, React.ReactNode> = {
@@ -130,11 +126,9 @@ export default function MobileEditorShell({
   savingTitle,
   userEmail,
   onBack,
-  onDockPrompt,
 }: Props) {
   const viewRef = useRef<EditorView | null>(null)
   const [consoleOpen, setConsoleOpen] = useState(false)
-  const [dockPrompt, setDockPrompt] = useState('')
 
   // Free-form (/explore) projects have no lesson, so no Tasks tab — desktop
   // gives the whole sidebar to <Editor> in that case (see EditorLayout's
@@ -148,14 +142,6 @@ export default function MobileEditorShell({
     const from = view.state.selection.main.from
     view.dispatch({ changes: { from, insert: text }, selection: { anchor: from + text.length } })
     view.focus()
-  }
-
-  function submitDockPrompt(e: React.FormEvent) {
-    e.preventDefault()
-    const text = dockPrompt.trim()
-    if (!text) return
-    setDockPrompt('')
-    onDockPrompt(text)
   }
 
   return (
@@ -363,35 +349,6 @@ export default function MobileEditorShell({
           />
         </div>
       </div>
-
-      {/* Bottom prompt dock — every mockup screen shows one, on every tab.
-          <Editor>'s own input is already that dock on the Tutor tab, so this
-          only renders elsewhere: a dumb input that hands the draft to
-          onDockPrompt (EditorLayout's existing handleTaskPrompt) and lands on
-          the Tutor tab, exactly like a task's "ask about this" button already
-          does. No <Editor> state is lifted, no second mount. */}
-      {mobileTab !== 'chat' && (
-        <form onSubmit={submitDockPrompt} className="shrink-0 border-t-2 border-surface-600 bg-surface-800 p-2">
-          <div className="flex items-center gap-2 rounded-full border-2 border-surface-600 bg-surface-900 px-3 py-1.5">
-            <input
-              value={dockPrompt}
-              onChange={(e) => setDockPrompt(e.target.value)}
-              placeholder="Ask me anything..."
-              className="min-w-0 flex-1 bg-transparent text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={!dockPrompt.trim()}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-surface-600 bg-brand-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Send to AI Tutor"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3l9 9H3l9-9z" />
-              </svg>
-            </button>
-          </div>
-        </form>
-      )}
     </div>
   )
 }
