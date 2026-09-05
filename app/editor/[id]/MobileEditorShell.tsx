@@ -306,7 +306,6 @@ export default function MobileEditorShell({
               highlightNonce={highlightNonce}
               onSelectionChange={onCodeSelectionChange}
               onViewReady={(view) => { viewRef.current = view }}
-              wrap
             />
             <button
               onClick={() => setMobileTab('preview')}
