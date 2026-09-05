@@ -77,6 +77,22 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
     }
   }
 
+  async function resetProgress() {
+    setDone(new Set())
+    setActiveIndex(firstUnfinishedTaskIndex(tasks, new Set()))
+    setSaveError(null)
+    try {
+      const response = await fetch(`/api/projects/${projectId}/lesson-progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completedTaskIds: [] }),
+      })
+      if (!response.ok) throw new Error('Could not reset progress')
+    } catch {
+      setSaveError('Your task progress was not reset. Please try again.')
+    }
+  }
+
   async function submitHomework(homeworkReady: boolean) {
     if (!homeworkReady || isSubmitting) return
     setIsSubmitting(true)
@@ -104,6 +120,7 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
     submitError,
     activateTask,
     markDone,
+    resetProgress,
     submitHomework,
   }
 }

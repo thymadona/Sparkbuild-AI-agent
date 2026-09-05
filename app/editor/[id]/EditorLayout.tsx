@@ -349,7 +349,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     setFiles(restored)
     pendingFilesRef.current = restored
     clearTimeout(saveTimerRef.current)
-    await flushSave()
+    await Promise.all([flushSave(), progress.resetProgress()])
     setActiveFile('index.html')
     setRightTab('code')
     setMobileTab('code')
