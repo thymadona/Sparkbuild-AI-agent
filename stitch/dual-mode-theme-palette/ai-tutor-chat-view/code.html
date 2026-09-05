@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>BuildSpark - AI Tutor Mobile</title>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#18233f',
+            canvas: '#f4f0f9',
+            brandYellow: '#ffd86b',
+            brandPurple: '#7655e8',
+            brandPink: '#ff6b9d',
+            brandMint: '#6ce4c5',
+            brandBlue: '#e2edff',
+            cardBg: '#ffffff',
+            bubbleUser: '#e8ecff',
+            bubbleAi: '#ffffff'
+          },
+          boxShadow: {
+            'brutal': '3px 3px 0px #18233f',
+            'brutal-sm': '2px 2px 0px #18233f',
+            'brutal-lg': '4px 4px 0px #18233f',
+            'brutal-hover': '1px 1px 0px #18233f'
+          },
+          borderWidth: {
+            '3': '2.5px'
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styles for Neo-Brutalist details -->
+<style data-purpose="base-styling">
+    body {
+      background-color: #f4f0f9;
+      color: #18233f;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Nunito", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #d1c7e8;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-canvas min-h-screen flex justify-center items-start text-ink antialiased selection:bg-brandYellow selection:text-ink">
+<!-- Main Mobile Frame (~390px iPhone width) -->
+<div class="w-full max-w-[420px] min-h-screen bg-canvas flex flex-col border-x-2 border-[#18233f]/10 shadow-2xl relative">
+<!-- BEGIN: TopHeader -->
+<header class="px-4 pt-3 pb-2 flex items-center justify-between sticky top-0 bg-canvas z-30" data-purpose="header-navigation">
+<!-- Back button -->
+<button aria-label="Go Back" class="w-10 h-10 rounded-xl bg-white border-2 border-ink flex items-center justify-center shadow-brutal active:translate-x-[1px] active:translate-y-[1px] active:shadow-brutal-hover transition-all">
+<svg class="w-5 h-5 stroke-ink stroke-[2.5]" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Project Badge -->
+<div class="bg-brandYellow border-2 border-ink px-4 py-1 rounded-full shadow-brutal-sm">
+<span class="text-xs font-black tracking-wider uppercase text-ink">Profile Pop</span>
+</div>
+<!-- User Avatar -->
+<div class="w-10 h-10 rounded-full bg-brandPurple border-2 border-ink flex items-center justify-center text-white font-black text-sm shadow-brutal">
+        T
+      </div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: SegmentedNavTabs -->
+<nav class="px-4 py-1.5" data-purpose="segmented-view-controls">
+<div class="bg-white border-2 border-ink rounded-2xl p-1 flex items-center justify-between shadow-brutal">
+<!-- Tasks Tab -->
+<button class="flex-1 py-1.5 px-2 flex items-center justify-center gap-1 text-ink font-bold text-xs rounded-xl opacity-75 hover:opacity-100 transition-opacity">
+<span class="">📋</span>
+<span class="">Tasks</span>
+</button>
+<!-- Preview Tab -->
+<button class="flex-1 py-1.5 px-2 flex items-center justify-center gap-1 text-ink font-bold text-xs rounded-xl opacity-75 hover:opacity-100 transition-opacity">
+<span class="">👁</span>
+<span class="">Preview</span>
+</button>
+<!-- Code Tab -->
+<button class="flex-1 py-1.5 px-2 flex items-center justify-center gap-1 text-ink font-bold text-xs rounded-xl opacity-75 hover:opacity-100 transition-opacity">
+<span class="font-mono text-[11px]">&lt;/&gt;</span>
+<span class="">Code</span>
+</button>
+<!-- Tutor Tab (Active state) -->
+<button class="flex-1 py-1.5 px-2 flex items-center justify-center gap-1 bg-brandYellow border-2 border-ink text-ink font-black text-xs rounded-xl shadow-brutal-sm relative">
+<span class="text-sm">👋</span>
+<span class="">Tutor</span>
+<!-- Pink Notification Indicator Dot -->
+<span class="w-2 h-2 rounded-full bg-brandPink border border-ink absolute -top-1 -right-1"></span>
+</button>
+</div>
+</nav>
+<!-- END: SegmentedNavTabs -->
+<!-- BEGIN: TutorSubHeader -->
+<section class="px-4 pt-2 pb-2 flex flex-col gap-2" data-purpose="tutor-controls"><div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><svg class="w-5 h-5 stroke-ink stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg><span class="font-black text-xs uppercase tracking-wider text-ink">AI Tutor</span></div><button aria-label="Pop out" class="text-ink hover:opacity-75"><svg class="w-4 h-4 stroke-ink stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></button></div><div class="flex justify-center mt-1"><div class="bg-slate-100 border-2 border-ink rounded-full p-0.5 flex items-center shadow-brutal-sm"><button class="px-5 py-1 rounded-full bg-white text-ink font-black text-xs border border-ink shadow-brutal-hover">Ask</button><button class="px-5 py-1 rounded-full text-ink/70 font-bold text-xs hover:text-ink transition-colors">Build</button></div></div></section>
+<!-- END: TutorSubHeader -->
+<!-- BEGIN: ChatScrollArea -->
+<main class="flex-1 px-4 pb-28 pt-2 overflow-y-auto custom-scrollbar flex flex-col gap-4" data-purpose="chat-messages-container"><div class="flex flex-col items-end gap-1 mt-1" data-purpose="user-chat-bubble"><div class="max-w-[88%] bg-[#f0eaff] border-2 border-ink rounded-2xl rounded-tr-sm p-3.5 shadow-brutal text-ink font-semibold text-xs leading-relaxed">Help me replace the name and short intro in my profile card with words that sound like me.</div></div><div class="flex items-start gap-2 mt-2" data-purpose="ai-chat-bubble"><div class="w-7 h-7 rounded-full bg-brandPurple border-2 border-ink flex items-center justify-center text-white text-[10px] font-black shrink-0 shadow-brutal-sm mt-1">AI</div><div class="flex-1 bg-[#fff8db] border-2 border-ink rounded-2xl rounded-tl-sm p-3.5 shadow-brutal flex flex-col gap-2.5 text-xs font-medium text-ink leading-relaxed"><p class="">Your card still says "Your Name" in <strong class="font-black text-ink">line 44</strong>.</p><p class="">Find the words inside the <span class="inline-block font-mono font-bold text-[#7655e8] bg-white border border-ink/40 px-1.5 py-0.5 rounded text-[11px]">&lt;span&gt;</span> tag and change them to your name. Then look at <strong class="font-black text-ink">line 45</strong> and make that sentence sound like you.</p><p class="">What name do you want on your card?</p><div class="flex items-center pt-1"><button aria-label="Listen to message" class="w-7 h-7 rounded-full bg-white border-2 border-ink flex items-center justify-center text-ink shadow-brutal-sm hover:bg-slate-50 active:scale-95 transition-all"><svg class="w-3.5 h-3.5 stroke-ink stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg></button></div></div></div></main>
+<!-- END: ChatScrollArea -->
+<!-- BEGIN: FixedPromptInputBar -->
+<footer class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] p-3 bg-canvas border-t-2 border-ink/20 z-40" data-purpose="chat-input-bar"><div class="bg-white border-2 border-ink rounded-full px-3 py-1.5 flex items-center gap-2 shadow-brutal"><input class="flex-1 bg-transparent border-0 text-xs font-semibold text-ink placeholder:text-ink/40 focus:ring-0 px-2 py-1" placeholder="Ask me anything..." type="text"><button aria-label="Send message" class="w-8 h-8 rounded-full bg-brandPurple border-2 border-ink flex items-center justify-center text-white shadow-brutal-sm active:translate-y-[1px] active:shadow-brutal-hover transition-all shrink-0"><svg class="w-4 h-4 stroke-white stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path></svg></button></div><p class="text-[10px] text-center font-medium text-ink/50 mt-1.5">Enter to send · Shift+Enter for new line</p><div class="h-3.5 w-32 mx-auto mt-1 bg-ink/20 rounded-full"></div></footer>
+<!-- END: FixedPromptInputBar -->
+</div>
+
+
+</body></html>
