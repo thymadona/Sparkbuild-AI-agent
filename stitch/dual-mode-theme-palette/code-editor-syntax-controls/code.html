@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#f6f3fc]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>BuildSpark — Profile Pop (Student Workspace)</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#18233f',
+            paper: '#fffdf9',
+            accentPink: '#ff6b9d',
+            accentPurple: '#7655e8',
+            accentPurpleLight: '#ece8fd',
+            accentYellow: '#ffd86b',
+            accentMint: '#6ce4c5',
+          },
+          boxShadow: {
+            'brutal-sm': '2px 2px 0px #18233f',
+            'brutal': '3px 3px 0px #18233f',
+            'brutal-lg': '5px 5px 0px #18233f',
+            'brutal-xl': '6px 6px 0px #18233f',
+          },
+          fontFamily: {
+            rounded: ['ui-rounded', 'Nunito', 'Comfortaa', 'system-ui', 'sans-serif'],
+            mono: ['SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+<!-- Custom Styles for Neo-Brutalist Code & Preview -->
+<style data-purpose="neo-brutal-base">
+    /* Global smooth feel & rounded aesthetic */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .code-gutter {
+      user-select: none;
+      color: #94a3b8;
+    }
+  </style>
+<style data-purpose="preview-custom-styling">
+    .preview-card-frame {
+      border: 3px solid #18233f;
+      border-radius: 24px;
+      box-shadow: 4px 4px 0px #18233f;
+      background-color: #fffdf8;
+    }
+    .badge-pop {
+      box-shadow: 2px 2px 0px #18233f;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .badge-pop:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px #18233f;
+    }
+  </style>
+</head>
+<body class="h-full font-rounded text-ink antialiased flex flex-col justify-between select-none">
+<!-- BEGIN: AppHeader -->
+<header class="flex-none bg-white border-b-2 border-ink px-3 py-2.5 z-30 shadow-sm">
+<!-- Top Row: Back, Lesson Breadcrumb & User Profile -->
+<div class="flex items-center justify-between gap-2">
+<!-- Back and Lesson Badge -->
+<div class="flex items-center space-x-2 truncate">
+<button aria-label="Go Back" class="p-1 rounded-lg border-2 border-ink bg-white shadow-brutal-sm active:translate-x-[1px] active:translate-y-[1px]" type="button">
+<svg class="w-4 h-4 text-ink stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<div class="flex items-center gap-1.5 truncate">
+<span class="px-2 py-0.5 text-xs font-black uppercase tracking-wider bg-accentYellow border-2 border-ink rounded-full shadow-brutal-sm whitespace-nowrap">
+            Profile Pop
+          </span>
+<span class="text-xs font-black text-ink truncate hidden sm:inline">Week #1</span>
+</div>
+</div>
+<!-- Right Actions: Status & User Avatar -->
+<div class="flex items-center gap-2">
+<span class="hidden xs:inline-flex items-center gap-1 text-[11px] font-bold bg-[#edf2f7] px-2 py-0.5 rounded-md border border-slate-300 text-slate-700">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Auto-saved
+        </span>
+<button class="w-8 h-8 rounded-full bg-accentPurple border-2 border-ink text-white font-extrabold flex items-center justify-center text-xs shadow-brutal-sm">
+          T
+        </button>
+</div>
+</div>
+<!-- Segmented Navigation Bar -->
+<nav aria-label="Workspace Views" class="mt-2.5 flex items-center p-1 bg-[#ede8fa] rounded-xl border-2 border-ink space-x-1">
+<button class="flex-1 py-1.5 px-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 border-2 border-transparent text-ink/70" id="tab-tasks" onclick="switchView('tasks')">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
+<span>Tasks</span>
+</button>
+<button class="flex-1 py-1.5 px-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 border-2 border-transparent text-ink/70 hover:text-ink" id="tab-preview" onclick="switchView('preview')">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
+<span>Preview</span>
+</button>
+<button class="flex-1 py-1.5 px-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 bg-accentYellow text-ink border-2 border-ink shadow-brutal-sm" id="tab-code" onclick="switchView('code')">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
+<span>Code</span>
+</button>
+<button class="flex-1 py-1.5 px-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1.5 border-2 border-transparent text-ink/70 relative" id="tab-ai" onclick="switchView('ai')">
+<span>👋</span>
+<span>Tutor</span>
+<span class="w-2 h-2 bg-accentPink rounded-full absolute -top-0.5 -right-0.5 border border-ink"></span>
+</button>
+</nav>
+</header>
+<!-- END: AppHeader -->
+<!-- BEGIN: MainContentArea -->
+<main class="flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar bg-[#f6f3fc]">
+<!-- ==================== VIEW 1: PREVIEW (Default Mobile Focus) ==================== -->
+<section class="p-3.5 space-y-4 max-w-lg mx-auto hidden" data-purpose="student-live-output" id="view-preview">
+<!-- Tiny Banner Above Webpage -->
+<div class="flex items-center justify-between px-1">
+<span class="text-[11px] font-black uppercase tracking-wider bg-accentYellow border-2 border-ink px-3 py-1 rounded-full shadow-brutal-sm">
+          MY TINY CORNER OF THE INTERNET
+        </span>
+<span class="text-xs font-extrabold text-accentPurple flex items-center gap-1">
+          ✦ HELLO WORLD
+        </span>
+</div>
+<!-- Live Rendered Web Card (matches Screenshot 2026-09-05 at 10.42.18) -->
+<div class="preview-card-frame overflow-hidden">
+<div class="flex flex-col md:grid md:grid-cols-12 min-h-[360px]">
+<!-- Left Col / Top mobile: Profile Bio -->
+<div class="p-5 md:col-span-7 flex flex-col justify-between bg-[#fffdf8]">
+<div>
+<p class="text-[11px] font-black tracking-widest text-accentPurple uppercase mb-2">
+                PROFILE UNLOCKED
+              </p>
+<h1 class="text-4xl xs:text-5xl font-black leading-[0.95] tracking-tight mb-4 text-ink">
+                Hey, I'm <br/>
+<span class="text-accentPink inline-block">Your<br/>Name.</span>
+</h1>
+<p class="text-sm font-semibold text-ink/80 leading-relaxed max-w-xs mb-5">
+                I'm a curious creator who loves turning big ideas into small, colorful experiments.
+              </p>
+</div>
+<!-- Interest Chips -->
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="badge-pop inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border-2 border-ink text-xs font-bold text-ink">
+<span>🎮</span> games
+              </span>
+<span class="badge-pop inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border-2 border-ink text-xs font-bold text-ink">
+<span>🎵</span> music
+              </span>
+<span class="badge-pop inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border-2 border-ink text-xs font-bold text-ink">
+<span>🌱</span> nature
+              </span>
+</div>
+</div>
+<!-- Right Col / Bottom mobile: Cool Avatar & Purple Splash -->
+<div class="bg-accentPurple border-t-2 md:border-t-0 md:border-l-2 border-ink p-6 flex items-center justify-center relative min-h-[190px]">
+<!-- Sunglasses Emoji in Yellow Circle -->
+<div class="relative w-32 h-32 rounded-full bg-accentYellow border-3 border-ink flex items-center justify-center shadow-brutal" style="border-width: 3px;">
+<span aria-label="Sunglasses smile" class="text-6xl drop-shadow-sm select-none" role="img">😎</span>
+<!-- Sparkle Star Accent -->
+<span class="absolute bottom-2 right-1 text-ink text-2xl rotate-12">✦</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Interactive Cards (CSS Spotlight & Mood Switch) -->
+<div class="grid grid-cols-2 gap-3 pt-1">
+<!-- Spotlight Card -->
+<div class="p-3.5 bg-accentMint border-2 border-ink rounded-2xl shadow-brutal">
+<span class="text-[10px] font-black uppercase text-ink/70">Spotlight</span>
+<h3 class="text-sm font-black text-ink mt-0.5">My Current Vibe</h3>
+<p class="text-xs font-medium text-ink/90 mt-1">Building awesome responsive web apps! 🚀</p>
+</div>
+<!-- Mood Trigger Button Card -->
+<div class="p-3.5 bg-white border-2 border-ink rounded-2xl shadow-brutal flex flex-col justify-between">
+<div>
+<span class="text-[10px] font-black uppercase text-accentPink">Bonus Mission</span>
+<h3 class="text-sm font-black text-ink mt-0.5">Mood Switch</h3>
+</div>
+<button class="mt-2 text-xs font-black bg-accentPurple text-white py-1.5 px-2 rounded-xl border-2 border-ink shadow-brutal-sm active:translate-y-0.5" onclick="toggleMoodMessage()">
+            Switch Mood 🔮
+          </button>
+</div>
+</div>
+<!-- Dynamic Message Area for Mood Switch -->
+<div class="hidden p-3 rounded-xl border-2 border-ink bg-accentYellow shadow-brutal text-center text-xs font-black text-ink" id="mood-alert">
+        ✨ Current mood: Supercharged Creator Mode! ⚡
+      </div>
+</section>
+<!-- ==================== VIEW 2: TASKS CHECKLIST ==================== -->
+<section class="hidden p-3.5 space-y-3 max-w-lg mx-auto" data-purpose="missions-and-challenges" id="view-tasks">
+<!-- Step Badge & Header -->
+<div class="bg-white border-2 border-ink rounded-2xl p-4 shadow-brutal space-y-3">
+<div class="flex items-center justify-between">
+<span class="px-2.5 py-0.5 bg-accentYellow border-2 border-ink rounded-full text-xs font-black">
+            Step 1 of 5
+          </span>
+<span class="text-xs font-black text-ink/60">0/3 core completed</span>
+</div>
+<div>
+<h2 class="text-lg font-black text-ink">Week #1 — Profile Pop</h2>
+<div class="w-full bg-slate-100 h-2.5 rounded-full border-2 border-ink mt-2 overflow-hidden">
+<div class="bg-accentPurple h-full w-[15%]"></div>
+</div>
+<p class="text-[11px] font-bold text-slate-500 mt-1.5">Bonus challenges: 0/1</p>
+</div>
+</div>
+<!-- Missions List -->
+<div class="space-y-2.5">
+<!-- Mission 1: Active -->
+<div class="p-3.5 bg-white border-2 border-accentPurple rounded-2xl shadow-brutal flex items-start gap-3 ring-2 ring-accentPurple/20">
+<span class="w-7 h-7 rounded-full bg-accentPurple text-white flex items-center justify-center font-black text-xs shrink-0 border-2 border-ink">
+            1
+          </span>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-black uppercase text-accentPurple">Core mission</span>
+<span class="text-[10px] bg-accentPurpleLight text-accentPurple font-black px-1.5 py-0.5 rounded border border-accentPurple/40">In Progress</span>
+</div>
+<h3 class="text-sm font-black text-ink mt-0.5">Write your intro</h3>
+<p class="text-xs font-medium text-slate-600 mt-1">Change "Your Name" and bio inside index.html to show who you are.</p>
+<button class="mt-2.5 text-[11px] font-black bg-accentYellow border-2 border-ink px-2.5 py-1 rounded-lg shadow-brutal-sm" onclick="switchView('code')">
+              Open editor →
+            </button>
+</div>
+</div>
+<!-- Mission 2 -->
+<div class="p-3.5 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-start gap-3 opacity-90">
+<span class="w-7 h-7 rounded-full bg-slate-100 text-ink flex items-center justify-center font-black text-xs shrink-0 border-2 border-ink">
+            2
+          </span>
+<div class="flex-1">
+<span class="text-[10px] font-black uppercase text-slate-500">Core mission</span>
+<h3 class="text-sm font-bold text-ink mt-0.5">Pick your interests</h3>
+<p class="text-xs text-slate-500 mt-0.5">Update the three chips with your real hobbies.</p>
+</div>
+</div>
+<!-- Mission 3 -->
+<div class="p-3.5 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-start gap-3 opacity-90">
+<span class="w-7 h-7 rounded-full bg-slate-100 text-ink flex items-center justify-center font-black text-xs shrink-0 border-2 border-ink">
+            3
+          </span>
+<div class="flex-1">
+<span class="text-[10px] font-black uppercase text-slate-500">Core mission</span>
+<h3 class="text-sm font-bold text-ink mt-0.5">Choose your colors</h3>
+<p class="text-xs text-slate-500 mt-0.5">Tweak CSS root variables like --pink and --purple.</p>
+</div>
+</div>
+<!-- Mission 4 -->
+<div class="p-3.5 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-start gap-3 opacity-80">
+<span class="w-7 h-7 rounded-full bg-slate-100 text-ink flex items-center justify-center font-black text-xs shrink-0 border-2 border-ink">
+            4
+          </span>
+<div class="flex-1">
+<span class="text-[10px] font-black uppercase text-slate-500">Make it yours</span>
+<h3 class="text-sm font-bold text-ink mt-0.5">Custom emoji &amp; avatar badge</h3>
+</div>
+</div>
+<!-- Bonus Challenge -->
+<div class="p-3.5 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-start gap-3 opacity-80">
+<span class="w-7 h-7 rounded-full bg-accentPink/20 text-accentPink flex items-center justify-center font-black text-xs shrink-0 border-2 border-ink">
+            5
+          </span>
+<div class="flex-1">
+<span class="text-[10px] font-black uppercase text-accentPink">Bonus Challenge</span>
+<h3 class="text-sm font-bold text-ink mt-0.5">Add a mood switch toggle</h3>
+</div>
+</div>
+<!-- Homework Lock Section -->
+<div class="p-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-between text-xs text-slate-500 font-bold">
+<span class="flex items-center gap-1.5">🏠 Homework 0/3</span>
+<span class="flex items-center gap-1 text-[11px]"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg> Locked</span>
+</div>
+</div>
+</section>
+<!-- ==================== VIEW 3: CODE EDITOR ==================== -->
+<section class="h-full flex flex-col p-3 space-y-2 max-w-lg mx-auto" data-purpose="mobile-code-editor" id="view-code"><!-- File Sub-Header / Utility Bar -->
+<div class="flex items-center justify-between bg-white border-2 border-ink rounded-xl px-3 py-2 shadow-brutal-sm shrink-0">
+<div class="flex items-center space-x-2">
+<span class="px-1.5 py-0.5 rounded text-[10px] font-black bg-[#ffdad6] text-error border border-ink flex items-center gap-1">
+<svg class="w-3 h-3" fill="currentColor" viewbox="0 0 24 24"><path d="M12 2L2 19.5h20L12 2zm1 14h-2v-2h2v2zm0-4h-2V8h2v4z"></path></svg>
+      HTML
+    </span>
+<span class="text-xs font-black text-ink tracking-tight">index.html</span>
+<span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-[#edf2f7] px-1.5 py-0.5 rounded border border-slate-300">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Saved
+    </span>
+</div>
+<div class="flex items-center gap-1.5">
+<button aria-label="Undo code" class="p-1 text-slate-600 hover:text-ink rounded border border-slate-300 hover:border-ink bg-slate-50 active:translate-y-0.5 text-xs font-black" title="Undo">
+      ↺
+    </button>
+<button aria-label="Redo code" class="p-1 text-slate-600 hover:text-ink rounded border border-slate-300 hover:border-ink bg-slate-50 active:translate-y-0.5 text-xs font-black" title="Redo">
+      ↻
+    </button>
+<button class="text-[10px] font-black text-ink px-2 py-1 rounded-lg border-2 border-ink bg-[#edf2f7] shadow-brutal-sm active:translate-y-0.5 flex items-center gap-1">
+<span>Format</span>
+</button>
+<button class="bg-accentMint text-ink border-2 border-ink px-2.5 py-1 text-xs font-black rounded-lg shadow-brutal-sm active:translate-y-0.5 flex items-center gap-1" onclick="switchView('preview')">
+<span>Run</span>
+<span>▶</span>
+</button>
+</div>
+</div>
+<!-- Realistic Code Editor Window with Monospace syntax highlighting -->
+<div class="relative flex-1 min-h-[360px] bg-white border-2 border-ink rounded-2xl shadow-brutal overflow-hidden flex flex-col font-mono text-xs">
+<!-- Editor Canvas Area -->
+<div class="flex-1 p-3 overflow-y-auto custom-scrollbar flex">
+<!-- Line Numbers -->
+<div class="code-gutter pr-3 border-r border-slate-200 text-right select-none space-y-1 text-slate-400 font-bold text-[11px] leading-relaxed shrink-0">
+<div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div><div>23</div><div>24</div>
+</div>
+<!-- Code Markup Content -->
+<div class="pl-3 overflow-x-auto whitespace-pre space-y-1 text-ink leading-relaxed text-[11px] flex-1">
+<div><span class="text-accentPurple font-bold">&lt;!doctype</span> <span class="text-orange-600">html</span>&gt;</div>
+<div><span class="text-accentPurple font-bold">&lt;html</span> <span class="text-orange-600">lang</span>=<span class="text-emerald-600">"en"</span>&gt;</div>
+<div>  <span class="text-accentPurple font-bold">&lt;head&gt;</span></div>
+<div>    <span class="text-accentPurple font-bold">&lt;meta</span> <span class="text-orange-600">charset</span>=<span class="text-emerald-600">"UTF-8"</span> <span class="text-accentPurple font-bold">/&gt;</span></div>
+<div>    <span class="text-accentPurple font-bold">&lt;meta</span> <span class="text-orange-600">name</span>=<span class="text-emerald-600">"viewport"</span> <span class="text-orange-600">content</span>=<span class="text-emerald-600">"width=device-width, initial-scale=1.0"</span> <span class="text-accentPurple font-bold">/&gt;</span></div>
+<div>    <span class="text-accentPurple font-bold">&lt;title&gt;</span>Profile Pop<span class="text-accentPurple font-bold">&lt;/title&gt;</span></div>
+<div>    <span class="text-accentPurple font-bold">&lt;style&gt;</span></div>
+<div>      :root { <span class="text-accentPink font-bold">--ink</span>: <span class="text-slate-800">#18233f</span>; <span class="text-accentPink font-bold">--paper</span>: <span class="text-slate-800">#fffdf8</span>; <span class="text-accentPink font-bold">--pink</span>: <span class="text-pink-600 font-bold">#ff6b9d</span>; <span class="text-accentPink font-bold">--purple</span>: <span class="text-accentPurple font-bold">#7655e8</span>; }</div>
+<div>      * { box-sizing: border-box; }</div>
+<div>      body { min-height: 100vh; margin: 0; color: var(--ink); font-family: ui-rounded, sans-serif; }</div>
+<div>      .profile { display: grid; border: 3px solid var(--ink); border-radius: 24px; }</div>
+<div>      <span class="text-slate-400 italic">/* TASK: Customize your intro text and vibe color */</span></div>
+<div>      h1 span { color: <span class="text-pink-600 font-bold">var(--pink)</span>; }</div>
+<div>    <span class="text-accentPurple font-bold">&lt;/style&gt;</span></div>
+<div>  <span class="text-accentPurple font-bold">&lt;/head&gt;</span></div>
+<div>  <span class="text-accentPurple font-bold">&lt;body&gt;</span></div>
+<div>    <span class="text-accentPurple font-bold">&lt;div</span> <span class="text-orange-600">class</span>=<span class="text-emerald-600">"profile-card"</span>&gt;</div>
+<div>      <span class="text-accentPurple font-bold">&lt;h1&gt;</span>Hey, I'm</div>
+<!-- Active Editing Line with Highlighting and Pulse Cursor -->
+<div class="bg-accentYellow/30 -mx-2 px-2 py-0.5 rounded border-l-4 border-accentPurple font-bold flex items-center">
+<span>        <span class="text-accentPurple font-bold">&lt;span</span> <span class="text-orange-600">class</span>=<span class="text-emerald-600">"name"</span>&gt;Alex Rivera</span>
+<span class="inline-block w-2 h-4 bg-accentPurple animate-pulse ml-0.5 align-middle"></span>
+<span><span class="text-accentPurple font-bold">&lt;/span&gt;</span></span>
+</div>
+<div>      <span class="text-accentPurple font-bold">&lt;/h1&gt;</span></div>
+<div>      <span class="text-accentPurple font-bold">&lt;p&gt;</span>I love turning big ideas into colorful experiments.<span class="text-accentPurple font-bold">&lt;/p&gt;</span></div>
+<div>    <span class="text-accentPurple font-bold">&lt;/div&gt;</span></div>
+<div>  <span class="text-accentPurple font-bold">&lt;/body&gt;</span></div>
+<div><span class="text-accentPurple font-bold">&lt;/html&gt;</span></div>
+</div>
+</div>
+<!-- Floating Mini Preview PIP (Picture-in-Picture) in Editor Corner -->
+<div class="absolute bottom-11 right-2.5 z-20 w-24 bg-white border-2 border-ink rounded-xl shadow-brutal p-1.5 cursor-pointer active:scale-95 transition-all" onclick="switchView('preview')">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[8px] font-black text-ink uppercase tracking-tight">Live PIP</span>
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+</div>
+<div class="bg-[#fffdf8] rounded-lg border border-ink p-1 flex flex-col items-center justify-center text-center">
+<div class="text-[10px] font-black leading-none text-ink">Hey, I'm</div>
+<div class="text-[9px] font-black text-accentPink leading-tight">Alex!</div>
+<div class="w-5 h-5 rounded-full bg-accentYellow border border-ink flex items-center justify-center text-[10px] mt-0.5 shadow-sm">😎</div>
+</div>
+</div>
+<!-- Touch-Optimized Mobile Syntax Accessory Bar -->
+<div class="bg-[#ede8fa] border-t-2 border-ink p-1.5 flex items-center gap-1.5 overflow-x-auto custom-scrollbar select-none shrink-0">
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">&lt;</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">&gt;</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">/</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">"</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">=</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">{</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">}</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">:</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">;</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-accentPurple flex-none">class</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-accentPink flex-none">var()</button>
+<button class="px-2 py-1 bg-white border-2 border-ink rounded-md font-black text-xs shadow-brutal-sm text-ink active:translate-y-0.5 flex-none">⇥ Tab</button>
+</div>
+</div></section>
+<!-- ==================== VIEW 4: AI TUTOR ==================== -->
+<section class="hidden p-3.5 space-y-4 max-w-lg mx-auto" data-purpose="student-ai-assistant" id="view-ai">
+<div class="bg-white border-2 border-ink rounded-3xl p-5 shadow-brutal text-center space-y-3">
+<!-- Friendly Waving Character Avatar -->
+<div class="w-16 h-16 mx-auto rounded-2xl bg-accentPurpleLight border-2 border-ink flex items-center justify-center text-3xl shadow-brutal-sm">
+          👋
+        </div>
+<div>
+<h2 class="text-lg font-black text-ink">Hi! I'm your AI Tutor.</h2>
+<p class="text-xs font-semibold text-slate-600 mt-1 max-w-xs mx-auto">
+            Ask me anything about coding — no question is too small!
+          </p>
+</div>
+<!-- Tutor Mode Segmented Toggle -->
+<div class="inline-flex p-1 bg-slate-100 rounded-full border-2 border-ink text-xs font-black">
+<button class="px-4 py-1 rounded-full bg-white border border-ink shadow-sm text-ink">Ask</button>
+<button class="px-4 py-1 rounded-full text-slate-500 hover:text-ink">Build</button>
+</div>
+</div>
+<!-- Quick Suggestion Prompts -->
+<div class="space-y-2">
+<p class="text-[11px] font-black uppercase text-ink/70 px-1">Suggested prompts</p>
+<button class="w-full text-left p-3 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-center gap-2.5 active:translate-y-0.5" onclick="insertPrompt('What is a variable?')">
+<span class="text-lg">🤔</span>
+<span class="text-xs font-extrabold text-ink">What is a variable?</span>
+</button>
+<button class="w-full text-left p-3 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-center gap-2.5 active:translate-y-0.5" onclick="insertPrompt('Help me fix a bug with colors')">
+<span class="text-lg">🪲</span>
+<span class="text-xs font-extrabold text-ink">Help me fix a bug</span>
+</button>
+<button class="w-full text-left p-3 bg-white border-2 border-ink rounded-2xl shadow-brutal-sm flex items-center gap-2.5 active:translate-y-0.5" onclick="insertPrompt('What does this code do?')">
+<span class="text-lg">✨</span>
+<span class="text-xs font-extrabold text-ink">What does this code do?</span>
+</button>
+</div>
+<!-- Conversation History Preview -->
+<div class="space-y-2.5 pt-1" id="ai-chat-thread">
+<div class="flex gap-2 items-start">
+<div class="w-6 h-6 rounded-full bg-accentPurple text-white text-[10px] font-black flex items-center justify-center border border-ink shrink-0">
+            AI
+          </div>
+<div class="p-2.5 bg-[#f1edfd] border border-ink rounded-2xl rounded-tl-none text-xs font-semibold text-ink shadow-sm">
+            Ready when you are! Type your coding question or pick one of the prompts above. 🚀
+          </div>
+</div>
+</div>
+</section>
+</main>
+<!-- END: MainContentArea -->
+<!-- BEGIN: BottomPromptDock -->
+<footer class="flex-none bg-white border-t-2 border-ink p-3 z-30 shadow-lg">
+<div class="max-w-lg mx-auto flex items-center gap-2">
+<!-- Direct Code / Preview Mini Pill -->
+<div class="relative flex-1">
+<input class="w-full pl-3 pr-10 py-2.5 text-xs font-bold border-2 border-ink rounded-2xl shadow-brutal-sm focus:outline-none focus:ring-0 focus:border-accentPurple bg-slate-50 placeholder-slate-400" id="prompt-input" placeholder="Ask AI Tutor about this code..." type="text"/>
+<button aria-label="Send prompt" class="absolute right-1.5 top-1.5 bottom-1.5 px-2.5 bg-accentPurple text-white rounded-xl border border-ink flex items-center justify-center shadow-sm active:scale-95" onclick="handleSendPrompt()">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+</button>
+</div>
+</div>
+</footer>
+<!-- END: BottomPromptDock -->
+<!-- Script for Tab Switching & Interactivity -->
+<script data-purpose="view-router">
+    const tabs = ['tasks', 'preview', 'code', 'ai'];
+
+    function switchView(selectedTab) {
+      tabs.forEach(tab => {
+        const viewEl = document.getElementById(`view-${tab}`);
+        const tabEl = document.getElementById(`tab-${tab}`);
+
+        if (tab === selectedTab) {
+          viewEl.classList.remove('hidden');
+          // Active button styling: yellow fill with chunky border
+          tabEl.className = 'flex-1 py-1.5 px-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1 bg-accentYellow text-ink border-2 border-ink shadow-brutal-sm';
+        } else {
+          viewEl.classList.add('hidden');
+          // Inactive button styling
+          tabEl.className = 'flex-1 py-1.5 px-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-1 border-2 border-transparent text-ink/70 hover:text-ink';
+        }
+      });
+    }
+
+    function toggleMoodMessage() {
+      const alertBox = document.getElementById('mood-alert');
+      if (alertBox.classList.contains('hidden')) {
+        alertBox.classList.remove('hidden');
+      } else {
+        alertBox.classList.add('hidden');
+      }
+    }
+
+    function insertPrompt(text) {
+      switchView('ai');
+      const input = document.getElementById('prompt-input');
+      input.value = text;
+      input.focus();
+    }
+
+    function handleSendPrompt() {
+      const input = document.getElementById('prompt-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      switchView('ai');
+      const chat = document.getElementById('ai-chat-thread');
+      
+      // Append user message
+      const userBubble = document.createElement('div');
+      userBubble.className = 'flex gap-2 items-start justify-end';
+      userBubble.innerHTML = `
+        <div class="p-2.5 bg-accentYellow border border-ink rounded-2xl rounded-tr-none text-xs font-bold text-ink shadow-sm">
+          ${val}
+        </div>
+      `;
+      chat.appendChild(userBubble);
+
+      // Reset input
+      input.value = '';
+
+      // AI Response Mock
+      setTimeout(() => {
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'flex gap-2 items-start';
+        aiBubble.innerHTML = `
+          <div class="w-6 h-6 rounded-full bg-accentPurple text-white text-[10px] font-black flex items-center justify-center border border-ink shrink-0">
+            AI
+          </div>
+          <div class="p-2.5 bg-[#f1edfd] border border-ink rounded-2xl rounded-tl-none text-xs font-semibold text-ink shadow-sm">
+            Awesome question! In CSS, variables begin with two dashes like <code>--pink: #ff6b9d;</code>. You can change it in the <b>Code</b> tab to see your preview update immediately! 🎨
+          </div>
+        `;
+        chat.appendChild(aiBubble);
+      }, 500);
+    }
+  </script>
+</body></html>

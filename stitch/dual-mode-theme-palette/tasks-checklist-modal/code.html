@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>BuildSpark - Tasks Checklist</title>
+<!-- Tailwind CSS v3 CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- BEGIN: Tailwind Configuration -->
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#18233f',
+            canvas: '#f4f1fa',
+            sparkYellow: '#ffd86b',
+            sparkPurple: '#7c69ef',
+            sparkLightPurple: '#ece9fc',
+            sparkMint: '#4cd9a8',
+            sparkMintLight: '#e4fbf3',
+            sparkPink: '#ff5c8a',
+            sparkPinkLight: '#ffeaf2',
+            sparkDarkBg: '#1b1b2f'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          },
+          boxShadow: {
+            'brutal-sm': '2px 2px 0px #18233f',
+            'brutal': '3px 3px 0px #18233f',
+            'brutal-lg': '4px 4px 0px #18233f'
+          }
+        }
+      }
+    }
+  </script>
+<!-- END: Tailwind Configuration -->
+<!-- BEGIN: Custom Brutalist Styles -->
+<style data-purpose="layout-styles">
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+    body {
+      font-family: 'Plus Jakarta Sans', Nunito, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Chunky neo-brutalist border utility */
+    .border-ink-strong {
+      border: 2.5px solid #18233f;
+    }
+
+    .border-ink-thick {
+      border: 3px solid #18233f;
+    }
+
+    /* Custom scrollbar hiding */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<!-- END: Custom Brutalist Styles -->
+</head>
+<body class="bg-[#18233f] flex justify-center items-center min-h-screen p-0 sm:p-4 text-ink antialiased selection:bg-sparkYellow">
+<!-- BEGIN: Mobile App Container -->
+<main class="w-full max-w-[392px] h-[100dvh] sm:h-[844px] bg-canvas flex flex-col overflow-hidden relative sm:rounded-[36px] sm:border-ink-thick sm:shadow-[8px_8px_0px_rgba(0,0,0,0.3)]">
+<!-- BEGIN: Top Navigation Bar -->
+<header class="pt-3 px-4 pb-2 flex items-center justify-between shrink-0" data-purpose="app-top-header">
+<!-- Back Arrow Button -->
+<button aria-label="Go back" class="w-10 h-10 rounded-xl bg-white border-ink-strong shadow-brutal-sm flex items-center justify-center active:translate-y-0.5 active:shadow-none transition-all" type="button">
+<svg class="w-5 h-5 stroke-ink stroke-[2.5]" fill="none" viewbox="0 0 24 24">
+<path d="M15.75 19.5L8.25 12l7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Course & Project Pill -->
+<div class="bg-sparkYellow px-4 py-1.5 rounded-full border-ink-strong shadow-brutal-sm flex items-center">
+<span class="text-xs font-extrabold uppercase tracking-wider text-ink">PROFILE POP</span>
+</div>
+<!-- User Profile Circle -->
+<div class="w-10 h-10 rounded-full bg-sparkPurple border-ink-strong flex items-center justify-center text-white font-extrabold text-base shadow-brutal-sm">
+        T
+      </div>
+</header>
+<!-- END: Top Navigation Bar -->
+<!-- BEGIN: Mode Switcher Tab Bar -->
+<nav aria-label="Editor Modes" class="px-4 py-2 shrink-0" data-purpose="segmented-tabs">
+<div class="bg-white p-1 rounded-2xl border-ink-strong shadow-brutal-sm flex items-center justify-between gap-1">
+<!-- Active Tasks Tab -->
+<button class="flex-1 py-1.5 px-2 rounded-xl bg-sparkYellow border-ink-strong font-extrabold text-xs flex items-center justify-center gap-1 shadow-sm text-ink transition-transform">
+<span>📋</span>
+<span>Tasks</span>
+</button>
+<!-- Preview Tab -->
+<button class="flex-1 py-1.5 px-2 rounded-xl font-bold text-xs text-ink/75 hover:text-ink flex items-center justify-center gap-1 transition-colors">
+<span>👁</span>
+<span>Preview</span>
+</button>
+<!-- Code Tab -->
+<button class="flex-1 py-1.5 px-2 rounded-xl font-bold text-xs text-ink/75 hover:text-ink flex items-center justify-center gap-1 transition-colors">
+<span>&lt;/&gt;</span>
+<span>Code</span>
+</button>
+<!-- Tutor Tab with Ping indicator -->
+<button class="flex-1 py-1.5 px-2 rounded-xl font-bold text-xs text-ink/75 hover:text-ink flex items-center justify-center gap-1 relative transition-colors">
+<span>👋</span>
+<span>Tutor</span>
+<span class="w-2.5 h-2.5 bg-sparkPink rounded-full border border-ink absolute top-1 right-2"></span>
+</button>
+</div>
+</nav>
+<!-- END: Mode Switcher Tab Bar -->
+<!-- BEGIN: Scrollable Content - Tasks List -->
+<section class="flex-1 overflow-y-auto px-4 pt-2 pb-24 no-scrollbar space-y-3.5" data-purpose="tasks-content">
+<!-- Progress Overview Card -->
+<div class="bg-white p-4 rounded-2xl border-ink-strong shadow-brutal space-y-3">
+<!-- Step Pill & Counter -->
+<div class="flex items-center justify-between">
+<span class="bg-sparkYellow text-ink text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border-ink-strong shadow-brutal-sm">
+            Step 1 of 5
+          </span>
+<span class="text-xs font-bold text-ink/70">3/3 core</span>
+</div>
+<!-- Section Title & Progress Bar -->
+<div>
+<h1 class="text-base font-extrabold text-ink tracking-tight">Week #1 — Profile Pop</h1>
+<p class="text-[11px] font-bold text-ink/60 mt-0.5">Bonus challenges: 0/1</p>
+<!-- Chunky Progress Bar -->
+<div class="w-full h-3 bg-gray-100 rounded-full border-ink-strong mt-2 overflow-hidden p-0.5">
+<div class="h-full bg-sparkMint rounded-full w-full transition-all duration-500"></div>
+</div>
+</div>
+<!-- Celebration Banner Box -->
+<div class="bg-sparkMintLight p-2.5 rounded-xl border-ink-strong flex items-start gap-2.5">
+<span class="text-xl shrink-0">🎉</span>
+<p class="text-xs font-bold text-ink leading-snug">
+<strong class="font-extrabold block">Core mission complete!</strong>
+            Your project works. Try a creative choice or bonus when you are ready.
+          </p>
+</div>
+</div>
+<!-- Missions Checklist Stack -->
+<div class="space-y-2.5" data-purpose="mission-checklist-items">
+<!-- Task 1: Completed -->
+<article class="bg-white/90 px-3.5 py-2.5 rounded-2xl border-ink-strong shadow-brutal-sm flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-sparkMint border-ink-strong flex items-center justify-center shrink-0 shadow-brutal-sm">
+<span class="text-ink font-black text-xs">✓</span>
+</div>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-wider text-ink/50">Core mission</p>
+<h2 class="text-xs font-bold text-ink/50 line-through">Write your intro</h2>
+</div>
+</div>
+<span class="text-xs text-ink/40 font-bold">1</span>
+</article>
+<!-- Task 2: Completed -->
+<article class="bg-white/90 px-3.5 py-2.5 rounded-2xl border-ink-strong shadow-brutal-sm flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-sparkMint border-ink-strong flex items-center justify-center shrink-0 shadow-brutal-sm">
+<span class="text-ink font-black text-xs">✓</span>
+</div>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-wider text-ink/50">Core mission</p>
+<h2 class="text-xs font-bold text-ink/50 line-through">Pick your interests</h2>
+</div>
+</div>
+<span class="text-xs text-ink/40 font-bold">2</span>
+</article>
+<!-- Task 3: Completed -->
+<article class="bg-white/90 px-3.5 py-2.5 rounded-2xl border-ink-strong shadow-brutal-sm flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-sparkMint border-ink-strong flex items-center justify-center shrink-0 shadow-brutal-sm">
+<span class="text-ink font-black text-xs">✓</span>
+</div>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-wider text-ink/50">Core mission</p>
+<h2 class="text-xs font-bold text-ink/50 line-through">Choose your colors</h2>
+</div>
+</div>
+<span class="text-xs text-ink/40 font-bold">3</span>
+</article>
+<!-- Task 4: Completed Creative Choice -->
+<article class="bg-white/90 px-3.5 py-2.5 rounded-2xl border-ink-strong shadow-brutal-sm flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded-full bg-sparkMint border-ink-strong flex items-center justify-center shrink-0 shadow-brutal-sm">
+<span class="text-ink font-black text-xs">✓</span>
+</div>
+<div>
+<p class="text-[10px] font-bold uppercase tracking-wider text-ink/50">Make it yours</p>
+<h2 class="text-xs font-bold text-ink/50 line-through">Make it yours</h2>
+</div>
+</div>
+<span class="text-xs text-ink/40 font-bold">4</span>
+</article>
+<!-- Task 5: ACTIVE BONUS CHALLENGE CARD -->
+<article class="bg-sparkLightPurple p-3.5 rounded-2xl border-ink-strong shadow-brutal space-y-2.5 relative overflow-hidden" data-purpose="active-task-item">
+<!-- Active Header Info -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-full bg-sparkYellow border-ink-strong flex items-center justify-center shrink-0 shadow-brutal-sm">
+<span class="text-xs font-black text-ink">5</span>
+</div>
+<div>
+<span class="text-[10px] font-black uppercase tracking-wider text-sparkPink">Bonus challenge</span>
+<h2 class="text-sm font-extrabold text-ink leading-tight">Bonus: add a mood switch</h2>
+</div>
+</div>
+</div>
+<!-- Description / Context -->
+<div class="bg-white/80 p-2.5 rounded-xl border-ink-strong text-xs font-bold text-ink/80 leading-relaxed">
+            Hook up your switch button to toggle between funny emoji moods on your profile badge!
+          </div>
+<!-- Sub-action buttons for bonus -->
+<div class="flex items-center gap-2 pt-0.5">
+<button class="flex-1 py-1.5 px-3 bg-white hover:bg-yellow-50 rounded-xl border-ink-strong shadow-brutal-sm text-xs font-extrabold text-ink flex items-center justify-center gap-1.5 active:translate-y-0.5 transition-all">
+<span>💡</span>
+<span>View Hint</span>
+</button>
+<button class="flex-1 py-1.5 px-3 bg-sparkYellow hover:bg-yellow-300 rounded-xl border-ink-strong shadow-brutal-sm text-xs font-extrabold text-ink flex items-center justify-center gap-1.5 active:translate-y-0.5 transition-all">
+<span>&lt;/&gt;</span>
+<span>Jump to Code</span>
+</button>
+</div>
+</article>
+<!-- Homework Section: Locked -->
+<div class="bg-white/60 p-3 rounded-2xl border-ink-strong border-dashed flex items-center justify-between opacity-80" data-purpose="homework-locked">
+<div class="flex items-center gap-2.5">
+<span class="text-base">🏠</span>
+<span class="text-xs font-extrabold text-ink">Homework 0/3</span>
+</div>
+<span class="text-[11px] font-bold text-ink/60 flex items-center gap-1">
+<span>🔒</span> Locked
+          </span>
+</div>
+</div>
+</section>
+<!-- END: Scrollable Content - Tasks List -->
+<!-- BEGIN: Bottom Sticky Action Bar -->
+<footer class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-canvas via-canvas to-transparent" data-purpose="bottom-sticky-bar">
+<!-- High-impact Neo-brutalist Action Button -->
+<button class="w-full py-3.5 px-5 bg-ink text-white font-extrabold text-sm uppercase tracking-wider rounded-2xl border-ink-thick shadow-brutal hover:bg-slate-900 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2" type="button">
+<span>Keep Going — Add Mood</span>
+<span class="text-sparkYellow text-base">▶</span>
+</button>
+</footer>
+<!-- END: Bottom Sticky Action Bar -->
+</main>
+<!-- END: Mobile App Container -->
+</body></html>

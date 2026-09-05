@@ -24,6 +24,14 @@ interface CodeEditorProps {
   // lesson checks.
   onChange?: (code: string) => void
   saveState?: 'saved' | 'saving' | 'dirty'
+  // Fired once the underlying view mounts, so a caller (the mobile toolbar's
+  // undo/redo and quick-insert buttons) can dispatch CodeMirror commands
+  // directly instead of needing a second editor instance.
+  onViewReady?: (view: EditorView) => void
+  // Soft-wrap long lines instead of horizontal scroll. Off by default so
+  // desktop is unchanged; the mobile shell turns it on — a touch horizontal
+  // scroll on a narrow screen is worse than a long line taking extra rows.
+  wrap?: boolean
 }
 
 // Short enough that the preview feels live, long enough not to re-render on
@@ -62,7 +70,7 @@ const highlightTheme = EditorView.baseTheme({
   },
 })
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState }: CodeEditorProps) {
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
   const [viewReady, setViewReady] = useState(false)
@@ -134,6 +142,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
     if (viewRef.current !== vu.view) {
       viewRef.current = vu.view
       setViewReady(true)
+      onViewReady?.(vu.view)
     }
 
     if (!onSelectionChange || !vu.selectionSet) return
@@ -156,6 +165,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
     highlightField,
     highlightTheme,
     ...(language === 'css' ? [css()] : language === 'js' ? [javascript()] : [html()]),
+    ...(wrap ? [EditorView.lineWrapping] : []),
   ]
 
   const autosaving = Boolean(onChange)

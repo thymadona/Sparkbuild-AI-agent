@@ -11,13 +11,16 @@ import Navigator from '@/components/Navigator'
 import ConfettiBurst from '@/components/ConfettiBurst'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
+import MobileEditorShell from './MobileEditorShell'
+import EditorLoading from './loading'
 import { buildCombinedHtml } from '@/lib/combine'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import type { Project, Message } from '@/types'
 import type { Lesson } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
 
-interface ConsoleEntry {
+export interface ConsoleEntry {
   level: 'log' | 'warn' | 'error' | 'info' | 'debug'
   args: string[]
   timestamp: Date
@@ -65,6 +68,16 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   // Which docked lesson panel the icon rail is showing — Tasks and AI Tutor
   // no longer stack, they swap.
   const [sidebarView, setSidebarView] = useState<'tasks' | 'chat'>('tasks')
+  // Mobile's single full-screen tab. Kept as its own state rather than derived
+  // from sidebarView/rightTab (desktop's split-panel model) — those two don't
+  // map onto one 4-way value without ambiguity, so every desktop call site
+  // that changes sidebarView/rightTab to react to something (a task tap, a
+  // build finishing, reset) also sets this explicitly, right alongside it.
+  // Free-form (/explore) projects have no Tasks tab (see MobileEditorShell's
+  // 3-way nav) — default them straight to Preview, matching desktop's own
+  // rightTab default, instead of landing on a tab that doesn't exist.
+  const [mobileTab, setMobileTab] = useState<'tasks' | 'preview' | 'code' | 'chat'>(lesson ? 'tasks' : 'preview')
+  const { isMobile, resolved: isMobileResolved } = useIsMobile()
   const [sideWidth, setSideWidth] = useState(420)
   const [previewBlocked, setPreviewBlocked] = useState(false)
   const [selectedCode, setSelectedCode] = useState<{
@@ -203,12 +216,40 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   function handleTaskPrompt(p: string) {
     openChat()
     setPendingPrompt(p)
+    setMobileTab('chat')
   }
 
   // Preview picks come with no reliable source line (the rendered DOM can
   // drift from the raw file text — reformatted attributes, injected scripts),
   // so the chip shows a tag label instead of a line range. One-shot: picking
   // disarms inspect mode, same as devtools' "select element" tool.
+  // Shared by every place an AI generation lands: desktop's docked/floating
+  // <Editor> copies and the mobile shell's single <Editor>. Kept as one
+  // function (not inlined per call site) so the three call sites can't drift.
+  function handleFilesUpdate(newFiles: Record<string, string>) {
+    setFiles(newFiles)
+    setRightTab('preview')
+    setMobileTab('preview')
+    setConsoleLogs([])
+  }
+
+  // Code-selection-to-chat context, shared between mobile and desktop's own
+  // (currently still inlined twice for split/non-split view) selection
+  // handlers. Mobile deliberately does not also call openChat()/switch tabs —
+  // there's no split view to reveal chat alongside, so jumping to the Tutor
+  // tab would yank the student away from the code they just selected. They
+  // reach it by tapping the Tutor tab themselves; the pill is waiting there.
+  function toSelectedCode(sel: { text: string; startLine: number; endLine: number } | null) {
+    return sel
+      ? {
+          ...sel,
+          kind: 'text' as const,
+          label: sel.startLine === sel.endLine ? `Line ${sel.startLine}` : `Lines ${sel.startLine}–${sel.endLine}`,
+          subtitle: activeFile,
+        }
+      : null
+  }
+
   function handleInspectPick(el: PickedElement) {
     const subtitle = el.id ? `#${el.id}` : el.classes[0] ? `.${el.classes[0]}` : 'Element'
     setSelectedCode({ text: el.outerHTML, startLine: 0, endLine: 0, label: el.tag, subtitle, kind: 'element' })
@@ -229,6 +270,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
       setHighlightNonce((n) => n + 1)
       setActiveFile('index.html')
       setRightTab('code')
+      setMobileTab('code')
     },
     onPrompt: handleTaskPrompt,
     // Unique per completion so re-completing the same task id (in theory)
@@ -310,6 +352,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     await flushSave()
     setActiveFile('index.html')
     setRightTab('code')
+    setMobileTab('code')
   }
 
   function dockChat() {
@@ -333,6 +376,54 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   useEffect(() => {
     if (lesson !== null && rightTab === 'console' && !hasConsoleError) setRightTab('preview')
   }, [lesson, rightTab, hasConsoleError])
+
+  // isMobile resolves one tick after mount (matchMedia needs a real window),
+  // so committing to a shell before then would mount the desktop tree first
+  // and immediately replace it — remounting <Editor> and losing whatever
+  // draft it had. Show the same skeleton the route's Suspense boundary uses
+  // instead of flashing the wrong shell.
+  if (!isMobileResolved) return <EditorLoading />
+
+  if (isMobile) {
+    return (
+      <MobileEditorShell
+        project={project}
+        lesson={lesson}
+        classSlots={classSlots}
+        files={files}
+        activeFile={activeFile}
+        activeLanguage={activeLanguage}
+        combinedHtml={combinedHtml}
+        progress={progress}
+        messages={messages}
+        onMessagesChange={setMessages}
+        onFilesUpdate={handleFilesUpdate}
+        selectedCode={selectedCode}
+        onClearSelection={() => setSelectedCode(null)}
+        onCodeSelectionChange={(sel) => setSelectedCode(toSelectedCode(sel))}
+        pendingPrompt={pendingPrompt}
+        onPromptConsumed={() => setPendingPrompt(null)}
+        mobileTab={mobileTab}
+        setMobileTab={setMobileTab}
+        handleCodeChange={handleCodeChange}
+        handleCodeSave={handleCodeSave}
+        saveState={saveState}
+        highlightLines={highlightLines}
+        highlightNonce={highlightNonce}
+        consoleLogs={consoleLogs}
+        hasConsoleError={hasConsoleError}
+        onClearConsole={() => setConsoleLogs([])}
+        resetToTemplate={resetToTemplate}
+        title={title}
+        setTitle={setTitle}
+        handleTitleBlur={handleTitleBlur}
+        savingTitle={savingTitle}
+        userEmail={userEmail}
+        onBack={() => router.push('/dashboard')}
+        onDockPrompt={handleTaskPrompt}
+      />
+    )
+  }
 
   return (
     <div className="flex h-screen flex-col bg-surface-900 font-body">
@@ -491,11 +582,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                       <Editor
                         projectId={project.id}
                         files={files}
-                        onFilesUpdate={(newFiles) => {
-                          setFiles(newFiles)
-                          setRightTab('preview')
-                          setConsoleLogs([])
-                        }}
+                        onFilesUpdate={handleFilesUpdate}
                         activeFile={activeFile}
                         messages={messages}
                         onMessagesChange={setMessages}
@@ -515,11 +602,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   <Editor
                     projectId={project.id}
                     files={files}
-                    onFilesUpdate={(newFiles) => {
-                      setFiles(newFiles)
-                      setRightTab('preview')
-                      setConsoleLogs([])
-                    }}
+                    onFilesUpdate={handleFilesUpdate}
                     activeFile={activeFile}
                     messages={messages}
                     onMessagesChange={setMessages}
@@ -688,16 +771,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   highlightLines={highlightLines}
                   highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
-                    setSelectedCode(
-                      sel
-                        ? {
-                            ...sel,
-                            kind: 'text',
-                            label: sel.startLine === sel.endLine ? `Line ${sel.startLine}` : `Lines ${sel.startLine}–${sel.endLine}`,
-                            subtitle: activeFile,
-                          }
-                        : null
-                    )
+                    setSelectedCode(toSelectedCode(sel))
                     if (sel) {
                       openChat()
                     }
@@ -723,16 +797,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   highlightLines={highlightLines}
                   highlightNonce={highlightNonce}
                   onSelectionChange={(sel) => {
-                    setSelectedCode(
-                      sel
-                        ? {
-                            ...sel,
-                            kind: 'text',
-                            label: sel.startLine === sel.endLine ? `Line ${sel.startLine}` : `Lines ${sel.startLine}–${sel.endLine}`,
-                            subtitle: activeFile,
-                          }
-                        : null
-                    )
+                    setSelectedCode(toSelectedCode(sel))
                     if (sel) {
                       openChat()
                     }
@@ -860,11 +925,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <Editor
                   projectId={project.id}
                   files={files}
-                  onFilesUpdate={(newFiles) => {
-                    setFiles(newFiles)
-                    setRightTab('preview')
-                    setConsoleLogs([])
-                  }}
+                  onFilesUpdate={handleFilesUpdate}
                   activeFile={activeFile}
                   messages={messages}
                   onMessagesChange={setMessages}
