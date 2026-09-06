@@ -11,7 +11,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import { cn } from '@/lib/utils'
 import type { Project, Message } from '@/types'
-import type { Lesson } from '@/lib/lessons'
+import type { Lesson, LessonTask } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
 import type { useLessonProgress } from '@/hooks/useLessonProgress'
 import type { ConsoleEntry } from './EditorLayout'
@@ -51,6 +51,7 @@ interface Props {
   saveState: 'saved' | 'saving' | 'dirty'
   highlightLines: number[]
   highlightNonce: number
+  onShowTaskLocation: (task: LessonTask) => void
   consoleLogs: ConsoleEntry[]
   hasConsoleError: boolean
   onClearConsole: () => void
@@ -116,6 +117,7 @@ export default function MobileEditorShell({
   saveState,
   highlightLines,
   highlightNonce,
+  onShowTaskLocation,
   consoleLogs,
   hasConsoleError,
   onClearConsole,
@@ -199,7 +201,7 @@ export default function MobileEditorShell({
       <div className="relative flex-1 overflow-hidden">
         {lesson && (
           <div className={cn('absolute inset-0', mobileTab === 'tasks' ? '' : 'hidden')}>
-            <Navigator lesson={lesson} code={files['index.html'] ?? ''} progress={progress} classSlots={classSlots} />
+            <Navigator lesson={lesson} code={files['index.html'] ?? ''} progress={progress} classSlots={classSlots} onShowTaskLocation={onShowTaskLocation} />
           </div>
         )}
 
@@ -345,6 +347,7 @@ export default function MobileEditorShell({
             onClearSelection={onClearSelection}
             pendingPrompt={pendingPrompt}
             onPromptConsumed={onPromptConsumed}
+            onEscalation={() => progress.activeTask && onShowTaskLocation(progress.activeTask)}
           />
         </div>
       </div>

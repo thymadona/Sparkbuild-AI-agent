@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 
 const COLORS = ['#f97316', '#facc15', '#22c55e', '#38bdf8', '#a78bfa', '#f472b6']
 const PARTICLE_COUNT = 28
+const BIG_PARTICLE_COUNT = 70
 // Longer than the longest particle animation, so nothing is cut off mid-fall.
 const BURST_MS = 1600
+const BIG_BURST_MS = 2400
 
 interface Particle {
   id: number
@@ -17,8 +19,8 @@ interface Particle {
   rotate: number
 }
 
-function makeParticles(): Particle[] {
-  return Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
+function makeParticles(count: number): Particle[] {
+  return Array.from({ length: count }, (_, id) => ({
     id,
     left: Math.random() * 100,
     color: COLORS[id % COLORS.length],
@@ -33,21 +35,24 @@ interface ConfettiBurstProps {
   // Any change to this value fires a new burst — e.g. the id of the task
   // that was just completed, made unique per completion.
   trigger: string | null
+  // Bigger, longer burst for a milestone (e.g. every task in the lesson
+  // done), so it reads as distinct from an ordinary per-task celebration.
+  big?: boolean
 }
 
 /**
  * A short confetti burst with no external dependency — a fistful of colored
  * divs falling with CSS, unmounted once the animation ends.
  */
-export default function ConfettiBurst({ trigger }: ConfettiBurstProps) {
+export default function ConfettiBurst({ trigger, big = false }: ConfettiBurstProps) {
   const [particles, setParticles] = useState<Particle[] | null>(null)
 
   useEffect(() => {
     if (!trigger) return
-    setParticles(makeParticles())
-    const timer = setTimeout(() => setParticles(null), BURST_MS)
+    setParticles(makeParticles(big ? BIG_PARTICLE_COUNT : PARTICLE_COUNT))
+    const timer = setTimeout(() => setParticles(null), big ? BIG_BURST_MS : BURST_MS)
     return () => clearTimeout(timer)
-  }, [trigger])
+  }, [trigger, big])
 
   if (!particles) return null
 

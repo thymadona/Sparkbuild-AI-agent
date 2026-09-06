@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { Lesson } from '@/lib/lessons'
+import type { Lesson, LessonTask } from '@/lib/lessons'
 import { SCALE, TASK_LABELS } from '@/lib/lesson-ui'
 import ActiveTaskPanel from '@/components/ActiveTaskPanel'
 import SpeakButton from '@/components/SpeakButton'
@@ -14,9 +14,11 @@ interface NavigatorProps {
   progress: ReturnType<typeof useLessonProgress>
   // The student's weekly class slots. Homework is due before the next one.
   classSlots?: ClassSlot[]
+  // Points the pulsing code-editor highlight at a task on demand.
+  onShowTaskLocation?: (task: LessonTask) => void
 }
 
-export default function Navigator({ lesson, code, progress, classSlots = [] }: NavigatorProps) {
+export default function Navigator({ lesson, code, progress, classSlots = [], onShowTaskLocation }: NavigatorProps) {
   const { done, activeIndex, activeTask, isSaving, saveError, submission, isSubmitting, submitError, activateTask, markDone, submitHomework } = progress
   const [homeworkOpen, setHomeworkOpen] = useState(false)
 
@@ -236,6 +238,7 @@ export default function Navigator({ lesson, code, progress, classSlots = [] }: N
           isSaving={isSaving}
           saveError={saveError}
           onMarkDone={() => markDone(activeIndex)}
+          onShowMe={onShowTaskLocation ? () => onShowTaskLocation(activeTask) : undefined}
         />
       )}
     </div>

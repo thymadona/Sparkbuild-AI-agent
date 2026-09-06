@@ -22,7 +22,9 @@ interface UseLessonProgressArgs {
   onPrompt: (prompt: string) => void
   // Fired only after a task is actually saved as done — the cue for things
   // like a completion celebration, which should never fire on a failed save.
-  onComplete?: (task: LessonTask) => void
+  // nextDone is the just-saved done set, so callers can detect "every task
+  // done" without reading stale state from the closure.
+  onComplete?: (task: LessonTask, nextDone: Set<string>) => void
 }
 
 /**
@@ -68,7 +70,7 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
       })
       if (!response.ok) throw new Error('Could not save progress')
       setActiveIndex(firstUnfinishedTaskIndex(tasks, nextDone))
-      onComplete?.(task)
+      onComplete?.(task, nextDone)
     } catch {
       setDone(done)
       setSaveError('Your task was not saved. Please try again.')
