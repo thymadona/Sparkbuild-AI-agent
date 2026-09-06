@@ -5,6 +5,7 @@ import {
   escalationTier,
   homeworkComplete,
   homeworkTasks,
+  isTaskLocked,
   pendingCoreTask,
 } from '@/lib/task-guard'
 
@@ -65,6 +66,26 @@ describe('homework helpers', () => {
     expect(homeworkTasks(legacy)).toEqual([])
     expect(homeworkComplete(legacy, [])).toBe(false)
     expect(homeworkComplete(null, [])).toBe(false)
+  })
+})
+
+describe('isTaskLocked', () => {
+  it('never locks the first task', () => {
+    expect(isTaskLocked(week3.tasks, 0, new Set())).toBe(false)
+  })
+
+  it('locks a task while an earlier task is unfinished', () => {
+    expect(isTaskLocked(week3.tasks, 1, new Set())).toBe(true)
+  })
+
+  it('unlocks once every earlier task is done', () => {
+    const upToFirst = new Set(week3.tasks.slice(0, 1).map((task) => task.id))
+    expect(isTaskLocked(week3.tasks, 1, upToFirst)).toBe(false)
+  })
+
+  it('never locks a homework task, whatever else is unfinished', () => {
+    const homeworkIndex = week3.tasks.findIndex((task) => task.type === 'homework')
+    expect(isTaskLocked(week3.tasks, homeworkIndex, new Set())).toBe(false)
   })
 })
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Lesson, LessonTask } from '@/lib/lessons'
 import { highlightLinesForTask } from '@/lib/task-checks'
+import { isTaskLocked } from '@/lib/task-guard'
 import type { SubmissionStatus } from '@/types'
 
 function firstUnfinishedTaskIndex(tasks: LessonTask[], completed: Set<string>) {
@@ -44,7 +45,7 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
 
   function activateTask(index: number) {
     const task = tasks[index]
-    if (!task || done.has(task.id)) return
+    if (!task || done.has(task.id) || isTaskLocked(tasks, index, done)) return
     setActiveIndex(index)
     onHighlight(highlightLinesForTask(code, task.commentAnchor, task.checks))
     onPrompt(task.prompt)
@@ -52,7 +53,7 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
 
   async function markDone(index: number) {
     const task = tasks[index]
-    if (!task || done.has(task.id) || isSaving) return
+    if (!task || done.has(task.id) || isSaving || isTaskLocked(tasks, index, done)) return
 
     const nextDone = new Set(done)
     nextDone.add(task.id)

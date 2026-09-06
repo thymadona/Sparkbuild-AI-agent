@@ -121,3 +121,10 @@ export function homeworkComplete(lesson: Lesson | null, completedTaskIds: string
   const done = new Set(completedTaskIds)
   return homework.every((task) => done.has(task.id))
 }
+
+/** True when an earlier, non-homework task in the list isn't done yet. Homework has its own gate (coreComplete). */
+export function isTaskLocked(tasks: LessonTask[], index: number, completed: Set<string>): boolean {
+  const task = tasks[index]
+  if (!task || task.type === 'homework') return false
+  return tasks.slice(0, index).some((t) => t.type !== 'homework' && !completed.has(t.id))
+}
