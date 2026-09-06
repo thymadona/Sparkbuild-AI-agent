@@ -7,6 +7,8 @@ import Editor from '@/components/Editor'
 import Preview from '@/components/Preview'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
+import QuestTracker from '@/components/QuestTracker'
+import ShowcasePanel from '@/components/ShowcasePanel'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import { cn } from '@/lib/utils'
@@ -51,6 +53,12 @@ interface Props {
   saveState: 'saved' | 'saving' | 'dirty'
   highlightLines: number[]
   highlightNonce: number
+  pointAt: { selector: string | null; nonce: number } | null
+  onEscalate: (tier: number) => void
+  isPublic: boolean
+  onPublicChange: (isPublic: boolean) => void
+  showcaseOpen: boolean
+  onShowcaseDismiss: () => void
   consoleLogs: ConsoleEntry[]
   hasConsoleError: boolean
   onClearConsole: () => void
@@ -116,6 +124,12 @@ export default function MobileEditorShell({
   saveState,
   highlightLines,
   highlightNonce,
+  pointAt,
+  onEscalate,
+  isPublic,
+  onPublicChange,
+  showcaseOpen,
+  onShowcaseDismiss,
   consoleLogs,
   hasConsoleError,
   onClearConsole,
@@ -158,6 +172,7 @@ export default function MobileEditorShell({
             {lesson.title.split('—')[1]?.trim() ?? lesson.title}
           </span>
         )}
+        {lesson && <QuestTracker lesson={lesson} done={progress.done} />}
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -205,7 +220,7 @@ export default function MobileEditorShell({
 
         <div className={cn('absolute inset-0 flex flex-col', mobileTab === 'preview' ? '' : 'hidden')}>
           <div className="min-h-0 flex-1">
-            <Preview code={combinedHtml} />
+            <Preview code={combinedHtml} pointAt={pointAt} />
           </div>
           {showConsolePanel && (
             <div className="shrink-0 border-t-2 border-surface-600 bg-surface-900">
@@ -345,8 +360,18 @@ export default function MobileEditorShell({
             onClearSelection={onClearSelection}
             pendingPrompt={pendingPrompt}
             onPromptConsumed={onPromptConsumed}
+            onEscalate={onEscalate}
           />
         </div>
+
+        {showcaseOpen && (
+          <ShowcasePanel
+            projectId={project.id}
+            isPublic={isPublic}
+            onPublicChange={onPublicChange}
+            onDismiss={onShowcaseDismiss}
+          />
+        )}
       </div>
     </div>
   )

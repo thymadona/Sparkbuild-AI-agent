@@ -31,6 +31,12 @@ interface EditorProps {
   onClearSelection?: () => void;
   pendingPrompt?: string | null;
   onPromptConsumed?: () => void;
+  // Fired when the server reports the tutor escalated its help (see
+  // lib/task-guard.ts's escalationTier). Only called when the tier actually
+  // increases from what was last seen — the header stays elevated for every
+  // reply while a student keeps struggling, and this must not re-fire on
+  // each of those, just the moment it gets worse.
+  onEscalate?: (tier: number) => void;
 }
 
 function toChat(m: Message): ChatMessage {
@@ -52,8 +58,13 @@ export default function Editor({
   onClearSelection,
   pendingPrompt,
   onPromptConsumed,
+  onEscalate,
 }: EditorProps) {
   const [prompt, setPrompt] = useState("");
+  // Tracks the highest escalation tier seen so far, so onEscalate only fires
+  // when the tier actually climbs (1→2 or 2→3) rather than on every reply
+  // while a student keeps struggling at the same tier.
+  const lastEscalationTierRef = useRef(1);
   const messages = messagesProp.map(toChat);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -145,6 +156,13 @@ export default function Editor({
       } else {
         setNotice(null);
       }
+
+      const tierHeader = res.headers.get("X-Escalation-Tier");
+      const tier = tierHeader ? parseInt(tierHeader, 10) : 1;
+      if (tier > lastEscalationTierRef.current) {
+        onEscalate?.(tier);
+      }
+      lastEscalationTierRef.current = tier;
 
       const decoder = new TextDecoder();
       let accumulated = "";

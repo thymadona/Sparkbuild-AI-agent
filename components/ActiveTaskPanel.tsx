@@ -11,6 +11,7 @@ interface ActiveTaskPanelProps {
   isSaving: boolean
   saveError: string | null
   onMarkDone: () => void
+  onShowMe: () => void
 }
 
 /**
@@ -19,7 +20,7 @@ interface ActiveTaskPanelProps {
  * the task's checks. Shared by the Tasks and Homework side panels since a
  * student can only ever be actively working one task at a time.
  */
-export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMarkDone }: ActiveTaskPanelProps) {
+export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMarkDone, onShowMe }: ActiveTaskPanelProps) {
   // Checks need a DOM, so they cannot run during server rendering. Evaluating
   // them only after mount keeps the server and first client render identical —
   // otherwise the fail-open path reports every check as passed on the server and
@@ -41,15 +42,26 @@ export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMar
         <p className={`mb-2 text-center ${SCALE.check} text-fg-muted`}>Checking your code…</p>
       )}
 
-      <button
-        onClick={onMarkDone}
-        disabled={isSaving || !checksSatisfied}
-        className={`w-full rounded-lg border-2 border-surface-600 px-3 py-1.5 ${SCALE.button} font-bold shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:active:translate-x-0 disabled:active:translate-y-0 disabled:active:shadow-hard-sm ${
-          checksSatisfied ? 'bg-teal-500 hover:bg-teal-400 text-white' : 'bg-surface-600 text-fg-secondary'
-        }`}
-      >
-        {isSaving ? 'Saving…' : checksSatisfied ? 'Mark done ✓' : 'Not yet — keep going'}
-      </button>
+      <div className="flex gap-2">
+        {!checksSatisfied && (
+          <button
+            onClick={onShowMe}
+            className={`shrink-0 rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 ${SCALE.button} font-bold text-fg-secondary shadow-hard-sm transition-all hover:bg-surface-600 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none`}
+            title="Point at where this task lives in your code"
+          >
+            👉 Show me
+          </button>
+        )}
+        <button
+          onClick={onMarkDone}
+          disabled={isSaving || !checksSatisfied}
+          className={`flex-1 rounded-lg border-2 border-surface-600 px-3 py-1.5 ${SCALE.button} font-bold shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:active:translate-x-0 disabled:active:translate-y-0 disabled:active:shadow-hard-sm ${
+            checksSatisfied ? 'bg-teal-500 hover:bg-teal-400 text-white' : 'bg-surface-600 text-fg-secondary'
+          }`}
+        >
+          {isSaving ? 'Saving…' : checksSatisfied ? 'Mark done ✓' : 'Not yet — keep going'}
+        </button>
+      </div>
     </div>
   )
 }
