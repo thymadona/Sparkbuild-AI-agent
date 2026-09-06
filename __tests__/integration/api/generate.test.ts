@@ -328,9 +328,14 @@ describe('POST /api/generate', () => {
   describe('ask-mode escalation', () => {
     const ISO = (minute: number) => new Date(Date.UTC(2020, 0, 1, 0, minute)).toISOString()
 
-    async function systemPromptFor(user: Awaited<ReturnType<typeof makeUser>>, projectId: string, prompt: string) {
+    async function systemPromptFor(
+      user: Awaited<ReturnType<typeof makeUser>>,
+      projectId: string,
+      prompt: string,
+      files?: Record<string, string>
+    ) {
       mockCreate.mockResolvedValue(makeStreamChunks(['Try that.']))
-      const res = await POST(makeRequest({ prompt, projectId, mode: 'ask' }))
+      const res = await POST(makeRequest({ prompt, projectId, mode: 'ask', ...(files ? { files } : {}) }))
       const callArgs = mockCreate.mock.calls[0][0]
       const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
       await drain(res)
@@ -351,6 +356,58 @@ describe('POST /api/generate', () => {
 
       expect(system).toContain('TASK: identity')
       expect(system).not.toContain('ESCALATION LEVEL')
+    })
+
+    it('tells the tutor to compare against old text and not to mention other tasks', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+
+      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+
+      expect(system).toMatch(/not confirmed automatically/i)
+      expect(system).toContain('Hey, I’m Your Name.')
+      expect(system).toMatch(/do not bring up another task/i)
+    })
+
+    it('marks a sourceOmits check DONE once the file no longer has the old snippet', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await setLessonProgress(project.id, ['identity', 'interests'], ISO(0))
+
+      const system = await systemPromptFor(user, project.id, 'help me pick colors', {
+        'index.html': '<style>--pink: #123456; --purple: #654321; --yellow: #abcdef;</style>',
+      })
+
+      expect(system).toContain('TASK: palette')
+      expect(system).toContain('DONE')
+      expect(system).not.toContain('NOT DONE YET')
+    })
+
+    it('addresses the student by their session name', async () => {
+      const user = await makeUser({ name: 'Ada' })
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+
+      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+
+      expect(system).toContain("The student's name is Ada")
+    })
+
+    it('tells the tutor not to repeat its last reply on this task', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await makeMessages(project.id, user.id, [
+        { role: 'user', content: 'help me replace the name and intro', createdAt: ISO(1) },
+        { role: 'assistant', content: 'Find the intro and change the name.', createdAt: ISO(2) },
+      ])
+
+      const system = await systemPromptFor(user, project.id, 'still stuck')
+
+      expect(system).toContain('Find the intro and change the name.')
+      expect(system).toMatch(/do not repeat that wording/i)
     })
 
     it('escalates to tier 2 by the third turn', async () => {
