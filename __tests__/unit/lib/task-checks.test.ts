@@ -242,26 +242,26 @@ describe('highlightLinesForTask', () => {
     // .lead check sits on a different, untagged line — both must resolve to
     // their own line, distinct from the anchor.
     const lines = highlightLinesForTask(personalPage, 'TASK: identity', week1Task('identity').checks)
-    expect(lines).toEqual([42, 44, 45])
+    expect(lines).toEqual([192, 194, 195])
   })
 
   it('resolves a textChanged check whose text is split across sibling tags', () => {
     // interests' chip text is split across three <span class="chip"> siblings
     // with no whitespace between them in the DOM's textContent.
     const lines = highlightLinesForTask(personalPage, 'TASK: interests', week1Task('interests').checks)
-    expect(lines).toEqual([46, 47])
+    expect(lines).toEqual([196, 197])
   })
 
   it('dedupes when two checks on the same task resolve to the same line', () => {
-    // goal's h1 and .subtitle checks both land on line 21 in this template.
+    // goal's h1 and .subtitle checks both land on line 171 in this template.
     const lines = highlightLinesForTask(template, 'TASK: goal name', task('goal').checks)
-    expect(lines).toEqual([20, 21])
+    expect(lines).toEqual([170, 171])
   })
 
   it('deduplicates when multiple checks land on the same line', () => {
     // All three milestone cheers live on one minified line below the anchor.
     const lines = highlightLinesForTask(template, 'TASK: milestones', task('milestones').checks)
-    expect(lines).toEqual([29, 30])
+    expect(lines).toEqual([179, 180])
   })
 
   it('finds every line a sourceMatches pattern matches, not just the first', () => {
