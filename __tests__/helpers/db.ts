@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { db, rowsOf } from '@/lib/db/client'
 import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
-import { classMembers, classes, projects, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
+import { classMembers, classes, lessonProgress, messages, projects, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
 
 // Reference data created by drizzle/0001_functions_sequence_seed.sql. The
 // authorization functions join through these, so truncating them would make
@@ -76,6 +76,27 @@ export async function makeStudentProfile(userId: string, overrides: Partial<type
     .values({ userId, fullName: 'Test Student', ...overrides })
     .returning()
   return row
+}
+
+/** Upserts a project's lesson_progress row with an explicit `updatedAt` —
+ *  the escalation counter in /api/generate reads this timestamp as "when the
+ *  current task became open", so tests need it deterministic, not defaultNow(). */
+export async function setLessonProgress(projectId: string, completedTaskIds: string[], updatedAt: string) {
+  await db
+    .insert(lessonProgress)
+    .values({ projectId, completedTaskIds, updatedAt })
+    .onConflictDoUpdate({ target: lessonProgress.projectId, set: { completedTaskIds, updatedAt } })
+}
+
+/** Seeds chat messages with explicit `createdAt` timestamps — the escalation
+ *  counter compares/orders by this column, so ties or defaultNow() would make
+ *  which-message-is-"previous" nondeterministic. */
+export async function makeMessages(
+  projectId: string,
+  userId: string,
+  turns: { role: 'user' | 'assistant' | 'teacher'; content: string; createdAt: string }[]
+) {
+  await db.insert(messages).values(turns.map((turn) => ({ projectId, userId, ...turn })))
 }
 
 /** Creates a project owned by `userId`. Defaults to a lesson-1 project on the

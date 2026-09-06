@@ -46,7 +46,7 @@ import { eq } from 'drizzle-orm'
 import { POST } from '@/app/api/generate/route'
 import { db } from '@/lib/db/client'
 import { messages, projects, prompts } from '@/lib/db/schema'
-import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
+import { makeMessages, makeProject, makeUser, resetDb, setLessonProgress } from '@/__tests__/helpers/db'
 
 function makeRequest(body: object) {
   return new Request('http://localhost/api/generate', {
@@ -314,5 +314,199 @@ describe('POST /api/generate', () => {
     expect(userMessage.content).toContain('make it blue')
     expect(systemMessage.content).not.toContain(highlighted)
     await drain(res)
+  })
+
+  // ---- Ask-mode stuck-loop escalation ---------------------------------------
+  //
+  // Regression coverage for a real transcript: a student sent "help me replace
+  // the name and intro" 20+ times over ~24h on lesson 1's `identity` task and
+  // got the same reworded nudge every time, even after typing "how?" and
+  // "i don't know". These tests pin the fix: the tutor must escalate to a
+  // materially different tier after 2-3 unresolved turns, and confusion
+  // phrases must short-circuit straight to the strongest tier.
+
+  describe('ask-mode escalation', () => {
+    const ISO = (minute: number) => new Date(Date.UTC(2020, 0, 1, 0, minute)).toISOString()
+
+    async function systemPromptFor(user: Awaited<ReturnType<typeof makeUser>>, projectId: string, prompt: string) {
+      mockCreate.mockResolvedValue(makeStreamChunks(['Try that.']))
+      const res = await POST(makeRequest({ prompt, projectId, mode: 'ask' }))
+      const callArgs = mockCreate.mock.calls[0][0]
+      const systemMessage = callArgs.messages.find((m: { role: string }) => m.role === 'system')
+      await drain(res)
+      return systemMessage.content as string
+    }
+
+    beforeEach(() => {
+      mockGetSessionUser.mockClear()
+      mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
+    })
+
+    it('stays at tier 1 on the first turn (no escalation markers)', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+
+      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+
+      expect(system).toContain('TASK: identity')
+      expect(system).not.toContain('ESCALATION LEVEL')
+    })
+
+    it('escalates to tier 2 by the third turn', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      // Deliberately varied wording (not a verbatim repeat) so this isolates
+      // the turn-count path from the exact-repeat confusion short-circuit.
+      await makeMessages(project.id, user.id, [
+        { role: 'user', content: 'help me replace the name and intro', createdAt: ISO(1) },
+        { role: 'assistant', content: 'Find line 44, type your name.', createdAt: ISO(2) },
+        { role: 'user', content: 'still not sure what to type', createdAt: ISO(3) },
+        { role: 'assistant', content: 'Type your name on line 44.', createdAt: ISO(4) },
+      ])
+
+      const system = await systemPromptFor(user, project.id, 'ok what next')
+
+      expect(system).toContain('ESCALATION LEVEL 2')
+      expect(system).not.toContain('ESCALATION LEVEL 3')
+    })
+
+    it('escalates to tier 3 by the fifth turn', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await makeMessages(
+        project.id,
+        user.id,
+        Array.from({ length: 4 }, (_, i) => ({
+          role: 'assistant' as const,
+          content: `Find line 44, type your name. (nudge ${i})`,
+          createdAt: ISO(i + 1),
+        }))
+      )
+
+      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+
+      expect(system).toContain('ESCALATION LEVEL 3')
+      expect(system).not.toContain('ESCALATION LEVEL 2')
+    })
+
+    it.each(['how?', "i don't know"])(
+      'short-circuits straight to tier 3 when the student says "%s", even on turn 1',
+      async (confusedMessage) => {
+        const user = await makeUser()
+        const project = await makeProject(user.id)
+        mockGetSessionUser.mockResolvedValue(user)
+
+        const system = await systemPromptFor(user, project.id, confusedMessage)
+
+        expect(system).toContain('ESCALATION LEVEL 3')
+      }
+    )
+
+    it('short-circuits to tier 3 when the student repeats their previous message verbatim', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await makeMessages(project.id, user.id, [
+        { role: 'user', content: 'help me replace the name and intro', createdAt: ISO(1) },
+      ])
+
+      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+
+      expect(system).toContain('ESCALATION LEVEL 3')
+    })
+
+    it('resets the counter once the task is marked complete, at tier 1 for the next task', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await makeMessages(
+        project.id,
+        user.id,
+        Array.from({ length: 5 }, (_, i) => ({
+          role: 'assistant' as const,
+          content: `Find line 44, type your name. (nudge ${i})`,
+          createdAt: ISO(i + 1),
+        }))
+      )
+      await setLessonProgress(project.id, ['identity'], ISO(10))
+
+      const system = await systemPromptFor(user, project.id, 'how do I pick an interest?')
+
+      expect(system).toContain('TASK: interests')
+      expect(system).not.toContain('ESCALATION LEVEL')
+    })
+
+    it('uses success framing instead of a nudge right after a task completes', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await setLessonProgress(project.id, ['identity'], ISO(1))
+
+      const system = await systemPromptFor(user, project.id, 'what do I do next?')
+
+      expect(system).toContain('THE STUDENT JUST FINISHED: "Write your intro"')
+      expect(system).not.toContain('ESCALATION LEVEL')
+    })
+
+    it('caps homework at tier 2, never revealing the answer at tier 3', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await setLessonProgress(project.id, ['identity', 'interests', 'palette'], ISO(1))
+      await makeMessages(
+        project.id,
+        user.id,
+        Array.from({ length: 6 }, (_, i) => ({
+          role: 'assistant' as const,
+          content: `Add one more chip. (nudge ${i})`,
+          createdAt: ISO(i + 2),
+        }))
+      )
+
+      const system = await systemPromptFor(user, project.id, 'i still dont get it')
+
+      expect(system).toContain('ESCALATION LEVEL 2')
+      expect(system).not.toContain('ESCALATION LEVEL 3')
+      expect(system).toMatch(/hint only/i)
+    })
+
+    it('regression: the original stuck transcript escalates and never falls back to a flat repeat', async () => {
+      const user = await makeUser()
+      const project = await makeProject(user.id)
+      mockGetSessionUser.mockResolvedValue(user)
+      await makeMessages(project.id, user.id, [
+        { role: 'user', content: 'help me replace the name and intro', createdAt: ISO(1) },
+        { role: 'assistant', content: 'Find line 44, type your name.', createdAt: ISO(2) },
+        { role: 'user', content: 'help me replace the name and intro', createdAt: ISO(3) },
+        { role: 'assistant', content: 'Type your name on line 44.', createdAt: ISO(4) },
+        { role: 'user', content: 'how?', createdAt: ISO(5) },
+        { role: 'assistant', content: 'Find line 44, type your name.', createdAt: ISO(6) },
+        { role: 'user', content: 'how?', createdAt: ISO(7) },
+        { role: 'assistant', content: 'Look at line 44 and type your name there.', createdAt: ISO(8) },
+        { role: 'user', content: "i don't know", createdAt: ISO(9) },
+        { role: 'assistant', content: 'Find line 44, type your name.', createdAt: ISO(10) },
+      ])
+
+      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+      expect(system).toContain('ESCALATION LEVEL 3')
+
+      // Even after many more unresolved turns, tier 3 is the ceiling — the
+      // student must never fall back to the original flat-repeat behavior.
+      await makeMessages(
+        project.id,
+        user.id,
+        Array.from({ length: 15 }, (_, i) => ({
+          role: 'assistant' as const,
+          content: `Find line 44, type your name. (nudge ${i})`,
+          createdAt: ISO(11 + i),
+        }))
+      )
+      const systemLater = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+      expect(systemLater).toContain('ESCALATION LEVEL 3')
+      expect(systemLater).not.toContain('ESCALATION LEVEL 2')
+    })
   })
 })

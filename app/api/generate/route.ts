@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type OpenAI from 'openai'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, gt } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { lessonProgress, messages, projects, prompts, userBuildMode } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
@@ -8,7 +8,7 @@ import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/g
 import { checkRateLimit } from '@/lib/ratelimit'
 import { isCodeResponse, parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 import { getLessonForProject } from '@/lib/lessons'
-import { buildTaskNudge, pendingCoreTask } from '@/lib/task-guard'
+import { buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { cached } from '@/lib/cache'
 import { getSessionUser } from '@/lib/auth/session'
@@ -84,13 +84,17 @@ export async function POST(req: Request) {
 
   // 3a. Lesson guard — while a core task is open, the student writes the code.
   let openTask = null
+  let lesson = null
+  let tier: 1 | 2 | 3 = 1
+  let stuckTurns = 0
+  let justCompleted = null
   if (project.lesson_id != null) {
-    const lesson = getLessonForProject(project.lesson_id, project.lesson_version)
+    lesson = getLessonForProject(project.lesson_id, project.lesson_version)
     // Short TTL backstop only — the PUT lesson-progress route explicitly
     // invalidates this key, since it directly feeds build-mode gating.
     const progress = await cached(`lesson-progress:${projectId}`, 15, async () => {
       const [row] = await db
-        .select({ completed_task_ids: lessonProgress.completedTaskIds })
+        .select({ completed_task_ids: lessonProgress.completedTaskIds, updated_at: lessonProgress.updatedAt })
         .from(lessonProgress)
         .where(eq(lessonProgress.projectId, projectId))
         .limit(1)
@@ -98,6 +102,38 @@ export async function POST(req: Request) {
       return row ?? null
     })
     openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
+
+    // A cache entry written before this field existed can still be live (15s
+    // TTL) right after deploy — treat that as "unknown" (tier 1) rather than
+    // as "no row", which would wrongly count every message on the project.
+    const progressTimestampKnown = progress === null || progress.updated_at !== undefined
+
+    if (openTask && progressTimestampKnown) {
+      // ponytail: reads lesson_progress.updated_at as "when the current task
+      // became open" — true only while the lesson-progress PUT route
+      // (markDone/resetProgress) remains the sole writer to that column.
+      const recent = await db
+        .select({ role: messages.role, content: messages.content })
+        .from(messages)
+        .where(
+          progress?.updated_at
+            ? and(eq(messages.projectId, projectId), gt(messages.createdAt, progress.updated_at))
+            : eq(messages.projectId, projectId)
+        )
+        .orderBy(desc(messages.createdAt))
+        .limit(12)
+
+      stuckTurns = recent.filter((m) => m.role === 'assistant').length
+      const prevUserMessage = recent.find((m) => m.role === 'user')?.content
+      tier = escalationTier(stuckTurns, detectConfusion(prompt, prevUserMessage), openTask.type === 'homework')
+
+      if (recent.length === 0) {
+        // ponytail: last element is the newest completed task (client sends
+        // an insertion-ordered Set). Names the wrong chip at worst.
+        const justCompletedId = progress?.completed_task_ids?.at(-1)
+        justCompleted = lesson?.tasks.find((t) => t.id === justCompletedId) ?? null
+      }
+    }
   }
 
   // 3b. Resolve effective mode — check per-user permission (server is authoritative)
@@ -141,11 +177,22 @@ export async function POST(req: Request) {
 
   const systemContent = [
     BASE_SYSTEM_PROMPT,
-    openTask ? buildTaskNudge(openTask) : '',
+    justCompleted
+      ? `THE STUDENT JUST FINISHED: "${justCompleted.chip}". Open with one warm, specific sentence about that before anything else. Do not sound like a hint.`
+      : '',
+    openTask ? buildTaskNudge(openTask, tier) : '',
     filesContext ? `Current project files:\n${filesContext}` : '',
   ]
     .filter(Boolean)
     .join('\n\n')
+
+  // Requirement: surface every stuck-loop escalation so it shows up in
+  // analytics instead of only being found by manually reading transcripts.
+  if (tier >= 2) {
+    console.log(
+      `[tutor escalation] project=${projectId} lesson=${project.lesson_id} task=${openTask?.id} turns=${stuckTurns} tier=${tier}`
+    )
+  }
 
   const userContent = selectedCode
     ? `Selected code:\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${prompt}`
@@ -260,6 +307,7 @@ export async function POST(req: Request) {
       // Lets the client explain why a build request came back as tutoring.
       'X-Effective-Mode': effectiveMode,
       ...(openTask ? { 'X-Open-Task': openTask.id } : {}),
+      ...(tier > 1 ? { 'X-Escalation-Tier': String(tier) } : {}),
     },
   })
 }
