@@ -23,6 +23,9 @@ interface UseLessonProgressArgs {
   // Fired only after a task is actually saved as done — the cue for things
   // like a completion celebration, which should never fire on a failed save.
   onComplete?: (task: LessonTask) => void
+  // Fired once, the moment the last non-homework task is saved as done — the
+  // cue for the bigger, lesson-wide celebration and the showcase panel.
+  onAllComplete?: () => void
 }
 
 /**
@@ -30,7 +33,7 @@ interface UseLessonProgressArgs {
  * panels. Both act on the same lesson and the same "done" set, so the state
  * has to live above either panel rather than be duplicated in each.
  */
-export function useLessonProgress({ lesson, projectId, code, initialCompletedTaskIds, initialSubmissionStatus = null, onHighlight, onPrompt, onComplete }: UseLessonProgressArgs) {
+export function useLessonProgress({ lesson, projectId, code, initialCompletedTaskIds, initialSubmissionStatus = null, onHighlight, onPrompt, onComplete, onAllComplete }: UseLessonProgressArgs) {
   const tasks = lesson?.tasks ?? []
   const [done, setDone] = useState(() => new Set(initialCompletedTaskIds))
   const [activeIndex, setActiveIndex] = useState(() => firstUnfinishedTaskIndex(tasks, new Set(initialCompletedTaskIds)))
@@ -48,6 +51,14 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
     setActiveIndex(index)
     onHighlight(highlightLinesForTask(code, task.commentAnchor, task.checks))
     onPrompt(task.prompt)
+  }
+
+  // Re-triggers the pointer for the currently active task without touching
+  // the chat draft — activateTask's onPrompt call would overwrite whatever
+  // the student is mid-typing, which a "Show me" click must not do.
+  function pointAtActiveTask() {
+    if (!activeTask) return
+    onHighlight(highlightLinesForTask(code, activeTask.commentAnchor, activeTask.checks))
   }
 
   async function markDone(index: number) {
@@ -69,6 +80,10 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
       if (!response.ok) throw new Error('Could not save progress')
       setActiveIndex(firstUnfinishedTaskIndex(tasks, nextDone))
       onComplete?.(task)
+      const gradedTasks = tasks.filter((t) => t.type !== 'homework')
+      if (gradedTasks.length > 0 && gradedTasks.every((t) => nextDone.has(t.id))) {
+        onAllComplete?.()
+      }
     } catch {
       setDone(done)
       setSaveError('Your task was not saved. Please try again.')
@@ -119,6 +134,7 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
     isSubmitting,
     submitError,
     activateTask,
+    pointAtActiveTask,
     markDone,
     resetProgress,
     submitHomework,

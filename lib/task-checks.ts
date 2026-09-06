@@ -137,3 +137,11 @@ export function highlightLinesForTask(code: string, commentAnchor: string, check
 
   return Array.from(found).sort((a, b) => a - b)
 }
+
+// The one live DOM target a task can be pointed at in the preview iframe.
+// Only `textChanged` checks name an element — `sourceOmits`/`sourceMatches`
+// checks (CSS variables, script hooks) have no corresponding element, so
+// those tasks legitimately get no preview mirror, just the code highlight.
+export function getPreviewSelectorForTask(checks?: TaskCheck[]): string | null {
+  return checks?.find((check): check is Extract<TaskCheck, { kind: 'textChanged' }> => check.kind === 'textChanged')?.selector ?? null
+}

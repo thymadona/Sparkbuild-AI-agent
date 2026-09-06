@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { LESSONS } from '@/lib/lessons'
-import { allChecksPassed, firstUnmetCheck, highlightLinesForTask, runTaskChecks } from '@/lib/task-checks'
+import { allChecksPassed, firstUnmetCheck, getPreviewSelectorForTask, highlightLinesForTask, runTaskChecks } from '@/lib/task-checks'
 import fs from 'fs'
 import path from 'path'
 
@@ -276,5 +276,24 @@ describe('highlightLinesForTask', () => {
       highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [{ kind: 'sourceMatches', pattern: '([unclosed', label: 'l', hint: 'h' }]),
     ).not.toThrow()
     expect(highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [{ kind: 'sourceMatches', pattern: '([unclosed', label: 'l', hint: 'h' }])).toEqual([1])
+  })
+})
+
+describe('getPreviewSelectorForTask', () => {
+  it('returns the first textChanged selector for a task that has one', () => {
+    expect(getPreviewSelectorForTask(week1Task('identity').checks)).toBe('h1')
+    expect(getPreviewSelectorForTask(week1Task('interests').checks)).toBe('.chips')
+    expect(getPreviewSelectorForTask(week1Task('spotlight').checks)).toBe('.spotlight p')
+  })
+
+  it('returns null for a task with no live DOM target', () => {
+    // palette only changes CSS variables, mood only changes a script's data —
+    // neither has an element in the rendered page to point at.
+    expect(getPreviewSelectorForTask(week1Task('palette').checks)).toBeNull()
+    expect(getPreviewSelectorForTask(week1Task('mood').checks)).toBeNull()
+  })
+
+  it('returns null for no checks', () => {
+    expect(getPreviewSelectorForTask(undefined)).toBeNull()
   })
 })

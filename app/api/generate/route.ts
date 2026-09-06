@@ -178,7 +178,7 @@ export async function POST(req: Request) {
   const systemContent = [
     BASE_SYSTEM_PROMPT,
     justCompleted
-      ? `THE STUDENT JUST FINISHED: "${justCompleted.chip}". Open with one warm, specific sentence about that before anything else. Do not sound like a hint.`
+      ? `THE STUDENT JUST FINISHED: "${justCompleted.chip}". Open with one warm, specific sentence about that before anything else, using their name (${user.name}) naturally somewhere in this reply. Do not sound like a hint. Look at your own last few replies above — do not open the same way you opened last time.`
       : '',
     openTask ? buildTaskNudge(openTask, tier) : '',
     filesContext ? `Current project files:\n${filesContext}` : '',

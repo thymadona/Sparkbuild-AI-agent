@@ -67,6 +67,16 @@ const highlightTheme = EditorView.baseTheme({
   '.cm-lesson-highlight': {
     backgroundColor: 'rgba(99, 102, 241, 0.25) !important',
     borderLeft: '2px solid #818cf8',
+    // A few pulses of the app's brand/secondary colors on top of the steady
+    // highlight above, then settles — CSS-only, restarts for free whenever
+    // CodeMirror recreates this decoration node (every addHighlight dispatch,
+    // including a repeat "Show me" click via highlightNonce).
+    animation: 'cm-lesson-pulse 0.7s ease-out 3',
+  },
+  '@keyframes cm-lesson-pulse': {
+    '0%': { boxShadow: '0 0 0 0 rgba(253, 103, 153, 0.6)' },
+    '70%': { boxShadow: '0 0 0 8px rgba(253, 103, 153, 0)' },
+    '100%': { boxShadow: '0 0 0 0 rgba(253, 103, 153, 0)' },
   },
 })
 

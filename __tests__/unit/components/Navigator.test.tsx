@@ -4,9 +4,16 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import Navigator from '@/components/Navigator'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
+import { CORE_COMPLETE_PHRASES } from '@/lib/celebration-phrases'
 import type { Lesson } from '@/lib/lessons'
 import type { SubmissionStatus } from '@/types'
 import type { ClassSlot } from '@/lib/schedule'
+
+// The core-complete banner now rotates through a phrase bank instead of one
+// fixed string — match membership rather than exact text.
+function coreCompleteBanner() {
+  return screen.getByText((content) => CORE_COMPLETE_PHRASES.includes(content))
+}
 
 // Every task carries a check keyed to a marker string, so tests can control
 // whether a task is "solved" by including or omitting the marker from the
@@ -125,7 +132,7 @@ describe('Navigator', () => {
   it('celebrates completed core tasks while keeping bonuses optional', () => {
     renderNavigator(['intro', 'colors', 'theme'])
 
-    expect(screen.getByText('🎉 Core mission complete!')).toBeInTheDocument()
+    expect(coreCompleteBanner()).toBeInTheDocument()
     expect(screen.getByText('Bonus challenges: 0/1')).toBeInTheDocument()
   })
 
@@ -137,7 +144,7 @@ describe('Navigator', () => {
     fireEvent.click(await screen.findByRole('button', { name: /mark done/i }))
 
     await waitFor(() => expect(screen.getByText('Bonus challenges: 1/1')).toBeInTheDocument())
-    expect(screen.getByText('🎉 Core mission complete!')).toBeInTheDocument()
+    expect(coreCompleteBanner()).toBeInTheDocument()
   })
 
   it('does not show a tutor shortcut section', () => {

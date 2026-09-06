@@ -1,12 +1,42 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Lesson } from '@/lib/lessons'
 import { SCALE, TASK_LABELS } from '@/lib/lesson-ui'
 import ActiveTaskPanel from '@/components/ActiveTaskPanel'
 import SpeakButton from '@/components/SpeakButton'
 import { dueLabel, nextClassMeeting, type ClassSlot } from '@/lib/schedule'
 import type { useLessonProgress } from '@/hooks/useLessonProgress'
+import { CORE_COMPLETE_PHRASES, ALL_COMPLETE_PHRASES, pickPhrase } from '@/lib/celebration-phrases'
+
+// Picks once per banner per session, avoiding whatever this browser tab last
+// showed so reloading mid-lesson doesn't feel like a loop. Starts on bank[0]
+// (matches server and first client render, same "no sessionStorage during
+// SSR" reasoning as ActiveTaskPanel's mounted-gated checks) and swaps to the
+// real pick right after mount.
+function useSessionPhrase(bank: string[], storageKey: string) {
+  const [phrase, setPhrase] = useState(bank[0])
+
+  useEffect(() => {
+    let last: string | null = null
+    try {
+      last = sessionStorage.getItem(storageKey)
+    } catch {
+      // sessionStorage can throw in a locked-down browser context — fall
+      // back to no history, still picks a phrase either way.
+    }
+    const next = pickPhrase(bank, last)
+    setPhrase(next)
+    try {
+      sessionStorage.setItem(storageKey, next)
+    } catch {
+      // best-effort only
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return phrase
+}
 
 interface NavigatorProps {
   lesson: Lesson
@@ -17,8 +47,10 @@ interface NavigatorProps {
 }
 
 export default function Navigator({ lesson, code, progress, classSlots = [] }: NavigatorProps) {
-  const { done, activeIndex, activeTask, isSaving, saveError, submission, isSubmitting, submitError, activateTask, markDone, submitHomework } = progress
+  const { done, activeIndex, activeTask, isSaving, saveError, submission, isSubmitting, submitError, activateTask, pointAtActiveTask, markDone, submitHomework } = progress
   const [homeworkOpen, setHomeworkOpen] = useState(false)
+  const coreCompletePhrase = useSessionPhrase(CORE_COMPLETE_PHRASES, 'sparks:core-complete-phrase')
+  const allCompletePhrase = useSessionPhrase(ALL_COMPLETE_PHRASES, 'sparks:all-complete-phrase')
 
   const coreTasks = lesson.tasks.filter((task) => task.type === 'core')
   const completedCore = coreTasks.filter((task) => done.has(task.id)).length
@@ -71,14 +103,14 @@ export default function Navigator({ lesson, code, progress, classSlots = [] }: N
 
         {coreComplete && (
           <div className="rounded-xl border-2 border-surface-600 bg-teal-50 px-4 py-3 text-center shadow-hard-sm dark:bg-teal-900/20">
-            <p className="text-base font-semibold text-teal-700 dark:text-teal-300">🎉 Core mission complete!</p>
+            <p className="text-base font-semibold text-teal-700 dark:text-teal-300">{coreCompletePhrase}</p>
             <p className={`mt-1 ${SCALE.meta} text-teal-700/80 dark:text-teal-300/80`}>Your project works. Try a creative choice or bonus when you are ready.</p>
           </div>
         )}
 
         {allDone && (
           <div className="rounded-xl border-2 border-surface-600 bg-amber-50 px-4 py-3 text-center shadow-hard-sm dark:bg-amber-900/20">
-            <p className="text-base font-semibold text-amber-700 dark:text-amber-300">✨ Every challenge complete. Nice work!</p>
+            <p className="text-base font-semibold text-amber-700 dark:text-amber-300">{allCompletePhrase}</p>
           </div>
         )}
 
@@ -236,6 +268,7 @@ export default function Navigator({ lesson, code, progress, classSlots = [] }: N
           isSaving={isSaving}
           saveError={saveError}
           onMarkDone={() => markDone(activeIndex)}
+          onShowMe={pointAtActiveTask}
         />
       )}
     </div>

@@ -31,6 +31,7 @@ function tree(onMarkDone: () => void = () => {}) {
       isSaving={false}
       saveError={null}
       onMarkDone={onMarkDone}
+      onShowMe={() => {}}
     />
   )
 }
@@ -80,9 +81,10 @@ describe('ActiveTaskPanel server rendering', () => {
 
     spy.mockRestore()
     expect(errors.filter((message) => /hydrat/i.test(message))).toEqual([])
-    // After mount the checks have run against the starter file: nothing passes.
-    const button = container.querySelector('button')!
-    expect(button.textContent).toContain('Not yet')
+    // After mount the checks have run against the starter file: nothing
+    // passes. A "Show me" button now renders alongside Mark done, so select
+    // by text rather than assuming button order.
+    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Not yet'))!
     expect(button.disabled).toBe(true)
 
     await act(async () => { button.click() })

@@ -3,12 +3,16 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import type { EditorView } from '@uiw/react-codemirror'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@/components/Editor'
 import Preview, { type PickedElement } from '@/components/Preview'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
 import ConfettiBurst from '@/components/ConfettiBurst'
+import SparkFly, { type SparkFlyTrigger } from '@/components/SparkFly'
+import QuestTracker from '@/components/QuestTracker'
+import ShowcasePanel from '@/components/ShowcasePanel'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import MobileEditorShell from './MobileEditorShell'
@@ -16,6 +20,7 @@ import EditorLoading from './loading'
 import { buildCombinedHtml } from '@/lib/combine'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { getPreviewSelectorForTask } from '@/lib/task-checks'
 import type { Project, Message } from '@/types'
 import type { Lesson } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
@@ -44,6 +49,35 @@ function getLanguage(filename: string): 'html' | 'css' | 'js' {
   if (filename.endsWith('.css')) return 'css'
   if (filename.endsWith('.js')) return 'js'
   return 'html'
+}
+
+// A short, cheerful ascending chime for the all-tasks-done moment — no audio
+// asset or dependency, just a couple of oscillator notes. Browsers that
+// block autoplaying audio (or have no AudioContext at all) just get no
+// sound; the confetti and banner still carry the moment.
+function playCelebrationChime() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!Ctx) return
+    const ctx = new Ctx()
+    const notes = [523.25, 659.25, 783.99] // C5, E5, G5
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.value = freq
+      const start = ctx.currentTime + i * 0.12
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.3)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(start)
+      osc.stop(start + 0.32)
+    })
+    setTimeout(() => ctx.close(), 900)
+  } catch {
+    // Best-effort only — silence is a fine fallback.
+  }
 }
 
 export default function EditorLayout({ project, initialMessages, lesson, initialCompletedTaskIds, userEmail, classSlots = [] }: Props) {
@@ -94,6 +128,13 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [highlightNonce, setHighlightNonce] = useState(0)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const [confettiTrigger, setConfettiTrigger] = useState<string | null>(null)
+  const [bigConfettiTrigger, setBigConfettiTrigger] = useState<string | null>(null)
+  const [pointAt, setPointAt] = useState<{ selector: string | null; nonce: number } | null>(null)
+  const [sparkTrigger, setSparkTrigger] = useState<SparkFlyTrigger | null>(null)
+  const [isPublic, setIsPublic] = useState(project.is_public)
+  const [showcaseOpen, setShowcaseOpen] = useState(false)
+  const sidePanelRef = useRef<HTMLDivElement>(null)
+  const codeViewRef = useRef<EditorView | null>(null)
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const sideWidthRef = useRef(420)
   const dragStartX = useRef(0)
@@ -276,7 +317,43 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     // Unique per completion so re-completing the same task id (in theory)
     // still fires a fresh burst.
     onComplete: (task) => setConfettiTrigger(`${task.id}:${Date.now()}`),
+    onAllComplete: () => {
+      setBigConfettiTrigger(`all:${Date.now()}`)
+      setShowcaseOpen(true)
+      playCelebrationChime()
+    },
   })
+
+  // Mirrors "Show me" (and an auto-escalation trigger) onto the preview and
+  // fires the flying spark once the target line and its screen position are
+  // both known. Runs after highlightNonce changes rather than inline in the
+  // trigger itself, since the code tab may need a render to mount before its
+  // CodeMirror view exists.
+  useEffect(() => {
+    if (!progress.activeTask || highlightLines.length === 0) return
+    setPointAt({ selector: getPreviewSelectorForTask(progress.activeTask.checks), nonce: highlightNonce })
+
+    // ponytail: a fixed delay for the code tab/CodeMirror scroll to settle
+    // before reading coordinates, rather than observing layout directly —
+    // upgrade to a rAF-polling wait if this proves flaky on slower devices.
+    const timer = setTimeout(() => {
+      const view = codeViewRef.current
+      const origin = sidePanelRef.current?.getBoundingClientRect()
+      if (!view || !origin) return
+      const doc = view.state.doc
+      const lineNumber = highlightLines[0]
+      if (lineNumber < 1 || lineNumber > doc.lines) return
+      const coords = view.coordsAtPos(doc.line(lineNumber).from)
+      if (!coords) return
+      setSparkTrigger({
+        id: `${highlightNonce}:${Date.now()}`,
+        origin: { x: origin.left + origin.width / 2, y: origin.top + origin.height / 2 },
+        dest: { x: coords.left, y: (coords.top + coords.bottom) / 2 },
+      })
+    }, 80)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightNonce])
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -410,6 +487,12 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         saveState={saveState}
         highlightLines={highlightLines}
         highlightNonce={highlightNonce}
+        pointAt={pointAt}
+        onEscalate={(tier) => { if (tier >= 2) progress.pointAtActiveTask() }}
+        isPublic={isPublic}
+        onPublicChange={setIsPublic}
+        showcaseOpen={showcaseOpen}
+        onShowcaseDismiss={() => setShowcaseOpen(false)}
         consoleLogs={consoleLogs}
         hasConsoleError={hasConsoleError}
         onClearConsole={() => setConsoleLogs([])}
@@ -427,6 +510,8 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   return (
     <div className="flex h-screen flex-col bg-surface-900 font-body">
       <ConfettiBurst trigger={confettiTrigger} />
+      <ConfettiBurst trigger={bigConfettiTrigger} size="big" />
+      <SparkFly trigger={sparkTrigger} />
       {/* Top bar */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b-2 border-surface-600 bg-surface-800 px-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -444,6 +529,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               {lesson.title.split('—')[1]?.trim() ?? lesson.title}
             </span>
           )}
+          {lesson && <QuestTracker lesson={lesson} done={progress.done} />}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -453,7 +539,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
           {savingTitle && <span className="text-xs text-fg-muted shrink-0">Saving...</span>}
         </div>
         <div className="flex items-center gap-4 text-sm shrink-0">
-          {project.is_public && (
+          {isPublic && (
             <button
               onClick={() => navigator.clipboard.writeText(`${window.location.origin}/share/${project.id}`)}
               className="text-xs text-fg-secondary hover:text-fg-primary transition-colors"
@@ -477,6 +563,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
             0 in the one state with nothing to show: a free-form project
             with chat undocked (floating instead). */}
         <div
+          ref={sidePanelRef}
           className={`flex flex-col border-r-2 border-surface-600 bg-surface-800 overflow-hidden shrink-0 ${previewBlocked ? '' : 'transition-[width] duration-200'}`}
           style={{ width: (lesson !== null || chatDocked) ? sideWidth : 0 }}
         >
@@ -589,6 +676,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                         onClearSelection={() => setSelectedCode(null)}
                         pendingPrompt={pendingPrompt}
                         onPromptConsumed={() => setPendingPrompt(null)}
+                        onEscalate={(tier) => { if (tier >= 2) progress.pointAtActiveTask() }}
                       />
                     </div>
                   </div>
@@ -609,6 +697,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                     onClearSelection={() => setSelectedCode(null)}
                     pendingPrompt={pendingPrompt}
                     onPromptConsumed={() => setPendingPrompt(null)}
+                    onEscalate={(tier) => { if (tier >= 2) progress.pointAtActiveTask() }}
                   />
                 </div>
               )}
@@ -769,6 +858,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   saveState={saveState}
                   highlightLines={highlightLines}
                   highlightNonce={highlightNonce}
+                  onViewReady={(view) => { codeViewRef.current = view }}
                   onSelectionChange={(sel) => {
                     setSelectedCode(toSelectedCode(sel))
                     if (sel) {
@@ -779,7 +869,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               </Panel>
               <PanelResizeHandle className="w-1 bg-surface-600 hover:bg-brand-500 cursor-col-resize transition-colors" />
               <Panel defaultSize={50} minSize={20}>
-                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
+                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} pointAt={pointAt} />
               </Panel>
             </PanelGroup>
           ) : (
@@ -795,6 +885,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   saveState={saveState}
                   highlightLines={highlightLines}
                   highlightNonce={highlightNonce}
+                  onViewReady={(view) => { codeViewRef.current = view }}
                   onSelectionChange={(sel) => {
                     setSelectedCode(toSelectedCode(sel))
                     if (sel) {
@@ -806,7 +897,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
               {/* Preview — always mounted so iframe never reloads on tab switch */}
               <div className={`absolute inset-0 ${rightTab === 'preview' ? '' : 'invisible pointer-events-none'}`}>
-                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
+                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} pointAt={pointAt} />
               </div>
 
               {/* Console */}
@@ -857,6 +948,15 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 </div>
               )}
             </div>
+          )}
+
+          {showcaseOpen && (
+            <ShowcasePanel
+              projectId={project.id}
+              isPublic={isPublic}
+              onPublicChange={setIsPublic}
+              onDismiss={() => setShowcaseOpen(false)}
+            />
           )}
 
           {/* Floating chat bubble — the only trigger for chat while it's
@@ -932,6 +1032,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   onClearSelection={() => setSelectedCode(null)}
                   pendingPrompt={pendingPrompt}
                   onPromptConsumed={() => setPendingPrompt(null)}
+                  onEscalate={(tier) => { if (tier >= 2) progress.pointAtActiveTask() }}
                 />
               </div>
             </div>

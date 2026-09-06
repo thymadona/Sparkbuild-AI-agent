@@ -16,6 +16,11 @@ interface PreviewProps {
   // the element back instead of running the page's own handler.
   inspectMode?: boolean
   onInspectPick?: (element: PickedElement) => void
+  // Mirrors the code editor's "Show me" pointer onto the matching preview
+  // element. Bump `nonce` to re-fire on the same selector (e.g. a repeat
+  // click). `selector` is null for tasks with no live DOM target (a CSS
+  // variable, a script hook) — nothing is posted in that case.
+  pointAt?: { selector: string | null; nonce: number } | null
 }
 
 const CONSOLE_INTERCEPTOR = `<script>
@@ -103,16 +108,61 @@ const INSPECTOR = `<script>
     armed = false
     clearHighlight()
   }, true)
+
+  // "Show me" pointer mirror — separate from the hover/click inspect flow
+  // above, and from its overlay div (a pulsing ring, not a steady fill), so
+  // the two never fight over the same element.
+  var pointOverlay = null
+  var pointTimer = null
+  function ensurePointOverlay() {
+    if (pointOverlay) return pointOverlay
+    pointOverlay = document.createElement('div')
+    pointOverlay.style.cssText = 'position:fixed;pointer-events:none;z-index:2147483647;' +
+      'border:2px solid rgb(253,103,153);border-radius:4px;display:none;' +
+      'animation:cm-point-pulse 0.7s ease-out 3;'
+    var style = document.createElement('style')
+    style.textContent = '@keyframes cm-point-pulse{' +
+      '0%{box-shadow:0 0 0 0 rgba(253,103,153,0.6)}' +
+      '70%{box-shadow:0 0 0 8px rgba(253,103,153,0)}' +
+      '100%{box-shadow:0 0 0 0 rgba(253,103,153,0)}' +
+      '}'
+    document.documentElement.appendChild(style)
+    document.documentElement.appendChild(pointOverlay)
+    return pointOverlay
+  }
+  function pointAt(selector) {
+    var el = selector && document.querySelector(selector)
+    if (!el) return
+    var o = ensurePointOverlay()
+    var r = el.getBoundingClientRect()
+    o.style.left = r.left + 'px'
+    o.style.top = r.top + 'px'
+    o.style.width = r.width + 'px'
+    o.style.height = r.height + 'px'
+    // Restart the CSS animation on repeat calls for the same element.
+    o.style.display = 'none'
+    o.style.animation = 'none'
+    void o.offsetWidth
+    o.style.animation = 'cm-point-pulse 0.7s ease-out 3'
+    o.style.display = 'block'
+    clearTimeout(pointTimer)
+    pointTimer = setTimeout(function() { o.style.display = 'none' }, 1600)
+  }
+
   window.addEventListener('message', function(e) {
-    if (!e.data || e.data.type !== '__inspect_arm__') return
-    armed = !!e.data.on
-    if (!armed) clearHighlight()
+    if (!e.data) return
+    if (e.data.type === '__inspect_arm__') {
+      armed = !!e.data.on
+      if (!armed) clearHighlight()
+    } else if (e.data.type === '__point_at__') {
+      pointAt(e.data.selector)
+    }
   })
   window.parent.postMessage({ type: '__inspect_ready__' }, '*')
 })()
 </script>`
 
-export default function Preview({ code, isDragging, inspectMode = false, onInspectPick }: PreviewProps) {
+export default function Preview({ code, isDragging, inspectMode = false, onInspectPick, pointAt }: PreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const injected = code ? code.replace(/<head>/i, '<head>' + CONSOLE_INTERCEPTOR + INSPECTOR) : code
 
@@ -136,6 +186,14 @@ export default function Preview({ code, isDragging, inspectMode = false, onInspe
   useEffect(() => {
     iframeRef.current?.contentWindow?.postMessage({ type: '__inspect_arm__', on: inspectMode }, '*')
   }, [inspectMode])
+
+  useEffect(() => {
+    if (!pointAt?.selector) return
+    iframeRef.current?.contentWindow?.postMessage({ type: '__point_at__', selector: pointAt.selector }, '*')
+    // pointAt.nonce is in the deps (unused in the body) as the re-fire
+    // trigger — e.g. a repeat "Show me" click on the same selector, which
+    // selector alone wouldn't change and so wouldn't rerun this effect.
+  }, [pointAt?.selector, pointAt?.nonce])
 
   if (!code) {
     return (
