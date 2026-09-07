@@ -139,3 +139,18 @@ export function homeworkComplete(lesson: Lesson | null, completedTaskIds: string
   const done = new Set(completedTaskIds)
   return homework.every((task) => done.has(task.id))
 }
+
+/**
+ * True when this task can't be started yet. Core tasks unlock one at a time,
+ * in catalog order. Choice and bonus are optional extras — they unlock
+ * together once every core task is done, but never block each other, same as
+ * homework's existing coreComplete gate.
+ */
+export function isTaskLocked(tasks: LessonTask[], index: number, completed: Set<string>): boolean {
+  const task = tasks[index]
+  if (!task || task.type === 'homework') return false
+  if (task.type === 'core') {
+    return tasks.slice(0, index).some((t) => t.type === 'core' && !completed.has(t.id))
+  }
+  return tasks.some((t) => t.type === 'core' && !completed.has(t.id))
+}

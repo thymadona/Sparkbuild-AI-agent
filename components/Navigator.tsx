@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { Lesson, LessonTask } from '@/lib/lessons'
+import { isTaskLocked } from '@/lib/task-guard'
 import { SCALE, TASK_LABELS } from '@/lib/lesson-ui'
 import ActiveTaskPanel from '@/components/ActiveTaskPanel'
 import SpeakButton from '@/components/SpeakButton'
@@ -88,14 +89,15 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
           {lesson.tasks.map((task, index) => {
             if (task.type === 'homework') return null
             const isDone = done.has(task.id)
+            const locked = isTaskLocked(lesson.tasks, index, done)
             const isActive = activeIndex === index && !isDone
             return (
               <button
                 key={task.id}
                 onClick={() => activateTask(index)}
-                disabled={isDone}
+                disabled={isDone || locked}
                 className={`flex items-start gap-2 rounded-lg border-2 px-2.5 py-2 text-left transition-all disabled:cursor-default ${SCALE.chip} ${
-                  isDone
+                  isDone || locked
                     ? 'border-surface-600 bg-transparent text-fg-muted opacity-60'
                     : isActive
                       ? 'border-brand-500 bg-surface-800 text-fg-primary shadow-hard-sm'
@@ -105,11 +107,18 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
                 <span className={`mt-0.5 shrink-0 flex items-center justify-center rounded-full font-bold h-5 w-5 text-[11px] border-2 ${
                   isDone
                     ? 'border-surface-600 bg-teal-400 text-slate-900'
-                    : isActive
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-surface-600 bg-surface-700 text-fg-muted'
+                    : locked
+                      ? 'border-surface-600 bg-surface-700 text-fg-muted'
+                      : isActive
+                        ? 'border-brand-500 bg-brand-500 text-white'
+                        : 'border-surface-600 bg-surface-700 text-fg-muted'
                 }`}>
-                  {isDone ? '✓' : index + 1}
+                  {isDone ? '✓' : locked ? (
+                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <rect x="4" y="10" width="16" height="10" rx="2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 018 0v3" />
+                    </svg>
+                  ) : index + 1}
                 </span>
                 <span className="min-w-0">
                   <span className={`block ${SCALE.label} text-fg-muted`}>{TASK_LABELS[task.type]}</span>

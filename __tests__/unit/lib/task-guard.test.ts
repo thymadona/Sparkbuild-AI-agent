@@ -5,6 +5,7 @@ import {
   escalationTier,
   homeworkComplete,
   homeworkTasks,
+  isTaskLocked,
   pendingCoreTask,
 } from '@/lib/task-guard'
 import { runTaskChecks } from '@/lib/task-checks'
@@ -66,6 +67,39 @@ describe('homework helpers', () => {
     expect(homeworkTasks(legacy)).toEqual([])
     expect(homeworkComplete(legacy, [])).toBe(false)
     expect(homeworkComplete(null, [])).toBe(false)
+  })
+})
+
+describe('isTaskLocked', () => {
+  it('never locks the first task', () => {
+    expect(isTaskLocked(week3.tasks, 0, new Set())).toBe(false)
+  })
+
+  it('locks a task while an earlier task is unfinished', () => {
+    expect(isTaskLocked(week3.tasks, 1, new Set())).toBe(true)
+  })
+
+  it('unlocks once every earlier task is done', () => {
+    const upToFirst = new Set(week3.tasks.slice(0, 1).map((task) => task.id))
+    expect(isTaskLocked(week3.tasks, 1, upToFirst)).toBe(false)
+  })
+
+  it('never locks a homework task, whatever else is unfinished', () => {
+    const homeworkIndex = week3.tasks.findIndex((task) => task.type === 'homework')
+    expect(isTaskLocked(week3.tasks, homeworkIndex, new Set())).toBe(false)
+  })
+
+  it('locks choice and bonus tasks while any core task is unfinished', () => {
+    const optionalIndex = week3.tasks.findIndex((task) => task.id === optionalIds[0])
+    expect(isTaskLocked(week3.tasks, optionalIndex, new Set())).toBe(true)
+  })
+
+  it('unlocks choice and bonus tasks together once core is done, without ordering them against each other', () => {
+    const done = new Set(coreIds)
+    for (const id of optionalIds) {
+      const index = week3.tasks.findIndex((task) => task.id === id)
+      expect(isTaskLocked(week3.tasks, index, done)).toBe(false)
+    }
   })
 })
 
