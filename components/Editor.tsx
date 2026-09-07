@@ -31,6 +31,9 @@ interface EditorProps {
   onClearSelection?: () => void;
   pendingPrompt?: string | null;
   onPromptConsumed?: () => void;
+  // Fired when the server escalates to the top stuck tier, so the caller can
+  // point at the task in the code editor instead of relying on chat text alone.
+  onEscalation?: () => void;
 }
 
 function toChat(m: Message): ChatMessage {
@@ -52,6 +55,7 @@ export default function Editor({
   onClearSelection,
   pendingPrompt,
   onPromptConsumed,
+  onEscalation,
 }: EditorProps) {
   const [prompt, setPrompt] = useState("");
   const messages = messagesProp.map(toChat);
@@ -144,6 +148,10 @@ export default function Editor({
         setNotice("This part is yours to type. Your tutor will show you where.");
       } else {
         setNotice(null);
+      }
+
+      if (res.headers.get("X-Escalation-Tier") === "3") {
+        onEscalation?.();
       }
 
       const decoder = new TextDecoder();

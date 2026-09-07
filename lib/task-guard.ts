@@ -1,4 +1,5 @@
 import type { Lesson, LessonTask } from './lessons'
+import type { TaskCheck, TaskCheckResult } from './task-checks'
 
 // Task types the student must complete themselves. Core tasks are the lesson;
 // homework is the assignment. Both withhold build mode. 'choice' and 'bonus' are
@@ -94,11 +95,28 @@ function escalationBlock(task: LessonTask, tier: EscalationTier, isHomework: boo
   ].join('\n')
 }
 
-export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): string {
+// checks whose result the runtime can't determine (no DOM server-side) fall
+// back to a manual-comparison instruction instead of a possibly-wrong verdict.
+function describeCheckStatus(check: TaskCheck, result: TaskCheckResult | undefined): string {
+  if (check.kind === 'textChanged') {
+    return `- ${check.label}: not confirmed automatically — compare their file to this old text: "${check.from}". If it still matches, that part is not done.`
+  }
+  return `- ${check.label}: ${result?.passed ? 'DONE' : 'NOT DONE YET'}.`
+}
+
+export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1, results: TaskCheckResult[] = []): string {
   const isHomework = task.type === 'homework'
+  const checklist = (task.checks ?? []).map((check, i) => describeCheckStatus(check, results[i])).join('\n')
   return [
     `THIS STUDENT IS WORKING ON ${isHomework ? 'HOMEWORK' : 'A LESSON TASK'}: "${task.chip}".`,
     `Goal: ${task.success}`,
+    checklist
+      ? [
+          'Here is the real status of every requirement for this task, checked against their current file where the system can:',
+          checklist,
+          'Only treat a requirement as done if it says DONE, or if you have personally compared their file to the old text and it has changed. Do not say the whole task is done, and do not bring up another task, even if you see one in their file. If the Mark done button will not click, a requirement above is still unmet — say exactly which one, in plain words. Never invent a reason like a hidden or broken button.',
+        ].join('\n')
+      : 'That goal line is a summary, not the full checklist — you cannot see which parts they have finished. Do not say this task is done, and do not bring up another task, even if you see one in their file. Wait for them to click the Mark done button.',
     'They must make this change themselves. Never write or edit their code, even if they ask you to.',
     isHomework ? 'This is homework. Doing it for them defeats the point — hint only.' : '',
     `Point them at the line that contains the comment "${task.commentAnchor}".`,
@@ -122,9 +140,17 @@ export function homeworkComplete(lesson: Lesson | null, completedTaskIds: string
   return homework.every((task) => done.has(task.id))
 }
 
-/** True when an earlier, non-homework task in the list isn't done yet. Homework has its own gate (coreComplete). */
+/**
+ * True when this task can't be started yet. Core tasks unlock one at a time,
+ * in catalog order. Choice and bonus are optional extras — they unlock
+ * together once every core task is done, but never block each other, same as
+ * homework's existing coreComplete gate.
+ */
 export function isTaskLocked(tasks: LessonTask[], index: number, completed: Set<string>): boolean {
   const task = tasks[index]
   if (!task || task.type === 'homework') return false
-  return tasks.slice(0, index).some((t) => t.type !== 'homework' && !completed.has(t.id))
+  if (task.type === 'core') {
+    return tasks.slice(0, index).some((t) => t.type === 'core' && !completed.has(t.id))
+  }
+  return tasks.some((t) => t.type === 'core' && !completed.has(t.id))
 }

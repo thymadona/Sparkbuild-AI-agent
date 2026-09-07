@@ -11,6 +11,7 @@ interface ActiveTaskPanelProps {
   isSaving: boolean
   saveError: string | null
   onMarkDone: () => void
+  onShowMe?: () => void
 }
 
 /**
@@ -19,7 +20,7 @@ interface ActiveTaskPanelProps {
  * the task's checks. Shared by the Tasks and Homework side panels since a
  * student can only ever be actively working one task at a time.
  */
-export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMarkDone }: ActiveTaskPanelProps) {
+export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMarkDone, onShowMe }: ActiveTaskPanelProps) {
   // Checks need a DOM, so they cannot run during server rendering. Evaluating
   // them only after mount keeps the server and first client render identical —
   // otherwise the fail-open path reports every check as passed on the server and
@@ -39,6 +40,15 @@ export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMar
 
       {hasChecks && !checksEvaluated && (
         <p className={`mb-2 text-center ${SCALE.check} text-fg-muted`}>Checking your code…</p>
+      )}
+
+      {onShowMe && (
+        <button
+          onClick={onShowMe}
+          className={`mb-2 w-full rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1 ${SCALE.check} font-semibold text-fg-secondary transition-colors hover:bg-surface-600`}
+        >
+          Show me where 👉
+        </button>
       )}
 
       <button

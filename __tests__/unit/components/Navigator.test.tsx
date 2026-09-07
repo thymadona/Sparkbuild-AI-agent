@@ -80,14 +80,15 @@ describe('Navigator', () => {
     expect(screen.getByRole('button', { name: /Bonus: surprise/ })).toBeInTheDocument()
   })
 
-  it('grays out tasks that are neither active nor complete', () => {
+  it('locks the next core task until the active one is done', () => {
     renderNavigator(['intro'])
 
-    // 'colors' is active (first unfinished core task); 'theme' is neither
-    // done nor active, so it gets the muted/gray treatment.
+    // 'colors' is active (first unfinished core task); 'theme' comes after
+    // it and stays locked until 'colors' is done.
     const upcoming = screen.getByRole('button', { name: /Choose a theme/ })
+    expect(upcoming).toBeDisabled()
     expect(upcoming.className).toContain('text-fg-muted')
-    expect(upcoming.className).toContain('bg-surface-700/60')
+    expect(upcoming.className).toContain('opacity-60')
     expect(upcoming.className).not.toContain('ring-brand-400')
   })
 

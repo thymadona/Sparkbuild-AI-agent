@@ -38,7 +38,12 @@ interface CodeEditorProps {
 // every keystroke.
 const LIVE_DELAY_MS = 300
 
-const addHighlight = StateEffect.define<{ from: number; to: number }[]>()
+interface HighlightRange {
+  from: number
+  to: number
+}
+
+const addHighlight = StateEffect.define<{ ranges: HighlightRange[]; pulseClass: string }>()
 const clearHighlight = StateEffect.define<null>()
 
 const highlightField = StateField.define<DecorationSet>({
@@ -49,9 +54,9 @@ const highlightField = StateField.define<DecorationSet>({
     deco = deco.map(tr.changes)
     for (const e of tr.effects) {
       if (e.is(addHighlight)) {
-        const mark = Decoration.line({ class: 'cm-lesson-highlight' })
+        const mark = Decoration.line({ class: `cm-lesson-highlight ${e.value.pulseClass}` })
         deco = Decoration.set(
-          e.value.map((r) => mark.range(r.from)),
+          e.value.ranges.map((r) => mark.range(r.from)),
           true
         )
       } else if (e.is(clearHighlight)) {
@@ -63,10 +68,25 @@ const highlightField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 })
 
+// Two classes with identical keyframes, alternated by highlightNonce parity —
+// a CSS animation does not restart when the same class is re-applied to an
+// element that already has it, and re-pointing at the same line (repeated
+// "Show me where" clicks, or a tier-3 escalation on the line the student is
+// already viewing) needs to replay the pulse every time.
 const highlightTheme = EditorView.baseTheme({
   '.cm-lesson-highlight': {
     backgroundColor: 'rgba(99, 102, 241, 0.25) !important',
     borderLeft: '2px solid #818cf8',
+  },
+  '.cm-lesson-pulse-a, .cm-lesson-pulse-b': {
+    animation: 'cm-lesson-pulse 0.7s ease-out 3',
+  },
+  '@keyframes cm-lesson-pulse': {
+    '0%, 100%': { backgroundColor: 'rgba(99, 102, 241, 0.25)' },
+    '50%': { backgroundColor: 'rgba(129, 140, 248, 0.65)' },
+  },
+  '@media (prefers-reduced-motion: reduce)': {
+    '.cm-lesson-pulse-a, .cm-lesson-pulse-b': { animation: 'none' },
   },
 })
 
@@ -128,8 +148,9 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
       const line = doc.line(n)
       return { from: line.from, to: line.to }
     })
+    const pulseClass = (highlightNonce ?? 0) % 2 === 0 ? 'cm-lesson-pulse-a' : 'cm-lesson-pulse-b'
     view.dispatch({
-      effects: [addHighlight.of(ranges), EditorView.scrollIntoView(ranges[0].from, { y: 'center' })],
+      effects: [addHighlight.of({ ranges, pulseClass }), EditorView.scrollIntoView(ranges[0].from, { y: 'center' })],
     })
     // The highlight stays until the student moves to another task. A three
     // second flash is not long enough for a child who reads slowly.
