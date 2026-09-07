@@ -9,6 +9,7 @@ import { checkRateLimit } from '@/lib/ratelimit'
 import { isCodeResponse, parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 import { getLessonForProject } from '@/lib/lessons'
 import { buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
+import { runTaskChecks } from '@/lib/task-checks'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { cached } from '@/lib/cache'
 import { getSessionUser } from '@/lib/auth/session'
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
   let tier: 1 | 2 | 3 = 1
   let stuckTurns = 0
   let justCompleted = null
+  let lastAssistantMessage: string | null = null
   if (project.lesson_id != null) {
     lesson = getLessonForProject(project.lesson_id, project.lesson_version)
     // Short TTL backstop only — the PUT lesson-progress route explicitly
@@ -125,6 +127,7 @@ export async function POST(req: Request) {
 
       stuckTurns = recent.filter((m) => m.role === 'assistant').length
       const prevUserMessage = recent.find((m) => m.role === 'user')?.content
+      lastAssistantMessage = recent.find((m) => m.role === 'assistant')?.content ?? null
       tier = escalationTier(stuckTurns, detectConfusion(prompt, prevUserMessage), openTask.type === 'homework')
 
       if (recent.length === 0) {
@@ -175,12 +178,18 @@ export async function POST(req: Request) {
       .join('\n\n')
   }
 
+  const openTaskResults = openTask ? runTaskChecks(openTask.checks, files?.['index.html'] ?? '') : []
+
   const systemContent = [
     BASE_SYSTEM_PROMPT,
+    user.name ? `The student's name is ${user.name}. Use it once, warmly, then drop it.` : '',
     justCompleted
       ? `THE STUDENT JUST FINISHED: "${justCompleted.chip}". Open with one warm, specific sentence about that before anything else. Do not sound like a hint.`
       : '',
-    openTask ? buildTaskNudge(openTask, tier) : '',
+    openTask ? buildTaskNudge(openTask, tier, openTaskResults) : '',
+    lastAssistantMessage
+      ? `Your last reply on this task was: "${lastAssistantMessage}". Say it differently this time — do not repeat that wording.`
+      : '',
     filesContext ? `Current project files:\n${filesContext}` : '',
   ]
     .filter(Boolean)

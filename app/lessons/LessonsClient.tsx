@@ -18,6 +18,12 @@ const ON_CHIP = 'text-slate-900'
 const ACCENT_BG = 'bg-secondary dark:bg-[#b3305f]'
 const ACCENT_TEXT = 'text-secondary dark:text-[#b3305f]'
 
+// A fixed per-week difficulty rating, not a score the student earns — kept
+// visually distinct (muted, labeled) from the real completion state (the
+// checkmark node and Resume button) so it can't be misread as "you only
+// scored 1/3" on a finished project.
+const DIFFICULTY_LABELS: Record<number, string> = { 1: 'Easy', 2: 'Medium', 3: 'Hard' }
+
 interface Props {
   lessons: Lesson[]
   userProjects: { id: string; lesson_id: number | null; updated_at: string }[]
@@ -147,10 +153,21 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
                           </h3>
                           <p className={`mt-1.5 text-sm leading-relaxed ${isStarted ? 'text-white/85' : 'text-fg-secondary'}`}>{lesson.description}</p>
                         </div>
-                        <div className="flex gap-0.5 shrink-0">
-                          {[1, 2, 3].map(n => (
-                            <span key={n} className={`text-sm ${n <= stars ? (isStarted ? 'text-amber-300' : 'text-amber-600 dark:text-amber-400') : 'opacity-30 ' + (isStarted ? 'text-white' : 'text-fg-muted')}`}>★</span>
-                          ))}
+                        <div
+                          className="flex shrink-0 items-center gap-1.5"
+                          title={`Difficulty: ${DIFFICULTY_LABELS[stars]}`}
+                        >
+                          <span className={`text-[10px] font-semibold uppercase tracking-wide ${isStarted ? 'text-white/70' : 'text-fg-muted'}`}>
+                            {DIFFICULTY_LABELS[stars]}
+                          </span>
+                          <span className="flex gap-0.5">
+                            {[1, 2, 3].map(n => (
+                              <span
+                                key={n}
+                                className={`h-1.5 w-1.5 rounded-full ${n <= stars ? (isStarted ? 'bg-white/70' : 'bg-fg-muted') : (isStarted ? 'bg-white/25' : 'bg-surface-600')}`}
+                              />
+                            ))}
+                          </span>
                         </div>
                       </div>
                       <div className="mt-4 flex items-center gap-3">

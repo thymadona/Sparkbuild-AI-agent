@@ -16,8 +16,9 @@ import EditorLoading from './loading'
 import { buildCombinedHtml } from '@/lib/combine'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { highlightLinesForTask } from '@/lib/task-checks'
 import type { Project, Message } from '@/types'
-import type { Lesson } from '@/lib/lessons'
+import type { Lesson, LessonTask } from '@/lib/lessons'
 import type { ClassSlot } from '@/lib/schedule'
 
 export interface ConsoleEntry {
@@ -94,6 +95,9 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const [highlightNonce, setHighlightNonce] = useState(0)
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
   const [confettiTrigger, setConfettiTrigger] = useState<string | null>(null)
+  const [confettiBig, setConfettiBig] = useState(false)
+  const [isPublic, setIsPublic] = useState(project.is_public)
+  const [publishing, setPublishing] = useState(false)
   const consoleEndRef = useRef<HTMLDivElement>(null)
   const sideWidthRef = useRef(420)
   const dragStartX = useRef(0)
@@ -257,6 +261,18 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     openChat()
   }
 
+  // Points the pulsing code-editor highlight at a task on demand ("Show me
+  // where") or on a tier-3 stuck escalation — unlike activateTask, this
+  // never touches the chat prompt, so it's safe to fire mid-conversation.
+  function showTaskLocation(task: LessonTask) {
+    const lines = highlightLinesForTask(files['index.html'] ?? '', task.commentAnchor, task.checks)
+    setHighlightLines(lines)
+    setHighlightNonce((n) => n + 1)
+    setActiveFile('index.html')
+    setRightTab('code')
+    setMobileTab('code')
+  }
+
   // Drives Navigator, which renders both the task list and (once core tasks
   // are done) the folded-in homework section from this one shared state.
   const progress = useLessonProgress({
@@ -274,8 +290,11 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     },
     onPrompt: handleTaskPrompt,
     // Unique per completion so re-completing the same task id (in theory)
-    // still fires a fresh burst.
-    onComplete: (task) => setConfettiTrigger(`${task.id}:${Date.now()}`),
+    // still fires a fresh burst. A bigger burst marks the lesson's last task.
+    onComplete: (task, nextDone) => {
+      setConfettiBig(lesson != null && nextDone.size === lesson.tasks.length)
+      setConfettiTrigger(`${task.id}:${Date.now()}`)
+    },
   })
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
@@ -315,6 +334,18 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
       body: JSON.stringify({ id: project.id, title }),
     })
     setSavingTitle(false)
+  }
+
+  async function handleTogglePublic() {
+    setPublishing(true)
+    const res = await fetch('/api/projects', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: project.id, is_public: !isPublic }),
+    })
+    const updated = await res.json()
+    setIsPublic(updated.is_public)
+    setPublishing(false)
   }
 
   async function handleCodeSave(newContent: string) {
@@ -410,6 +441,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         saveState={saveState}
         highlightLines={highlightLines}
         highlightNonce={highlightNonce}
+        onShowTaskLocation={showTaskLocation}
         consoleLogs={consoleLogs}
         hasConsoleError={hasConsoleError}
         onClearConsole={() => setConsoleLogs([])}
@@ -426,7 +458,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   return (
     <div className="flex h-screen flex-col bg-surface-900 font-body">
-      <ConfettiBurst trigger={confettiTrigger} />
+      <ConfettiBurst trigger={confettiTrigger} big={confettiBig} />
       {/* Top bar */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b-2 border-surface-600 bg-surface-800 px-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -453,7 +485,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
           {savingTitle && <span className="text-xs text-fg-muted shrink-0">Saving...</span>}
         </div>
         <div className="flex items-center gap-4 text-sm shrink-0">
-          {project.is_public && (
+          {isPublic && (
             <button
               onClick={() => navigator.clipboard.writeText(`${window.location.origin}/share/${project.id}`)}
               className="text-xs text-fg-secondary hover:text-fg-primary transition-colors"
@@ -461,6 +493,13 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               Copy link
             </button>
           )}
+          <button
+            onClick={handleTogglePublic}
+            disabled={publishing}
+            className="text-xs text-fg-secondary hover:text-fg-primary transition-colors disabled:opacity-60"
+          >
+            {publishing ? 'Saving…' : isPublic ? 'Unpublish' : 'Publish to Explore'}
+          </button>
           <Link href="/lessons" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Lessons</Link>
           <Link href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</Link>
           <ThemeToggle />
@@ -552,6 +591,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                         code={files['index.html'] ?? ''}
                         progress={progress}
                         classSlots={classSlots}
+                        onShowTaskLocation={showTaskLocation}
                       />
                     </div>
                   </div>
@@ -589,6 +629,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                         onClearSelection={() => setSelectedCode(null)}
                         pendingPrompt={pendingPrompt}
                         onPromptConsumed={() => setPendingPrompt(null)}
+                        onEscalation={() => progress.activeTask && showTaskLocation(progress.activeTask)}
                       />
                     </div>
                   </div>
@@ -932,6 +973,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   onClearSelection={() => setSelectedCode(null)}
                   pendingPrompt={pendingPrompt}
                   onPromptConsumed={() => setPendingPrompt(null)}
+                  onEscalation={() => progress.activeTask && showTaskLocation(progress.activeTask)}
                 />
               </div>
             </div>

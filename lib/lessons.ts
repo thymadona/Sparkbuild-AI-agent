@@ -40,7 +40,7 @@ export const LESSONS: Lesson[] = [
         id: 'identity',
         type: 'core',
         chip: 'Write your intro',
-        success: 'Your card has your name on it.',
+        success: 'Your card has your name and intro.',
         prompt: 'Help me replace the name and short intro in my profile card with words that sound like me.',
         commentAnchor: 'TASK: identity',
         checks: [
@@ -140,7 +140,7 @@ export const LESSONS: Lesson[] = [
         id: 'studio-name',
         type: 'core',
         chip: 'Name your studio',
-        success: 'Your mixer has your own name.',
+        success: 'Your mixer has your name and intro.',
         prompt: 'Help me rename the Vibe Mixer and write a welcome line that fits my idea.',
         commentAnchor: 'TASK: studio name',
         checks: [
