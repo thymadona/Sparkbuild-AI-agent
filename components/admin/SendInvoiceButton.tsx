@@ -16,7 +16,7 @@ export default function SendInvoiceButton({
 
   if (!hasTelegramId) {
     return (
-      <span className="text-xs text-gray-600" title="No parent Telegram chat_id set">
+      <span className="text-xs text-muted-foreground/70" title="No parent Telegram chat_id set">
         No Telegram
       </span>
     )
@@ -45,7 +45,7 @@ export default function SendInvoiceButton({
     <button
       onClick={send}
       disabled={loading || sent}
-      className="rounded bg-blue-700 px-2 py-1 text-xs text-white hover:bg-blue-600 disabled:opacity-50"
+      className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
     >
       {sent ? 'Sent' : loading ? '…' : 'Send TG'}
     </button>

@@ -29,11 +29,11 @@ export default function DeactivateToggle({
       disabled={loading}
       title={active ? 'Deactivate account' : 'Reactivate account'}
       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${
-        active ? 'bg-green-600' : 'bg-gray-600'
+        active ? 'bg-success' : 'bg-muted-foreground/40'
       }`}
     >
       <span
-        className={`pointer-events-none inline-block h-4 w-4 translate-x-0 rounded-full bg-white shadow transition-transform ${
+        className={`pointer-events-none inline-block h-4 w-4 translate-x-0 rounded-full bg-background shadow transition-transform ${
           active ? 'translate-x-4' : 'translate-x-0'
         }`}
       />

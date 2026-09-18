@@ -23,9 +23,9 @@ export default async function StaffOverviewPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-100">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {admin ? 'Overview of your school' : 'Overview of your classes'}
+        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {admin ? 'Overview of classes and students' : 'Overview of your classes'}
         </p>
       </div>
       <Suspense fallback={<OverviewSkeleton />}>

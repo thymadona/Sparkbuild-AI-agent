@@ -51,71 +51,71 @@ export default function CreateStudentModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+        className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         + New Student
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl bg-gray-900 border border-gray-800 p-6">
-            <h2 className="mb-4 text-lg font-semibold text-gray-100">Create Student</h2>
+          <div className="w-full max-w-md rounded-md bg-card border border-border p-6">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">Create Student</h2>
             {error && (
-              <p className="mb-3 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-300">
+              <p className="mb-3 rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
               </p>
             )}
             <form onSubmit={submit} className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Full name *</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Full name *</label>
                 <input
                   required
                   value={form.full_name}
                   onChange={(e) => set('full_name', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="Jane Smith"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Student email *</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Student email *</label>
                 <input
                   required
                   type="email"
                   value={form.email}
                   onChange={(e) => set('email', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="jane@example.com"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Parent email</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Parent email</label>
                 <input
                   type="email"
                   value={form.parent_email}
                   onChange={(e) => set('parent_email', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="parent@example.com"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Parent Telegram chat_id</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Parent Telegram chat_id</label>
                 <input
                   value={form.parent_telegram_chat_id}
                   onChange={(e) => set('parent_telegram_chat_id', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="123456789"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Parent must send /start to your bot first. Check Telegram Updates below to find their chat_id.
                 </p>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Notes</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Notes</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 resize-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                   placeholder="Optional internal notes"
                 />
               </div>
@@ -123,14 +123,14 @@ export default function CreateStudentModal() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-gray-200"
+                  className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {loading ? 'Creating…' : 'Create Account'}
                 </button>

@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type UserRow = { id: string; email: string; fullName: string; roles: string[] }
 
@@ -49,29 +51,29 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search users…"
-        className="w-64 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-gray-600 focus:outline-none"
+        className="w-64 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       />
 
       {error && (
-        <div className="rounded-md border border-red-800 bg-red-950 px-3 py-2 text-sm text-red-300">{error}</div>
+        <div className="rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
       )}
 
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">User</th>
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Roles</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
+      <div className="rounded-md border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Roles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-800/30 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-100">{u.fullName || u.email}</div>
-                  {u.fullName && <div className="text-xs text-gray-500">{u.email}</div>}
-                </td>
-                <td className="px-4 py-3">
+              <TableRow key={u.id}>
+                <TableCell>
+                  <div className="font-medium text-foreground">{u.fullName || u.email}</div>
+                  {u.fullName && <div className="text-xs text-muted-foreground">{u.email}</div>}
+                </TableCell>
+                <TableCell>
                   <div className="flex gap-1.5">
                     {ROLES.map((role) => {
                       const hasRole = u.roles.includes(role)
@@ -80,37 +82,30 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
                           key={role}
                           onClick={() => toggleRole(u.id, role, hasRole)}
                           disabled={busyId === u.id}
-                          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                          className={`rounded px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
                             hasRole
-                              ? 'bg-violet-700 text-white hover:bg-violet-600'
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/70'
                           }`}
                         >
                           {hasRole ? `✓ ${role}` : role}
                         </button>
                       )
                     })}
-                    {u.roles.includes('student') && (
-                      <span
-                        title="Assigned automatically on sign-in"
-                        className="rounded-md border border-gray-700 px-2.5 py-1 text-xs font-medium text-gray-500"
-                      >
-                        student
-                      </span>
-                    )}
+                    {u.roles.includes('student') && <Badge variant="outline" title="Assigned automatically on sign-in">student</Badge>}
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr>
-                <td colSpan={2} className="px-4 py-10 text-center text-sm text-gray-600">
+              <TableRow>
+                <TableCell colSpan={2} className="py-10 text-center text-sm text-muted-foreground/70">
                   No users match your search.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

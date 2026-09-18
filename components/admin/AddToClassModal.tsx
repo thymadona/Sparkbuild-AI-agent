@@ -44,19 +44,19 @@ export default function AddToClassModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-indigo-400 hover:text-indigo-300"
+        className="text-xs text-primary hover:text-primary/80"
       >
         + Class
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-gray-900 border border-gray-800 p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-100">
+          <div className="w-full max-w-sm rounded-md bg-card border border-border p-6">
+            <h2 className="mb-4 text-base font-semibold text-foreground">
               Add {studentName} to class
             </h2>
             {error && (
-              <p className="mb-3 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-300">
+              <p className="mb-3 rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
               </p>
             )}
@@ -65,7 +65,7 @@ export default function AddToClassModal({
                 required
                 value={classId}
                 onChange={(e) => setClassId(e.target.value)}
-                className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500"
+                className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">Select a class…</option>
                 {classes.map((c) => (
@@ -76,14 +76,14 @@ export default function AddToClassModal({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-gray-200"
+                  className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !classId}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {loading ? 'Adding…' : 'Add to Class'}
                 </button>

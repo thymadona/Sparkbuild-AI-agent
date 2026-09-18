@@ -55,25 +55,25 @@ export default function CreateInvoiceModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-indigo-400 hover:text-indigo-300"
+        className="text-xs text-primary hover:text-primary/80"
       >
         + Invoice
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-gray-900 border border-gray-800 p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-100">
+          <div className="w-full max-w-sm rounded-md bg-card border border-border p-6">
+            <h2 className="mb-4 text-base font-semibold text-foreground">
               Invoice for {studentName}
             </h2>
             {error && (
-              <p className="mb-3 rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-300">
+              <p className="mb-3 rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
               </p>
             )}
             <form onSubmit={submit} className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Amount (USD) *</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Amount (USD) *</label>
                 <input
                   required
                   type="number"
@@ -81,42 +81,42 @@ export default function CreateInvoiceModal({
                   step="0.01"
                   value={form.amount}
                   onChange={(e) => set('amount', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="150.00"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Description *</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Description *</label>
                 <input
                   required
                   value={form.description}
                   onChange={(e) => set('description', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="Term 1 tuition fee"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Due date *</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Due date *</label>
                 <input
                   required
                   type="date"
                   value={form.due_date}
                   onChange={(e) => set('due_date', e.target.value)}
-                  className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-gray-200"
+                  className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {loading ? 'Creating…' : 'Create Invoice'}
                 </button>

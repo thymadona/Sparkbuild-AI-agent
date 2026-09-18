@@ -24,6 +24,9 @@ import EditStudentModal from '@/components/admin/EditStudentModal'
 import CreateInvoiceModal from '@/components/admin/CreateInvoiceModal'
 import AddToClassModal from '@/components/admin/AddToClassModal'
 import BuildModeToggle from '@/components/BuildModeToggle'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { Class } from '@/types'
 
 function formatAmount(cents: number) {
@@ -186,21 +189,21 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/staff/students" className="hover:text-gray-300 transition-colors">Students</Link>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/staff/students" className="hover:text-foreground transition-colors">Students</Link>
         <span>/</span>
-        <span className="text-gray-300">{profile?.full_name ?? user.email}</span>
+        <span className="text-foreground">{profile?.full_name ?? user.email}</span>
       </div>
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-100">
-            {profile?.full_name || <span className="text-gray-500 italic">No name</span>}
+          <h1 className="text-xl font-semibold text-foreground">
+            {profile?.full_name || <span className="text-muted-foreground italic">No name</span>}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">{user.email}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{user.email}</p>
         </div>
         {profile && (
           <div className="flex items-center gap-2">
@@ -218,80 +221,80 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       </div>
 
       {/* Profile info */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 divide-y divide-gray-800">
-        <div className="px-5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Profile</p>
+      <Card>
+        <CardContent>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Profile</p>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <div>
-              <span className="text-gray-500">Parent email</span>
-              <p className="text-gray-100 mt-0.5">{profile?.parent_email || <span className="text-gray-600">—</span>}</p>
+              <span className="text-muted-foreground">Parent email</span>
+              <p className="text-foreground mt-0.5">{profile?.parent_email || <span className="text-muted-foreground/70">—</span>}</p>
             </div>
             <div>
-              <span className="text-gray-500">Telegram chat ID</span>
-              <p className="text-gray-100 mt-0.5 font-mono text-xs">{profile?.parent_telegram_chat_id || <span className="text-gray-600">—</span>}</p>
+              <span className="text-muted-foreground">Telegram chat ID</span>
+              <p className="text-foreground mt-0.5 font-mono text-xs">{profile?.parent_telegram_chat_id || <span className="text-muted-foreground/70">—</span>}</p>
             </div>
             <div>
-              <span className="text-gray-500">Joined</span>
-              <p className="text-gray-100 mt-0.5">{joinedDate}</p>
+              <span className="text-muted-foreground">Joined</span>
+              <p className="text-foreground mt-0.5">{joinedDate}</p>
             </div>
             <div>
-              <span className="text-gray-500">Last sign in</span>
-              <p className="text-gray-100 mt-0.5">{lastSign}</p>
+              <span className="text-muted-foreground">Last sign in</span>
+              <p className="text-foreground mt-0.5">{lastSign}</p>
             </div>
             <div>
-              <span className="text-gray-500">Status</span>
+              <span className="text-muted-foreground">Status</span>
               <p className="mt-0.5">
                 {profile ? (
-                  <span className={`text-xs font-medium ${profile.is_active ? 'text-green-400' : 'text-red-400'}`}>
+                  <span className={`text-xs font-medium ${profile.is_active ? 'text-success' : 'text-destructive'}`}>
                     {profile.is_active ? 'Active' : 'Deactivated'}
                   </span>
                 ) : (
-                  <span className="text-gray-600 text-xs">No profile</span>
+                  <span className="text-muted-foreground/70 text-xs">No profile</span>
                 )}
               </p>
             </div>
             <div>
-              <span className="text-gray-500">Auth provider</span>
-              <p className="text-gray-100 mt-0.5 capitalize">
+              <span className="text-muted-foreground">Auth provider</span>
+              <p className="text-foreground mt-0.5 capitalize">
                 {user.provider_id ?? 'not linked'}
               </p>
             </div>
           </div>
           {profile?.notes && (
             <div className="mt-4">
-              <span className="text-gray-500 text-sm">Notes</span>
-              <p className="mt-1 text-sm text-gray-300 whitespace-pre-wrap rounded-lg bg-gray-800 px-3 py-2">{profile.notes}</p>
+              <span className="text-muted-foreground text-sm">Notes</span>
+              <p className="mt-1 text-sm text-foreground whitespace-pre-wrap rounded bg-muted px-3 py-2">{profile.notes}</p>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Activity */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900">
-        <div className="px-5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Activity</p>
+      <Card>
+        <CardContent>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Activity</p>
           <div className="flex items-center gap-8 text-sm">
             <div>
-              <span className="text-gray-500">AI requests</span>
-              <p className="text-gray-100 mt-0.5 text-lg font-semibold tabular-nums">{promptCount ?? 0}</p>
+              <span className="text-muted-foreground">AI requests</span>
+              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">{promptCount ?? 0}</p>
             </div>
             <div>
-              <span className="text-gray-500">Projects</span>
-              <p className="text-gray-100 mt-0.5 text-lg font-semibold tabular-nums">{projectCount ?? 0}</p>
+              <span className="text-muted-foreground">Projects</span>
+              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">{projectCount ?? 0}</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <span className="text-gray-500">Build mode</span>
+              <span className="text-muted-foreground">Build mode</span>
               <BuildModeToggle userId={userId} initialEnabled={buildMode?.enabled === true} />
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Classes */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Classes <span className="text-gray-600 font-normal normal-case ml-1">({enrolledClasses.length})</span>
+      <div className="rounded-md border border-border">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Classes <span className="text-muted-foreground/70 font-normal normal-case ml-1">({enrolledClasses.length})</span>
           </p>
           {profile && (
             <AddToClassModal
@@ -302,32 +305,32 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
           )}
         </div>
         {enrolledClasses.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-gray-600">Not enrolled in any class.</p>
+          <p className="px-5 py-6 text-sm text-muted-foreground/70">Not enrolled in any class.</p>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-border">
             {enrolledClasses.map((cls) => (
               <div key={cls.id} className="px-5 py-3 flex items-start justify-between gap-4">
                 <div>
                   <Link
                     href={`/staff/classes/${cls.id}`}
-                    className="text-sm font-medium text-gray-100 hover:text-violet-300 transition-colors"
+                    className="text-sm font-medium text-foreground hover:text-primary transition-colors"
                   >
                     {cls.name}
                   </Link>
                   {cls.description && (
-                    <p className="text-xs text-gray-500 mt-0.5">{cls.description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{cls.description}</p>
                   )}
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {cls.schedules.length > 0 ? cls.schedules.map((s, i) => (
-                      <span key={i} className="rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+                      <Badge key={i} variant="secondary">
                         {DAY[s.day_of_week]} {formatTime(s.start_time)} · {s.duration_min}min
-                      </span>
+                      </Badge>
                     )) : (
-                      <span className="text-xs text-gray-600">No schedule</span>
+                      <span className="text-xs text-muted-foreground/70">No schedule</span>
                     )}
                   </div>
                 </div>
-                <Link href={`/staff/classes/${cls.id}`} className="text-xs text-gray-600 hover:text-gray-400 shrink-0">
+                <Link href={`/staff/classes/${cls.id}`} className="text-xs text-muted-foreground/70 hover:text-foreground shrink-0">
                   Details →
                 </Link>
               </div>
@@ -338,83 +341,83 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
 
       {/* Finance summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-red-900/50 bg-red-950/30 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-red-400 mb-1">Outstanding</div>
-          <div className="text-2xl font-bold text-red-300">{formatAmount(totalUnpaid)}</div>
-        </div>
-        <div className="rounded-xl border border-green-900/50 bg-green-950/30 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-green-400 mb-1">Collected</div>
-          <div className="text-2xl font-bold text-green-300">{formatAmount(totalPaid)}</div>
-        </div>
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-1">Invoices</div>
-          <div className="text-2xl font-bold text-gray-100">{(invoices ?? []).length}</div>
-        </div>
+        <Card className="bg-destructive/10 ring-destructive/20">
+          <CardContent>
+            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">Outstanding</div>
+            <div className="text-2xl font-bold text-destructive">{formatAmount(totalUnpaid)}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-success/10 ring-success/20">
+          <CardContent>
+            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">Collected</div>
+            <div className="text-2xl font-bold text-success">{formatAmount(totalPaid)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Invoices</div>
+            <div className="text-2xl font-bold text-foreground">{(invoices ?? []).length}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Invoices table */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Invoices</p>
+      <div className="rounded-md border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invoices</p>
           {profile && (
             <CreateInvoiceModal userId={userId} studentName={profile.full_name || (user.email ?? '')} />
           )}
         </div>
         {(invoices ?? []).length === 0 ? (
-          <p className="px-5 py-6 text-sm text-gray-600">No invoices yet.</p>
+          <p className="px-5 py-6 text-sm text-muted-foreground/70">No invoices yet.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left px-5 py-2 text-xs font-medium uppercase tracking-wide text-gray-500">Description</th>
-                <th className="text-right px-5 py-2 text-xs font-medium uppercase tracking-wide text-gray-500">Amount</th>
-                <th className="text-right px-5 py-2 text-xs font-medium uppercase tracking-wide text-gray-500">Due</th>
-                <th className="text-center px-5 py-2 text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
-                <th className="text-right px-5 py-2 text-xs font-medium uppercase tracking-wide text-gray-500">Links</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Due</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Links</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {(invoices ?? []).map((inv) => {
                 const receiptId = inv.receipt_id ?? undefined
                 const isOverdue = inv.status === 'unpaid' && inv.due_date < today
                 return (
-                  <tr key={inv.id} className="hover:bg-gray-800/30">
-                    <td className="px-5 py-3 text-gray-300 text-xs max-w-xs truncate">{inv.description}</td>
-                    <td className="px-5 py-3 text-right tabular-nums font-semibold text-gray-100">{formatAmount(inv.amount_cents)}</td>
-                    <td className={`px-5 py-3 text-right text-xs ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
+                  <TableRow key={inv.id}>
+                    <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{inv.description}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{formatAmount(inv.amount_cents)}</TableCell>
+                    <TableCell className={`text-right text-xs ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
                       {new Date(inv.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {isOverdue && <span className="ml-1 text-red-500">overdue</span>}
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${
-                        inv.status === 'paid'
-                          ? 'bg-green-950 border border-green-800 text-green-300'
-                          : inv.status === 'void'
-                          ? 'bg-gray-800 border border-gray-700 text-gray-500'
-                          : 'bg-red-950 border border-red-800 text-red-300'
-                      }`}>
+                      {isOverdue && <span className="ml-1 text-destructive">overdue</span>}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'void' ? 'secondary' : 'destructive'}>
                         {inv.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <a href={`/invoice/${inv.id}`} target="_blank" rel="noopener noreferrer"
-                          className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600">
+                          className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70">
                           Invoice
                         </a>
                         {receiptId && (
                           <a href={`/receipt/${receiptId}`} target="_blank" rel="noopener noreferrer"
-                            className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600">
+                            className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70">
                             Receipt
                           </a>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>

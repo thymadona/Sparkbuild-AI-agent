@@ -49,11 +49,11 @@ function SlotRow({
 
   if (editing) {
     return (
-      <form onSubmit={save} className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-800 px-3 py-2">
+      <form onSubmit={save} className="flex flex-wrap items-center gap-2 rounded bg-muted px-3 py-2">
         <select
           value={form.day_of_week}
           onChange={(e) => set('day_of_week', Number(e.target.value))}
-          className="rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+          className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
         >
           {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
         </select>
@@ -61,7 +61,7 @@ function SlotRow({
           type="time"
           value={form.start_time}
           onChange={(e) => set('start_time', e.target.value)}
-          className="rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+          className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
         />
         <input
           type="number"
@@ -69,19 +69,19 @@ function SlotRow({
           max={480}
           value={form.duration_min}
           onChange={(e) => set('duration_min', Number(e.target.value))}
-          className="w-20 rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+          className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
           placeholder="min"
         />
         <input
           value={form.label}
           onChange={(e) => set('label', e.target.value)}
-          className="rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+          className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
           placeholder="Label (opt)"
         />
-        <button type="submit" disabled={saving} className="rounded bg-violet-600 px-2.5 py-1 text-xs text-white hover:bg-violet-500 disabled:opacity-50">
+        <button type="submit" disabled={saving} className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
           {saving ? '…' : 'Save'}
         </button>
-        <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:text-gray-300">
+        <button type="button" onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">
           Cancel
         </button>
       </form>
@@ -89,19 +89,19 @@ function SlotRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-800 px-3 py-2.5 text-sm">
+    <div className="flex items-center justify-between gap-3 rounded bg-muted px-3 py-2.5 text-sm">
       <div className="flex items-center gap-3">
-        <span className="w-20 font-medium text-gray-200">{DAYS[slot.day_of_week]}</span>
-        <span className="text-gray-300">{formatTime(slot.start_time)}</span>
-        <span className="text-gray-600">·</span>
-        <span className="text-gray-400">{slot.duration_min} min</span>
-        {slot.label && <span className="text-gray-500">· {slot.label}</span>}
+        <span className="w-20 font-medium text-foreground">{DAYS[slot.day_of_week]}</span>
+        <span className="text-foreground">{formatTime(slot.start_time)}</span>
+        <span className="text-muted-foreground/70">·</span>
+        <span className="text-muted-foreground">{slot.duration_min} min</span>
+        {slot.label && <span className="text-muted-foreground">· {slot.label}</span>}
       </div>
       <div className="flex items-center gap-1.5">
-        <button onClick={() => setEditing(true)} className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-300 hover:bg-gray-600 transition-colors">
+        <button onClick={() => setEditing(true)} className="rounded bg-muted px-2 py-0.5 text-xs text-foreground hover:bg-muted/70 transition-colors">
           Edit
         </button>
-        <button onClick={() => onDelete(slot.id)} className="rounded px-2 py-0.5 text-xs text-gray-600 hover:text-red-400 transition-colors">
+        <button onClick={() => onDelete(slot.id)} className="rounded px-2 py-0.5 text-xs text-muted-foreground/70 hover:text-destructive transition-colors">
           ✕
         </button>
       </div>
@@ -130,18 +130,18 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="mt-1 flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+      <button onClick={() => setOpen(true)} className="mt-1 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors">
         <span className="text-lg leading-none">+</span> Add time slot
       </button>
     )
   }
 
   return (
-    <form onSubmit={save} className="mt-1 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-gray-700 px-3 py-2.5">
+    <form onSubmit={save} className="mt-1 flex flex-wrap items-center gap-2 rounded border border-dashed border-input px-3 py-2.5">
       <select
         value={form.day_of_week}
         onChange={(e) => set('day_of_week', Number(e.target.value))}
-        className="rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+        className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
       >
         {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
       </select>
@@ -149,7 +149,7 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
         type="time"
         value={form.start_time}
         onChange={(e) => set('start_time', e.target.value)}
-        className="rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+        className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
       />
       <input
         type="number"
@@ -157,19 +157,19 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
         max={480}
         value={form.duration_min}
         onChange={(e) => set('duration_min', Number(e.target.value))}
-        className="w-20 rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+        className="w-20 rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
         placeholder="min"
       />
       <input
         value={form.label}
         onChange={(e) => set('label', e.target.value)}
-        className="rounded border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-200"
+        className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
         placeholder="Label (opt)"
       />
-      <button type="submit" disabled={saving} className="rounded bg-violet-600 px-2.5 py-1 text-xs text-white hover:bg-violet-500 disabled:opacity-50">
+      <button type="submit" disabled={saving} className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
         {saving ? '…' : 'Add'}
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-xs text-gray-500 hover:text-gray-300">
+      <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">
         Cancel
       </button>
     </form>
@@ -179,15 +179,15 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
 // ── Assigned person row with a remove button ────────────────────────────
 function PersonRow({ person, removing, onRemove }: { person: PersonOption; removing: boolean; onRemove: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-800 px-3 py-2 text-sm">
+    <div className="flex items-center justify-between gap-3 rounded bg-muted px-3 py-2 text-sm">
       <div>
-        <div className="font-medium text-gray-200">{person.name || <span className="italic text-gray-500">No name</span>}</div>
-        <div className="text-xs text-gray-500">{person.email}</div>
+        <div className="font-medium text-foreground">{person.name || <span className="italic text-muted-foreground">No name</span>}</div>
+        <div className="text-xs text-muted-foreground">{person.email}</div>
       </div>
       <button
         onClick={onRemove}
         disabled={removing}
-        className="rounded bg-red-950 border border-red-900 px-2 py-1 text-xs text-red-400 hover:bg-red-900 disabled:opacity-50 transition-colors"
+        className="rounded bg-destructive/10 border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors"
       >
         {removing ? '…' : 'Remove'}
       </button>
@@ -217,7 +217,7 @@ function AddPersonRow({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-500 transition-colors">
+      <button onClick={() => setOpen(true)} className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
         + {label}
       </button>
     )
@@ -225,36 +225,36 @@ function AddPersonRow({
 
   return (
     <div className="relative">
-      <div className="absolute right-0 top-8 z-20 w-72 rounded-xl border border-gray-700 bg-gray-900 shadow-xl">
-        <div className="p-2 border-b border-gray-800">
+      <div className="absolute right-0 top-8 z-20 w-72 rounded-md border border-border bg-card shadow-xl">
+        <div className="p-2 border-b border-border">
           <input
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search…"
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-violet-500 focus:outline-none"
+            className="w-full rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
         <div className="max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="px-3 py-4 text-center text-xs text-gray-600">{pool.length === 0 ? emptyLabel : 'No matches.'}</p>
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground/70">{pool.length === 0 ? emptyLabel : 'No matches.'}</p>
           ) : (
             filtered.map((p) => (
               <button
                 key={p.userId}
                 onClick={() => { onAdd(p); setOpen(false); setSearch('') }}
-                className="flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-gray-800 transition-colors"
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-muted transition-colors"
               >
                 <div>
-                  <div className="text-sm font-medium text-gray-200">{p.name || <span className="italic text-gray-500">No name</span>}</div>
-                  <div className="text-xs text-gray-500">{p.email}</div>
+                  <div className="text-sm font-medium text-foreground">{p.name || <span className="italic text-muted-foreground">No name</span>}</div>
+                  <div className="text-xs text-muted-foreground">{p.email}</div>
                 </div>
               </button>
             ))
           )}
         </div>
-        <div className="border-t border-gray-800 p-2">
-          <button onClick={() => { setOpen(false); setSearch('') }} className="w-full text-xs text-gray-500 hover:text-gray-300 py-1">
+        <div className="border-t border-border p-2">
+          <button onClick={() => { setOpen(false); setSearch('') }} className="w-full text-xs text-muted-foreground hover:text-foreground py-1">
             Close
           </button>
         </div>
@@ -455,12 +455,12 @@ export default function ClassFormModal(props: Props) {
 
   const trigger = isEdit
     ? (props.trigger ?? (
-        <button className="rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600 transition-colors">
+        <button className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors">
           Edit class
         </button>
       ))
     : (
-        <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
+        <button className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           + New Class
         </button>
       )
@@ -471,16 +471,16 @@ export default function ClassFormModal(props: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl bg-gray-900 border border-gray-800 p-6 space-y-6">
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-md bg-card border border-border p-6 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-100">{isEdit ? 'Edit Class' : 'New Class'}</h2>
-              <button onClick={close} className="text-gray-500 hover:text-gray-300 text-sm">
+              <h2 className="text-lg font-semibold text-foreground">{isEdit ? 'Edit Class' : 'New Class'}</h2>
+              <button onClick={close} className="text-muted-foreground hover:text-foreground text-sm">
                 Close
               </button>
             </div>
 
             {error && (
-              <p className="rounded-lg bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-300">{error}</p>
+              <p className="rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
             )}
 
             {/* Name + description */}
@@ -491,21 +491,21 @@ export default function ClassFormModal(props: Props) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Class name"
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm font-medium text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded border border-input bg-background px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Description (optional)"
                 rows={2}
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 placeholder-gray-600 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               {isEdit && (
                 <button
                   type="button"
                   onClick={saveHeader}
                   disabled={savingHeader || !name.trim()}
-                  className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {savingHeader ? '…' : 'Save'}
                 </button>
@@ -513,14 +513,14 @@ export default function ClassFormModal(props: Props) {
             </div>
 
             {/* Teachers */}
-            <div className="rounded-xl border border-gray-800 bg-gray-950/40">
-              <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-                <h3 className="text-sm font-semibold text-gray-300">Teacher ({teachers.length})</h3>
+            <div className="rounded-md border border-border bg-muted/40">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">Teacher ({teachers.length})</h3>
                 <AddPersonRow pool={teacherPool} label="Add Teacher" emptyLabel="No platform teachers available — grant the teacher role from People & Roles first." onAdd={addTeacher} />
               </div>
               <div className="p-3 space-y-2">
                 {teachers.length === 0 ? (
-                  <p className="text-center text-sm text-gray-600 py-3">No teacher assigned yet.</p>
+                  <p className="text-center text-sm text-muted-foreground/70 py-3">No teacher assigned yet.</p>
                 ) : (
                   teachers.map((t) => (
                     <PersonRow key={t.userId} person={t} removing={removingId === t.userId} onRemove={() => removeMember(t.userId, setTeachers)} />
@@ -530,26 +530,26 @@ export default function ClassFormModal(props: Props) {
             </div>
 
             {/* Schedule */}
-            <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-300">Weekly Schedule</h3>
+            <div className="rounded-md border border-border bg-muted/40 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Weekly Schedule</h3>
               <div className="space-y-2">
                 {schedules.map((s) => (
                   <SlotRow key={s.id} slot={s} onDelete={deleteSlot} onSave={saveSlot} />
                 ))}
-                {schedules.length === 0 && <p className="text-sm text-gray-600">No time slots yet.</p>}
+                {schedules.length === 0 && <p className="text-sm text-muted-foreground/70">No time slots yet.</p>}
               </div>
               <AddSlotRow onAdd={addSlot} />
             </div>
 
             {/* Students */}
-            <div className="rounded-xl border border-gray-800 bg-gray-950/40">
-              <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-                <h3 className="text-sm font-semibold text-gray-300">Students ({students.length})</h3>
+            <div className="rounded-md border border-border bg-muted/40">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">Students ({students.length})</h3>
                 <AddPersonRow pool={studentPool} label="Add Student" emptyLabel="All students are enrolled." onAdd={addStudent} />
               </div>
               <div className="p-3 space-y-2">
                 {students.length === 0 ? (
-                  <p className="text-center text-sm text-gray-600 py-3">No students enrolled yet.</p>
+                  <p className="text-center text-sm text-muted-foreground/70 py-3">No students enrolled yet.</p>
                 ) : (
                   students.map((s) => (
                     <PersonRow key={s.userId} person={s} removing={removingId === s.userId} onRemove={() => removeMember(s.userId, setStudents)} />
@@ -558,20 +558,20 @@ export default function ClassFormModal(props: Props) {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-gray-800 pt-4">
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
               {isEdit ? (
-                <button onClick={close} className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-gray-600">
+                <button onClick={close} className="rounded bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/70">
                   Done
                 </button>
               ) : (
                 <>
-                  <button onClick={close} className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-gray-200">
+                  <button onClick={close} className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
                     Cancel
                   </button>
                   <button
                     onClick={createClass}
                     disabled={creating || !name.trim()}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                    className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
                     {creating ? 'Creating…' : 'Create Class'}
                   </button>

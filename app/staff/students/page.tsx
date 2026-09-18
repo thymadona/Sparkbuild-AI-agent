@@ -107,8 +107,8 @@ export default async function StudentsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-100">Students</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage accounts, classes, and invoices</p>
+        <h1 className="text-xl font-semibold text-foreground">Students</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Manage accounts, classes, and invoices</p>
       </div>
       <StudentsClient rows={rows} classes={(classes ?? []) as Class[]} />
     </div>

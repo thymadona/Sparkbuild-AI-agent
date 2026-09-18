@@ -53,61 +53,61 @@ export default function EditInvoiceModal({ invoice }: { invoice: Invoice }) {
     <>
       <button
         onClick={handleOpen}
-        className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+        className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
       >
         Edit
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="w-96 rounded-xl border border-gray-700 bg-gray-900 p-6 shadow-xl">
-            <h2 className="mb-4 text-sm font-semibold text-gray-100">Edit Invoice</h2>
+          <div className="w-96 rounded-md border border-border bg-card p-6 shadow-xl">
+            <h2 className="mb-4 text-sm font-semibold text-foreground">Edit Invoice</h2>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Amount (USD)</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Amount (USD)</label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={amountDollars}
                   onChange={(e) => setAmountDollars(e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Description</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Description</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none resize-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-400">Due Date</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Due Date</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-gray-600 focus:outline-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             </div>
 
-            {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+            {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-gray-400 hover:text-gray-200"
+                className="rounded px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>

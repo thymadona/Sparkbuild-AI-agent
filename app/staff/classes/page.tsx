@@ -123,8 +123,8 @@ export default async function ClassesPage() {
     return (
       <div>
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-100">Classes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Filter by day, view schedules, and open class details</p>
+          <h1 className="text-xl font-semibold text-foreground">Classes</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Filter by day, view schedules, and open class details</p>
         </div>
         <ClassesClient classes={rows} allTeachers={allTeachers} allStudents={allStudents} />
       </div>
@@ -181,8 +181,8 @@ export default async function ClassesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-100">Your classes</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Rosters and homework review, scoped to classes you teach.</p>
+        <h1 className="text-xl font-semibold text-foreground">Your classes</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Rosters and homework review, scoped to classes you teach.</p>
       </div>
       <TeacherClassesClient classes={rows} />
     </div>

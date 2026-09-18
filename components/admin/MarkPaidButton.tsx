@@ -24,7 +24,7 @@ export default function MarkPaidButton({ invoiceId }: { invoiceId: string }) {
     <button
       onClick={markPaid}
       disabled={loading}
-      className="rounded bg-green-700 px-2 py-1 text-xs text-white hover:bg-green-600 disabled:opacity-50"
+      className="rounded bg-success px-2 py-1 text-xs text-success-foreground hover:bg-success/90 disabled:opacity-50"
     >
       {loading ? '…' : 'Mark Paid'}
     </button>
