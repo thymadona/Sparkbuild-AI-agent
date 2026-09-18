@@ -70,7 +70,7 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
     <>
       <button
         onClick={handleOpen}
-        className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600 transition-colors"
+        className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70 transition-colors"
         title="Edit student"
       >
         Edit
@@ -78,10 +78,10 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <div className="w-full max-w-md rounded-md border border-border bg-card p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-100">Edit Student</h2>
-              <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-300">
+              <h2 className="text-base font-semibold text-foreground">Edit Student</h2>
+              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
@@ -89,51 +89,51 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
             </div>
 
             {error && (
-              <p className="mb-4 rounded-lg border border-red-800 bg-red-950 px-3 py-2 text-sm text-red-300">
+              <p className="mb-4 rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {error}
               </p>
             )}
 
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-400">Full name</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Full name</label>
                 <input
                   required
                   value={form.full_name}
                   onChange={(e) => set('full_name', e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-400">Parent email</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Parent email</label>
                 <input
                   type="email"
                   value={form.parent_email}
                   onChange={(e) => set('parent_email', e.target.value)}
                   placeholder="parent@example.com"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-400">Parent Telegram chat ID</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Parent Telegram chat ID</label>
                 <input
                   value={form.parent_telegram_chat_id}
                   onChange={(e) => set('parent_telegram_chat_id', e.target.value)}
                   placeholder="123456789"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
+                  className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-400">Notes</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
                   rows={3}
                   placeholder="Internal notes about this student…"
-                  className="w-full resize-none rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-violet-500 focus:outline-none"
+                  className="w-full resize-none rounded border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
@@ -141,14 +141,14 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:text-gray-200"
+                  className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {loading ? 'Saving…' : 'Save changes'}
                 </button>

@@ -41,6 +41,10 @@
     --accent-foreground: var(--fg-primary);
     --destructive: 186 26 26; /* #ba1a1a */
     --destructive-foreground: 255 255 255;
+    --success: 20 132 106; /* #14846a */
+    --success-foreground: 255 255 255;
+    --warning: 180 95 6; /* #b45f06 */
+    --warning-foreground: 255 255 255;
     --border: var(--surface-600);
     --input: var(--border);
     --ring: var(--primary);
@@ -76,9 +80,25 @@
     --accent-foreground: 22 19 45; /* #16132d */
     --destructive: 255 180 171; /* #ffb4ab */
     --destructive-foreground: 105 0 5; /* #690005 */
+    --success: 45 212 191; /* #2dd4bf */
+    --success-foreground: 22 19 45; /* #16132d */
+    --warning: 251 191 36; /* #fbbf24 */
+    --warning-foreground: 22 19 45; /* #16132d */
     --border: var(--surface-600);
     --input: var(--border);
     --ring: var(--primary);
+  }
+
+  /* Restrained "professional admin" surface for /staff — subtler border and
+     no hard-offset shadow than the Vibrant Play brand default, scoped so the
+     student-facing app is unaffected. See DashboardShell.tsx. */
+  .staff-shell {
+    --border: 210 206 224;
+    --shadow-color: transparent;
+  }
+
+  .dark .staff-shell {
+    --border: 58 52 94;
   }
 
   * {

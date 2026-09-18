@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type ClassRow = {
   id: string
@@ -25,61 +27,57 @@ export default function TeacherClassesClient({ classes }: { classes: ClassRow[] 
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search classes…"
-        className="w-64 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-gray-600 focus:outline-none"
+        className="w-64 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       />
 
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Class</th>
-              <th className="text-center px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Students</th>
-              <th className="text-center px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Pending review</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
+      <div className="rounded-md border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Class</TableHead>
+              <TableHead className="text-right">Students</TableHead>
+              <TableHead className="text-right">Pending review</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((cls) => (
-              <tr key={cls.id} className="hover:bg-gray-800/30 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-100">{cls.name}</div>
+              <TableRow key={cls.id}>
+                <TableCell>
+                  <div className="font-medium text-foreground">{cls.name}</div>
                   {cls.description && (
-                    <div className="text-xs text-gray-500 mt-0.5 max-w-xs truncate">{cls.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{cls.description}</div>
                   )}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className="rounded-md bg-gray-800 px-2.5 py-0.5 text-sm font-medium text-gray-200">
-                    {cls.studentCount}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
+                </TableCell>
+                <TableCell className="text-right tabular-nums font-medium text-foreground">
+                  {cls.studentCount}
+                </TableCell>
+                <TableCell className="text-right">
                   {cls.pendingReviewCount > 0 ? (
-                    <span className="rounded-md bg-amber-950 border border-amber-800 px-2.5 py-0.5 text-xs text-amber-300">
-                      {cls.pendingReviewCount} waiting
-                    </span>
+                    <Badge variant="warning">{cls.pendingReviewCount} waiting</Badge>
                   ) : (
-                    <span className="text-xs text-gray-600">—</span>
+                    <span className="text-xs text-muted-foreground/70">—</span>
                   )}
-                </td>
-                <td className="px-4 py-3 text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   <Link
                     href={`/staff/classes/${cls.id}`}
-                    className="rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600 transition-colors"
+                    className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors"
                   >
                     Open →
                   </Link>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-600">
+              <TableRow>
+                <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground/70">
                   {search ? 'No classes match your search.' : 'No classes assigned yet.'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

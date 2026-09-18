@@ -25,6 +25,10 @@ export interface SchoolOverviewStats {
   submittedThisWeek: number
   promptsToday: number
   totalPrompts: number
+  // 14 entries, oldest first, zero-filled — real per-day counts, not a
+  // fabricated trend. A second round trip rather than folded into the
+  // scalar-subquery SELECT below: this is a row-set, not one more number.
+  promptsByDay: number[]
 }
 
 // One round trip for the whole dashboard: ten scalar subqueries in a single
@@ -41,7 +45,8 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
     sql`, `
   )
 
-  const result = await db.execute(sql`
+  const [result, trendResult] = await Promise.all([
+    db.execute(sql`
     select
       (select count(*) from ${classes})::int as total_classes,
 
@@ -84,10 +89,20 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
       -- only then does the caller pay for an exact count.
       (select reltuples::bigint::int from pg_class
         where oid = 'public.prompts'::regclass) as prompts_estimate
-  `)
+  `),
+    db.execute(sql`
+      select array_agg(cnt order by day) as by_day from (
+        select gs.day::date as day, count(${prompts.id})::int as cnt
+        from generate_series(current_date - interval '13 days', current_date, interval '1 day') gs(day)
+        left join ${prompts} on ${prompts.createdAt}::date = gs.day
+        group by gs.day
+      ) t
+    `),
+  ])
 
   const row = rowsOf<Record<string, number | null>>(result)[0] ?? {}
   const promptsEstimate = row.prompts_estimate ?? -1
+  const promptsByDay = rowsOf<{ by_day: number[] | null }>(trendResult)[0]?.by_day ?? []
 
   return {
     totalClasses: row.total_classes ?? 0,
@@ -100,5 +115,6 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
     submittedThisWeek: row.submitted_week ?? 0,
     promptsToday: row.prompts_today ?? 0,
     totalPrompts: promptsEstimate >= 0 ? promptsEstimate : await db.$count(prompts),
+    promptsByDay,
   }
 }

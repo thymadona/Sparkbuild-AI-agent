@@ -31,12 +31,22 @@ export const NAV_PERMISSION_KEYS = [
 
 export type NavIcon = 'grid' | 'people' | 'book' | 'check' | 'card' | 'send' | 'shield'
 
+export type NavGroup = 'classes' | 'people' | 'billing'
+
 export interface NavItem {
   href: string
   label: string
   icon: NavIcon
   exact?: boolean
+  // Omitted = renders ungrouped, above any group headers (just Overview today).
+  group?: NavGroup
   visible: (perm: StaffPermissions) => boolean
+}
+
+export const GROUP_LABEL: Record<NavGroup, string> = {
+  classes: 'Classes & Homework',
+  people: 'People',
+  billing: 'Billing & Integrations',
 }
 
 export const STAFF_NAV: NavItem[] = [
@@ -45,13 +55,14 @@ export const STAFF_NAV: NavItem[] = [
     href: '/staff/classes',
     label: 'Classes',
     icon: 'book',
+    group: 'classes',
     visible: (p) => p.canManageClasses || p.isTeacherOfAnyClass,
   },
-  { href: '/staff/students', label: 'Students', icon: 'people', visible: (p) => p.canManageStudents },
   // The global cross-class queue — teachers review homework scoped to their
   // own class from the Classes tab instead, matching existing behavior.
-  { href: '/staff/homework', label: 'Homework', icon: 'check', visible: (p) => p.isAdmin },
-  { href: '/staff/finance', label: 'Billing', icon: 'card', visible: (p) => p.canManageInvoices },
-  { href: '/staff/telegram', label: 'Telegram', icon: 'send', visible: (p) => p.canManageTelegram },
-  { href: '/staff/users', label: 'People & Roles', icon: 'shield', visible: (p) => p.canManageRoles },
+  { href: '/staff/homework', label: 'Homework', icon: 'check', group: 'classes', visible: (p) => p.isAdmin },
+  { href: '/staff/students', label: 'Students', icon: 'people', group: 'people', visible: (p) => p.canManageStudents },
+  { href: '/staff/users', label: 'People & Roles', icon: 'shield', group: 'people', visible: (p) => p.canManageRoles },
+  { href: '/staff/finance', label: 'Billing', icon: 'card', group: 'billing', visible: (p) => p.canManageInvoices },
+  { href: '/staff/telegram', label: 'Telegram', icon: 'send', group: 'billing', visible: (p) => p.canManageTelegram },
 ]

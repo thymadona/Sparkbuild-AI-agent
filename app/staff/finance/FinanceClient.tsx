@@ -5,6 +5,9 @@ import MarkPaidButton from '@/components/admin/MarkPaidButton'
 import SendInvoiceButton from '@/components/admin/SendInvoiceButton'
 import EditInvoiceModal from '@/components/admin/EditInvoiceModal'
 import DeleteInvoiceButton from '@/components/admin/DeleteInvoiceButton'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type InvoiceRow = {
   id: string
@@ -71,21 +74,27 @@ export default function FinanceClient({
     <div className="space-y-5">
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-red-900/50 bg-red-950/30 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-red-400 mb-1">Outstanding</div>
-          <div className="text-2xl font-bold text-red-300">{formatAmount(totalOutstanding)}</div>
-          <div className="text-xs text-red-500 mt-1">{unpaidCount} unpaid invoice{unpaidCount !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="rounded-xl border border-green-900/50 bg-green-950/30 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-green-400 mb-1">Collected</div>
-          <div className="text-2xl font-bold text-green-300">{formatAmount(totalCollected)}</div>
-          <div className="text-xs text-green-500 mt-1">{paidCount} paid invoice{paidCount !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
-          <div className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-1">Total</div>
-          <div className="text-2xl font-bold text-gray-100">{invoices.length}</div>
-          <div className="text-xs text-gray-600 mt-1">all invoices</div>
-        </div>
+        <Card className="bg-destructive/10 ring-destructive/20">
+          <CardContent>
+            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">Outstanding</div>
+            <div className="text-2xl font-bold text-destructive">{formatAmount(totalOutstanding)}</div>
+            <div className="text-xs text-destructive/70 mt-1">{unpaidCount} unpaid invoice{unpaidCount !== 1 ? 's' : ''}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-success/10 ring-success/20">
+          <CardContent>
+            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">Collected</div>
+            <div className="text-2xl font-bold text-success">{formatAmount(totalCollected)}</div>
+            <div className="text-xs text-success/70 mt-1">{paidCount} paid invoice{paidCount !== 1 ? 's' : ''}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Total</div>
+            <div className="text-2xl font-bold text-foreground">{invoices.length}</div>
+            <div className="text-xs text-muted-foreground/70 mt-1">all invoices</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters + search */}
@@ -95,12 +104,12 @@ export default function FinanceClient({
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                filter === f.id ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300'
+              className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === f.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {f.label}
-              <span className={`rounded px-1.5 py-0.5 ${filter === f.id ? 'bg-gray-600 text-gray-200' : 'bg-gray-800 text-gray-500'}`}>
+              <span className={`rounded px-1.5 py-0.5 ${filter === f.id ? 'bg-background text-foreground' : 'bg-muted text-muted-foreground'}`}>
                 {f.count}
               </span>
             </button>
@@ -110,60 +119,54 @@ export default function FinanceClient({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search student or description…"
-          className="w-60 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-gray-600 focus:outline-none"
+          className="w-60 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Student</th>
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Description</th>
-              <th className="text-right px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Amount</th>
-              <th className="text-right px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Due</th>
-              <th className="text-center px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
-              <th className="text-right px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
+      <div className="rounded-md border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Student</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Due</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((inv) => {
               const profile = profileMap[inv.user_id]
               const receiptId = receiptByInvoice[inv.id] ?? null
               const isOverdue = inv.status === 'unpaid' && inv.due_date < today
               return (
-                <tr key={inv.id} className="hover:bg-gray-800/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-100">
-                    {profile?.full_name ?? <span className="text-gray-600 italic">Unknown</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs max-w-xs truncate">{inv.description}</td>
-                  <td className="px-4 py-3 text-right tabular-nums font-semibold text-gray-100">
+                <TableRow key={inv.id}>
+                  <TableCell className="font-medium text-foreground">
+                    {profile?.full_name ?? <span className="text-muted-foreground/70 italic">Unknown</span>}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{inv.description}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold text-foreground">
                     {formatAmount(inv.amount_cents)}
-                  </td>
-                  <td className={`px-4 py-3 text-right text-xs ${isOverdue ? 'text-red-400 font-medium' : 'text-gray-400'}`}>
+                  </TableCell>
+                  <TableCell className={`text-right text-xs ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                     {new Date(inv.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    {isOverdue && <span className="ml-1 text-red-500">overdue</span>}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${
-                      inv.status === 'paid'
-                        ? 'bg-green-950 border border-green-800 text-green-300'
-                        : inv.status === 'void'
-                        ? 'bg-gray-800 border border-gray-700 text-gray-500'
-                        : 'bg-red-950 border border-red-800 text-red-300'
-                    }`}>
+                    {isOverdue && <span className="ml-1 text-destructive">overdue</span>}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'void' ? 'secondary' : 'destructive'}>
                       {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex justify-end items-center gap-2 flex-wrap">
                       {inv.status === 'unpaid' && <MarkPaidButton invoiceId={inv.id} />}
                       <a
                         href={`/invoice/${inv.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+                        className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
                       >
                         Invoice PDF
                       </a>
@@ -172,7 +175,7 @@ export default function FinanceClient({
                           href={`/receipt/${receiptId}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-600"
+                          className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
                         >
                           Receipt PDF
                         </a>
@@ -183,7 +186,7 @@ export default function FinanceClient({
                         hasTelegramId={!!profile?.parent_telegram_chat_id}
                       />
                       {inv.sent_at && (
-                        <span className="text-xs text-gray-600" title={`Sent ${new Date(inv.sent_at).toLocaleString()}`}>
+                        <span className="text-xs text-muted-foreground/70" title={`Sent ${new Date(inv.sent_at).toLocaleString()}`}>
                           ✓ sent
                         </span>
                       )}
@@ -194,22 +197,22 @@ export default function FinanceClient({
                         <DeleteInvoiceButton invoiceId={inv.id} />
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
             {filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-600">
+              <TableRow>
+                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground/70">
                   {search || filter !== 'all' ? 'No invoices match your filter.' : 'No invoices yet.'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <p className="text-xs text-gray-600">{filtered.length} of {invoices.length} invoices</p>
+      <p className="text-xs text-muted-foreground/70">{filtered.length} of {invoices.length} invoices</p>
     </div>
   )
 }

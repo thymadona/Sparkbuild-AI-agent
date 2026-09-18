@@ -27,13 +27,13 @@ export default function DeleteInvoiceButton({ invoiceId }: { invoiceId: string }
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="rounded bg-red-700 px-2 py-1 text-xs text-white hover:bg-red-600 disabled:opacity-50"
+          className="rounded bg-destructive px-2 py-1 text-xs text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
         >
           {deleting ? '…' : 'Confirm'}
         </button>
         <button
           onClick={() => setConfirming(false)}
-          className="rounded px-2 py-1 text-xs text-gray-500 hover:text-gray-300"
+          className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
         >
           Cancel
         </button>
@@ -44,7 +44,7 @@ export default function DeleteInvoiceButton({ invoiceId }: { invoiceId: string }
   return (
     <button
       onClick={() => setConfirming(true)}
-      className="rounded bg-gray-800 px-2 py-1 text-xs text-gray-400 hover:bg-red-900/40 hover:text-red-400"
+      className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
     >
       Delete
     </button>

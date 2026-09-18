@@ -43,8 +43,8 @@ export default async function FinancePage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-100">Finance</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Invoices, payments, and receipts</p>
+        <h1 className="text-xl font-semibold text-foreground">Finance</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Invoices, payments, and receipts</p>
       </div>
       <FinanceClient
         invoices={invoices as Parameters<typeof FinanceClient>[0]['invoices']}

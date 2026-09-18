@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton'
 import OverviewSkeleton from './OverviewSkeleton'
 
 // Renders inside DashboardShell while the segment resolves. Also structural:
@@ -7,8 +8,8 @@ export default function StaffOverviewLoading() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-100">Dashboard</h1>
-        <div className="mt-2 h-3 w-40 rounded bg-gray-900 animate-pulse" />
+        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+        <Skeleton className="mt-2 h-3 w-40" />
       </div>
       <OverviewSkeleton />
     </div>

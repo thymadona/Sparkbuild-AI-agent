@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ClassFormModal, { type PersonOption } from '@/components/admin/ClassFormModal'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -72,10 +74,10 @@ export default function ClassesClient({
       {/* Filters */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Day:</span>
+          <span className="text-xs text-muted-foreground">Day:</span>
           <button
             onClick={() => setDayFilter(null)}
-            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${dayFilter === null ? 'bg-gray-700 text-gray-100' : 'text-gray-500 hover:text-gray-300'}`}
+            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${dayFilter === null ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             All
           </button>
@@ -83,7 +85,7 @@ export default function ClassesClient({
             <button
               key={d}
               onClick={() => setDayFilter(dayFilter === i ? null : i)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${dayFilter === i ? 'bg-violet-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${dayFilter === i ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             >
               {d}
             </button>
@@ -94,97 +96,87 @@ export default function ClassesClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search classes…"
-            className="w-48 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-600 focus:border-gray-600 focus:outline-none"
+            className="w-48 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
           <ClassFormModal mode="create" allTeachers={allTeachers} allStudents={allStudents} />
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Class</th>
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Schedule</th>
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Next Session</th>
-              <th className="text-center px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Students</th>
-              <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Payment</th>
-              <th className="text-right px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500">Created</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
+      <div className="rounded-md border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Class</TableHead>
+              <TableHead>Schedule</TableHead>
+              <TableHead>Next Session</TableHead>
+              <TableHead className="text-right">Students</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead className="text-right">Created</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((cls) => (
-              <tr key={cls.id} className="hover:bg-gray-800/30 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-100">{cls.name}</div>
+              <TableRow key={cls.id}>
+                <TableCell>
+                  <div className="font-medium text-foreground">{cls.name}</div>
                   {cls.description && (
-                    <div className="text-xs text-gray-500 mt-0.5 max-w-xs truncate">{cls.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{cls.description}</div>
                   )}
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell>
                   {cls.schedules.length === 0 ? (
-                    <span className="text-xs text-gray-600">No schedule</span>
+                    <span className="text-xs text-muted-foreground/70">No schedule</span>
                   ) : (
                     <div className="flex flex-wrap gap-1">
                       {cls.schedules.map((s, i) => (
-                        <span key={i} className="rounded-md bg-gray-800 px-2 py-0.5 text-xs text-gray-300">
+                        <Badge key={i} variant="secondary">
                           {DAYS[s.day_of_week]} {formatTime(s.start_time)}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   )}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-300">
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
                   {nextSession(cls.schedules)}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className="rounded-md bg-gray-800 px-2.5 py-0.5 text-sm font-medium text-gray-200">
-                    {cls.studentCount}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell className="text-right tabular-nums font-medium text-foreground">
+                  {cls.studentCount}
+                </TableCell>
+                <TableCell>
                   <div className="flex gap-1.5">
-                    {cls.unpaidCount > 0 && (
-                      <span className="rounded-md bg-red-950 border border-red-800 px-2 py-0.5 text-xs text-red-300">
-                        {cls.unpaidCount} unpaid
-                      </span>
-                    )}
-                    {cls.paidCount > 0 && (
-                      <span className="rounded-md bg-green-950 border border-green-800 px-2 py-0.5 text-xs text-green-300">
-                        {cls.paidCount} paid
-                      </span>
-                    )}
+                    {cls.unpaidCount > 0 && <Badge variant="destructive">{cls.unpaidCount} unpaid</Badge>}
+                    {cls.paidCount > 0 && <Badge variant="success">{cls.paidCount} paid</Badge>}
                     {cls.unpaidCount === 0 && cls.paidCount === 0 && (
-                      <span className="text-xs text-gray-600">—</span>
+                      <span className="text-xs text-muted-foreground/70">—</span>
                     )}
                   </div>
-                </td>
-                <td className="px-4 py-3 text-right text-xs text-gray-500">
+                </TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">
                   {new Date(cls.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </td>
-                <td className="px-4 py-3 text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   <Link
                     href={`/staff/classes/${cls.id}`}
-                    className="rounded-lg bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-gray-600 transition-colors"
+                    className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors"
                   >
                     Details →
                   </Link>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-600">
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground/70">
                   {search || dayFilter !== null ? 'No classes match your filter.' : 'No classes yet.'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <p className="text-xs text-gray-600">{filtered.length} of {classes.length} classes</p>
+      <p className="text-xs text-muted-foreground/70">{filtered.length} of {classes.length} classes</p>
     </div>
   )
 }

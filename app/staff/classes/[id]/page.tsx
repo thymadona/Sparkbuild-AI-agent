@@ -176,12 +176,20 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
+    const enabledLessonIds = new Set(enabledLessons.map((d) => d.lesson_id))
+    const adminLessons = LESSONS.map((lesson) => ({
+      lessonId: lesson.id,
+      title: lesson.title,
+      description: lesson.description,
+      enabled: enabledLessonIds.has(lesson.id),
+    }))
+
     return (
       <div>
-        <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/staff/classes" className="hover:text-gray-300 transition-colors">Classes</Link>
+        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/staff/classes" className="hover:text-foreground transition-colors">Classes</Link>
           <span>/</span>
-          <span className="text-gray-300">{cls.name}</span>
+          <span className="text-foreground">{cls.name}</span>
         </div>
 
         <div className="space-y-6">
@@ -195,7 +203,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
             teachers={teachers}
             availableTeachers={availableTeachers}
           />
-          <LessonsPanel classId={cls.id} enabledLessonIds={enabledLessons.map((d) => d.lesson_id)} />
+          <LessonsPanel classId={cls.id} lessons={adminLessons} />
         </div>
       </div>
     )
@@ -363,10 +371,10 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/staff/classes" className="hover:text-gray-300 transition-colors">Classes</Link>
+      <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Link href="/staff/classes" className="hover:text-foreground transition-colors">Classes</Link>
         <span>/</span>
-        <span className="text-gray-300">{cls.name}</span>
+        <span className="text-foreground">{cls.name}</span>
       </div>
 
       <TeacherClassClient

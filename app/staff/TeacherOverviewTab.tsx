@@ -5,94 +5,10 @@ import { classMembers, classes, lessonProgress, projects as projectsTable } from
 import { getTeacherClassIds } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS } from '@/lib/lessons'
 import type { SubmissionStatus } from '@/types'
+import { Card, CardContent } from '@/components/ui/card'
+import { AttentionFeed, HeroMetric, MagnitudeBar, Meter, StatChip, StatusBar } from './OverviewWidgets'
 
 const WEEK_MS = 7 * 86_400_000
-
-function StatTile({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-      <div className="text-2xl font-bold">{value.toLocaleString()}</div>
-      <div className="text-gray-500 text-sm mt-1">{label}</div>
-    </div>
-  )
-}
-
-// A ratio against a fixed limit (0–100%) reads as a meter, not a generic bar —
-// same-ramp track + fill, one hue, value labeled at the tip.
-function Meter({ label, pct, count }: { label: string; pct: number; count: string }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="text-gray-300">{label}</span>
-        <span className="shrink-0 text-xs text-gray-500">
-          {count} · <span className="font-medium text-gray-300">{pct}%</span>
-        </span>
-      </div>
-      <div className="mt-1.5 h-2 rounded-full bg-gray-800">
-        <div className="h-full rounded-full bg-teal-500" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
-}
-
-// Plain magnitude comparison across classes — no fixed ceiling, so the bar is
-// scaled to the largest value in the set rather than to 100%.
-function MagnitudeBar({ label, value, max, href }: { label: string; value: number; max: number; href: string }) {
-  const pct = max > 0 ? Math.max((value / max) * 100, value > 0 ? 4 : 0) : 0
-  return (
-    <Link href={href} className="block group">
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="text-gray-200 group-hover:text-white transition-colors">{label}</span>
-        <span className="shrink-0 text-xs font-medium text-gray-400">{value.toLocaleString()}</span>
-      </div>
-      <div className="mt-1.5 h-2.5 rounded-full bg-gray-800">
-        <div className="h-full rounded-full bg-teal-500/80 group-hover:bg-teal-500 transition-colors" style={{ width: `${pct}%` }} />
-      </div>
-    </Link>
-  )
-}
-
-const STATUS_META: Record<SubmissionStatus, { label: string; className: string }> = {
-  submitted: { label: 'Waiting for review', className: 'bg-amber-500' },
-  approved: { label: 'Approved', className: 'bg-teal-500' },
-  needs_work: { label: 'Sent back', className: 'bg-red-500' },
-}
-
-// Part-to-whole across a fixed status set — a segmented bar, colored by
-// status (never a generic categorical hue) with a legend and its counts.
-function StatusBar({ counts }: { counts: Record<SubmissionStatus, number> }) {
-  const total = counts.submitted + counts.approved + counts.needs_work
-  const order: SubmissionStatus[] = ['submitted', 'approved', 'needs_work']
-
-  return (
-    <div>
-      {total === 0 ? (
-        <div className="h-2.5 rounded-full bg-gray-800" />
-      ) : (
-        <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
-          {order.map((status) =>
-            counts[status] > 0 ? (
-              <div
-                key={status}
-                className={STATUS_META[status].className}
-                style={{ width: `${(counts[status] / total) * 100}%` }}
-              />
-            ) : null
-          )}
-        </div>
-      )}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-        {order.map((status) => (
-          <div key={status} className="flex items-center gap-1.5 text-xs text-gray-400">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_META[status].className}`} />
-            {STATUS_META[status].label}
-            <span className="font-medium text-gray-300">{counts[status]}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // Scoped to classes this specific user teaches — getTeacherClassIds already
 // filters by user_id, and every query below filters further by studentIds
@@ -104,9 +20,11 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
   if (classIds.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-sm text-gray-500">
-        You&apos;re not assigned to any classes yet.
-      </div>
+      <Card>
+        <CardContent className="text-sm text-muted-foreground">
+          You&apos;re not assigned to any classes yet.
+        </CardContent>
+      </Card>
     )
   }
 
@@ -133,6 +51,17 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
   const weeklyTotals = new Map<number, { done: number; possible: number }>()
   for (const lesson of LESSONS) weeklyTotals.set(lesson.id, { done: 0, possible: studentIds.length * lesson.tasks.length })
   const classTasksCompleted = new Map<string, number>(classIds.map((id) => [id, 0]))
+
+  // 7-day trend of distinct active students per day, oldest first — bucketed
+  // from lessonProgress.updatedAt already being fetched below for
+  // activeThisWeek, not a new query or a fabricated series.
+  const dayKeys: string[] = []
+  const activeByDay = new Map<string, Set<string>>()
+  for (let i = 6; i >= 0; i--) {
+    const day = new Date(Date.now() - i * 86_400_000).toISOString().split('T')[0]
+    dayKeys.push(day)
+    activeByDay.set(day, new Set())
+  }
 
   if (studentIds.length > 0) {
     const [submissions, projectRows] = await Promise.all([
@@ -214,7 +143,11 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
       tasksCompleted += done
       if (done === resolved.tasks.length) lessonsCompleted++
-      if (progress && progress.updatedAt >= weekAgo) activeUserIds.add(project.user_id)
+      if (progress && progress.updatedAt >= weekAgo) {
+        activeUserIds.add(project.user_id)
+        const day = new Date(progress.updatedAt).toISOString().split('T')[0]
+        activeByDay.get(day)?.add(project.user_id)
+      }
 
       const weekTotal = weeklyTotals.get(resolved.id)
       if (weekTotal) weekTotal.done += done
@@ -237,6 +170,8 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
     }
   })
 
+  const activeTrend = dayKeys.map((day) => activeByDay.get(day)?.size ?? 0)
+
   const classRows = (classesData ?? []).map((c) => ({
     id: c.id,
     name: c.name,
@@ -247,69 +182,84 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-sm font-semibold text-gray-400 mb-3">Your classes</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <StatTile label="Classes" value={classIds.length} />
-          <StatTile label="Students" value={studentIds.length} />
-          <StatTile label="Active this week" value={activeThisWeek} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <HeroMetric label="Active students this week" value={activeThisWeek.toLocaleString()} trend={activeTrend} />
         </div>
+        <AttentionFeed
+          items={[{ href: '/staff/classes', label: 'Homework awaiting review', count: statusCounts.submitted }]}
+        />
       </div>
+
+      <Card>
+        <CardContent className="flex flex-wrap gap-x-6 gap-y-2">
+          <StatChip label="classes" value={classIds.length} />
+          <StatChip label="students" value={studentIds.length} />
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-400">Homework</h2>
-            <Link href="/staff/classes" className="text-xs text-teal-400 hover:text-teal-300 transition-colors">
-              Review →
-            </Link>
-          </div>
-          <StatusBar counts={statusCounts} />
-        </div>
-
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-400">Progress across your students</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-2xl font-bold">{lessonsCompleted.toLocaleString()}</div>
-              <div className="text-gray-500 text-xs mt-1">Lessons completed</div>
+        <Card>
+          <CardContent>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-muted-foreground">Homework</h2>
+              <Link href="/staff/classes" className="text-xs text-primary hover:underline transition-colors">
+                Review →
+              </Link>
             </div>
-            <div>
-              <div className="text-2xl font-bold">{tasksCompleted.toLocaleString()}</div>
-              <div className="text-gray-500 text-xs mt-1">Tasks completed</div>
+            <StatusBar counts={statusCounts} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-sm font-semibold text-muted-foreground">Progress across your students</h2>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-2xl font-bold text-foreground">{lessonsCompleted.toLocaleString()}</div>
+                <div className="text-muted-foreground text-xs mt-1">Lessons completed</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-foreground">{tasksCompleted.toLocaleString()}</div>
+                <div className="text-muted-foreground text-xs mt-1">Tasks completed</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">Weekly progress</h2>
+          <div className="space-y-3.5">
+            {weeklyProgress.map((w) => (
+              <Meter key={w.lessonId} label={w.title} pct={w.pct} count={`${w.done}/${w.possible} tasks`} />
+            ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-        <h2 className="text-sm font-semibold text-gray-400 mb-4">Weekly progress</h2>
-        <div className="space-y-3.5">
-          {weeklyProgress.map((w) => (
-            <Meter key={w.lessonId} label={w.title} pct={w.pct} count={`${w.done}/${w.possible} tasks`} />
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="text-sm font-semibold text-gray-400">Classes</h2>
-          <span className="text-xs text-gray-600">Tasks completed by class</span>
-        </div>
-        <div className="space-y-3.5">
-          {classRows.map((c) => (
-            <MagnitudeBar
-              key={c.id}
-              label={`${c.name} · ${c.students} ${c.students === 1 ? 'student' : 'students'}`}
-              value={c.tasksCompleted}
-              max={maxClassTasks}
-              href={`/staff/classes/${c.id}`}
-            />
-          ))}
-        </div>
-      </div>
+      <Card>
+        <CardContent>
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="text-sm font-semibold text-muted-foreground">Classes</h2>
+            <span className="text-xs text-muted-foreground/70">Tasks completed by class</span>
+          </div>
+          <div className="space-y-3.5">
+            {classRows.map((c) => (
+              <MagnitudeBar
+                key={c.id}
+                label={`${c.name} · ${c.students} ${c.students === 1 ? 'student' : 'students'}`}
+                value={c.tasksCompleted}
+                max={maxClassTasks}
+                href={`/staff/classes/${c.id}`}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
