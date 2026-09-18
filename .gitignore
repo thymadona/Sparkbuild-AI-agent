@@ -37,5 +37,8 @@ next-env.d.ts
 # claude code agent worktrees
 /.claude/worktrees/
 
+# claude code plan files (local scratch, see .claude/settings.local.json)
+/.claude/plans/
+
 # supabase cli scratch state (version pin churn, not project config)
 /supabase/.temp/
