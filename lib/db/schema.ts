@@ -196,6 +196,8 @@ export const projects = pgTable(
     lessonId: integer('lesson_id'),
     submissionStatus: text('submission_status'),
     lessonVersion: integer('lesson_version'),
+    // Tutor board state (lib/board/reducer.ts BoardState); null until the tutor first draws.
+    board: jsonb('board'),
   },
   (t) => [
     check(

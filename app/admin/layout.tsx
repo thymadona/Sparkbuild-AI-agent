@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!(await isAdmin(user.id))) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-background text-foreground">
       <AdminSidebar email={user.email ?? ''} />
       <main className="ml-56 min-h-screen">
         <div className="px-8 py-6">
