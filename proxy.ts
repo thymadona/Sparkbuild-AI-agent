@@ -33,6 +33,7 @@ export async function proxy(request: NextRequest) {
   const isProtected =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/editor') ||
+    pathname.startsWith('/board') ||
     pathname.startsWith('/profile')
   const isAdminPath = pathname.startsWith('/admin')
   const isTeacherPath = pathname.startsWith('/teacher')

@@ -7,6 +7,7 @@ import { LESSON_CATALOGS, getLessonForProject } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
+import { SavedBoard } from '@/lib/board/code'
 import type { ProjectFiles } from '@/types'
 
 // The full row as the API has always shaped it: snake_case keys, matching
@@ -237,7 +238,7 @@ export async function PATCH(req: Request) {
   }
 
   const body = await req.json()
-  const { id, title, is_public, files } = body
+  const { id, title, is_public, files, board } = body
 
   if (!id) {
     return NextResponse.json({ error: 'Project id is required' }, { status: 400 })
@@ -251,6 +252,11 @@ export async function PATCH(req: Request) {
   if (title !== undefined) updates.title = title
   if (is_public !== undefined) updates.isPublic = is_public
   if (files !== undefined) updates.files = files as ProjectFiles
+  if (board !== undefined) {
+    const saved = SavedBoard.safeParse(board)
+    if (!saved.success) return NextResponse.json({ error: 'Invalid board' }, { status: 400 })
+    updates.board = saved.data
+  }
 
   // Ownership enforced by filtering on both id and user_id in the UPDATE
   // itself, so a mismatch updates zero rows rather than someone else's.
