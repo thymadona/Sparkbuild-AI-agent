@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@/components/Editor'
 import Preview, { type PickedElement } from '@/components/Preview'
+import PythonRunner from '@/components/PythonRunner'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
 import ConfettiBurst from '@/components/ConfettiBurst'
@@ -14,7 +15,10 @@ import ProfileDropdown from '@/components/ProfileDropdown'
 import MobileEditorShell from './MobileEditorShell'
 import EditorLoading from './loading'
 import { buildCombinedHtml } from '@/lib/combine'
+import { fetchLessonFiles } from '@/lib/lesson-files'
+import { entryFileFor } from '@/lib/starter-file'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
+import { RuntimeChecksContext, useRuntimeChecks } from '@/hooks/useRuntimeChecks'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { highlightLinesForTask } from '@/lib/task-checks'
 import type { Project, Message } from '@/types'
@@ -41,7 +45,8 @@ const MAX_CONSOLE_ENTRIES = 200
 
 type RightTab = 'code' | 'preview' | 'console'
 
-function getLanguage(filename: string): 'html' | 'css' | 'js' {
+function getLanguage(filename: string): 'html' | 'css' | 'js' | 'py' {
+  if (filename.endsWith('.py')) return 'py'
   if (filename.endsWith('.css')) return 'css'
   if (filename.endsWith('.js')) return 'js'
   return 'html'
@@ -49,7 +54,10 @@ function getLanguage(filename: string): 'html' | 'css' | 'js' {
 
 export default function EditorLayout({ project, initialMessages, lesson, initialCompletedTaskIds, userEmail, classSlots = [] }: Props) {
   const [files, setFiles] = useState<Record<string, string>>(project.files)
-  const [activeFile, setActiveFile] = useState<string>('index.html')
+  // The file the student edits and runs. Python projects have no index.html.
+  const entryFile = entryFileFor(lesson, project.files)
+  const isPython = entryFile.endsWith('.py')
+  const [activeFile, setActiveFile] = useState<string>(entryFile)
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   // Captured once at mount so it can't flip from true to false on a later
   // re-render that happens to land after the 10s window.
@@ -207,6 +215,11 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   }, [project.id, isFreshlyCreated])
 
   const combinedHtml = buildCombinedHtml(files)
+  const previewPane = isPython ? (
+    <PythonRunner files={files} entry={activeFile.endsWith('.py') ? activeFile : entryFile} scene={lesson?.scene} />
+  ) : (
+    <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
+  )
 
   // Reveals chat regardless of whether it's currently docked in the sidebar
   // or floating — the side panel has nothing else to switch away from
@@ -265,10 +278,10 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   // where") or on a tier-3 stuck escalation — unlike activateTask, this
   // never touches the chat prompt, so it's safe to fire mid-conversation.
   function showTaskLocation(task: LessonTask) {
-    const lines = highlightLinesForTask(files['index.html'] ?? '', task.commentAnchor, task.checks)
+    const lines = highlightLinesForTask(files[entryFile] ?? '', task.commentAnchor, task.checks)
     setHighlightLines(lines)
     setHighlightNonce((n) => n + 1)
-    setActiveFile('index.html')
+    setActiveFile(entryFile)
     setRightTab('code')
     setMobileTab('code')
   }
@@ -278,13 +291,13 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
   const progress = useLessonProgress({
     lesson,
     projectId: project.id,
-    code: files['index.html'] ?? '',
+    code: files[entryFile] ?? '',
     initialCompletedTaskIds,
     initialSubmissionStatus: project.submission_status,
     onHighlight: (lines) => {
       setHighlightLines(lines)
       setHighlightNonce((n) => n + 1)
-      setActiveFile('index.html')
+      setActiveFile(entryFile)
       setRightTab('code')
       setMobileTab('code')
     },
@@ -296,6 +309,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
       setConfettiTrigger(`${task.id}:${Date.now()}`)
     },
   })
+  const runtimeChecks = useRuntimeChecks(progress.activeTask, files, entryFile)
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -369,19 +383,18 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   // Escape valve for a wrecked file (e.g. the student deleted everything, or
   // the task's commentAnchor comment got deleted and highlighting broke).
-  // Only touches index.html — lesson projects are seeded from templateHtml
-  // into that single file, so any other files the student added are kept.
+  // Restores the starter and the lesson's extra files; files the student
+  // added themselves are kept.
   async function resetToTemplate() {
     if (!lesson) return
     if (!confirm('Undo everything and start over from the template? This cannot be undone.')) return
-    const res = await fetch(`/templates/${lesson.templateFile}`)
-    const templateHtml = await res.text()
-    const restored = { ...files, 'index.html': templateHtml }
+    const { templateHtml, extraFiles } = await fetchLessonFiles(lesson)
+    const restored = { ...files, ...extraFiles, [entryFile]: templateHtml }
     setFiles(restored)
     pendingFilesRef.current = restored
     clearTimeout(saveTimerRef.current)
     await Promise.all([flushSave(), progress.resetProgress()])
-    setActiveFile('index.html')
+    setActiveFile(entryFile)
     setRightTab('code')
     setMobileTab('code')
   }
@@ -417,6 +430,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   if (isMobile) {
     return (
+      <RuntimeChecksContext.Provider value={runtimeChecks}>
       <MobileEditorShell
         project={project}
         lesson={lesson}
@@ -424,7 +438,8 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         files={files}
         activeFile={activeFile}
         activeLanguage={activeLanguage}
-        combinedHtml={combinedHtml}
+        previewPane={previewPane}
+        entryFile={entryFile}
         progress={progress}
         messages={messages}
         onMessagesChange={setMessages}
@@ -453,10 +468,12 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
         userEmail={userEmail}
         onBack={() => router.push('/dashboard')}
       />
+      </RuntimeChecksContext.Provider>
     )
   }
 
   return (
+    <RuntimeChecksContext.Provider value={runtimeChecks}>
     <div className="flex h-screen flex-col bg-surface-900 font-body">
       <ConfettiBurst trigger={confettiTrigger} big={confettiBig} />
       {/* Top bar */}
@@ -588,7 +605,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                     <div className="min-h-0 flex-1">
                       <Navigator
                         lesson={lesson}
-                        code={files['index.html'] ?? ''}
+                        code={files[entryFile] ?? ''}
                         progress={progress}
                         classSlots={classSlots}
                         onShowTaskLocation={showTaskLocation}
@@ -620,6 +637,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                     <div className="min-h-0 flex-1">
                       <Editor
                         projectId={project.id}
+                        directorMode={lesson?.aiPolicy === 'director'}
                         files={files}
                         onFilesUpdate={handleFilesUpdate}
                         activeFile={activeFile}
@@ -711,7 +729,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 <circle cx="12" cy="12" r="10" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" />
               </svg>
-              Preview
+              {isPython ? 'Output' : 'Preview'}
             </button>
 
             {showConsoleTab && (
@@ -820,7 +838,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               </Panel>
               <PanelResizeHandle className="w-1 bg-surface-600 hover:bg-brand-500 cursor-col-resize transition-colors" />
               <Panel defaultSize={50} minSize={20}>
-                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
+                {previewPane}
               </Panel>
             </PanelGroup>
           ) : (
@@ -847,7 +865,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
               {/* Preview — always mounted so iframe never reloads on tab switch */}
               <div className={`absolute inset-0 ${rightTab === 'preview' ? '' : 'invisible pointer-events-none'}`}>
-                <Preview code={combinedHtml} isDragging={previewBlocked} inspectMode={inspectMode} onInspectPick={handleInspectPick} />
+                {previewPane}
               </div>
 
               {/* Console */}
@@ -964,6 +982,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
               <div className="flex-1 overflow-hidden">
                 <Editor
                   projectId={project.id}
+                  directorMode={lesson?.aiPolicy === 'director'}
                   files={files}
                   onFilesUpdate={handleFilesUpdate}
                   activeFile={activeFile}
@@ -982,5 +1001,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
       </div>
     </div>
+    </RuntimeChecksContext.Provider>
   )
 }

@@ -10,6 +10,8 @@ import {
 import Navbar from '@/components/Navbar'
 import AppSidebar from '@/components/AppSidebar'
 import { LESSONS } from '@/lib/lessons'
+import PlayerCard from '@/components/PlayerCard'
+import type { PlayerStats } from '@/lib/xp'
 
 // Fixed dark text for chips whose fill stays bright in both themes —
 // fg-primary would flip to near-white in dark mode and vanish against them.
@@ -29,12 +31,13 @@ type ProjectListItem = {
 }
 
 interface Props {
+  stats: PlayerStats
   initialProjects: ProjectListItem[]
   userEmail: string
   enabledLessonIds?: number[]
 }
 
-export default function DashboardClient({ initialProjects, userEmail, enabledLessonIds = [] }: Props) {
+export default function DashboardClient({ initialProjects, userEmail, enabledLessonIds = [], stats }: Props) {
   const enabledSet = new Set(enabledLessonIds)
   const [projects, setProjects] = useState(initialProjects)
   const [creating, setCreating] = useState(false)
@@ -142,6 +145,8 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
             <Sparkles className="pointer-events-none absolute right-6 top-6 h-8 w-8 text-brand-500/20" />
           </section>
         )}
+
+        <PlayerCard stats={stats} />
 
         {/* Stats */}
         <section className="grid grid-cols-3 gap-4">

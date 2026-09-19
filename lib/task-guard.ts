@@ -95,12 +95,10 @@ function escalationBlock(task: LessonTask, tier: EscalationTier, isHomework: boo
   ].join('\n')
 }
 
-// checks whose result the runtime can't determine (no DOM server-side) fall
-// back to a manual-comparison instruction instead of a possibly-wrong verdict.
+// The caller (app/api/generate/route.ts) polyfills DOMParser before calling
+// runTaskChecks, so textChanged results are real verdicts here too — same
+// DOM-based evaluation the browser's own "Mark done" check uses, not a guess.
 function describeCheckStatus(check: TaskCheck, result: TaskCheckResult | undefined): string {
-  if (check.kind === 'textChanged') {
-    return `- ${check.label}: not confirmed automatically — compare their file to this old text: "${check.from}". If it still matches, that part is not done.`
-  }
   return `- ${check.label}: ${result?.passed ? 'DONE' : 'NOT DONE YET'}.`
 }
 
@@ -112,9 +110,10 @@ export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1, resul
     `Goal: ${task.success}`,
     checklist
       ? [
-          'Here is the real status of every requirement for this task, checked against their current file where the system can:',
+          'Here is the real status of every requirement for this task, checked against their current file, the same check that drives their Mark done button:',
           checklist,
-          'Only treat a requirement as done if it says DONE, or if you have personally compared their file to the old text and it has changed. Do not say the whole task is done, and do not bring up another task, even if you see one in their file. If the Mark done button will not click, a requirement above is still unmet — say exactly which one, in plain words. Never invent a reason like a hidden or broken button.',
+          'Trust this list completely — a requirement is done only if it says DONE. Do not say the whole task is done, and do not bring up another task, even if you see one in their file. If the Mark done button will not click, a requirement above is still unmet — say exactly which one, in plain words. Never invent a reason like a hidden or broken button.',
+          'If the student insists something is already changed but a requirement above is not marked DONE, quote back exactly what their file shows there right now, in quotes, so they can see what you see instead of just being told no.',
         ].join('\n')
       : 'That goal line is a summary, not the full checklist — you cannot see which parts they have finished. Do not say this task is done, and do not bring up another task, even if you see one in their file. Wait for them to click the Mark done button.',
     'They must make this change themselves. Never write or edit their code, even if they ask you to.',
@@ -122,6 +121,26 @@ export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1, resul
     `Point them at the line that contains the comment "${task.commentAnchor}".`,
     'If they ask you to do it for them: one warm sentence, then one tiny step they can do.',
     escalationBlock(task, tier, isHomework),
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+/**
+ * Build-mode counterpart of buildTaskNudge, for lessons where the student
+ * directs the AI. The AI may write code here, but only for this task, and
+ * the checklist stays the source of truth for what is done.
+ */
+export function buildDirectorNudge(task: LessonTask, results: TaskCheckResult[] = []): string {
+  const checklist = (task.checks ?? []).map((check, i) => describeCheckStatus(check, results[i])).join('\n')
+  return [
+    `THE STUDENT IS DIRECTING YOU ON THIS TASK: "${task.chip}".`,
+    `Goal: ${task.success}`,
+    checklist
+      ? `Real status of each requirement, checked against their current code:\n${checklist}\nTrust this list. Do not say the task is done unless every line says DONE.`
+      : '',
+    'Build only what they asked for. Do not do other tasks for them.',
+    'Keep the code short and readable enough that they can explain it to their teacher.',
   ]
     .filter(Boolean)
     .join('\n')

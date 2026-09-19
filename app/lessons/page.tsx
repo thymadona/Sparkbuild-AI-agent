@@ -3,6 +3,7 @@ import { and, desc, eq, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { projects } from '@/lib/db/schema'
 import { LESSONS } from '@/lib/lessons'
+import { getPlayerStats } from '@/lib/player-stats'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import LessonsClient from './LessonsClient'
@@ -15,7 +16,7 @@ export default async function LessonsPage() {
     redirect('/')
   }
 
-  const [userProjects, enabledLessonIds, admin, teacher] = await Promise.all([
+  const [userProjects, enabledLessonIds, admin, teacher, stats] = await Promise.all([
     db
       .select({
         id: projects.id,
@@ -28,6 +29,7 @@ export default async function LessonsPage() {
     getEnabledLessonIdsForUser(user.id),
     isAdmin(user.id),
     isTeacher(user.id),
+    getPlayerStats(user.id),
   ])
 
   // Admins and teachers previewing the catalog aren't gated by the
@@ -42,6 +44,7 @@ export default async function LessonsPage() {
       userProjects={userProjects}
       enabledLessonIds={enabledIds}
       userEmail={user.email ?? ''}
+      stats={stats}
     />
   )
 }

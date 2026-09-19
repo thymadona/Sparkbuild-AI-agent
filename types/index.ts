@@ -22,11 +22,26 @@ export interface LessonProgress {
   updated_at: string
 }
 
+// Snapshot of what actually went into a turn's model call — captured so a
+// past turn can be replayed as an eval/regression fixture, since none of
+// this survives anywhere else (projects.files and lesson_progress are
+// mutated in place).
+export interface PromptContext {
+  mode: 'ask' | 'build'
+  reasoning_effort: 'low' | 'high' | 'max'
+  system_content: string
+  user_content: string
+  history: { role: 'user' | 'assistant'; content: string }[]
+  open_task_id: string | null
+  escalation_tier: 1 | 2 | 3
+}
+
 export interface Prompt {
   id: string
   user_id: string
   project_id: string
   content: string
+  context: PromptContext | null
   created_at: string
 }
 

@@ -22,7 +22,7 @@ import { eq } from 'drizzle-orm'
 import { GET, POST, PATCH, DELETE } from '@/app/api/projects/route'
 import { db } from '@/lib/db/client'
 import { messages, projects, prompts } from '@/lib/db/schema'
-import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
+import { grantRole, makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 
 function makeRequest(method: string, body?: object, url = 'http://localhost/api/projects') {
   return new Request(url, {
@@ -89,6 +89,33 @@ describe('POST /api/projects', () => {
 
     const [row] = await db.select().from(projects).where(eq(projects.id, json.id))
     expect(row.userId).toBe(owner.id)
+  })
+
+  it('pins the lesson version a catalog owns and drops one it does not', async () => {
+    const admin = await makeUser()
+    await grantRole(admin.id, 'admin')
+    mockGetSessionUser.mockResolvedValue(admin)
+
+    const pinned = await (await POST(makeRequest('POST', { lessonId: 1, lessonVersion: 2, templateHtml: '<p>x</p>' }))).json()
+    const unknown = await (await POST(makeRequest('POST', { lessonId: 1, lessonVersion: 99 }))).json()
+    expect(pinned.lesson_version).toBe(2)
+    expect(unknown.lesson_version).toBeNull()
+  })
+
+  it('stores a Python lesson under its starter file with only the extra files it declares', async () => {
+    const admin = await makeUser()
+    await grantRole(admin.id, 'admin')
+    mockGetSessionUser.mockResolvedValue(admin)
+
+    const res = await POST(makeRequest('POST', {
+      lessonId: 101,
+      lessonVersion: 3,
+      templateHtml: 'print("beep boop")',
+      extraFiles: { 'bugzap.py': 'print("oops)', 'evil.py': 'import os' },
+    }))
+    const json = await res.json()
+    expect(json.lesson_version).toBe(3)
+    expect(json.files).toEqual({ 'main.py': 'print("beep boop")', 'bugzap.py': 'print("oops)' })
   })
 
   it('generates a random two-word title when none is provided', async () => {
@@ -180,6 +207,7 @@ describe('PATCH /api/projects', () => {
 // ---------------------------------------------------------------------------
 // DELETE
 // ---------------------------------------------------------------------------
+// DELETE
 describe('DELETE /api/projects', () => {
   it('returns 401 when not authenticated', async () => {
     mockGetSessionUser.mockResolvedValue(null)

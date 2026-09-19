@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useContext } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/types";
 import { isCodeResponse, parseMultiFileResponse, parseSummary } from "@/lib/parse-multi-file";
 import SpeakButton from "@/components/SpeakButton";
+import { RuntimeChecksContext } from "@/hooks/useRuntimeChecks";
 
 interface ChatMessage {
   role: "user" | "assistant" | "teacher";
@@ -34,6 +35,9 @@ interface EditorProps {
   // Fired when the server escalates to the top stuck tier, so the caller can
   // point at the task in the code editor instead of relying on chat text alone.
   onEscalation?: () => void;
+  // The lesson hands the student the AI (aiPolicy 'director'): show the
+  // Build toggle whatever the per-user admin switch says.
+  directorMode?: boolean;
 }
 
 function toChat(m: Message): ChatMessage {
@@ -56,7 +60,10 @@ export default function Editor({
   pendingPrompt,
   onPromptConsumed,
   onEscalation,
+  directorMode = false,
 }: EditorProps) {
+  // Verdicts from the student's Python checks; the server cannot run Python.
+  const runtimeChecks = useContext(RuntimeChecksContext);
   const [prompt, setPrompt] = useState("");
   const messages = messagesProp.map(toChat);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -119,6 +126,7 @@ export default function Editor({
               : { role: m.role, content: m.content },
           ),
           selectedCode: contextCode?.text,
+          runtimeChecks,
           mode,
           reasoningEffort: mode === 'build' ? reasoningEffort : undefined,
         }),
@@ -215,7 +223,7 @@ export default function Editor({
   return (
     <div className="flex h-full flex-col">
       {/* Mode toggle */}
-      {buildModeAvailable && (
+      {(buildModeAvailable || directorMode) && (
         <div className="shrink-0 px-3 pt-3 pb-2 border-b-2 border-surface-600 flex items-center justify-between gap-2">
           <div className="flex rounded-lg border-2 border-surface-600 bg-surface-700 p-0.5 w-fit">
             <button

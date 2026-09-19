@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { Lesson, LessonTask } from '@/lib/lessons'
 import { isTaskLocked } from '@/lib/task-guard'
-import { SCALE, TASK_LABELS } from '@/lib/lesson-ui'
+import { SCALE, taskLabel } from '@/lib/lesson-ui'
 import ActiveTaskPanel from '@/components/ActiveTaskPanel'
 import SpeakButton from '@/components/SpeakButton'
 import { dueLabel, nextClassMeeting, type ClassSlot } from '@/lib/schedule'
@@ -121,7 +121,7 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
                   ) : index + 1}
                 </span>
                 <span className="min-w-0">
-                  <span className={`block ${SCALE.label} text-fg-muted`}>{TASK_LABELS[task.type]}</span>
+                  <span className={`block ${SCALE.label} text-fg-muted`}>{taskLabel(task)}</span>
                   <span className={isDone ? 'line-through' : ''}>{task.chip}</span>
                 </span>
               </button>

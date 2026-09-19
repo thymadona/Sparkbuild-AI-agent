@@ -36,6 +36,8 @@ jest.mock('@/lib/gemini', () => ({
   MODEL: 'deepseek-v4-flash',
   ASK_SYSTEM_PROMPT: 'You are a coding tutor.',
   BUILD_SYSTEM_PROMPT: 'You are a code generator.',
+  PYTHON_ASK_SYSTEM_PROMPT: 'You are a Python tutor.',
+  PYTHON_BUILD_SYSTEM_PROMPT: 'You are a Python code generator.',
 }))
 
 jest.mock('next/headers', () => ({
@@ -46,6 +48,7 @@ import { eq } from 'drizzle-orm'
 import { POST } from '@/app/api/generate/route'
 import { db } from '@/lib/db/client'
 import { messages, projects, prompts } from '@/lib/db/schema'
+import { LESSON_CATALOGS, type Lesson } from '@/lib/lessons'
 import { makeMessages, makeProject, makeUser, resetDb, setLessonProgress } from '@/__tests__/helpers/db'
 
 function makeRequest(body: object) {
@@ -242,6 +245,38 @@ describe('POST /api/generate', () => {
     expect(rows[0].userId).toBe(user.id)
   })
 
+  it('snapshots the assembled turn context on the prompt log row', async () => {
+    const user = await makeUser()
+    const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+    mockGetSessionUser.mockResolvedValue(user)
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
+    mockCreate.mockResolvedValue(makeStreamChunks(['Try adding a button.']))
+
+    await POST(
+      makeRequest({ prompt: 'how do I add a button?', projectId: project.id, mode: 'ask', reasoningEffort: 'high' })
+    )
+
+    const [row] = await db.select().from(prompts).where(eq(prompts.projectId, project.id))
+    const context = row.context as {
+      mode: string
+      reasoning_effort: string
+      system_content: string
+      user_content: string
+      history: unknown[]
+      open_task_id: string | null
+      escalation_tier: number
+    }
+
+    // Snapshotted so a past turn can be replayed as an eval fixture later —
+    // nothing else persists this (projects.files/lesson_progress are
+    // mutated in place, not versioned).
+    expect(context.mode).toBe('ask')
+    expect(context.user_content).toBe('how do I add a button?')
+    expect(context.system_content.length).toBeGreaterThan(0)
+    expect(context.open_task_id).toBeNull()
+    expect(context.escalation_tier).toBe(1)
+  })
+
   it('writes parsed build output back to the project files', async () => {
     const user = await makeUser()
     const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
@@ -358,16 +393,23 @@ describe('POST /api/generate', () => {
       expect(system).not.toContain('ESCALATION LEVEL')
     })
 
-    it('tells the tutor to compare against old text and not to mention other tasks', async () => {
+    it('resolves textChanged checks with a real DOM-based verdict, not a raw-text dump, and never mentions other tasks', async () => {
       const user = await makeUser()
       const project = await makeProject(user.id)
       mockGetSessionUser.mockResolvedValue(user)
 
-      const system = await systemPromptFor(user, project.id, 'help me replace the name and intro')
+      const untouchedSystem = await systemPromptFor(user, project.id, 'help me replace the name and intro', {
+        'index.html': '<h1>Hey, I’m Your Name.</h1><p class="lead">I’m a curious creator who loves turning big ideas into small, colorful experiments.</p>',
+      })
+      expect(untouchedSystem).not.toMatch(/not confirmed automatically/i)
+      expect(untouchedSystem).toContain('NOT DONE YET')
+      expect(untouchedSystem).toMatch(/do not bring up another task/i)
 
-      expect(system).toMatch(/not confirmed automatically/i)
-      expect(system).toContain('Hey, I’m Your Name.')
-      expect(system).toMatch(/do not bring up another task/i)
+      const changedSystem = await systemPromptFor(user, project.id, 'help me replace the name and intro', {
+        'index.html': '<h1>Hey, I’m Ada.</h1><p class="lead">I’m a curious creator who loves turning big ideas into small, colorful experiments.</p>',
+      })
+      expect(changedSystem).toContain('DONE') // h1 changed
+      expect(changedSystem).toContain('NOT DONE YET') // .lead still untouched
     })
 
     it('marks a sourceOmits check DONE once the file no longer has the old snippet', async () => {
@@ -567,3 +609,74 @@ describe('POST /api/generate', () => {
     })
   })
 })
+
+describe('Python lessons', () => {
+  // A throwaway catalog: version 9 owns one 'director' lesson (id 1) and one
+  // 'tutor' lesson (id 2), both Python.
+  const python = (id: number, aiPolicy: 'tutor' | 'director'): Lesson => ({
+    id,
+    title: 'Py',
+    description: 'd',
+    templateFile: 'x.py',
+    starterFile: 'main.py',
+    aiPolicy,
+    tasks: [
+      {
+        id: 'first',
+        type: 'core',
+        chip: 'Say hello',
+        success: 'Sparky says hello.',
+        prompt: 'p',
+        commentAnchor: 'TASK: first',
+        checks: [{ kind: 'outputContains', label: 'It says hello', hint: 'h', pattern: 'hello' }],
+      },
+    ],
+  })
+
+  beforeAll(() => { LESSON_CATALOGS[9] = [python(1, 'director'), python(2, 'tutor')] })
+  afterAll(() => { delete LESSON_CATALOGS[9] })
+  beforeEach(() => {
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0, count: 0 })
+    mockCreate.mockResolvedValue(makeStreamChunks(['ok']))
+  })
+
+  async function send(lessonId: number, body: Record<string, unknown>) {
+    const user = await makeUser()
+    mockGetSessionUser.mockResolvedValue(user)
+    const project = await makeProject(user.id, { lessonId, lessonVersion: 9, files: { 'main.py': '# TASK: first\n' } })
+    const res = await POST(makeRequest({ prompt: 'help', projectId: project.id, files: { 'main.py': '# TASK: first\n' }, ...body }))
+    const system = mockCreate.mock.calls[0][0].messages.find((m: { role: string }) => m.role === 'system').content as string
+    await drain(res)
+    return { res, system }
+  }
+
+  it('director lessons grant build mode with a task open and no admin switch', async () => {
+    const { res, system } = await send(1, { mode: 'build' })
+    expect(res.headers.get('X-Effective-Mode')).toBe('build')
+    expect(system).toContain('Python code generator')
+    expect(system).toContain('DIRECTING YOU')
+    expect(system).not.toContain('Never write or edit their code')
+  })
+
+  it('tutor lessons still withhold build mode while a task is open', async () => {
+    const { res, system } = await send(2, { mode: 'build' })
+    expect(res.headers.get('X-Effective-Mode')).toBe('ask')
+    expect(system).toContain('Python tutor')
+    expect(system).toContain('Never write or edit their code')
+  })
+
+  it('uses the Python tutor in ask mode, even in a director lesson', async () => {
+    const { res, system } = await send(1, { mode: 'ask' })
+    expect(res.headers.get('X-Effective-Mode')).toBe('ask')
+    expect(system).toContain('Python tutor')
+  })
+
+  it('takes the browser\'s Python verdicts, but only for the open task', async () => {
+    const passed = await send(2, { mode: 'ask', runtimeChecks: { taskId: 'first', verdicts: [true] } })
+    expect(passed.system).toContain('It says hello: DONE')
+    mockCreate.mockClear()
+    const stale = await send(2, { mode: 'ask', runtimeChecks: { taskId: 'other-task', verdicts: [true] } })
+    expect(stale.system).toContain('It says hello: NOT DONE YET')
+  })
+})
+

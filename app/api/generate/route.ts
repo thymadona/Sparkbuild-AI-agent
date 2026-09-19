@@ -1,20 +1,39 @@
 import { NextResponse } from 'next/server'
 import type OpenAI from 'openai'
+import { JSDOM } from 'jsdom'
 import { and, desc, eq, gt } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { lessonProgress, messages, projects, prompts, userBuildMode } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
-import { deepseek, MODEL, ASK_SYSTEM_PROMPT, BUILD_SYSTEM_PROMPT } from '@/lib/gemini'
+import {
+  deepseek,
+  MODEL,
+  ASK_SYSTEM_PROMPT,
+  BUILD_SYSTEM_PROMPT,
+  PYTHON_ASK_SYSTEM_PROMPT,
+  PYTHON_BUILD_SYSTEM_PROMPT,
+} from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { isCodeResponse, parseMultiFileResponse, parseSummary } from '@/lib/parse-multi-file'
 import { getLessonForProject } from '@/lib/lessons'
-import { buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
+import { entryFileFor } from '@/lib/starter-file'
+import { buildDirectorNudge, buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
 import { runTaskChecks } from '@/lib/task-checks'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { cached } from '@/lib/cache'
 import { getSessionUser } from '@/lib/auth/session'
 
 export const runtime = 'nodejs'
+
+// runTaskChecks' textChanged checks need a DOM (lib/task-checks.ts), which
+// Node doesn't have natively. This route is the only place they run
+// server-side, so it's the only place that needs the polyfill — without it,
+// the tutor fell back to eyeballing raw text against the old string and
+// could disagree with the browser's own (accurate, real-DOM) "Mark done"
+// check.
+if (typeof DOMParser === 'undefined') {
+  globalThis.DOMParser = new JSDOM().window.DOMParser as unknown as typeof DOMParser
+}
 
 export async function POST(req: Request) {
   // 1. Auth check
@@ -39,7 +58,7 @@ export async function POST(req: Request) {
 
   // 3. Parse request body
   const body = await req.json()
-  const { prompt, projectId, files, history, selectedCode, mode, reasoningEffort } = body as {
+  const { prompt, projectId, files, history, selectedCode, mode, reasoningEffort, runtimeChecks } = body as {
     prompt: string
     projectId: string
     files?: Record<string, string>
@@ -47,6 +66,7 @@ export async function POST(req: Request) {
     selectedCode?: string
     mode?: 'ask' | 'build'
     reasoningEffort?: 'low' | 'high' | 'max'
+    runtimeChecks?: { taskId?: string; verdicts?: unknown[] } | null
   }
   const VALID_REASONING_EFFORTS = ['low', 'high', 'max']
   const effectiveReasoningEffort = VALID_REASONING_EFFORTS.includes(reasoningEffort ?? '') ? reasoningEffort! : 'low'
@@ -141,7 +161,12 @@ export async function POST(req: Request) {
 
   // 3b. Resolve effective mode — check per-user permission (server is authoritative)
   let effectiveMode: 'ask' | 'build' = 'ask'
-  if (mode === 'build' && !openTask) {
+  const director = lesson?.aiPolicy === 'director'
+  if (mode === 'build' && director) {
+    // The lesson itself hands the student the AI, so neither an open task nor
+    // the per-user admin switch applies.
+    effectiveMode = 'build'
+  } else if (mode === 'build' && !openTask) {
     const setting = await cached(`build-mode:${user.id}`, 30, async () => {
       const [row] = await db
         .select({ enabled: userBuildMode.enabled })
@@ -153,16 +178,11 @@ export async function POST(req: Request) {
     })
     if (setting?.enabled === true) effectiveMode = 'build'
   }
-  const BASE_SYSTEM_PROMPT = effectiveMode === 'build' ? BUILD_SYSTEM_PROMPT : ASK_SYSTEM_PROMPT
-
-  // 4. Log prompt to DB (the permanent prompt log; the rate limit itself is
-  // enforced in Redis by lib/ratelimit.ts). A logging failure must not cost
-  // the student their generation.
-  try {
-    await db.insert(prompts).values({ userId: user.id, projectId, content: prompt })
-  } catch (err) {
-    console.error('prompt log insert failed:', err)
-  }
+  const python = entryFileFor(lesson, files).endsWith('.py')
+  const BASE_SYSTEM_PROMPT =
+    effectiveMode === 'build'
+      ? python ? PYTHON_BUILD_SYSTEM_PROMPT : BUILD_SYSTEM_PROMPT
+      : python ? PYTHON_ASK_SYSTEM_PROMPT : ASK_SYSTEM_PROMPT
 
   // 5. Build messages
   let filesContext = ''
@@ -178,7 +198,15 @@ export async function POST(req: Request) {
       .join('\n\n')
   }
 
-  const openTaskResults = openTask ? runTaskChecks(openTask.checks, files?.['index.html'] ?? '') : []
+  // Python checks are run by the student's browser; take its verdicts only
+  // if they are for the task the tutor is actually talking about.
+  const runtimeVerdicts =
+    runtimeChecks?.taskId === openTask?.id && Array.isArray(runtimeChecks?.verdicts)
+      ? runtimeChecks.verdicts.map((v: unknown) => (typeof v === 'boolean' ? v : undefined))
+      : []
+  const openTaskResults = openTask
+    ? runTaskChecks(openTask.checks, files?.[entryFileFor(lesson, files)] ?? '', runtimeVerdicts)
+    : []
 
   const systemContent = [
     BASE_SYSTEM_PROMPT,
@@ -186,7 +214,11 @@ export async function POST(req: Request) {
     justCompleted
       ? `THE STUDENT JUST FINISHED: "${justCompleted.chip}". Open with one warm, specific sentence about that before anything else. Do not sound like a hint.`
       : '',
-    openTask ? buildTaskNudge(openTask, tier, openTaskResults) : '',
+    openTask
+      ? effectiveMode === 'build'
+        ? buildDirectorNudge(openTask, openTaskResults)
+        : buildTaskNudge(openTask, tier, openTaskResults)
+      : '',
     lastAssistantMessage
       ? `Your last reply on this task was: "${lastAssistantMessage}". Say it differently this time — do not repeat that wording.`
       : '',
@@ -215,7 +247,32 @@ export async function POST(req: Request) {
     { role: 'user' as const, content: userContent },
   ]
 
-  // 6. Stream DeepSeek response
+  // 6. Log prompt to DB (the permanent prompt log; the rate limit itself is
+  // enforced in Redis by lib/ratelimit.ts), with a snapshot of the turn's
+  // assembled context so a past turn can be replayed later as an
+  // eval/regression fixture — nothing else persists this, and
+  // projects.files/lesson_progress are both mutated in place. A logging
+  // failure must not cost the student their generation.
+  try {
+    await db.insert(prompts).values({
+      userId: user.id,
+      projectId,
+      content: prompt,
+      context: {
+        mode: effectiveMode,
+        reasoning_effort: effectiveReasoningEffort,
+        system_content: systemContent,
+        user_content: userContent,
+        history: recentHistory,
+        open_task_id: openTask?.id ?? null,
+        escalation_tier: tier,
+      },
+    })
+  } catch (err) {
+    console.error('prompt log insert failed:', err)
+  }
+
+  // 7. Stream DeepSeek response
   const encoder = new TextEncoder()
   let accumulated = ''
 
@@ -274,7 +331,7 @@ export async function POST(req: Request) {
 
         controller.close()
 
-        // 7. Determine response type and save accordingly
+        // 8. Determine response type and save accordingly
         const isCode = isCodeResponse(accumulated)
         let assistantContent = accumulated
 
@@ -292,7 +349,7 @@ export async function POST(req: Request) {
           assistantContent = parseSummary(accumulated) ?? "I've built that for you! Check the preview."
         }
 
-        // 8. Persist chat messages
+        // 9. Persist chat messages
         try {
           await db.insert(messages).values([
             { projectId, userId: user.id, role: 'user', content: prompt },

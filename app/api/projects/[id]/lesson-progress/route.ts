@@ -6,6 +6,7 @@ import { isUuid } from '@/lib/db/uuid'
 import { getLessonForProject } from '@/lib/lessons'
 import { invalidate } from '@/lib/cache'
 import { getSessionUser } from '@/lib/auth/session'
+import { recordActivity } from '@/lib/player-stats'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -95,6 +96,8 @@ export async function PUT(req: Request, props: Props) {
   }
 
   await invalidate(`lesson-progress:${params.id}`)
+  // Saving progress counts as a day of work for the streak. Never worth failing the save.
+  await recordActivity(user.id).catch((err) => console.error('recordActivity failed:', err))
 
   return NextResponse.json({ completedTaskIds: saved })
 }

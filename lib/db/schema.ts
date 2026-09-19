@@ -235,6 +235,13 @@ export const prompts = pgTable(
     userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     projectId: uuid('project_id').references(() => projects.id),
     content: text('content').notNull(),
+    // Snapshot of the turn's assembled grounding context (mode, the exact
+    // system/user prompt sent, escalation tier, history) — nothing else
+    // persists this per-turn, and projects.files/lesson_progress are
+    // overwritten in place, so this is the only way to replay a past turn
+    // for eval/regression fixtures. Nullable: rows written before this
+    // column existed have none.
+    context: jsonb('context'),
     // notNull for the same reason as projects above: the prompt log is ordered
     // by this column, and a NULL would sort unpredictably.
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
@@ -255,6 +262,17 @@ export const lessonProgress = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
   },
   (t) => [index('lesson_progress_updated_at_idx').on(t.updatedAt.desc())]
+)
+
+// One row per user per calendar day they did lesson work. Drives the streak;
+// XP and badges are derived from lesson_progress and need no table of their own.
+export const activityDays = pgTable(
+  'activity_days',
+  {
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })]
 )
 
 export const invoices = pgTable(

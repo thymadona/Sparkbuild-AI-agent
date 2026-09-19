@@ -5,6 +5,7 @@ import { projects } from '@/lib/db/schema'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { LESSONS } from '@/lib/lessons'
+import { getPlayerStats } from '@/lib/player-stats'
 import DashboardClient from './DashboardClient'
 import { getSessionUser } from '@/lib/auth/session'
 
@@ -15,7 +16,7 @@ export default async function DashboardPage() {
     redirect('/')
   }
 
-  const [projectRows, enabledLessonIds, admin, teacher] = await Promise.all([
+  const [projectRows, enabledLessonIds, admin, teacher, stats] = await Promise.all([
     db
       .select({
         id: projects.id,
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
     getEnabledLessonIdsForUser(user.id),
     isAdmin(user.id),
     isTeacher(user.id),
+    getPlayerStats(user.id),
   ])
 
   // Same bypass as the lessons catalog: a teacher/admin previewing isn't
@@ -41,6 +43,7 @@ export default async function DashboardPage() {
       initialProjects={projectRows}
       userEmail={user.email ?? ''}
       enabledLessonIds={enabledIds}
+      stats={stats}
     />
   )
 }

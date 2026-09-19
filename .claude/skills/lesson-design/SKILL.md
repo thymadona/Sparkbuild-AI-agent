@@ -1,18 +1,41 @@
 ---
 name: lesson-design
-description: Curriculum & instructional-design consultant for this repo's 6-week coding course (students aged 10-16, `lib/lessons.ts`, `lib/task-checks.ts`, `public/templates/*.html`). Reviews existing lessons for pedagogical soundness — scaffolding, reading level, assessment quality, engagement — and designs new lessons/tasks/homework that fit the codebase's actual constraints (word budgets, fail-open checks, task-id persistence). Use this whenever the user talks about lessons, curriculum, a week's content, task design, homework briefs, whether something is age-appropriate or too advanced for students, or asks to add/edit/review anything in the lesson catalog or its templates — even if they don't say "curriculum" or "pedagogy" outright.
+description: Curriculum & instructional-design consultant for this repo's 12-week Python course (students aged 10-16, `lib/py-lessons.ts`, `lib/lessons.ts`, `lib/task-checks.ts`, `public/templates/py/`). Reviews existing lessons for pedagogical soundness — scaffolding, reading level, assessment quality, engagement — and designs new lessons/tasks/homework that fit the codebase's actual constraints (word budgets, fail-open checks, task-id persistence). Use this whenever the user talks about lessons, curriculum, a week's content, task design, homework briefs, whether something is age-appropriate or too advanced for students, or asks to add/edit/review anything in the lesson catalog or its templates — even if they don't say "curriculum" or "pedagogy" outright.
 ---
 
 # Lesson design & review
 
 You're acting as a curriculum and instructional-design expert for a course that
 teaches coding to students aged 10–16 by having them prompt an LLM and edit the
-file it produces. The tests and checks in this repo were written with an 8–13,
-ESL-reading floor in mind (`__tests__/unit/lib/lesson-copy.test.ts`'s header
-comment, `lib/task-checks.ts`'s "must never dead-end an 8-year-old") — treat
-that as the practical ceiling for anything you author, even for content aimed
-at the older end of the range. Every enforced budget below is a hard gate, not
-a guideline: violating one fails CI regardless of who you think the reader is.
+file it produces. The current course is Python (catalog v3, `lib/py-lessons.ts`), pitched at 10–16;
+the HTML course (v2, `HTML_LESSONS`) was written for 8–13 ESL readers. Many students
+still read English as a second language, so both keep the same per-string word caps
+(`__tests__/unit/lib/lesson-copy.test.ts`) — a taught Python word like "variable" is
+allowed in v3, everything else on the advanced list is not. Every enforced budget below
+is a hard gate, not a guideline: violating one fails CI.
+
+## Python course (v3) — what differs from the HTML notes below
+
+The rest of this file was written for the HTML course; the model is the same, these
+are the differences for `lib/py-lessons.ts`:
+
+- Design source: `.claude/plans/i-want-to-pivot-floating-horizon.md` (weeks, bosses,
+  the Predict → Run → Change → Make loop, AI role per week). Weeks 1–6 `aiPolicy:
+  'tutor'`, weeks 7–12 `'director'`. Ids are 101–112.
+- A week is a starter `public/templates/py/wN.py` (all `# TASK: id` anchors up front),
+  a seeded bug file `wN-bugzap.py` (`extraFiles`), and reference solutions in
+  `__tests__/fixtures/py/` — never in `public/`, students could fetch them.
+- Task extras: `kind` (predict/change/make/bugzap/direct/explain, shown as an icon),
+  `boss: true` on exactly one core task (40 XP, wins the lesson's `badge`).
+- Check kinds beyond the three static ones: `outputContains` (runs the program, output
+  must match; `file` targets another file) and `callReturns`. Prefer outcome checks over
+  "did they type X": e.g. `^(?!beep boop\s*$)\S.*$` = "prints any line but the starter's".
+  Static `sourceMatches` patterns anchor on `^\s*` so the starter's `#` instructions
+  never match. The bug file must fail on its starter (a syntax error does).
+- Keep `callReturns` files free of top-level `input()`, or guard it with `__main__`.
+- Gate: `bunx jest __tests__/unit/lib/py-lessons.test.ts __tests__/unit/lib/lesson-copy.test.ts`
+  (real Pyodide: starter passes no task, solution passes all, every `example` satisfies its
+  check).
 
 ## Read before you touch anything
 

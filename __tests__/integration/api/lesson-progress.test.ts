@@ -7,6 +7,10 @@ jest.mock('@/lib/auth/session', () => ({
 jest.mock('next/headers', () => ({ cookies: () => ({ getAll: () => [], set: jest.fn() }) }))
 
 import { GET, PUT } from '@/app/api/projects/[id]/lesson-progress/route'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { activityDays } from '@/lib/db/schema'
+import { todayISO } from '@/lib/xp'
 import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 
 // Real rows in a real database rather than a mocked PostgREST chain. The
@@ -124,5 +128,28 @@ describe('lesson progress API', () => {
     mockGetSessionUser.mockResolvedValue(owner)
     const res = await GET(new Request('http://localhost'), props(project.id))
     expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
+  })
+
+  it('records a day of activity for the streak, once per day', async () => {
+    const owner = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(owner)
+
+    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+    await PUT(request({ completedTaskIds: ['identity', 'interests'] }), props(project.id))
+
+    const days = await db.select().from(activityDays).where(eq(activityDays.userId, owner.id))
+    expect(days).toHaveLength(1)
+    expect(days[0].day).toBe(todayISO())
+  })
+
+  it('does not record activity for a rejected save', async () => {
+    const owner = await makeUser()
+    const intruder = await makeUser()
+    const project = await makeProject(owner.id)
+    mockGetSessionUser.mockResolvedValue(intruder)
+
+    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+    expect(await db.select().from(activityDays)).toHaveLength(0)
   })
 })

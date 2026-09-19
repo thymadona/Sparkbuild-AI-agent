@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { LESSONS } from '@/lib/lessons'
+import { HTML_LESSONS as LESSONS } from '@/lib/lessons'
 import { allChecksPassed, firstUnmetCheck, highlightLinesForTask, runTaskChecks } from '@/lib/task-checks'
 import fs from 'fs'
 import path from 'path'

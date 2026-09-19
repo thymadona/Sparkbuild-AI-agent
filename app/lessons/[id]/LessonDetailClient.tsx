@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { fetchLessonFiles } from '@/lib/lesson-files'
 import { CURRENT_LESSON_VERSION, type Lesson } from '@/lib/lessons'
 
 interface Props {
@@ -21,8 +22,7 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
 
     setLoading(true)
     try {
-      const templateRes = await fetch(`/templates/${lesson.templateFile}`)
-      const templateHtml = await templateRes.text()
+      const { templateHtml, extraFiles } = await fetchLessonFiles(lesson)
 
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -30,6 +30,7 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
         body: JSON.stringify({
           title: lesson.title,
           templateHtml,
+          extraFiles,
           lessonId: lesson.id,
           lessonVersion: CURRENT_LESSON_VERSION,
         }),

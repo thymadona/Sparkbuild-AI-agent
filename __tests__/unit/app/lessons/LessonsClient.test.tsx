@@ -3,7 +3,7 @@
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import LessonsClient from '@/app/lessons/LessonsClient'
-import type { Lesson } from '@/lib/lessons'
+import { CURRENT_LESSON_VERSION, type Lesson } from '@/lib/lessons'
 
 const push = jest.fn()
 
@@ -11,8 +11,8 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
   usePathname: () => '/lessons',
 }))
-
 jest.mock('@/components/ThemeToggle', () => () => <div />)
+
 
 const lesson: Lesson = {
   id: 1,
@@ -56,7 +56,7 @@ describe('LessonsClient', () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith('/editor/new-project'))
     expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/personal-page.html')
     expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects', expect.objectContaining({ method: 'POST' }))
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 1, lessonVersion: 2 })
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 1, lessonVersion: CURRENT_LESSON_VERSION })
   })
 
   it('shows a locked state instead of Start when the class has not turned the lesson on', () => {
@@ -76,5 +76,23 @@ describe('LessonsClient', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Resume →' })).toBeInTheDocument()
+  })
+
+  it('seeds a lesson\'s extra files next to the starter', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print(1)') })
+      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print("oops)') })
+      .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ id: 'new-project' }) })
+
+    const withBug: Lesson = { ...lesson, templateFile: 'py/w1.py', extraFiles: { 'bugzap.py': 'py/w1-bugzap.py' } }
+    render(<LessonsClient lessons={[withBug]} userProjects={[]} enabledLessonIds={[1]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/editor/new-project'))
+    expect(global.fetch).toHaveBeenNthCalledWith(2, '/templates/py/w1-bugzap.py')
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[2][1].body)).toMatchObject({
+      templateHtml: 'print(1)',
+      extraFiles: { 'bugzap.py': 'print("oops)' },
+    })
   })
 })

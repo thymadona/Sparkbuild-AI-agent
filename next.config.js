@@ -9,6 +9,25 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Cross-origin isolation gives Python's input() a SharedArrayBuffer.
+        // `credentialless` (not require-corp) keeps third-party images such
+        // as Google avatars loading; browsers without it fall back to an
+        // up-front inputs box in PythonRunner.
+        source: '/editor/:path*',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+        ],
+      },
+      {
+        // A dedicated worker takes its COEP from its own script response, so
+        // /py-worker.js needs the same policy as the isolated editor page that
+        // spawns it — otherwise the browser refuses to start it and Python
+        // "loads" forever.
+        source: '/py-worker.js',
+        headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' }],
+      },
+      {
         // Lesson templates are re-fetched on every "Start lesson" click.
         // Short max-age + background revalidation avoids re-fetching within
         // a session without risking long-lived staleness — nothing

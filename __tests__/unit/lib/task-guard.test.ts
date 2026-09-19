@@ -1,5 +1,6 @@
-import { LESSONS, LEGACY_LESSONS } from '@/lib/lessons'
+import { HTML_LESSONS as LESSONS, LEGACY_LESSONS } from '@/lib/lessons'
 import {
+  buildDirectorNudge,
   buildTaskNudge,
   detectConfusion,
   escalationTier,
@@ -9,6 +10,7 @@ import {
   pendingCoreTask,
 } from '@/lib/task-guard'
 import { runTaskChecks } from '@/lib/task-checks'
+import { JSDOM } from 'jsdom'
 
 const week3 = LESSONS.find((lesson) => lesson.id === 3)!
 const coreIds = week3.tasks.filter((task) => task.type === 'core').map((task) => task.id)
@@ -159,12 +161,27 @@ describe('buildTaskNudge', () => {
     expect(buildTaskNudge(task, 3)).toMatch(/do not bring up another task/i)
   })
 
-  it('flags textChanged checks as needing manual comparison, not silent completion', () => {
+  it('marks textChanged checks NOT DONE YET when no result is given, never silently DONE', () => {
     const task = week3.tasks[0] // 'goal': two textChanged checks
     const nudge = buildTaskNudge(task)
-    expect(nudge).toMatch(/not confirmed automatically/i)
-    expect(nudge).toContain('My reading streak.')
+    expect(nudge).toContain('NOT DONE YET')
     expect(nudge).toMatch(/do not bring up another task/i)
+  })
+
+  it('resolves textChanged checks with real DONE/NOT DONE YET verdicts, same as the browser Mark-done check — this is the fix for the tutor disagreeing with an already-completed task', () => {
+    // app/api/generate/route.ts polyfills DOMParser from jsdom before calling
+    // runTaskChecks; mirror that here so textChanged checks can resolve.
+    if (typeof DOMParser === 'undefined') {
+      globalThis.DOMParser = new JSDOM().window.DOMParser as unknown as typeof DOMParser
+    }
+    const task = week3.tasks[0] // 'goal': h1 + .subtitle textChanged checks
+    const untouched = runTaskChecks(task.checks, '<h1>My reading streak.</h1><p class="subtitle">One little action can turn into a habit. What will you track today?</p>')
+    const changed = runTaskChecks(task.checks, '<h1>My drawing streak.</h1><p class="subtitle">One little action can turn into a habit. What will you track today?</p>')
+
+    expect(buildTaskNudge(task, 1, untouched)).toContain('NOT DONE YET')
+    const changedNudge = buildTaskNudge(task, 1, changed)
+    expect(changedNudge).toContain('DONE')
+    expect(changedNudge).toContain('NOT DONE YET') // .subtitle is still unchanged
   })
 
   it('marks sourceOmits checks DONE or NOT DONE YET from real check results', () => {
@@ -228,5 +245,17 @@ describe('detectConfusion', () => {
 
   it('does not treat "no" as confusion', () => {
     expect(detectConfusion('no')).toBe(false)
+  })
+})
+
+describe('buildDirectorNudge', () => {
+  const task = week3.tasks[0]
+
+  it('lets the AI write code but only for this task, and reports real check status', () => {
+    const nudge = buildDirectorNudge(task, task.checks!.map(() => ({ label: 'x', hint: 'h', passed: false })))
+    expect(nudge).toContain(task.chip)
+    expect(nudge).toContain('NOT DONE YET')
+    expect(nudge).toContain('Do not do other tasks')
+    expect(nudge).not.toContain('Never write or edit their code')
   })
 })
