@@ -1,6 +1,9 @@
 'use client'
 
 import { CURRENT_LESSON_VERSION, Lesson } from '@/lib/lessons'
+import { fetchLessonFiles } from '@/lib/lesson-files'
+import PlayerCard from '@/components/PlayerCard'
+import type { PlayerStats } from '@/lib/xp'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -25,13 +28,14 @@ const ACCENT_TEXT = 'text-secondary dark:text-[#b3305f]'
 const DIFFICULTY_LABELS: Record<number, string> = { 1: 'Easy', 2: 'Medium', 3: 'Hard' }
 
 interface Props {
+  stats?: PlayerStats
   lessons: Lesson[]
   userProjects: { id: string; lesson_id: number | null; updated_at: string }[]
   enabledLessonIds?: number[]
   userEmail?: string
 }
 
-export default function LessonsClient({ lessons, userProjects, enabledLessonIds = [], userEmail = '' }: Props) {
+export default function LessonsClient({ lessons, userProjects, enabledLessonIds = [], userEmail = '', stats }: Props) {
   const enabledSet = new Set(enabledLessonIds)
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<number | null>(null)
@@ -45,7 +49,6 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
     }
   }
   const lessonsStarted = projectByLessonId.size
-  const difficulty = [1, 1, 2, 2, 3, 3]
 
   async function handleStart(lesson: Lesson) {
     const existingProjectId = projectByLessonId.get(lesson.id)
@@ -57,8 +60,7 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
     setLoadingId(lesson.id)
     setError(null)
     try {
-      const templateRes = await fetch(`/templates/${lesson.templateFile}`)
-      const templateHtml = await templateRes.text()
+      const { templateHtml, extraFiles } = await fetchLessonFiles(lesson)
 
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -66,6 +68,7 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
         body: JSON.stringify({
           title: lesson.title,
           templateHtml,
+          extraFiles,
           lessonId: lesson.id,
           lessonVersion: CURRENT_LESSON_VERSION,
         }),
@@ -79,7 +82,8 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
     }
   }
 
-  const progressPct = Math.round((lessonsStarted / 6) * 100)
+  const total = lessons.length
+  const progressPct = Math.round((lessonsStarted / total) * 100)
 
   return (
     <div className="flex min-h-screen bg-surface-900 font-body">
@@ -103,10 +107,12 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
             <Compass className="h-6 w-6" />
             <div>
               <p className="font-display text-lg font-extrabold leading-none">{progressPct}%</p>
-              <p className="mt-1 text-xs font-semibold text-white/80">{lessonsStarted}/6 started</p>
+              <p className="mt-1 text-xs font-semibold text-white/80">{lessonsStarted}/{total} started</p>
             </div>
           </div>
         </div>
+
+        {stats && <div className="mt-8"><PlayerCard stats={stats} /></div>}
 
         {/* Global progress bar */}
         <div className="mt-8 mb-10 rounded-full border-2 border-surface-600 bg-surface-800 p-1 shadow-hard-sm">
@@ -128,7 +134,7 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
               {lessons.map((lesson, i) => {
                 const isStarted = projectByLessonId.has(lesson.id)
                 const isLocked = !isStarted && !enabledSet.has(lesson.id)
-                const stars = difficulty[i]
+                const stars = Math.min(3, Math.floor(i / 4) + 1) // weeks 1-4 easy, 5-8 medium, 9+ hard
                 return (
                   <div key={lesson.id} className="flex gap-5 relative">
                     {/* Node */}

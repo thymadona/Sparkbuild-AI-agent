@@ -1,6 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
 import { db, rowsOf } from '@/lib/db/client'
-import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
 import { classMembers, classes, lessonProgress, messages, projects, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
 
 // Reference data created by drizzle/0001_functions_sequence_seed.sql. The
@@ -100,7 +99,7 @@ export async function makeMessages(
 }
 
 /** Creates a project owned by `userId`. Defaults to a lesson-1 project on the
- *  current catalog, which is what the lesson routes expect to find. */
+ *  HTML catalog (v2): most route tests predate the Python course. */
 export async function makeProject(
   userId: string,
   overrides: Partial<typeof projects.$inferInsert> = {}
@@ -112,7 +111,7 @@ export async function makeProject(
       title: `Project ${uniq()}`,
       files: { 'index.html': '<!doctype html>' },
       lessonId: 1,
-      lessonVersion: CURRENT_LESSON_VERSION,
+      lessonVersion: 2,
       ...overrides,
     })
     .returning()

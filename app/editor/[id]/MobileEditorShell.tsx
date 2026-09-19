@@ -4,7 +4,6 @@ import { useRef, useState } from 'react'
 import { undo, redo } from '@codemirror/commands'
 import type { EditorView } from '@uiw/react-codemirror'
 import Editor from '@/components/Editor'
-import Preview from '@/components/Preview'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -33,8 +32,10 @@ interface Props {
   classSlots: ClassSlot[]
   files: Record<string, string>
   activeFile: string
-  activeLanguage: 'html' | 'css' | 'js'
-  combinedHtml: string
+  activeLanguage: 'html' | 'css' | 'js' | 'py'
+  // The right-hand pane: web Preview or Python runner.
+  previewPane: React.ReactNode
+  entryFile: string
   progress: ReturnType<typeof useLessonProgress>
   messages: Message[]
   onMessagesChange: (msgs: Message[] | ((prev: Message[]) => Message[])) => void
@@ -100,7 +101,8 @@ export default function MobileEditorShell({
   files,
   activeFile,
   activeLanguage,
-  combinedHtml,
+  previewPane,
+  entryFile,
   progress,
   messages,
   onMessagesChange,
@@ -201,13 +203,13 @@ export default function MobileEditorShell({
       <div className="relative flex-1 overflow-hidden">
         {lesson && (
           <div className={cn('absolute inset-0', mobileTab === 'tasks' ? '' : 'hidden')}>
-            <Navigator lesson={lesson} code={files['index.html'] ?? ''} progress={progress} classSlots={classSlots} onShowTaskLocation={onShowTaskLocation} />
+            <Navigator lesson={lesson} code={files[entryFile] ?? ''} progress={progress} classSlots={classSlots} onShowTaskLocation={onShowTaskLocation} />
           </div>
         )}
 
         <div className={cn('absolute inset-0 flex flex-col', mobileTab === 'preview' ? '' : 'hidden')}>
           <div className="min-h-0 flex-1">
-            <Preview code={combinedHtml} />
+            {previewPane}
           </div>
           {showConsolePanel && (
             <div className="shrink-0 border-t-2 border-surface-600 bg-surface-900">
@@ -338,6 +340,7 @@ export default function MobileEditorShell({
         <div className={cn('absolute inset-0', mobileTab === 'chat' ? '' : 'hidden')}>
           <Editor
             projectId={project.id}
+            directorMode={lesson?.aiPolicy === 'director'}
             files={files}
             onFilesUpdate={onFilesUpdate}
             activeFile={activeFile}

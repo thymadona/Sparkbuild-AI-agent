@@ -3,7 +3,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { messages, projects as projectsTable, prompts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
-import { CURRENT_LESSON_VERSION } from '@/lib/lessons'
+import { LESSON_CATALOGS, getLessonForProject } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
@@ -85,11 +85,18 @@ export async function POST(req: Request) {
   }
   if (lessonId !== undefined) {
     insertData.lessonId = lessonId
-    if (lessonVersion === CURRENT_LESSON_VERSION) insertData.lessonVersion = CURRENT_LESSON_VERSION
+    if (typeof lessonVersion === 'number' && lessonVersion in LESSON_CATALOGS) insertData.lessonVersion = lessonVersion
   }
 
   if (templateHtml) {
-    insertData.files = { 'index.html': templateHtml }
+    const starterFile = (typeof lessonId === 'number' && getLessonForProject(lessonId, insertData.lessonVersion ?? null)?.starterFile) || 'index.html'
+    const files: Record<string, string> = { [starterFile]: templateHtml }
+    // Extra seeded files (e.g. bugzap.py). Only names the lesson declares are kept.
+    const declared = typeof lessonId === 'number' ? getLessonForProject(lessonId, insertData.lessonVersion ?? null)?.extraFiles : undefined
+    for (const name of Object.keys(declared ?? {})) {
+      if (typeof body.extraFiles?.[name] === 'string') files[name] = body.extraFiles[name]
+    }
+    insertData.files = files
   } else {
     insertData.files = {
       'index.html': `<!DOCTYPE html>

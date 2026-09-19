@@ -6,8 +6,10 @@ repository.
 ## What This Project Is
 
 Student Code Builder: an AI-assisted coding platform for students aged 10–16. Students work
-through a 6-week lesson track, prompting an LLM that either tutors (ask mode) or generates a
-complete HTML/CSS/JS file (build mode), rendered live in a sandboxed iframe. Teachers and
+through a 12-week Python course (current catalog, version 3): weeks 1–6 teach fundamentals with
+the LLM as a tutor, weeks 7–12 are projects where the student directs it. The LLM either tutors
+(ask mode) or generates complete files (build mode). Python runs in the browser (Pyodide);
+the older HTML/CSS/JS course (version 2) stays readable and renders in a sandboxed iframe. Teachers and
 admins run classes, review homework, and manage invoices/receipts (delivered over Telegram)
 through a back office.
 
@@ -26,7 +28,7 @@ bun run lint                # ESLint (flat config)
 bun run db:studio           # Open Drizzle Studio against the live DB
 bun run db:migrate          # Apply drizzle/ to DATABASE_URL
 bun run db:migrate:test     # Apply drizzle/ to TEST_DATABASE_URL
-bunx jest __tests__/unit/lib/ratelimit.test.ts   # Single test file
+NODE_OPTIONS=--experimental-vm-modules bunx jest __tests__/unit/lib/ratelimit.test.ts   # Single test file
 ```
 
 **Tests run against a real Postgres**, not mocks of one: `TEST_DATABASE_URL` points at a
@@ -36,6 +38,8 @@ that `__tests__/helpers/db.ts` truncates between tests. `lib/db/client.ts` refus
 database keeps its own `drizzle.__drizzle_migrations` ledger, so dev and test track
 independently. Fixtures (`makeUser`, `grantRole`, `makeClass`, `addClassMember`) live in
 `__tests__/helpers/db.ts`.
+
+`bun run test` sets `NODE_OPTIONS=--experimental-vm-modules` because the Python-check tests load real Pyodide under Node (`__tests__/helpers/pyodide.ts`); a bare `jest` run fails those suites with "dynamic import callback" — keep the flag when running a single file.
 
 `bun run test:unit` / `bun run test:integration` are broken (`--selectProjects` with no
 `projects` defined in `jest.config.ts`) — use `bun run test` or a path filter instead.
@@ -48,9 +52,10 @@ Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
    `POST /api/generate`, which streams from DeepSeek via the `openai` SDK pointed at DeepSeek's
    `baseURL` (`lib/gemini.ts` — despite the filename, no Gemini code) and renders into a
    sandboxed `srcdoc` iframe (`components/Preview.tsx`).
-2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/task-checks.ts`, `public/templates/`) —
-   weekly lessons backed by HTML templates with in-file task anchors, code-aware task
-   verification, and gated homework.
+2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/task-checks.ts`,
+   `public/templates/`) — weekly lessons backed by starter files with in-file task anchors,
+   code-aware task verification, gated homework, and a game layer (`lib/xp.ts`: XP, levels,
+   badges from saved progress; streak from the `activity_days` table).
 3. **Admin back office** (`app/admin/`, `app/api/admin/`, `components/admin/`) — student
    accounts, classes with weekly schedules, homework review, and invoices/receipts delivered to
    parents over Telegram.
@@ -183,19 +188,29 @@ The response carries `X-Effective-Mode` and `X-Open-Task` headers so the client 
 downgrade instead of looking broken. Only `POST /api/admin/settings` writes
 `user_build_mode`.
 
-**Lesson tasks are verified, not self-reported.** Each task in `LESSONS` carries
-`checks: TaskCheck[]` (`lib/task-checks.ts`), evaluated against the student's live file in the
-browser; `Mark done` stays disabled until they pass. Two invariants, enforced by
-`__tests__/unit/lib/task-checks.test.ts`: no task may pass on its untouched starter template,
-and every `textChanged` check must resolve to an element that actually holds the `from` text.
+**Lesson tasks are verified, not self-reported.** Each task carries `checks: TaskCheck[]`
+(`lib/task-checks.ts`), evaluated against the student's live file in the browser; `Mark done`
+stays disabled until they pass. Python lessons add two runtime kinds, `outputContains` and
+`callReturns`, which run the student's program in a Pyodide worker (`lib/python-checks.ts`,
+`public/py-worker.js`); `runTaskChecks` stays synchronous and takes their verdicts. Invariants:
+HTML lessons — `__tests__/unit/lib/task-checks.test.ts` (no task passes on its starter; every
+`textChanged` check resolves to a real element). Python lessons —
+`__tests__/unit/lib/py-lessons.test.ts` runs real Pyodide: no task passes on the untouched
+starter, every task passes with the reference solution in `__tests__/fixtures/py/` (kept out of
+`public/` so students cannot fetch it). A new Python week needs its `wN.py` starter,
+`wN-bugzap.py`, and both solution fixtures. Verdicts are client-reported and advisory, the same
+trust level as progress.
 Checks fail **open** whenever they cannot run (no DOM, bad regex) — a broken check must never
 dead-end a child. The escape hatch requires both 90s on task and a hint request.
 `LEGACY_LESSONS` has no checks and stays self-reported.
 
 **Student-facing lesson copy has a word budget.** `__tests__/unit/lib/lesson-copy.test.ts` caps
 chips at 5 words, goals at 8, check labels at 6, hints at 10, bans vocabulary above roughly a
-9-year-old ESL reading level, and caps total reading load. The audience is 8–13 reading English
-as a second language; long or advanced copy turns a lesson gate into a reading test.
+9-year-old ESL reading level, and caps total reading load. The HTML course (v2) was written for
+8–13; the Python course (v3) is pitched at 10–16, so it keeps the per-string caps, may use the
+Python words it teaches (`variable`), and gets a per-lesson total (`300 × lessons`). Many
+students still read English as a second language; long or advanced copy turns a lesson gate
+into a reading test.
 
 **The editor autosaves; there is no Save button in lesson projects.** `CodeEditor` reports
 typing upward after 300ms (driving preview and checks); `EditorLayout` writes to
@@ -263,11 +278,22 @@ explicit invalidation from `POST /api/admin/settings`), and a student's enabled-
 (`lib/lesson-availability.ts`, 60s TTL, no invalidation). A cache read/write failure never
 changes the answer — it just falls through to the original fail-open or fail-closed DB call.
 
-**Lesson versioning uses parallel catalogs, not migrations.** `getLessonForProject` reads the
-current catalog only when a project's `lesson_version` equals `CURRENT_LESSON_VERSION`, else
-the legacy catalog. Old projects keep their original task ids since
-`lesson_progress.completed_task_ids` stores those ids as plain strings. Bump the version by
-adding a catalog — never edit the old one in place.
+**Lesson versioning uses parallel catalogs, not migrations.** `LESSON_CATALOGS` maps a version
+to its catalog (2 = `HTML_LESSONS`, 3 = `LESSONS`, the Python course); `getLessonForProject`
+falls back to `LEGACY_LESSONS` for `null` or unknown versions. Old projects keep their original
+task ids since `lesson_progress.completed_task_ids` stores those ids as plain strings. Bump the
+version by adding a catalog — never edit the old one in place. Python lesson ids start at 101 so
+they never collide with 1–6 in `class_enabled_lessons`; consequence: after a catalog flip,
+students see every week locked until a teacher enables it for their class (admins and teachers
+bypass). A lesson names its `starterFile` (`main.py`), optional `extraFiles` (seeded next to it,
+e.g. `bugzap.py`) and `aiPolicy`: `'tutor'` keeps build mode locked behind open tasks,
+`'director'` (weeks 7–12) always allows it.
+
+**XP, levels and badges are derived, the streak is stored.** `lib/xp.ts` computes XP from
+`lesson_progress` + the catalog (only version ≥ 3 earns XP); a lesson's badge is won by its
+`boss` task. Only the streak needs a table: `PUT …/lesson-progress` upserts one `activity_days`
+row per user per day, in `APP_TIMEZONE` (default UTC). The plan's +5 solo/predict bonuses are
+not built (progress does not record hint use or first-try guesses).
 
 **Lesson tasks bind to code by string match.** Each task's `commentAnchor` is searched for in
 the file text to drive editor highlighting. Renaming an anchor comment in
@@ -318,6 +344,7 @@ DEEPSEEK_API_KEY=                # server-side only
 TELEGRAM_BOT_TOKEN=              # server-side only
 REDIS_URL=                       # server-side only; OPTIONAL — backs lib/ratelimit.ts and lib/cache.ts
 TEST_REDIS_URL=                  # server-side only; used when NODE_ENV=test (default: redis://127.0.0.1:6379/15)
+APP_TIMEZONE=                    # OPTIONAL IANA zone (e.g. Asia/Phnom_Penh) for the streak's day boundary; default UTC
 ```
 
 ## Security Constraints
@@ -328,7 +355,7 @@ TEST_REDIS_URL=                  # server-side only; used when NODE_ENV=test (de
   from the browser.
 - Because `db` connects as the owner and bypasses RLS, every query needs its own ownership or
   admin check.
-- **RLS is on for all 21 tables with zero policies, and that is the design.**
+- **RLS is on for all 22 tables with zero policies, and that is the design.**
   `drizzle/0002_postgrest_lockdown.sql` enables row security and revokes every
   `anon`/`authenticated` grant, including the default privileges. The application is unaffected
   (the owner bypasses RLS), so this costs nothing and closes the hole that a Supabase-hosted
@@ -397,7 +424,8 @@ when available, and include screenshots for visible UI changes.
 | Project CRUD                                 | `app/api/projects/route.ts`                         |
 | LLM client + system prompts                  | `lib/gemini.ts`                                     |
 | Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schema.ts`              |
-| Lesson catalog + versioning                  | `lib/lessons.ts`                                    |
+| Lesson catalog + versioning                  | `lib/lessons.ts`, `lib/py-lessons.ts`               |
+| XP / levels / badges / streak                | `lib/xp.ts`, `lib/player-stats.ts`                  |
 | Task verification                            | `lib/task-checks.ts`                                |
 | Rate limiting (Redis + Lua)                  | `lib/ratelimit.ts`                                  |
 | Read caching (Redis)                         | `lib/cache.ts`, `lib/redis.ts`                      |

@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import type { LessonTask } from '@/lib/lessons'
 import { allChecksPassed, runTaskChecks } from '@/lib/task-checks'
 import { SCALE } from '@/lib/lesson-ui'
+import { taskXp } from '@/lib/xp'
+import { RuntimeChecksContext } from '@/hooks/useRuntimeChecks'
 
 interface ActiveTaskPanelProps {
   task: LessonTask
@@ -29,8 +31,11 @@ export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMar
 
   useEffect(() => setMounted(true), [])
 
+  const runtime = useContext(RuntimeChecksContext)
+  const runtimeVerdicts = runtime?.taskId === task.id ? runtime.verdicts : undefined
+
   const hasChecks = (task.checks?.length ?? 0) > 0
-  const checkResults = useMemo(() => (mounted ? runTaskChecks(task.checks, code) : []), [mounted, task.checks, code])
+  const checkResults = useMemo(() => (mounted ? runTaskChecks(task.checks, code, runtimeVerdicts) : []), [mounted, task.checks, code, runtimeVerdicts])
   const checksEvaluated = hasChecks && checkResults.length > 0
   const checksSatisfied = !hasChecks || (checksEvaluated && allChecksPassed(checkResults))
 
@@ -58,7 +63,7 @@ export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMar
           checksSatisfied ? 'bg-teal-500 hover:bg-teal-400 text-white' : 'bg-surface-600 text-fg-secondary'
         }`}
       >
-        {isSaving ? 'Saving…' : checksSatisfied ? 'Mark done ✓' : 'Not yet — keep going'}
+        {isSaving ? 'Saving…' : checksSatisfied ? `Mark done ✓${task.kind ? ` +${taskXp(task)} XP` : ''}` : 'Not yet — keep going'}
       </button>
     </div>
   )

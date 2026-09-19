@@ -36,6 +36,50 @@ export type TaskCheck =
       // lets tests prove the check is actually reachable.
       example?: string
     }
+  | RuntimeCheck
+
+// Runtime checks run the student's Python (lib/python-checks.ts), so they are
+// async and live in the browser. `runTaskChecks` is sync, so it takes their
+// verdicts as input: true/false per check, or undefined while still running.
+export type RuntimeVerdicts = Array<boolean | undefined>
+
+export type RuntimeCheck =
+  | {
+      // Runs the entry file (fed `inputs` for input()); it must finish
+      // without an error and print something matching `pattern`.
+      kind: 'outputContains'
+      label: string
+      hint: string
+      pattern: string
+      flags?: string
+      inputs?: string[]
+      file?: string
+    }
+  | {
+      // Like outputContains, but matches what happened in Sparky's world
+      // (lib/sparky-events.ts): "say:Hi", "color:pink", "door:open", "alarm".
+      kind: 'worldContains'
+      label: string
+      hint: string
+      pattern: string
+      flags?: string
+      inputs?: string[]
+      file?: string
+    }
+  | {
+      // Loads the file (without running `if __name__ == '__main__'`) and
+      // evaluates `call`; repr() of the result must equal `equals`.
+      kind: 'callReturns'
+      label: string
+      hint: string
+      call: string
+      equals: string
+      file?: string
+    }
+
+export function isRuntimeCheck(check: TaskCheck): check is RuntimeCheck {
+  return check.kind === 'outputContains' || check.kind === 'callReturns' || check.kind === 'worldContains'
+}
 
 export interface TaskCheckResult {
   label: string
@@ -56,8 +100,12 @@ function parseDocument(code: string): Document | null {
   }
 }
 
-function evaluate(check: TaskCheck, code: string, doc: Document | null): boolean {
+function evaluate(check: TaskCheck, code: string, doc: Document | null, verdict: boolean | undefined): boolean {
   switch (check.kind) {
+    case 'outputContains':
+    case 'worldContains':
+    case 'callReturns':
+      return verdict ?? false
     case 'textChanged': {
       if (!doc) return true
       const element = doc.querySelector(check.selector)
@@ -83,14 +131,18 @@ function evaluate(check: TaskCheck, code: string, doc: Document | null): boolean
   }
 }
 
-export function runTaskChecks(checks: TaskCheck[] | undefined, code: string): TaskCheckResult[] {
+export function runTaskChecks(
+  checks: TaskCheck[] | undefined,
+  code: string,
+  runtime: RuntimeVerdicts = [],
+): TaskCheckResult[] {
   if (!checks?.length) return []
   const needsDom = checks.some((check) => check.kind === 'textChanged')
   const doc = needsDom ? parseDocument(code) : null
-  return checks.map((check) => ({
+  return checks.map((check, i) => ({
     label: check.label,
     hint: check.hint,
-    passed: evaluate(check, code, doc),
+    passed: evaluate(check, code, doc, runtime[i]),
   }))
 }
 
