@@ -7,7 +7,6 @@ import { css } from '@codemirror/lang-css'
 import { javascript } from '@codemirror/lang-javascript'
 import { python } from '@codemirror/lang-python'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { useTheme } from 'next-themes'
 import { Decoration, DecorationSet } from '@codemirror/view'
 import { StateEffect, StateField } from '@codemirror/state'
 import type { ViewUpdate } from '@codemirror/view'
@@ -33,6 +32,8 @@ interface CodeEditorProps {
   // desktop is unchanged; the mobile shell turns it on — a touch horizontal
   // scroll on a narrow screen is worse than a long line taking extra rows.
   wrap?: boolean
+  // For hosts that show their own status (the tutor board).
+  hideToolbar?: boolean
 }
 
 // Short enough that the preview feels live, long enough not to re-render on
@@ -77,7 +78,7 @@ const highlightField = StateField.define<DecorationSet>({
 const highlightTheme = EditorView.baseTheme({
   '.cm-lesson-highlight': {
     backgroundColor: 'rgba(99, 102, 241, 0.25) !important',
-    borderLeft: '2px solid #818cf8',
+    borderLeft: '2px solid #f59e0b',
   },
   '.cm-lesson-pulse-a, .cm-lesson-pulse-b': {
     animation: 'cm-lesson-pulse 0.7s ease-out 3',
@@ -91,15 +92,24 @@ const highlightTheme = EditorView.baseTheme({
   },
 })
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap }: CodeEditorProps) {
+// oneDark's syntax colours on the espresso surface used by the /board code block.
+const parchmentDark = [
+  oneDark,
+  EditorView.theme({
+    '&': { backgroundColor: '#2b2118' },
+    '.cm-gutters': { backgroundColor: '#2b2118', borderRight: 'none' },
+    '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'rgba(250, 246, 238, 0.06)' },
+    '.cm-content': { paddingTop: '12px' },
+    '.cm-content, .cm-scroller': { fontFamily: '"JetBrains Mono", ui-monospace, monospace' },
+  }, { dark: true }),
+]
+
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap, hideToolbar }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
   const [viewReady, setViewReady] = useState(false)
   const lastEmitted = useRef(code)
   const liveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
 
   // Adopt changes that came from somewhere else — an AI generation, or a file
   // switch — without clobbering what the student is typing. Anything we pushed
@@ -203,7 +213,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
         }
       }}
     >
-      <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
+      {!hideToolbar && <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
         {autosaving ? (
           <span
             className={`text-xs ${saveState === 'saved' ? 'text-fg-muted' : 'text-fg-secondary'}`}
@@ -220,12 +230,12 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
             Save
           </button>
         )}
-      </div>
+      </div>}
       <div className="flex-1 overflow-auto">
         <CodeMirror
           value={draft}
           height="100%"
-          theme={mounted && resolvedTheme === 'light' ? 'light' : oneDark}
+          theme={parchmentDark}
           extensions={extensions}
           onChange={handleChange}
           onUpdate={handleUpdate}

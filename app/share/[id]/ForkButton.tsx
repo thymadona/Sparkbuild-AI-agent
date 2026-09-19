@@ -27,7 +27,7 @@ export default function ForkButton({ projectId }: { projectId: string }) {
     <button
       onClick={handleFork}
       disabled={forking}
-      className="rounded-md bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+      className="rounded-md bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
     >
       {forking ? 'Forking...' : 'Fork'}
     </button>

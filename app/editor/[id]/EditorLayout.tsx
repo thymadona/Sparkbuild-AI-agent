@@ -10,7 +10,6 @@ import PythonRunner from '@/components/PythonRunner'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
 import ConfettiBurst from '@/components/ConfettiBurst'
-import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import MobileEditorShell from './MobileEditorShell'
 import EditorLoading from './loading'
@@ -519,7 +518,6 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
           </button>
           <Link href="/lessons" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Lessons</Link>
           <Link href="/explore" className="text-fg-secondary hover:text-fg-primary transition-colors hidden sm:block">Explore</Link>
-          <ThemeToggle />
           <ProfileDropdown email={userEmail} />
         </div>
       </header>
@@ -563,7 +561,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   title="Tasks"
                   className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 transition-colors ${
                     sidebarView === 'tasks'
-                      ? 'border-brand-500 bg-brand-500/20 text-brand-600 dark:text-brand-300'
+                      ? 'border-brand-500 bg-brand-500/20 text-brand-600 '
                       : 'border-transparent text-fg-muted hover:bg-surface-700'
                   }`}
                 >
@@ -576,7 +574,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   title="AI Tutor"
                   className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 transition-colors ${
                     sidebarView === 'chat'
-                      ? 'border-brand-500 bg-brand-500/20 text-brand-600 dark:text-brand-300'
+                      ? 'border-brand-500 bg-brand-500/20 text-brand-600 '
                       : 'border-transparent text-fg-muted hover:bg-surface-700'
                   }`}
                 >
@@ -739,7 +737,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                   rightTab === 'console'
                     ? 'border-surface-600 bg-surface-700 text-fg-primary shadow-hard-sm'
                     : lesson !== null
-                      ? 'border-transparent text-amber-600 dark:text-amber-400 hover:bg-surface-700/60'
+                      ? 'border-transparent text-amber-600 hover:bg-surface-700/60'
                       : 'border-transparent text-fg-muted hover:bg-surface-700/60 hover:text-fg-secondary'
                 }`}
               >
@@ -774,7 +772,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 if (!splitView) setRightTab('preview')
                 setInspectMode(v => !v)
               }}
-              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded-md border-2 transition-colors ${inspectMode ? 'border-surface-600 bg-brand-500/20 text-brand-600 dark:text-brand-300 shadow-hard-sm' : 'border-transparent text-fg-muted hover:text-fg-primary'}`}
+              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded-md border-2 transition-colors ${inspectMode ? 'border-surface-600 bg-brand-500/20 text-brand-600 shadow-hard-sm' : 'border-transparent text-fg-muted hover:text-fg-primary'}`}
               title="Pick an element from the preview"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -788,7 +786,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                 if (!splitView && rightTab === 'console') setRightTab('code')
                 setSplitView(v => !v)
               }}
-              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded-md border-2 transition-colors ${splitView ? 'border-surface-600 bg-brand-500/20 text-brand-600 dark:text-brand-300 shadow-hard-sm' : 'border-transparent text-fg-muted hover:text-fg-primary'}`}
+              className={`flex items-center gap-1 px-2 py-1 mx-1 text-xs rounded-md border-2 transition-colors ${splitView ? 'border-surface-600 bg-brand-500/20 text-brand-600 shadow-hard-sm' : 'border-transparent text-fg-muted hover:text-fg-primary'}`}
               title="Split view"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -893,9 +891,9 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
                           key={i}
                           className={`flex gap-2 border-b border-surface-700 px-3 py-1.5 ${
                             entry.level === 'error'
-                              ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                              ? 'bg-red-500/10 text-red-600 '
                               : entry.level === 'warn'
-                              ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                              ? 'bg-yellow-500/10 text-yellow-600 '
                               : 'text-fg-secondary'
                           }`}
                         >

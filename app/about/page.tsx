@@ -35,7 +35,7 @@ export default async function AboutPage() {
               'Works on any device with a modern browser',
             ].map(item => (
               <li key={item} className="flex items-start gap-2">
-                <span className="text-teal-600 dark:text-teal-400 mt-0.5 shrink-0">✓</span>
+                <span className="text-teal-600 mt-0.5 shrink-0">✓</span>
                 {item}
               </li>
             ))}
@@ -43,7 +43,7 @@ export default async function AboutPage() {
         </section>
 
         <section className="mt-16">
-          <h2 className="font-display text-2xl font-bold text-fg-primary mb-6">The 6-week curriculum</h2>
+          <h2 className="font-display text-2xl font-bold text-fg-primary mb-6">The 12-week curriculum</h2>
           <div className="space-y-5">
             {LESSONS.map((lesson, i) => (
               <div key={lesson.id} className="flex gap-4">

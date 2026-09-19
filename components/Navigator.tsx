@@ -73,15 +73,15 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
         </div>
 
         {coreComplete && (
-          <div className="rounded-xl border-2 border-surface-600 bg-teal-50 px-4 py-3 text-center shadow-hard-sm dark:bg-teal-900/20">
-            <p className="text-base font-semibold text-teal-700 dark:text-teal-300">🎉 Core mission complete!</p>
-            <p className={`mt-1 ${SCALE.meta} text-teal-700/80 dark:text-teal-300/80`}>Your project works. Try a creative choice or bonus when you are ready.</p>
+          <div className="rounded-xl border-2 border-surface-600 bg-teal-50 px-4 py-3 text-center shadow-hard-sm ">
+            <p className="text-base font-semibold text-teal-700 ">🎉 Core mission complete!</p>
+            <p className={`mt-1 ${SCALE.meta} text-teal-700/80 `}>Your project works. Try a creative choice or bonus when you are ready.</p>
           </div>
         )}
 
         {allDone && (
-          <div className="rounded-xl border-2 border-surface-600 bg-amber-50 px-4 py-3 text-center shadow-hard-sm dark:bg-amber-900/20">
-            <p className="text-base font-semibold text-amber-700 dark:text-amber-300">✨ Every challenge complete. Nice work!</p>
+          <div className="rounded-xl border-2 border-surface-600 bg-amber-50 px-4 py-3 text-center shadow-hard-sm ">
+            <p className="text-base font-semibold text-amber-700 ">✨ Every challenge complete. Nice work!</p>
           </div>
         )}
 
@@ -186,7 +186,7 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
                 <p className={`mb-1 ${SCALE.check} text-fg-secondary`}>{lesson.homeworkBrief}</p>
               )}
               {due && submission !== 'approved' && submission !== 'submitted' && (
-                <p className={`mb-2 ${SCALE.check} font-medium text-amber-600 dark:text-amber-400`}>{due}</p>
+                <p className={`mb-2 ${SCALE.check} font-medium text-amber-600 `}>{due}</p>
               )}
               <div className="mb-2 flex flex-col gap-1.5">
                 {homework.map((task) => {
@@ -216,13 +216,13 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
               {submitError && <p className={`mb-1.5 ${SCALE.check} text-red-500`}>{submitError}</p>}
 
               {submission === 'approved' ? (
-                <p className={`text-center ${SCALE.check} font-semibold text-teal-600 dark:text-teal-400`}>🎉 Your teacher said yes!</p>
+                <p className={`text-center ${SCALE.check} font-semibold text-teal-600 `}>🎉 Your teacher said yes!</p>
               ) : submission === 'submitted' ? (
                 <p className={`text-center ${SCALE.check} text-fg-muted`}>Handed in. Your teacher will look soon.</p>
               ) : (
                 <>
                   {submission === 'needs_work' && (
-                    <p className={`mb-1.5 ${SCALE.check} text-amber-600 dark:text-amber-400`}>Your teacher asked for one more change. Look in the chat.</p>
+                    <p className={`mb-1.5 ${SCALE.check} text-amber-600 `}>Your teacher asked for one more change. Look in the chat.</p>
                   )}
                   <button
                     onClick={() => submitHomework(homeworkReady)}
