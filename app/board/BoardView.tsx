@@ -67,13 +67,13 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          {board.pages.length > 1 && board.pages.map((p, i) => (
+          {board.pages.map((p, i) => (
             <button
               key={p.id}
               onClick={() => setPicked(p.id)}
               aria-current={p.id === page?.id ? 'page' : undefined}
               aria-label={`Page ${i + 1}: ${p.title}`}
-              className={cn('min-h-11 rounded-xl text-lg font-bold', p.id === page?.id ? 'bg-[#2b2118] text-[#faf6ee]' : 'bg-[#e4d3b3] hover:bg-[#dcc8a2]')}
+              className={cn('min-h-11 rounded-xl text-lg font-bold', p.id === page?.id ? 'bg-[#2b2118] text-[#faf6ee]' : 'border-2 border-[#2b2118] hover:bg-[#e4d3b3]')}
             >
               {i + 1}
             </button>
