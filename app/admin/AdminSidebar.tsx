@@ -87,15 +87,15 @@ export default function AdminSidebar({ email }: { email: string }) {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-56 flex-col border-r border-gray-800 bg-gray-950">
+    <aside className="fixed inset-y-0 left-0 z-40 flex w-56 flex-col border-r border-border bg-background">
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-gray-800 px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600">
+      <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
           <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
         </div>
-        <span className="font-semibold text-gray-100 text-sm">School Admin</span>
+        <span className="font-semibold text-foreground text-sm">School Admin</span>
       </div>
 
       {/* Nav */}
@@ -108,8 +108,8 @@ export default function AdminSidebar({ email }: { email: string }) {
               href={item.href}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                 active
-                  ? 'bg-gray-800 text-gray-100'
-                  : 'text-gray-400 hover:bg-gray-900 hover:text-gray-200'
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:bg-card hover:text-foreground'
               }`}
             >
               {item.icon}
@@ -120,9 +120,9 @@ export default function AdminSidebar({ email }: { email: string }) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-800 px-4 py-3">
-        <p className="truncate text-xs text-gray-500">{email}</p>
-        <a href="/dashboard" className="mt-1 block text-xs text-gray-600 hover:text-gray-400 transition-colors">
+      <div className="border-t border-border px-4 py-3">
+        <p className="truncate text-xs text-fg-muted">{email}</p>
+        <a href="/dashboard" className="mt-1 block text-xs text-fg-muted hover:text-muted-foreground transition-colors">
           Back to app
         </a>
       </div>

@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import ThemeToggle from './ThemeToggle'
 import ProfileDropdown from './ProfileDropdown'
 import Logo from './Logo'
 
@@ -37,8 +36,8 @@ export default function Navbar({
 
   return (
     <header
-      className={`z-50 w-full border-b-2 border-surface-600 bg-surface-900/90 backdrop-blur-md ${
-        variant === 'marketing' ? 'fixed top-0' : 'sticky top-0'
+      className={`z-50 w-full backdrop-blur-md ${
+        variant === 'marketing' ? 'fixed top-0 border-b border-border bg-surface-900/90' : 'sticky top-0 rounded-t-3xl border-b border-border/60 bg-card/90'
       }`}
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
@@ -48,7 +47,7 @@ export default function Navbar({
         >
           <Logo className="h-10 w-10" />
           <span>
-            <span className="text-[#503fcb]">Spark</span>Build
+            <span className="text-spark">Spark</span>Build
           </span>
         </Link>
         {withSidebar && pageTitle && (
@@ -64,7 +63,7 @@ export default function Navbar({
                 href={href}
                 className={`hidden pb-0.5 font-semibold transition-colors sm:block ${collapseAtLg} ${
                   active
-                    ? 'border-b-2 border-brand-600 text-brand-600 dark:border-brand-400 dark:text-brand-400'
+                    ? 'border-b-2 border-brand-600 text-brand-600 '
                     : 'border-b-2 border-transparent text-fg-secondary hover:text-fg-primary'
                 }`}
               >
@@ -72,11 +71,10 @@ export default function Navbar({
               </Link>
             )
           })}
-          <ThemeToggle />
           {variant === 'marketing' ? (
             <Link
               href={isLoggedIn ? '/dashboard' : '/login'}
-              className="rounded-lg border-2 border-surface-600 bg-brand-500 px-4 py-2 font-display text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+              className="btn-primary"
             >
               {isLoggedIn ? 'Dashboard' : 'Sign in'}
             </Link>

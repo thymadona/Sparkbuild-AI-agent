@@ -148,9 +148,9 @@ export default function Preview({ code, isDragging, inspectMode = false, onInspe
   if (!code.trimStart().startsWith('<!DOCTYPE html>') && !code.trimStart().startsWith('<!doctype html>')) {
     return (
       <div className="flex h-full items-center justify-center bg-surface-900">
-        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-6 max-w-sm text-center">
-          <p className="text-red-700 dark:text-red-300 font-medium">Invalid output</p>
-          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 max-w-sm text-center">
+          <p className="text-red-700 font-medium">Invalid output</p>
+          <p className="mt-1 text-sm text-red-600 ">
             The generated content does not appear to be a valid HTML document.
           </p>
         </div>

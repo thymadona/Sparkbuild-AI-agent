@@ -138,7 +138,7 @@ export default async function Home() {
               </h2>
               <Link
                 href="/about"
-                className="text-sm font-bold text-brand-600 transition-colors hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300"
+                className="text-sm font-bold text-brand-600 transition-colors hover:text-brand-500 "
               >
                 See the full curriculum →
               </Link>

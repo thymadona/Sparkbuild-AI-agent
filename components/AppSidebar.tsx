@@ -3,11 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Map, Users, User as UserIcon } from 'lucide-react'
-
-// bg-secondary's dark-mode CSS var (#ffb1c5) is a pale pastel meant for
-// small accents, not a filled active-nav pill — on the dark surface it
-// washes out. Override with the same deeper rose used on /lessons.
-const ACCENT_BG = 'bg-secondary dark:bg-[#b3305f]'
+import Logo from '@/components/Logo'
 
 const NAV = [
   { href: '/dashboard', label: 'Home', icon: Home },
@@ -22,9 +18,34 @@ export default function AppSidebar({ userEmail }: { userEmail: string }) {
   const username = userEmail.split('@')[0] || 'Student'
 
   return (
-    <aside className="hidden lg:flex w-60 shrink-0 flex-col gap-6 border-r-2 border-surface-600 bg-surface-800 p-5">
-      <div className="flex items-center gap-3 rounded-xl border-2 border-surface-600 bg-surface-900 p-3 shadow-hard-sm">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-surface-600 bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white">
+    <aside className="hidden lg:flex w-60 shrink-0 flex-col gap-2 px-2 py-3">
+      <Link href="/dashboard" className="mb-4 flex items-center justify-start gap-2 px-3 font-display text-xl font-extrabold text-fg-primary">
+        <Logo className="h-9 w-9" />
+        <span><span className="text-spark">Spark</span>Build</span>
+      </Link>
+
+      <nav className="flex flex-1 flex-col gap-2">
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold text-fg-primary transition-colors ${
+                active
+                  ? 'border-transparent bg-secondary/70 shadow-sm'
+                  : 'border-border/60 bg-card/70 hover:bg-card'
+              }`}
+            >
+              <Icon className="h-4 w-4 text-fg-secondary" />
+              {label}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/70 p-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
           {initials}
         </div>
         <div className="min-w-0">
@@ -32,26 +53,6 @@ export default function AppSidebar({ userEmail }: { userEmail: string }) {
           <p className="text-xs text-fg-muted">Student</p>
         </div>
       </div>
-
-      <nav className="flex flex-col gap-1.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 rounded-lg border-2 px-3 py-2.5 text-sm font-bold transition-all ${
-                active
-                  ? `border-surface-600 ${ACCENT_BG} text-white shadow-hard-sm`
-                  : 'border-transparent text-fg-secondary hover:border-surface-600 hover:bg-surface-700'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          )
-        })}
-      </nav>
     </aside>
   )
 }
