@@ -33,6 +33,8 @@ interface CodeEditorProps {
   // desktop is unchanged; the mobile shell turns it on — a touch horizontal
   // scroll on a narrow screen is worse than a long line taking extra rows.
   wrap?: boolean
+  // For hosts that show their own status (the tutor board).
+  hideToolbar?: boolean
 }
 
 // Short enough that the preview feels live, long enough not to re-render on
@@ -91,7 +93,7 @@ const highlightTheme = EditorView.baseTheme({
   },
 })
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap }: CodeEditorProps) {
+export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap, hideToolbar }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
   const [viewReady, setViewReady] = useState(false)
@@ -203,7 +205,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
         }
       }}
     >
-      <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
+      {!hideToolbar && <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
         {autosaving ? (
           <span
             className={`text-xs ${saveState === 'saved' ? 'text-fg-muted' : 'text-fg-secondary'}`}
@@ -220,7 +222,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
             Save
           </button>
         )}
-      </div>
+      </div>}
       <div className="flex-1 overflow-auto">
         <CodeMirror
           value={draft}

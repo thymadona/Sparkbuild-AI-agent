@@ -65,6 +65,9 @@ export default async function EditorPage(props: Props) {
     notFound()
   }
 
+  // Python course projects live on the tutor board; HTML (v2), legacy and free-form ones stay here.
+  if (project.lesson_id != null && (project.lesson_version ?? 0) >= 3) redirect(`/board/${params.id}`)
+
   const lesson = project.lesson_id != null
     ? getLessonForProject(project.lesson_id, project.lesson_version)
     : null

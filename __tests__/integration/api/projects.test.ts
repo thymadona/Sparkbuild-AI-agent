@@ -205,7 +205,20 @@ describe('PATCH /api/projects', () => {
 })
 
 // ---------------------------------------------------------------------------
-// DELETE
+describe('PATCH /api/projects board', () => {
+  it('saves a valid board, rejects a malformed one, and refuses another user\'s project', async () => {
+    const owner = await makeUser()
+    const other = await makeUser()
+    const project = await makeProject(owner.id)
+    const board = { pages: [{ id: 'p1', title: 'One', nodeIds: [] }], activePageId: 'p1', nodes: {}, focusId: null }
+    mockGetSessionUser.mockResolvedValue(owner)
+    expect((await PATCH(makeRequest('PATCH', { id: project.id, board }))).status).toBe(200)
+    expect((await PATCH(makeRequest('PATCH', { id: project.id, board: { pages: 'no' } }))).status).toBe(400)
+    mockGetSessionUser.mockResolvedValue(other)
+    expect((await PATCH(makeRequest('PATCH', { id: project.id, board }))).status).toBe(404)
+  })
+})
+
 // ---------------------------------------------------------------------------
 // DELETE
 describe('DELETE /api/projects', () => {
