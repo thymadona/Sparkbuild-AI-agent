@@ -1,7 +1,6 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -11,17 +10,17 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: '#f5f2ff',
-          100: '#e5deff',
-          200: '#d6cbff',
-          300: '#c8bfff',
-          400: '#8f78e8',
-          500: '#5a45cb',
-          600: '#442bb5',
-          700: '#3a24a0',
-          800: '#2e1b80',
-          900: '#200f5c',
-          950: '#190064',
+          50: '#faf6ee',
+          100: '#f1e6d0',
+          200: '#e4d3b3',
+          300: '#d6bf94',
+          400: '#7a6a52',
+          500: '#2b2118',
+          600: '#3b2a1c',
+          700: '#231a12',
+          800: '#1b1410',
+          900: '#140e0a',
+          950: '#0d0906',
         },
         surface: {
           600: 'rgb(var(--surface-600) / <alpha-value>)',
@@ -33,6 +32,13 @@ const config: Config = {
           primary: 'rgb(var(--fg-primary) / <alpha-value>)',
           secondary: 'rgb(var(--fg-secondary) / <alpha-value>)',
           muted: 'rgb(var(--fg-muted) / <alpha-value>)',
+        },
+        spark: '#d97757',
+        tint: {
+          sage: 'rgb(var(--tint-sage) / <alpha-value>)',
+          sand: 'rgb(var(--tint-sand) / <alpha-value>)',
+          mint: 'rgb(var(--tint-mint) / <alpha-value>)',
+          blush: 'rgb(var(--tint-blush) / <alpha-value>)',
         },
         amber: {
           400: '#fbbf24',
@@ -88,8 +94,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        display: ['"Hanken Grotesk"', 'sans-serif'],
         body: ['"Hanken Grotesk"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       fontSize: {
         'display-xl': ['4.5rem', { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '800' }],
@@ -108,9 +115,9 @@ const config: Config = {
         xl: '1.5rem',
       },
       boxShadow: {
-        'hard-sm': '2px 2px 0 0 var(--shadow-color)',
-        hard: '4px 4px 0 0 var(--shadow-color)',
-        'hard-lg': '8px 8px 0 0 var(--shadow-color)',
+        'hard-sm': '0 1px 3px 0 var(--shadow-color)',
+        hard: '0 4px 12px -2px var(--shadow-color)',
+        'hard-lg': '0 12px 28px -6px var(--shadow-color)',
       },
       keyframes: {
         'pop-in': {

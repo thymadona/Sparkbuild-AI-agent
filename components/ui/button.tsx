@@ -6,20 +6,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "border-border bg-primary text-primary-foreground shadow-hard active:not-aria-[haspopup]:translate-x-1 active:not-aria-[haspopup]:translate-y-1 active:not-aria-[haspopup]:shadow-none",
+          "bg-primary text-primary-foreground hover:bg-primary/90",
         secondary:
-          "border-border bg-secondary text-secondary-foreground shadow-hard active:not-aria-[haspopup]:translate-x-1 active:not-aria-[haspopup]:translate-y-1 active:not-aria-[haspopup]:shadow-none aria-expanded:translate-x-1 aria-expanded:translate-y-1 aria-expanded:shadow-none",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         outline:
           "border-border bg-background text-foreground hover:bg-muted aria-expanded:bg-muted",
         ghost:
-          "border-border bg-transparent text-foreground shadow-none hover:shadow-hard-sm aria-expanded:shadow-hard-sm",
+          "bg-transparent text-foreground hover:bg-muted aria-expanded:bg-muted",
         destructive:
-          "border-border bg-destructive text-destructive-foreground shadow-hard active:not-aria-[haspopup]:translate-x-1 active:not-aria-[haspopup]:translate-y-1 active:not-aria-[haspopup]:shadow-none",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        success:
+          "bg-success text-success-foreground hover:bg-success/90",
         link: "border-transparent text-primary underline-offset-4 hover:underline",
       },
       size: {

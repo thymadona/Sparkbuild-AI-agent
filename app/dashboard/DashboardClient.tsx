@@ -7,18 +7,13 @@ import {
   Plus, Globe, ArrowRight, Lock, Sparkles,
   User, Palette, Flame, Zap, Lightbulb, Rocket,
 } from 'lucide-react'
-import Navbar from '@/components/Navbar'
-import AppSidebar from '@/components/AppSidebar'
+import AppShell from '@/components/AppShell'
 import { LESSONS } from '@/lib/lessons'
 import PlayerCard from '@/components/PlayerCard'
 import type { PlayerStats } from '@/lib/xp'
 
-// Fixed dark text for chips whose fill stays bright in both themes —
-// fg-primary would flip to near-white in dark mode and vanish against them.
-const ON_CHIP = 'text-slate-900'
-
 const MODULE_ICONS = [User, Palette, Flame, Zap, Lightbulb, Rocket]
-const MODULE_CHIPS = ['bg-teal-400', 'bg-amber-300', 'bg-secondary', 'bg-teal-400', 'bg-amber-300', 'bg-secondary'] as const
+const MODULE_CHIPS = ['bg-tint-sage', 'bg-tint-sand', 'bg-tint-mint', 'bg-tint-blush', 'bg-tint-sage', 'bg-tint-sand'] as const
 
 // Dashboard only ever renders these fields — the full Project type also
 // includes `files`, which would be a wasted fetch for a list view.
@@ -31,10 +26,10 @@ type ProjectListItem = {
 }
 
 interface Props {
-  stats: PlayerStats
   initialProjects: ProjectListItem[]
   userEmail: string
   enabledLessonIds?: number[]
+  stats: PlayerStats
 }
 
 export default function DashboardClient({ initialProjects, userEmail, enabledLessonIds = [], stats }: Props) {
@@ -44,13 +39,14 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const router = useRouter()
   const firstName = userEmail.split('@')[0] || 'there'
-  const lessonsStarted = new Set(projects.filter(p => p.lesson_id).map(p => p.lesson_id)).size
+  // Only count lessons in the current course; older projects belong to a retired catalog.
+  const lessonsStarted = new Set(projects.filter(p => LESSONS.some(l => l.id === p.lesson_id)).map(p => p.lesson_id)).size
   const publicCount = projects.filter(p => p.is_public).length
 
   // Projects arrive newest-first from the server, so the first lesson
   // project is the most recently touched one — the natural "pick up where
   // you left off" candidate.
-  const inProgressProject = projects.find(p => p.lesson_id !== null)
+  const inProgressProject = projects.find(p => LESSONS.some(l => l.id === p.lesson_id))
   const inProgressLesson = inProgressProject
     ? LESSONS.find(l => l.id === inProgressProject.lesson_id)
     : undefined
@@ -98,198 +94,152 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
   }
 
   return (
-    <div className="flex min-h-screen bg-surface-900 font-body">
-      <AppSidebar userEmail={userEmail} />
+    <AppShell userEmail={userEmail} pageTitle="Home">
+      {/* Welcome */}
+      <section className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
+            Welcome back, {firstName}!
+          </h1>
+          <p className="mt-2 text-lg text-fg-secondary">Ready to write some code today?</p>
+        </div>
+        <button onClick={handleNewProject} disabled={creating} className="btn-primary shrink-0 py-3">
+          <Plus size={16} strokeWidth={2.5} />
+          {creating ? 'Creating…' : 'New project'}
+        </button>
+      </section>
 
-      <div className="min-w-0 flex-1">
-        <Navbar variant="app" withSidebar pageTitle="Dashboard" userEmail={userEmail} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-10">
+          {/* Continue learning */}
+          {inProgressProject && inProgressLesson && (
+            <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-tint-sage p-6 sm:p-8">
+              <span className="inline-block rounded-full bg-card/70 px-3 py-1 text-label-caps uppercase text-fg-secondary">
+                In progress
+              </span>
+              <h2 className="mt-4 font-display text-2xl font-bold text-fg-primary">
+                {inProgressLesson.title.split('—')[1]?.trim() ?? inProgressLesson.title}
+              </h2>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-fg-secondary">{inProgressLesson.description}</p>
+              <a href={`/editor/${inProgressProject.id}`} className="btn-primary mt-6 py-3">
+                Continue learning
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <Sparkles className="pointer-events-none absolute right-6 top-6 h-10 w-10 text-fg-primary/10" />
+            </section>
+          )}
 
-        <main className="mx-auto max-w-5xl px-6 py-10 space-y-10">
-        {/* Welcome banner */}
-        <section className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <span className="inline-block rounded-full border-2 border-surface-600 bg-surface-800 px-4 py-1.5 text-label-caps uppercase text-fg-secondary">
-              Mission control
-            </span>
-            <h1 className="mt-4 font-display text-headline-lg-mobile text-fg-primary sm:text-headline-md">
-              Hey, {firstName}. Ready to write some code?
-            </h1>
-          </div>
-          <button
-            onClick={handleNewProject}
-            disabled={creating}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border-2 border-surface-600 bg-brand-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-hard transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            {creating ? 'Creating…' : 'New project'}
-          </button>
-        </section>
-
-        {/* Continue learning */}
-        {inProgressProject && inProgressLesson && (
-          <section className="relative overflow-hidden rounded-xl border-2 border-surface-600 bg-surface-800 p-6 shadow-hard-lg sm:p-8">
-            <span className="inline-block rounded-full border-2 border-surface-600 bg-teal-400 px-3 py-1 text-label-caps uppercase text-slate-900">
-              In progress
-            </span>
-            <h2 className="mt-4 font-display text-2xl font-bold text-fg-primary">
-              {inProgressLesson.title.split('—')[1]?.trim() ?? inProgressLesson.title}
-            </h2>
-            <p className="mt-2 max-w-lg text-sm text-fg-secondary leading-relaxed">{inProgressLesson.description}</p>
-            <a
-              href={`/editor/${inProgressProject.id}`}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg border-2 border-surface-600 bg-brand-500 px-6 py-3 font-display text-sm font-bold text-white shadow-hard transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-            >
-              Continue learning
-              <ArrowRight className="h-4 w-4" />
-            </a>
-            <Sparkles className="pointer-events-none absolute right-6 top-6 h-8 w-8 text-brand-500/20" />
-          </section>
-        )}
-
-        <PlayerCard stats={stats} />
-
-        {/* Stats */}
-        <section className="grid grid-cols-3 gap-4">
-          {[
-            { value: projects.length, label: 'Projects' },
-            { value: `${lessonsStarted}/6`, label: 'Lessons started' },
-            { value: publicCount, label: 'Shared publicly' },
-          ].map(({ value, label }) => (
-            <div key={label} className="rounded-xl border-2 border-surface-600 bg-surface-800 p-4 shadow-hard-sm">
-              <p className="text-xs text-fg-secondary mb-1.5">{label}</p>
-              <p className="font-display text-2xl font-bold text-fg-primary">{value}</p>
+          {/* Modules */}
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-xl font-bold text-fg-primary">Your modules</h2>
+              <Link href="/lessons" className="inline-flex items-center gap-1 text-sm font-semibold text-fg-secondary transition-colors hover:text-fg-primary">
+                View all <ArrowRight size={14} />
+              </Link>
             </div>
-          ))}
-        </section>
-
-        {/* Modules */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold text-fg-primary">Your modules</h2>
-            <Link href="/lessons" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
-              View all <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {LESSONS.slice(0, 3).map((lesson, i) => {
-              const started = projects.some(p => p.lesson_id === lesson.id)
-              const locked = !started && !enabledSet.has(lesson.id)
-              const Icon = MODULE_ICONS[i] ?? User
-              return (
-                <div key={lesson.id} className={`rounded-xl border-2 border-surface-600 bg-surface-800 p-5 shadow-hard ${locked ? 'opacity-60' : ''}`}>
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-surface-600 ${MODULE_CHIPS[i] ?? 'bg-teal-400'}`}>
-                    {locked ? <Lock className={`h-5 w-5 ${ON_CHIP}`} /> : <Icon className={`h-5 w-5 ${ON_CHIP}`} />}
-                  </div>
-                  <h3 className="mt-4 font-display text-base font-bold text-fg-primary">
-                    {lesson.title.split('—')[1]?.trim() ?? lesson.title}
-                  </h3>
-                  <p className="mt-1.5 text-sm text-fg-secondary leading-relaxed line-clamp-2">{lesson.description}</p>
-                  <div className="mt-4">
-                    {locked ? (
-                      <span className="inline-block rounded-lg border-2 border-surface-600 bg-surface-700 px-4 py-2 text-sm font-semibold text-fg-muted">
-                        Not open yet
-                      </span>
-                    ) : (
-                      <Link
-                        href="/lessons"
-                        className="inline-flex items-center gap-1.5 rounded-lg border-2 border-surface-600 bg-brand-500 px-4 py-2 text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                      >
-                        {started ? 'Resume' : 'Start'}
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* Projects */}
-        <section>
-          <h2 className="font-display text-lg font-bold text-fg-primary mb-4">
-            My Projects
-            <span className="ml-2 text-sm font-normal text-fg-muted">({projects.length})</span>
-          </h2>
-
-          {projects.length === 0 ? (
-            <div className="rounded-xl border-2 border-dashed border-surface-600 py-20 text-center">
-              <p className="text-5xl mb-4">🚀</p>
-              <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet!</p>
-              <p className="text-sm text-fg-muted mt-2 mb-6">Start a lesson or create a blank project.</p>
-              <div className="flex gap-3 justify-center">
-                <Link href="/lessons" className="rounded-lg border-2 border-surface-600 bg-brand-500 px-5 py-2.5 font-display text-sm font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
-                  Start a lesson
-                </Link>
-                <button onClick={handleNewProject} disabled={creating} className="rounded-lg border-2 border-surface-600 bg-surface-800 px-5 py-2.5 font-display text-sm font-bold text-fg-secondary shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-                  Blank project
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <div key={project.id} className="rounded-xl border-2 border-surface-600 bg-surface-800 p-4 shadow-hard">
-                  <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-surface-600 bg-brand-100 dark:bg-brand-500/10 text-[11px] font-semibold text-brand-700 dark:text-brand-300">
-                        {project.lesson_id ?? <Globe size={12} />}
-                      </span>
-                      <span className="text-xs text-fg-muted">
-                        Updated {new Date(project.updated_at).toLocaleDateString()}
-                      </span>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {LESSONS.slice(0, 3).map((lesson, i) => {
+                const started = projects.some(p => p.lesson_id === lesson.id)
+                const locked = !started && !enabledSet.has(lesson.id)
+                const Icon = MODULE_ICONS[i] ?? User
+                return (
+                  <div key={lesson.id} className={`rounded-2xl border border-border bg-card p-5 ${locked ? 'opacity-60' : ''}`}>
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-full ${MODULE_CHIPS[i] ?? 'bg-tint-sage'}`}>
+                      {locked ? <Lock className="h-5 w-5 text-fg-primary" /> : <Icon className="h-5 w-5 text-fg-primary" />}
                     </div>
-                    {project.is_public && (
-                      <span className="rounded-md border-2 border-surface-600 bg-teal-400 px-2 py-0.5 text-xs font-bold text-slate-900">Public</span>
-                    )}
+                    <h3 className="mt-4 font-display text-base font-bold text-fg-primary">
+                      {lesson.title.split('—')[1]?.trim() ?? lesson.title}
+                    </h3>
+                    <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-fg-secondary">{lesson.description}</p>
+                    <div className="mt-4">
+                      {locked ? (
+                        <span className="inline-block rounded-full bg-muted px-4 py-2 text-sm font-semibold text-fg-muted">Not open yet</span>
+                      ) : (
+                        <Link href="/lessons" className="btn-outline">{started ? 'Resume' : 'Start'}</Link>
+                      )}
+                    </div>
                   </div>
+                )
+              })}
+            </div>
+          </section>
+        </div>
 
-                  <p className="text-sm font-semibold text-fg-primary truncate mb-0.5">{project.title}</p>
-                  <p className="text-xs text-fg-muted mb-3.5">
-                    {project.lesson_id ? `Week ${project.lesson_id}` : 'Free build'}
-                  </p>
+        <aside className="space-y-4">
+          <PlayerCard stats={stats} />
+          <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
+            {[
+              { value: projects.length, label: 'Projects' },
+              { value: `${lessonsStarted}/${LESSONS.length}`, label: 'Lessons started' },
+              { value: publicCount, label: 'Shared publicly' },
+            ].map(({ value, label }) => (
+              <div key={label} className="rounded-2xl border border-border bg-card px-5 py-4">
+                <p className="text-xs text-fg-secondary">{label}</p>
+                <p className="mt-1 font-display text-2xl font-bold text-fg-primary">{value}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </div>
 
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <a
-                      href={`/editor/${project.id}`}
-                      className="rounded-lg border-2 border-surface-600 bg-brand-500 px-3 py-1.5 font-bold text-white shadow-hard-sm transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                    >
-                      Open
-                    </a>
-                    <button
-                      onClick={() => handleTogglePublic(project)}
-                      className="rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors"
-                    >
-                      {project.is_public ? 'Unshare' : 'Share'}
-                    </button>
-                    <button
-                      onClick={() => handleDuplicate(project)}
-                      disabled={duplicating === project.id}
-                      className="rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 text-fg-secondary hover:text-fg-primary transition-colors disabled:opacity-50"
-                    >
-                      {duplicating === project.id ? '…' : 'Copy'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(project.id)}
-                      className="ml-auto rounded-lg border-2 border-surface-600 bg-surface-700 px-3 py-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    >
-                      Delete
-                    </button>
+      {/* Projects */}
+      <section>
+        <h2 className="mb-4 font-display text-xl font-bold text-fg-primary">
+          My Projects
+          <span className="ml-2 text-sm font-normal text-fg-muted">({projects.length})</span>
+        </h2>
+
+        {projects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+            <p className="mb-4 text-5xl">🚀</p>
+            <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet!</p>
+            <p className="mb-6 mt-2 text-sm text-fg-muted">Start a lesson or create a blank project.</p>
+            <div className="flex justify-center gap-3">
+              <Link href="/lessons" className="btn-primary">Start a lesson</Link>
+              <button onClick={handleNewProject} disabled={creating} className="btn-outline">Blank project</button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <div key={project.id} className="rounded-2xl border border-border bg-card p-5">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tint-sand text-[11px] font-semibold text-fg-primary">
+                      {project.lesson_id ?? <Globe size={12} />}
+                    </span>
+                    <span className="text-xs text-fg-muted">Updated {new Date(project.updated_at).toLocaleDateString()}</span>
                   </div>
                   {project.is_public && (
-                    <button
-                      onClick={() => handleCopyLink(project.id)}
-                      className="mt-2.5 w-full rounded-lg border-2 border-surface-600 bg-surface-700 py-1.5 text-xs text-fg-secondary hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
-                    >
-                      Copy share link
-                    </button>
+                    <span className="rounded-full bg-tint-mint px-2.5 py-0.5 text-xs font-bold text-fg-primary">Public</span>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-        </main>
-      </div>
-    </div>
+
+                <p className="mb-0.5 truncate text-sm font-semibold text-fg-primary">{project.title}</p>
+                <p className="mb-4 text-xs text-fg-muted">{project.lesson_id ? `Week ${project.lesson_id}` : 'Free build'}</p>
+
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <a href={`/editor/${project.id}`} className="btn-primary !px-4 !py-1.5 !text-xs">Open</a>
+                  <button onClick={() => handleTogglePublic(project)} className="btn-outline !px-3 !py-1.5 !text-xs">
+                    {project.is_public ? 'Unshare' : 'Share'}
+                  </button>
+                  <button onClick={() => handleDuplicate(project)} disabled={duplicating === project.id} className="btn-outline !px-3 !py-1.5 !text-xs">
+                    {duplicating === project.id ? '…' : 'Copy'}
+                  </button>
+                  <button onClick={() => handleDelete(project.id)} className="btn-outline ml-auto !px-3 !py-1.5 !text-xs !text-red-600 hover:!bg-red-50">
+                    Delete
+                  </button>
+                </div>
+                {project.is_public && (
+                  <button onClick={() => handleCopyLink(project.id)} className="btn-outline mt-2.5 w-full !py-1.5 !text-xs">
+                    Copy share link
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </AppShell>
   )
 }

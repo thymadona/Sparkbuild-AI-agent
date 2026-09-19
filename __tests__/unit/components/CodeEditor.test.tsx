@@ -18,13 +18,13 @@ jest.mock('@uiw/react-codemirror', () => {
       }),
     EditorView: {
       baseTheme: () => ({}),
+      theme: () => ({}),
       decorations: { from: () => ({}) },
       scrollIntoView: () => ({}),
     },
   }
 })
 
-jest.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'dark' }) }))
 
 const STARTER = '<h1>My reading streak.</h1>'
 

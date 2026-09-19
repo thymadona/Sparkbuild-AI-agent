@@ -2,11 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Vibrant Play design tokens (see DESIGN.md) ─────────────────────
-   Light: off-white lavender surface, Deep Navy text/borders.
-   Dark: obsidian purple surface, lavender-tinted borders (kept light so
-   hard borders/shadows stay visible against a dark background — the
-   spec's "Navy border" language assumes a light surface).
+/* ── Parchment theme (single theme — no dark mode) ──────────────────
+   Cream page, warm off-white cards, espresso ink/buttons, tan chips, green
+   for success. Taken from the /board tutor screen.
 
    Values are space-separated RGB channels (no wrapping rgb()/hex) so
    Tailwind's `/NN` opacity modifier can compose them via
@@ -15,14 +13,14 @@
 @layer base {
   :root {
     /* legacy custom-token names, still referenced across the app */
-    --surface-900: 248 247 255; /* #f8f7ff — page bg */
-    --surface-800: 255 255 255; /* #ffffff — cards */
-    --surface-700: 241 238 252; /* #f1eefc — utility card / chip fill */
-    --surface-600: 27 27 47; /* #1b1b2f — borders, Deep Navy */
-    --fg-primary: 27 27 47; /* #1b1b2f — Deep Navy text */
-    --fg-secondary: 74 71 86; /* #4a4756 */
-    --fg-muted: 120 117 133; /* #787585 */
-    --shadow-color: #1b1b2f;
+    --surface-900: 241 230 208; /* #f1e6d0 — page bg */
+    --surface-800: 255 253 248; /* #fffdf8 — cards */
+    --surface-700: 245 237 222; /* #f5edde — utility card / chip fill */
+    --surface-600: 228 217 197; /* #e4d9c5 — borders */
+    --fg-primary: 43 33 24; /* #2b2118 — espresso text */
+    --fg-secondary: 92 77 58; /* #5c4d3a */
+    --fg-muted: 122 106 82; /* #7a6a52 */
+    --shadow-color: rgb(43 33 24 / 0.08);
 
     /* shadcn semantic slots */
     --background: var(--surface-900);
@@ -31,74 +29,39 @@
     --card-foreground: var(--fg-primary);
     --popover: var(--surface-800);
     --popover-foreground: var(--fg-primary);
-    --primary: 90 69 203; /* #5a45cb */
-    --primary-foreground: 255 255 255;
-    --secondary: 253 103 153; /* #fd6799 */
+    --primary: 43 33 24; /* #2b2118 espresso */
+    --primary-foreground: 250 246 238; /* #faf6ee */
+    --secondary: 228 211 179; /* #e4d3b3 tan */
     --secondary-foreground: var(--fg-primary);
     --muted: var(--surface-700);
     --muted-foreground: var(--fg-secondary);
-    --accent: 45 212 191; /* #2dd4bf */
+    --accent: 236 224 200; /* #ece0c8 — hover / active fill (tan), not green */
     --accent-foreground: var(--fg-primary);
+
+    /* pastel feature-card fills; pair with text-fg-primary */
+    --tint-sage: 238 240 208; /* #eef0d0 */
+    --tint-sand: 243 231 207; /* #f3e7cf */
+    --tint-mint: 220 243 232; /* #dcf3e8 */
+    --tint-blush: 246 227 220; /* #f6e3dc */
     --destructive: 186 26 26; /* #ba1a1a */
     --destructive-foreground: 255 255 255;
-    --success: 20 132 106; /* #14846a */
+    --success: 16 185 129; /* #10b981 */
     --success-foreground: 255 255 255;
-    --warning: 180 95 6; /* #b45f06 */
+    --warning: 180 83 9; /* #b45309 */
     --warning-foreground: 255 255 255;
     --border: var(--surface-600);
     --input: var(--border);
-    --ring: var(--primary);
+    --ring: 180 83 9; /* #b45309 focus */
     --radius: 0.5rem;
     --radius-sm: 0.25rem;
     --radius-md: 0.75rem;
     --radius-lg: 1rem;
   }
 
-  .dark {
-    --surface-900: 22 19 45; /* #16132d */
-    --surface-800: 33 29 63; /* #211d3f */
-    --surface-700: 42 37 80; /* #2a2550 */
-    --surface-600: 229 224 236; /* #e5e0ec */
-    --fg-primary: 244 242 251; /* #f4f2fb */
-    --fg-secondary: 184 178 201; /* #b8b2c9 */
-    --fg-muted: 139 132 160; /* #8b84a0 */
-    --shadow-color: #e5e0ec;
-
-    --background: var(--surface-900);
-    --foreground: var(--fg-primary);
-    --card: var(--surface-800);
-    --card-foreground: var(--fg-primary);
-    --popover: var(--surface-800);
-    --popover-foreground: var(--fg-primary);
-    --primary: 200 191 255; /* #c8bfff */
-    --primary-foreground: 25 0 100; /* #190064 */
-    --secondary: 255 177 197; /* #ffb1c5 */
-    --secondary-foreground: 22 19 45; /* #16132d */
-    --muted: var(--surface-700);
-    --muted-foreground: var(--fg-secondary);
-    --accent: 45 212 191; /* #2dd4bf */
-    --accent-foreground: 22 19 45; /* #16132d */
-    --destructive: 255 180 171; /* #ffb4ab */
-    --destructive-foreground: 105 0 5; /* #690005 */
-    --success: 45 212 191; /* #2dd4bf */
-    --success-foreground: 22 19 45; /* #16132d */
-    --warning: 251 191 36; /* #fbbf24 */
-    --warning-foreground: 22 19 45; /* #16132d */
-    --border: var(--surface-600);
-    --input: var(--border);
-    --ring: var(--primary);
-  }
-
-  /* Restrained "professional admin" surface for /staff — subtler border and
-     no hard-offset shadow than the Vibrant Play brand default, scoped so the
-     student-facing app is unaffected. See DashboardShell.tsx. */
+  /* /staff back office: slightly tighter border, no shadow. See DashboardShell.tsx. */
   .staff-shell {
-    --border: 210 206 224;
+    --border: 216 204 181;
     --shadow-color: transparent;
-  }
-
-  .dark .staff-shell {
-    --border: 58 52 94;
   }
 
   * {
@@ -112,10 +75,49 @@
   h1,
   h2,
   h3 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Hanken Grotesk', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-card px-5 py-2 text-sm font-semibold text-fg-primary transition-colors hover:bg-muted disabled:opacity-50;
   }
 }
 
 .font-display {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
 }
+
+/* Tutor board: new nodes rise in; a changed node gets a soft highlight. */
+@media (prefers-reduced-motion: no-preference) {
+  .board-rise { animation: board-rise 200ms ease-out both; }
+  .board-pulse { animation: board-pulse 1200ms ease-out 1; }
+}
+/* Spark the tutor: one animation per state (see app/board/Mascot.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  .spark { transform-box: fill-box; transform-origin: 50% 100%; }
+  .spark-idle { animation: spark-bob 2.4s ease-in-out infinite; }
+  .spark-listening { animation: spark-lean 1.6s ease-in-out infinite; }
+  .spark-thinking { animation: spark-bob 1.2s ease-in-out infinite; }
+  .spark-speaking { animation: spark-bob 0.5s ease-in-out infinite; }
+  .spark-celebrating { animation: spark-jump 0.5s ease-out infinite; }
+  .spark-puzzled { animation: spark-tilt 1.8s ease-in-out infinite; }
+  .spark-mouth { animation: spark-talk 0.3s steps(1) infinite; }
+  .spark-dots { animation: spark-blink 1s steps(1) infinite; }
+  .spark-twinkle { animation: spark-blink 0.4s steps(1) infinite; }
+}
+@keyframes spark-bob { 50% { transform: translateY(0.5px); } }
+@keyframes spark-lean { 50% { transform: rotate(3deg); } }
+@keyframes spark-tilt { 50% { transform: rotate(-4deg); } }
+@keyframes spark-jump { 50% { transform: translateY(-2px); } }
+@keyframes spark-talk { 50% { opacity: 0; } }
+@keyframes spark-blink { 50% { opacity: 0.2; } }
+/* Visible keyboard focus on the parchment board; no confetti for reduced motion. */
+.board-root :is(button, input, summary, [tabindex]):not(.board-input):focus-visible { outline: 3px solid #b45309; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .confetti-particle { display: none; } }
+@keyframes board-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes board-pulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 4px rgb(245 158 11 / 0.45); } }

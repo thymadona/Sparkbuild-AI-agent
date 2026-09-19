@@ -11,7 +11,6 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
   usePathname: () => '/lessons',
 }))
-jest.mock('@/components/ThemeToggle', () => () => <div />)
 
 
 const lesson: Lesson = {
