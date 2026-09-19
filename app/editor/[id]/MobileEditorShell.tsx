@@ -6,7 +6,6 @@ import type { EditorView } from '@uiw/react-codemirror'
 import Editor from '@/components/Editor'
 import CodeEditor from '@/components/CodeEditor'
 import Navigator from '@/components/Navigator'
-import ThemeToggle from '@/components/ThemeToggle'
 import ProfileDropdown from '@/components/ProfileDropdown'
 import { cn } from '@/lib/utils'
 import type { Project, Message } from '@/types'
@@ -169,7 +168,6 @@ export default function MobileEditorShell({
           className="min-w-0 flex-1 bg-transparent text-xs font-medium text-fg-primary focus:outline-none truncate"
         />
         {savingTitle && <span className="shrink-0 text-[10px] text-fg-muted">Saving…</span>}
-        <ThemeToggle />
         <ProfileDropdown email={userEmail} />
       </header>
 
@@ -185,7 +183,7 @@ export default function MobileEditorShell({
             className={cn(
               'flex flex-1 items-center justify-center gap-1 rounded-lg border-2 py-1.5 text-[11px] font-semibold capitalize transition-colors',
               mobileTab === tab
-                ? 'border-surface-600 bg-brand-500/20 text-brand-600 shadow-hard-sm dark:text-brand-300'
+                ? 'border-surface-600 bg-brand-500/20 text-brand-600 shadow-hard-sm '
                 : 'border-transparent text-fg-muted hover:bg-surface-700'
             )}
           >
@@ -237,7 +235,7 @@ export default function MobileEditorShell({
                         key={i}
                         className={cn(
                           'flex gap-2 border-t border-surface-700 px-3 py-1',
-                          entry.level === 'error' ? 'bg-red-500/10 text-red-600 dark:text-red-400' : entry.level === 'warn' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' : 'text-fg-secondary'
+                          entry.level === 'error' ? 'bg-red-500/10 text-red-600 ' : entry.level === 'warn' ? 'bg-yellow-500/10 text-yellow-600 ' : 'text-fg-secondary'
                         )}
                       >
                         <span className="shrink-0 uppercase text-fg-muted">{entry.level}</span>

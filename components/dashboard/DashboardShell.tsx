@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTheme } from 'next-themes'
 import { GROUP_LABEL, STAFF_NAV, type NavIcon, type StaffPermissions } from '@/lib/dashboard-nav'
 
 const COLLAPSE_KEY = 'staff-sidebar-collapsed'
@@ -69,35 +68,6 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
     <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
       {collapsed ? <path d="M9 6l6 6-6 6" /> : <path d="M15 6l-6 6 6 6" />}
     </svg>
-  )
-}
-
-// Inline rather than reusing components/ThemeToggle.tsx, which is deliberately
-// brand/brutalist-styled for the student-facing app — a size/variant prop for
-// this one top-bar-sized call site isn't worth forking or reskinning that file.
-function TopBarThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-
-  return (
-    <button
-      type="button"
-      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      title="Toggle theme"
-      className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-    >
-      {mounted && resolvedTheme === 'dark' ? (
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-        </svg>
-      ) : (
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      )}
-    </button>
   )
 }
 
@@ -205,7 +175,6 @@ export default function DashboardShell({ email, roleLabel, permissions, children
           <span className="truncate text-xs text-muted-foreground max-w-[16rem]">
             {email} · {roleLabel}
           </span>
-          <TopBarThemeToggle />
           <a
             href="/dashboard"
             title="Back to app"

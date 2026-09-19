@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import AppShell from '@/components/AppShell'
 
 interface Props {
   email: string
@@ -35,52 +36,39 @@ export default function ProfileClient({ email, initialName }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <header className="border-b border-gray-800 bg-gray-900 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Profile</h1>
-        <a
-          href="/dashboard"
-          className="text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          Back to Dashboard
-        </a>
-      </header>
+    <AppShell userEmail={email} pageTitle="Profile">
+      <section>
+        <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">Your profile</h1>
+        <p className="mt-2 text-lg text-fg-secondary">This is the name your teacher sees.</p>
+      </section>
 
-      <main className="mx-auto max-w-md px-6 py-12">
-        <form onSubmit={handleSave} className="bg-gray-900 border border-gray-800 rounded-lg p-6 flex flex-col gap-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <div className="text-sm text-gray-300 bg-gray-800 border border-gray-700 rounded px-3 py-2">
-              {email}
-            </div>
-          </div>
+      <form onSubmit={handleSave} className="flex max-w-md flex-col gap-4 rounded-2xl border border-border bg-card p-6">
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-fg-secondary">Email</label>
+          <div className="rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-fg-secondary">{email}</div>
+        </div>
 
-          <div>
-            <label htmlFor="full_name" className="block text-sm text-gray-400 mb-1">
-              Full Name
-            </label>
-            <input
-              id="full_name"
-              type="text"
-              value={name}
-              onChange={(e) => { setName(e.target.value); setSaved(false) }}
-              placeholder="Your full name"
-              className="w-full text-sm bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+        <div>
+          <label htmlFor="full_name" className="mb-1 block text-sm font-semibold text-fg-secondary">
+            Full Name
+          </label>
+          <input
+            id="full_name"
+            type="text"
+            value={name}
+            onChange={(e) => { setName(e.target.value); setSaved(false) }}
+            placeholder="Your full name"
+            className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-fg-primary placeholder:text-fg-muted focus:border-ring focus:outline-none"
+          />
+        </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {saved && <p className="text-sm text-green-400">Saved.</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        {saved && <p className="text-sm text-emerald-600">Saved.</p>}
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </form>
-      </main>
-    </div>
+        <button type="submit" disabled={saving} className="btn-primary self-start">
+          {saving ? 'Saving...' : 'Save'}
+        </button>
+      </form>
+    </AppShell>
   )
 }

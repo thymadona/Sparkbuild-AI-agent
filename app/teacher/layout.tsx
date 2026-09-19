@@ -12,9 +12,9 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="border-b border-gray-800 px-8 py-4">
-        <span className="font-semibold text-gray-100 text-sm">Teacher Dashboard</span>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="border-b border-border px-8 py-4">
+        <span className="font-semibold text-foreground text-sm">Teacher Dashboard</span>
       </div>
       <main className="px-8 py-6">{children}</main>
     </div>

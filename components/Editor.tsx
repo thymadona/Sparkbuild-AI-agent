@@ -264,7 +264,7 @@ export default function Editor({
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full min-h-[320px] px-4 text-center select-none">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-surface-600 bg-brand-100 dark:bg-brand-500/20 shadow-hard-sm animate-pop-in">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-surface-600 bg-brand-100 shadow-hard-sm animate-pop-in">
               <span className="text-3xl" role="img" aria-label="wave">👋</span>
             </div>
             <h2 className="font-display text-base font-semibold text-fg-primary mb-1">Hi! I&apos;m your AI Tutor.</h2>
@@ -284,7 +284,7 @@ export default function Editor({
                 <button
                   key={text}
                   onClick={() => setPrompt(text)}
-                  className="flex items-center gap-2.5 rounded-full border-2 border-surface-600 bg-brand-100 dark:bg-brand-500/20 px-4 py-2.5 text-sm font-semibold text-brand-700 dark:text-brand-200 shadow-hard-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all text-left"
+                  className="flex items-center gap-2.5 rounded-full border-2 border-surface-600 bg-brand-100 px-4 py-2.5 text-sm font-semibold text-brand-700 shadow-hard-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all text-left"
                 >
                   <span className="text-base leading-none">{emoji}</span>
                   <span>{text}</span>
@@ -303,8 +303,8 @@ export default function Editor({
                 <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface-600 bg-teal-400 text-[10px] font-bold text-slate-900 mb-1">
                   T
                 </div>
-                <div className="w-fit rounded-xl rounded-bl-sm border-2 border-surface-600 bg-teal-50 px-4 py-2.5 text-sm text-teal-900 shadow-hard-sm dark:bg-teal-900/20 dark:text-teal-100">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Your teacher</p>
+                <div className="w-fit rounded-xl rounded-bl-sm border-2 border-surface-600 bg-teal-50 px-4 py-2.5 text-sm text-teal-900 shadow-hard-sm ">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-teal-700 ">Your teacher</p>
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                   <div className="mt-1">
                     <SpeakButton text={msg.content} label="Read your teacher's note out loud" />
@@ -312,9 +312,9 @@ export default function Editor({
                 </div>
               </div>
             ) : msg.role === "user" ? (
-              <div className="max-w-[85%] w-fit rounded-xl rounded-tr-sm border-2 border-surface-600 px-4 py-2.5 text-sm bg-brand-100 shadow-hard-sm dark:bg-brand-500/20 text-fg-primary">
+              <div className="max-w-[85%] w-fit rounded-xl rounded-tr-sm border-2 border-surface-600 px-4 py-2.5 text-sm bg-brand-100 shadow-hard-sm text-fg-primary">
                 <p className="whitespace-pre-wrap">{msg.content}</p>
-                <p className="mt-1 text-xs text-brand-700 dark:text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p className="mt-1 text-xs text-brand-700 opacity-0 group-hover:opacity-100 transition-opacity">
                   {msg.timestamp.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -326,7 +326,7 @@ export default function Editor({
                 <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface-600 bg-brand-500 text-[10px] font-bold text-white mb-1">
                   AI
                 </div>
-                <div className="w-fit rounded-xl rounded-bl-sm border-2 border-surface-600 px-4 py-2.5 text-sm bg-pink-100 dark:bg-[#ff689a] text-fg-secondary dark:text-white shadow-hard-sm">
+                <div className="w-fit rounded-xl rounded-bl-sm border-2 border-surface-600 px-4 py-2.5 text-sm bg-secondary/50 text-fg-secondary shadow-hard-sm">
                   <div className="prose-chat">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -342,7 +342,7 @@ export default function Editor({
                           const text = String(children).replace(/\n$/, '')
                           const isInline = inline || !text.includes('\n')
                           return isInline ? (
-                            <code className="rounded bg-surface-800 px-1 py-0.5 font-mono text-xs text-brand-700 dark:text-brand-300">{children}</code>
+                            <code className="rounded bg-surface-800 px-1 py-0.5 font-mono text-xs text-brand-700 ">{children}</code>
                           ) : (
                             <pre className="my-2 w-fit min-w-[6rem] max-w-full overflow-x-auto rounded bg-surface-800 p-2.5 font-mono text-xs text-fg-secondary leading-relaxed">
                               <code>{children}</code>
@@ -355,7 +355,7 @@ export default function Editor({
                           <blockquote className="my-2 border-l-2 border-brand-500 pl-3 text-fg-muted italic">{children}</blockquote>
                         ),
                         a: ({ href, children }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-700 dark:hover:text-brand-300">{children}</a>
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline hover:text-brand-700 ">{children}</a>
                         ),
                       }}
                     >
@@ -381,7 +381,7 @@ export default function Editor({
             <div className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface-600 bg-brand-500 text-[10px] font-bold text-white mb-0.5">
               AI
             </div>
-            <div className="rounded-xl rounded-bl-sm border-2 border-surface-600 bg-pink-100 dark:bg-[#ff689a] px-4 py-3 shadow-hard-sm flex items-center gap-1">
+            <div className="rounded-xl rounded-bl-sm border-2 border-surface-600 bg-secondary/50 px-4 py-3 shadow-hard-sm flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '0ms' }} />
               <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '150ms' }} />
               <span className="h-1.5 w-1.5 rounded-full bg-fg-muted animate-bounce-dot" style={{ animationDelay: '300ms' }} />
@@ -393,14 +393,14 @@ export default function Editor({
 
       {/* Error */}
       {error && (
-        <div className="mx-4 mb-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+        <div className="mx-4 mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 ">
           {error}
         </div>
       )}
 
       {/* Build mode withheld while a lesson task is open */}
       {notice && (
-        <div className="mx-4 mb-2 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+        <div className="mx-4 mb-2 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-50 px-3 py-2 text-sm text-amber-800 ">
           <span aria-hidden="true">✋</span>
           <span>{notice}</span>
         </div>
@@ -410,8 +410,8 @@ export default function Editor({
           full text still rides along in selectedCode.text for the prompt,
           it's just not shown here anymore. */}
       {selectedCode && (
-        <div className="mx-3 mb-2 flex items-center gap-2 rounded-xl border border-brand-200 dark:border-brand-800 bg-surface-800 px-2 py-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-700 text-brand-500 dark:text-brand-400">
+        <div className="mx-3 mb-2 flex items-center gap-2 rounded-xl border border-brand-200 bg-surface-800 px-2 py-1.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-700 text-brand-500 ">
             {selectedCode.kind === "element" ? (
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l7.07 17 2.51-7.39L21 11.07z" />

@@ -43,7 +43,7 @@ export default function BuildModeToggle({ userId, initialEnabled }: BuildModeTog
       aria-pressed={enabled}
       title={enabled ? 'Build mode on — click to disable' : 'Build mode off — click to enable'}
       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-        enabled ? 'bg-indigo-600' : 'bg-gray-700'
+        enabled ? 'bg-primary' : 'bg-border'
       }`}
     >
       <span
