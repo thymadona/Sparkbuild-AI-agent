@@ -24,6 +24,13 @@ export const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   fn('board_new_page', 'Start a new page for a new idea.', z.object({ pageId: z.string(), title: z.string().max(40) })),
 ]
 
+// In a lesson, pages are task pages: the client opens one per task as the
+// student completes the previous one (lib/board/tasks.ts). Letting the tutor
+// call board_new_page there would create a page with no task bound to it, so
+// the tool is withheld. Free-form boards keep it.
+export const toolsFor = (inLesson: boolean): OpenAI.Chat.ChatCompletionTool[] =>
+  inLesson ? TOOLS.filter((t) => t.function.name !== 'board_new_page') : TOOLS
+
 // Tool call -> BoardOp (validated by the reducer).
 export function toOp(name: string, args: Record<string, unknown>): unknown {
   const op = name.replace('board_', '')

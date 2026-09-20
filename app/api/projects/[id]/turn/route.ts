@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { messages, projects, prompts } from '@/lib/db/schema'
+import { lessonProgress, messages, projects, prompts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { deepseek, MODEL } from '@/lib/gemini'
 import { checkRateLimit } from '@/lib/ratelimit'
@@ -9,9 +9,13 @@ import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 import { getLessonForProject } from '@/lib/lessons'
 import { entryFileFor } from '@/lib/starter-file'
-import { withBoardCode } from '@/lib/board/code'
+import { pageCode, withBoardCode } from '@/lib/board/code'
+import { taskPageId } from '@/lib/board/tasks'
+import { cached } from '@/lib/cache'
+import { buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
+import { runTaskChecks, type RuntimeVerdicts } from '@/lib/task-checks'
 import { emptyBoard, summarize, type BoardState } from '@/lib/board/reducer'
-import { TOOLS } from '@/lib/board/tools'
+import { toolsFor } from '@/lib/board/tools'
 import { ClientEvent, applyClientEvent } from '@/lib/tutor/events'
 import { lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
 import { runTurn, type Llm, type TurnEvent } from '@/lib/tutor/turn'
@@ -32,7 +36,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
   }
 
-  const parsed = ClientEvent.safeParse(await req.json().catch(() => null))
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
+  const parsed = ClientEvent.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Invalid event' }, { status: 400 })
 
   const [project] = await db
@@ -45,7 +50,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const history = (
     await db
-      .select({ role: messages.role, content: messages.content })
+      .select({ role: messages.role, content: messages.content, createdAt: messages.createdAt })
       .from(messages)
       .where(eq(messages.projectId, id))
       .orderBy(desc(messages.createdAt))
@@ -62,14 +67,57 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   board = event.board
   const lesson = project.lessonId != null ? getLessonForProject(project.lessonId, project.lessonVersion) : null
   const files = (project.files ?? {}) as Record<string, string>
-  const system = `${TUTOR_PROMPT}\n\n${lessonLayer(lesson, summarize(board))}`
+
+  // The lesson guard. Without it the tutor narrates the lesson on vibes: it
+  // congratulates the student for a task whose checks have not passed and
+  // announces the next one, while their screen correctly refuses to move on.
+  // Same source of truth as the student's board — the task's own checks.
+  let openTask = null
+  let nudge = ''
+  if (lesson) {
+    const progress = await cached(`lesson-progress:${id}`, 15, async () => {
+      const [row] = await db
+        .select({ completed_task_ids: lessonProgress.completedTaskIds, updated_at: lessonProgress.updatedAt })
+        .from(lessonProgress)
+        .where(eq(lessonProgress.projectId, id))
+        .limit(1)
+
+      return row ?? null
+    })
+    openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
+    if (openTask) {
+      // Python checks run in the student's browser; take its verdicts only if
+      // they belong to the task the tutor is about to talk about. Absent, a
+      // runtime check reads as unmet — the safe direction, since the tutor
+      // then under-claims rather than declaring a task done that is not.
+      const reported = body?.runtimeChecks as { taskId?: string; verdicts?: unknown[] } | undefined
+      const verdicts: RuntimeVerdicts =
+        reported?.taskId === openTask.id && Array.isArray(reported.verdicts)
+          ? reported.verdicts.map((v) => (typeof v === 'boolean' ? v : undefined))
+          : []
+      const results = runTaskChecks(openTask.checks, pageCode(board, taskPageId(openTask)) ?? '', verdicts)
+
+      // Turns spent on this task: messages since it became open. Same reading of
+      // lesson_progress.updated_at as /api/generate, valid while the
+      // lesson-progress PUT route stays the sole writer of that column.
+      const since = progress?.updated_at ? Date.parse(progress.updated_at) : NaN
+      const onTask = Number.isNaN(since) ? history : history.filter((m) => Date.parse(String(m.createdAt)) >= since)
+      const stuckTurns = onTask.filter((m) => m.role === 'assistant').length
+      const prevUserMessage = [...onTask].reverse().find((m) => m.role === 'user')?.content
+      const askedNow = parsed.data.type === 'student_message' ? parsed.data.text : ''
+      const tier = escalationTier(stuckTurns, detectConfusion(askedNow, prevUserMessage), openTask.type === 'homework')
+      nudge = buildTaskNudge(openTask, tier, results)
+    }
+  }
+
+  const system = [TUTOR_PROMPT, lessonLayer(lesson, summarize(board), openTask), nudge].filter(Boolean).join('\n\n')
   const userContent = event.content
 
   const llm: Llm = (msgs) =>
     deepseek.chat.completions.create({
       model: MODEL,
       stream: true,
-      tools: TOOLS,
+      tools: toolsFor(lesson != null),
       messages: msgs,
       thinking: { type: 'disabled' }, // DeepSeek extension; captions must start fast
     } as never) as unknown as ReturnType<Llm>

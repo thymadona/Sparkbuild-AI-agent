@@ -111,8 +111,9 @@ describe('Navigator', () => {
     fireEvent.click(await screen.findByRole('button', { name: /mark done/i }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
-      '/api/projects/project-1/lesson-progress',
-      expect.objectContaining({ method: 'PUT' }),
+      // Finishing a task is judged by the server against the code it has stored.
+      '/api/projects/project-1/lesson-progress/complete',
+      expect.objectContaining({ method: 'POST' }),
     ))
     expect(await screen.findByText('2/3 core')).toBeInTheDocument()
   })
@@ -198,8 +199,9 @@ describe('Navigator task checks', () => {
     fireEvent.click(button)
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
-      '/api/projects/project-1/lesson-progress',
-      expect.objectContaining({ method: 'PUT' }),
+      // Finishing a task is judged by the server against the code it has stored.
+      '/api/projects/project-1/lesson-progress/complete',
+      expect.objectContaining({ method: 'POST' }),
     ))
   })
 })
@@ -351,8 +353,9 @@ describe('Navigator homework section', () => {
     fireEvent.click(await screen.findByRole('button', { name: /mark done/i }))
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
-      '/api/projects/project-1/lesson-progress',
-      expect.objectContaining({ method: 'PUT' }),
+      // Finishing a task is judged by the server against the code it has stored.
+      '/api/projects/project-1/lesson-progress/complete',
+      expect.objectContaining({ method: 'POST' }),
     ))
     expect(within(homeworkChip()).getByText('1/2')).toBeInTheDocument()
   })

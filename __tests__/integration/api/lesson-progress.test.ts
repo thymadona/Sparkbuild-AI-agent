@@ -10,8 +10,7 @@ import { GET, PUT } from '@/app/api/projects/[id]/lesson-progress/route'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { activityDays } from '@/lib/db/schema'
-import { todayISO } from '@/lib/xp'
-import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
+import { makeProject, makeUser, resetDb, setLessonProgress } from '@/__tests__/helpers/db'
 
 // Real rows in a real database rather than a mocked PostgREST chain. The
 // ownership rule this route enforces is a `where` predicate now, so a mock
@@ -64,9 +63,8 @@ describe('lesson progress API', () => {
   it('loads progress only after confirming the project belongs to the student', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
+    await setLessonProgress(project.id, ['identity'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
-
-    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
 
     const res = await GET(new Request('http://localhost'), props(project.id))
     expect(res.status).toBe(200)
@@ -82,26 +80,35 @@ describe('lesson progress API', () => {
     expect(res.status).toBe(400)
   })
 
-  it('stores unique valid task IDs for the owner', async () => {
+  // This route may only clear or shrink progress. Finishing a task means
+  // proving it is finished, which only the complete/ sibling can judge — if a
+  // plain PUT could still add an id, that verification would be decorative.
+  it('refuses to add a task, however valid the id', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const res = await PUT(request({ completedTaskIds: ['identity', 'identity'] }), props(project.id))
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
+    const res = await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/complete endpoint/i)
+
+    const after = await GET(new Request('http://localhost'), props(project.id))
+    expect(await after.json()).toEqual({ completedTaskIds: [] })
   })
 
-  it('upserts rather than duplicating when progress is saved twice', async () => {
+  it('clears progress, and drops tasks without adding any', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
+    await setLessonProgress(project.id, ['identity', 'interests'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
 
-    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
-    const res = await PUT(request({ completedTaskIds: ['identity', 'interests'] }), props(project.id))
+    const shrunk = await PUT(request({ completedTaskIds: ['identity', 'identity'] }), props(project.id))
+    expect(shrunk.status).toBe(200)
+    expect(await shrunk.json()).toEqual({ completedTaskIds: ['identity'] })
 
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ completedTaskIds: ['identity', 'interests'] })
+    const reset = await PUT(request({ completedTaskIds: [] }), props(project.id))
+    expect(reset.status).toBe(200)
+    expect(await reset.json()).toEqual({ completedTaskIds: [] })
   })
 
   it('returns 404 rather than exposing another student’s project', async () => {
@@ -114,42 +121,30 @@ describe('lesson progress API', () => {
     expect(res.status).toBe(404)
   })
 
-  it('does not write another student’s progress', async () => {
+  it('does not clear another student’s progress', async () => {
     const owner = await makeUser()
     const intruder = await makeUser()
     const project = await makeProject(owner.id)
-
-    mockGetSessionUser.mockResolvedValue(owner)
-    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+    await setLessonProgress(project.id, ['identity'], new Date().toISOString())
 
     mockGetSessionUser.mockResolvedValue(intruder)
-    await PUT(request({ completedTaskIds: ['identity', 'interests'] }), props(project.id))
+    expect((await PUT(request({ completedTaskIds: [] }), props(project.id))).status).toBe(404)
 
     mockGetSessionUser.mockResolvedValue(owner)
     const res = await GET(new Request('http://localhost'), props(project.id))
     expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
   })
 
-  it('records a day of activity for the streak, once per day', async () => {
+  // The streak is credit for doing work. Clearing progress is not work, and
+  // this route can no longer do anything else, so it never records a day —
+  // finishing a task does, in the complete/ sibling.
+  it('never records a day of activity, even for the owner', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
+    await setLessonProgress(project.id, ['identity'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
 
-    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
-    await PUT(request({ completedTaskIds: ['identity', 'interests'] }), props(project.id))
-
-    const days = await db.select().from(activityDays).where(eq(activityDays.userId, owner.id))
-    expect(days).toHaveLength(1)
-    expect(days[0].day).toBe(todayISO())
-  })
-
-  it('does not record activity for a rejected save', async () => {
-    const owner = await makeUser()
-    const intruder = await makeUser()
-    const project = await makeProject(owner.id)
-    mockGetSessionUser.mockResolvedValue(intruder)
-
-    await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
-    expect(await db.select().from(activityDays)).toHaveLength(0)
+    await PUT(request({ completedTaskIds: [] }), props(project.id))
+    expect(await db.select().from(activityDays).where(eq(activityDays.userId, owner.id))).toHaveLength(0)
   })
 })

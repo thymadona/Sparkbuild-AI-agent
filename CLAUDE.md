@@ -188,21 +188,48 @@ The response carries `X-Effective-Mode` and `X-Open-Task` headers so the client 
 downgrade instead of looking broken. Only `POST /api/admin/settings` writes
 `user_build_mode`.
 
-**Lesson tasks are verified, not self-reported.** Each task carries `checks: TaskCheck[]`
-(`lib/task-checks.ts`), evaluated against the student's live file in the browser; `Mark done`
-stays disabled until they pass. Python lessons add two runtime kinds, `outputContains` and
-`callReturns`, which run the student's program in a Pyodide worker (`lib/python-checks.ts`,
-`public/py-worker.js`); `runTaskChecks` stays synchronous and takes their verdicts. Invariants:
+**Lesson tasks are verified, and the server has the last word.** Each task carries
+`checks: TaskCheck[]` (`lib/task-checks.ts`), evaluated against the student's live file in the
+browser to drive the UI. Recording a task as done goes through
+`POST /api/projects/[id]/lesson-progress/complete`, which re-runs the task's **static** checks
+(`lib/task-verify.ts`, jsdom for `textChanged`) against the code it has **stored** — never code
+from the request — and refuses with 409 plus the failing check's hint. Its `PUT` sibling may
+only ever *shrink* the set (that is how progress is reset); if it could still add an id the
+verification would be one request away from irrelevant. Python lessons add runtime kinds
+(`outputContains`, `worldContains`, `callReturns`) which run the student's program in a Pyodide
+worker (`lib/python-checks.ts`, `public/py-worker.js`); `runTaskChecks` stays synchronous and
+takes their verdicts. Node cannot run Python, so **runtime verdicts remain client-reported** and
+ride along in the request — `verifyTask` applies a reported verdict only to a runtime check, so
+a caller cannot use them to wave a static check through. Callers flush unsaved work
+(`beforeComplete`) before completing, since the server judges what it has stored. Invariants:
 HTML lessons — `__tests__/unit/lib/task-checks.test.ts` (no task passes on its starter; every
 `textChanged` check resolves to a real element). Python lessons —
 `__tests__/unit/lib/py-lessons.test.ts` runs real Pyodide: no task passes on the untouched
 starter, every task passes with the reference solution in `__tests__/fixtures/py/` (kept out of
 `public/` so students cannot fetch it). A new Python week needs its `wN.py` starter,
-`wN-bugzap.py`, and both solution fixtures. Verdicts are client-reported and advisory, the same
-trust level as progress.
+`wN-bugzap.py`, and both solution fixtures.
 Checks fail **open** whenever they cannot run (no DOM, bad regex) — a broken check must never
-dead-end a child. The escape hatch requires both 90s on task and a hint request.
-`LEGACY_LESSONS` has no checks and stays self-reported.
+dead-end a child. On the board, where nothing is clickable to move on, the escape hatch is 90s
+on the same task, after which the task header offers "I am stuck — show me"; optional
+(`choice`/`bonus`) tasks also carry "Skip this one", without which an unwanted bonus would wall
+off the homework behind it. `LEGACY_LESSONS` has no checks and stays self-reported — and a task
+with no checks is never auto-completed.
+
+**The board is one page per task.** `/board/[id]` (Python course, v3) has no task list and no
+`Mark done`: page `t_<taskId>` *is* task `<taskId>` (`lib/board/tasks.ts`), its header shows the
+task and a live checklist of what is still missing, and a task completes itself once its checks
+pass — settle 800ms (`hooks/useAutoComplete.ts`), confetti, then the next task's page opens with
+the code carried forward. The client owns those pages, so `board_new_page` is withheld from the
+tutor in a lesson (`toolsFor`). A task's code is `pageCode(board, taskPageId(task))`, **not**
+`boardCode`: boardCode spans the whole board and would hand an open task the code of a later
+page the moment one appeared. A code node may name a `file` (bugzap.py); absent, it is the entry
+file. `Navigator`/`ActiveTaskPanel` still serve the editor (HTML v2, legacy, `/explore`).
+
+**The board tutor is gated by the same checks the student is.** `app/api/projects/[id]/turn`
+reads `lesson_progress`, resolves the open task with `pendingCoreTask()` and appends
+`buildTaskNudge(task, tier, results)` — the same guard `/api/generate` uses. Without it the model
+narrates the lesson on vibes: it congratulates a student whose checks have not passed and
+announces the next task while their board correctly refuses to move on.
 
 **Student-facing lesson copy has a word budget.** `__tests__/unit/lib/lesson-copy.test.ts` caps
 chips at 5 words, goals at 8, check labels at 6, hints at 10, bans vocabulary above roughly a
@@ -426,7 +453,9 @@ when available, and include screenshots for visible UI changes.
 | Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schema.ts`              |
 | Lesson catalog + versioning                  | `lib/lessons.ts`, `lib/py-lessons.ts`               |
 | XP / levels / badges / streak                | `lib/xp.ts`, `lib/player-stats.ts`                  |
-| Task verification                            | `lib/task-checks.ts`                                |
+| Task verification (client UI)                | `lib/task-checks.ts`                                |
+| Task verification (server, authoritative)    | `lib/task-verify.ts`, `.../lesson-progress/complete` |
+| Board task pages / auto-advance              | `lib/board/tasks.ts`, `hooks/useAutoComplete.ts`    |
 | Rate limiting (Redis + Lua)                  | `lib/ratelimit.ts`                                  |
 | Read caching (Redis)                         | `lib/cache.ts`, `lib/redis.ts`                      |
 | Schema of record                             | `drizzle/` (authored via `lib/db/schema.ts`)         |

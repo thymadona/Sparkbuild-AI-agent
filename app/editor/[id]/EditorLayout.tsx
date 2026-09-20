@@ -287,12 +287,19 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
 
   // Drives Navigator, which renders both the task list and (once core tasks
   // are done) the folded-in homework section from this one shared state.
+  // Verdicts are derived from the active task, so they only exist after this
+  // hook runs; markDone reads them through the ref when it posts.
+  const runtimeRef = useRef<ReturnType<typeof useRuntimeChecks>>(null)
   const progress = useLessonProgress({
     lesson,
     projectId: project.id,
     code: files[entryFile] ?? '',
     initialCompletedTaskIds,
     initialSubmissionStatus: project.submission_status,
+    runtime: () => runtimeRef.current,
+    // The server checks the code it has stored, so a debounced save still in
+    // flight would fail the task the student has genuinely finished.
+    beforeComplete: flushSave,
     onHighlight: (lines) => {
       setHighlightLines(lines)
       setHighlightNonce((n) => n + 1)
@@ -309,6 +316,7 @@ export default function EditorLayout({ project, initialMessages, lesson, initial
     },
   })
   const runtimeChecks = useRuntimeChecks(progress.activeTask, files, entryFile)
+  runtimeRef.current = runtimeChecks
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()

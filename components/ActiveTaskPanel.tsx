@@ -1,11 +1,11 @@
 'use client'
 
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext } from 'react'
 import type { LessonTask } from '@/lib/lessons'
-import { allChecksPassed, runTaskChecks } from '@/lib/task-checks'
 import { SCALE } from '@/lib/lesson-ui'
 import { taskXp } from '@/lib/xp'
 import { RuntimeChecksContext } from '@/hooks/useRuntimeChecks'
+import { useTaskChecks } from '@/hooks/useTaskChecks'
 
 interface ActiveTaskPanelProps {
   task: LessonTask
@@ -23,21 +23,8 @@ interface ActiveTaskPanelProps {
  * student can only ever be actively working one task at a time.
  */
 export default function ActiveTaskPanel({ task, code, isSaving, saveError, onMarkDone, onShowMe }: ActiveTaskPanelProps) {
-  // Checks need a DOM, so they cannot run during server rendering. Evaluating
-  // them only after mount keeps the server and first client render identical —
-  // otherwise the fail-open path reports every check as passed on the server and
-  // React throws a hydration mismatch.
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
-
-  const runtime = useContext(RuntimeChecksContext)
-  const runtimeVerdicts = runtime?.taskId === task.id ? runtime.verdicts : undefined
-
+  const { evaluated: checksEvaluated, satisfied: checksSatisfied } = useTaskChecks(task, code, useContext(RuntimeChecksContext))
   const hasChecks = (task.checks?.length ?? 0) > 0
-  const checkResults = useMemo(() => (mounted ? runTaskChecks(task.checks, code, runtimeVerdicts) : []), [mounted, task.checks, code, runtimeVerdicts])
-  const checksEvaluated = hasChecks && checkResults.length > 0
-  const checksSatisfied = !hasChecks || (checksEvaluated && allChecksPassed(checkResults))
 
   return (
     <div className="shrink-0 border-t-2 border-surface-600 p-3">

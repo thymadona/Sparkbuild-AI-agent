@@ -26,6 +26,9 @@ export const BoardNode = z.discriminatedUnion('type', [
     ...base,
     type: z.literal('code'),
     language: Lang,
+    // The project file this node edits. Absent means the lesson's entry file
+    // (main.py), which is every node except a multi-file task like bugzap.
+    file: z.string().max(64).optional(),
     source: z.string().max(4000),
     editable: z.boolean(),
     highlightLines: z.array(z.number().int().positive()).default([]),

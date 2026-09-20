@@ -8,6 +8,10 @@ import { cn } from '@/lib/utils'
 import Mascot, { type MascotState } from './Mascot'
 import { NodeView, type CodeActions } from './Nodes'
 
+// How a page reads in the rail. A lesson board has one page per task, so the
+// rail is the progress bar: what is finished, what is open, what is still shut.
+export type PageStatus = 'done' | 'current' | 'locked' | 'open'
+
 interface Props {
   board: BoardState
   captions: string[]
@@ -18,10 +22,17 @@ interface Props {
   onReplay?: () => void // demo only
   onSend?: (text: string) => void // live only
   busy?: boolean
-  side?: ReactNode
+  // Rendered above the page's nodes: on a lesson board, the task this page is
+  // for and what is still missing from it.
+  header?: (pageId: string) => ReactNode
+  footer?: (pageId: string) => ReactNode
+  statusOf?: (pageId: string) => PageStatus
+  // Which page the student is actually looking at. On a lesson board that is
+  // the task they are working on, so the owner needs to know.
+  onViewPage?: (pageId: string) => void
 }
 
-export default function BoardView({ board, captions, live, mascot, mood, code, onReplay, onSend, busy, side }: Props) {
+export default function BoardView({ board, captions, live, mascot, mood, code, onReplay, onSend, busy, header, footer, statusOf, onViewPage }: Props) {
   const [minimized, setMinimized] = useState(false)
   const [showEarlier, setShowEarlier] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
@@ -41,6 +52,9 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
   // Follow the tutor to a new page unless the student picked one.
   const page = board.pages.find((p) => p.id === picked) ?? board.pages.find((p) => p.id === board.activePageId)
   useEffect(() => { setPicked(null) }, [board.activePageId])
+
+  const pageId = page?.id
+  useEffect(() => { if (pageId) onViewPage?.(pageId) }, [pageId, onViewPage])
 
   const nodeCount = page?.nodeIds.length ?? 0
   useEffect(() => {
@@ -67,28 +81,53 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          {board.pages.map((p, i) => (
-            <button
-              key={p.id}
-              onClick={() => setPicked(p.id)}
-              aria-current={p.id === page?.id ? 'page' : undefined}
-              aria-label={`Page ${i + 1}: ${p.title}`}
-              className={cn('min-h-11 rounded-xl text-lg font-bold', p.id === page?.id ? 'bg-[#2b2118] text-[#faf6ee]' : 'border-2 border-[#2b2118] hover:bg-[#e4d3b3]')}
-            >
-              {i + 1}
-            </button>
-          ))}
+          {board.pages.map((p, i) => {
+            const status = statusOf?.(p.id) ?? 'open'
+            const locked = status === 'locked'
+            const here = p.id === page?.id
+            return (
+              <button
+                key={p.id}
+                onClick={() => !locked && setPicked(p.id)}
+                disabled={locked}
+                aria-current={here ? 'page' : undefined}
+                aria-label={`${locked ? 'Locked. ' : status === 'done' ? 'Done. ' : ''}Page ${i + 1}: ${p.title}`}
+                title={p.title}
+                className={cn(
+                  'grid min-h-11 place-items-center rounded-xl text-lg font-bold',
+                  here
+                    ? 'bg-[#2b2118] text-[#faf6ee]'
+                    : locked
+                      ? 'cursor-not-allowed border-2 border-[#d6c7a8] text-[#a89878]'
+                      : status === 'done'
+                        ? 'border-2 border-teal-600 bg-teal-50 text-teal-700 hover:bg-teal-100'
+                        : 'border-2 border-[#2b2118] hover:bg-[#e4d3b3]',
+                )}
+              >
+                {locked ? (
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+                    <rect x="4" y="10" width="16" height="10" rx="2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 018 0v3" />
+                  </svg>
+                ) : status === 'done' && !here ? '✓' : i + 1}
+              </button>
+            )
+          })}
         </nav>
 
         <main className="relative flex-1 min-w-0 rounded-3xl bg-[#fffdf8] shadow-md">
           <div ref={paperRef} onScroll={onScroll} className="h-full overflow-y-auto px-6 md:px-12 py-8 pb-56">
-            <div className="mx-auto max-w-2xl space-y-5">
+            <div className="mx-auto max-w-2xl">
+              {page && header?.(page.id)}
+              <div className="space-y-5">
               {page?.nodeIds.map((id) => (
                 <div key={id} id={`node-${id}`} className={cn('board-rise rounded-xl', board.focusId === id && 'board-pulse')}>
                   <NodeView node={board.nodes[id]} code={code} sourceOf={(n) => { const c = board.nodes[n]; return c?.type === 'code' ? c.source : '' }} />
                 </div>
               ))}
               {!page && <p className="text-[#7a6a52]">Spark is getting the board ready…</p>}
+              </div>
+              {page && footer?.(page.id)}
             </div>
           </div>
 
@@ -132,7 +171,6 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
             </form>
           </div>
         </main>
-        {side}
       </div>
       <span className="sr-only" role="status">{live}</span>
     </div>

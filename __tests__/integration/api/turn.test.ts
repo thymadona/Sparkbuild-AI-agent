@@ -15,7 +15,9 @@ import { eq } from 'drizzle-orm'
 import { POST } from '@/app/api/projects/[id]/turn/route'
 import { db } from '@/lib/db/client'
 import { messages, projects } from '@/lib/db/schema'
-import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
+import { makeProject, makeUser, resetDb, setLessonProgress } from '@/__tests__/helpers/db'
+import { LESSONS } from '@/lib/lessons'
+import { taskPageId } from '@/lib/board/tasks'
 
 const modelSays = (text: string, calls: [string, object][] = []) =>
   mockCreate.mockResolvedValueOnce({
@@ -111,5 +113,74 @@ describe('POST /api/projects/[id]/turn', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {})
     const events = await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
     expect(events.at(-1)).toMatchObject({ type: 'error' })
+  })
+
+  // The reported bug: the tutor congratulated a student and announced the next
+  // task while their board correctly refused to move on, because this route
+  // never told the model which task was open or whether its checks passed.
+  describe('the lesson guard', () => {
+    const lesson = LESSONS[0] // Week #1 — Wake the Robot
+    const nameTag = lesson.tasks.find((t) => t.id === 'name-tag')!
+    const firstWords = lesson.tasks.find((t) => t.id === 'first-words')!
+
+    // A board holding one task page whose code node has `source`.
+    const boardWith = (source: string) => ({
+      pages: [{ id: taskPageId(nameTag), title: nameTag.chip, nodeIds: ['c1'] }],
+      activePageId: taskPageId(nameTag),
+      focusId: null,
+      nodes: { c1: { id: 'c1', parentId: null, createdBy: 'student', type: 'code', language: 'python', source, editable: true, highlightLines: [] } },
+    })
+
+    const systemPrompt = () => mockCreate.mock.calls[0][0].messages[0].content as string
+
+    const ask = async (source: string) => {
+      const user = await makeUser()
+      mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
+      const project = await makeProject(user.id, { lessonId: lesson.id, lessonVersion: 3, files: { 'main.py': source }, board: boardWith(source) })
+      await setLessonProgress(project.id, [firstWords.id], new Date().toISOString())
+      modelSays('ok')
+      await drain(await post(project.id, { type: 'student_message', text: 'is it done?' }))
+      return systemPrompt()
+    }
+
+    it('tells the tutor which requirement the student has not met yet', async () => {
+      // Exactly the reported code: the variable is there, the f-string is not.
+      const prompt = await ask('name = "Moral"\nprint(name)')
+
+      expect(prompt).toContain('"Save your name"')
+      expect(prompt).toContain('You made a name variable: DONE')
+      expect(prompt).toContain('You greet with an f-string: NOT DONE YET')
+      expect(prompt).toContain('Do not say the whole task is done')
+    })
+
+    it('marks a requirement DONE once the student actually meets it', async () => {
+      const prompt = await ask('name = "Moral"\nprint(f"Hi {name}")')
+      expect(prompt).toContain('You greet with an f-string: DONE')
+    })
+
+    it('names the open task and marks the finished one done', async () => {
+      const prompt = await ask('name = "Moral"\nprint(name)')
+      expect(prompt).toContain(`[done] ${firstWords.chip}`)
+      expect(prompt).toContain(`[OPEN] ${nameTag.chip}`)
+      expect(prompt).toContain('never announce or start the next task')
+    })
+
+    it('withholds board_new_page in a lesson, since pages belong to tasks', async () => {
+      await ask('name = "Moral"')
+      const tools = mockCreate.mock.calls[0][0].tools as { function: { name: string } }[]
+      expect(tools.map((t) => t.function.name)).not.toContain('board_new_page')
+    })
+
+    it('leaves a free-form board its own pages and no nudge', async () => {
+      const user = await makeUser()
+      mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: '' })
+      const project = await makeProject(user.id, { lessonId: null, lessonVersion: null })
+      modelSays('ok')
+      await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
+
+      const tools = mockCreate.mock.calls[0][0].tools as { function: { name: string } }[]
+      expect(tools.map((t) => t.function.name)).toContain('board_new_page')
+      expect(systemPrompt()).not.toContain('NOT DONE YET')
+    })
   })
 })
