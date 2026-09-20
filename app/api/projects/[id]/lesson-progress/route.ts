@@ -6,7 +6,6 @@ import { isUuid } from '@/lib/db/uuid'
 import { getLessonForProject } from '@/lib/lessons'
 import { invalidate } from '@/lib/cache'
 import { getSessionUser } from '@/lib/auth/session'
-import { recordActivity } from '@/lib/player-stats'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -72,6 +71,29 @@ export async function PUT(req: Request, props: Props) {
     return NextResponse.json({ error: 'completedTaskIds contains an invalid task' }, { status: 400 })
   }
 
+  // This route may only ever shrink the set — it is how progress is reset.
+  // Marking a task done means proving it is done, which is the complete/
+  // sibling's job: it re-runs the task's checks against the stored code.
+  // Without this, that verification would be one PUT away from irrelevant.
+  let current: string[]
+  try {
+    const [row] = await db
+      .select({ completed_task_ids: lessonProgress.completedTaskIds })
+      .from(lessonProgress)
+      .where(eq(lessonProgress.projectId, params.id))
+      .limit(1)
+
+    current = row?.completed_task_ids ?? []
+  } catch (err) {
+    console.error('lesson-progress PUT read failed:', err)
+    return NextResponse.json({ error: 'Failed to save progress' }, { status: 500 })
+  }
+  const already = new Set(current)
+  const added = uniqueTaskIds.filter((id) => !already.has(id))
+  if (added.length) {
+    return NextResponse.json({ error: 'Use the complete endpoint to finish a task' }, { status: 409 })
+  }
+
   let saved: string[]
   try {
     // The upsert target has to be named explicitly here; PostgREST inferred it
@@ -96,8 +118,8 @@ export async function PUT(req: Request, props: Props) {
   }
 
   await invalidate(`lesson-progress:${params.id}`)
-  // Saving progress counts as a day of work for the streak. Never worth failing the save.
-  await recordActivity(user.id).catch((err) => console.error('recordActivity failed:', err))
-
+  // No streak credit here: this route can only clear progress now, and giving
+  // a student a day of work for resetting would be wrong. Finishing a task
+  // records the day, in the complete/ sibling.
   return NextResponse.json({ completedTaskIds: saved })
 }

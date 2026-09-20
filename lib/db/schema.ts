@@ -324,12 +324,6 @@ export const studentProfiles = pgTable(
   (t) => [index('student_profiles_is_active_idx').on(t.isActive)]
 )
 
-export const userBuildMode = pgTable('user_build_mode', {
-  userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  enabled: boolean('enabled').default(false).notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-})
-
 export const appSettings = pgTable('app_settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { fetchLessonFiles } from '@/lib/lesson-files'
-import { CURRENT_LESSON_VERSION, type Lesson } from '@/lib/lessons'
+import type { Lesson } from '@/lib/lessons'
 
 interface Props {
   lesson: Lesson
@@ -16,29 +16,28 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
 
   async function startLesson() {
     if (existingProjectId) {
-      router.push(`/editor/${existingProjectId}`)
+      router.push(`/board/${existingProjectId}`)
       return
     }
 
     setLoading(true)
     try {
-      const { templateHtml, extraFiles } = await fetchLessonFiles(lesson)
+      const { starter, extraFiles } = await fetchLessonFiles(lesson)
 
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: lesson.title,
-          templateHtml,
+          starter,
           extraFiles,
           lessonId: lesson.id,
-          lessonVersion: CURRENT_LESSON_VERSION,
         }),
       })
 
       if (!res.ok) throw new Error('Failed to create project')
       const project = await res.json()
-      router.push(`/editor/${project.id}`)
+      router.push(`/board/${project.id}`)
     } catch {
       setLoading(false)
     }

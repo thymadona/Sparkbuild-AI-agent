@@ -3,11 +3,10 @@
  *
  * These limits exist because many students are reading English as a second
  * language. Copy that drifts past these limits turns a lesson gate into a
- * reading test. The HTML course (v2) was written for 8–13; the Python course
- * (v3) is pitched at 10–16, so it keeps the same per-string caps but may use
- * the Python words it teaches (variable) and gets a per-lesson total budget.
+ * reading test. The course is pitched at 10–16: short per-string caps, the
+ * Python words it teaches (variable) allowed, and a per-lesson total budget.
  */
-import { HTML_LESSONS, type Lesson } from '@/lib/lessons'
+import type { Lesson } from '@/lib/lessons'
 import { PY_LESSONS } from '@/lib/py-lessons'
 
 const MAX_WORDS = { chip: 5, success: 8, label: 6, hint: 10, brief: 8 }
@@ -51,11 +50,11 @@ const entriesFor = (lessons: Lesson[]): Entry[] => lessons.flatMap((lesson) => [
   ]),
 ])
 
-describe.each([
-  ['HTML course', HTML_LESSONS, [] as string[], 1400],
+describe('Python course reading level', () => {
+  const lessons = PY_LESSONS
+  const allowed = TAUGHT_IN_PYTHON
   // Two weeks measure ~250 words each; leave room for the 12-week track.
-  ['Python course', PY_LESSONS, TAUGHT_IN_PYTHON, 300 * PY_LESSONS.length],
-] as const)('%s reading level', (_name, lessons, allowed, budget) => {
+  const budget = 300 * PY_LESSONS.length
   const entries = entriesFor([...lessons])
 
   it('has text to check', () => {
@@ -81,8 +80,6 @@ describe.each([
 
   it('keeps the total reading load down', () => {
     const total = entries.reduce((sum, entry) => sum + words(entry.text), 0)
-    // HTML: was 1,835 words for 6 lessons before the copy pass; 886 after it,
-    // and ~1,240 once each week gained homework. Keep new content inside a budget.
     expect(total).toBeLessThan(budget)
   })
 })

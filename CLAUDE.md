@@ -5,13 +5,14 @@ repository.
 
 ## What This Project Is
 
-Student Code Builder: an AI-assisted coding platform for students aged 10–16. Students work
-through a 12-week Python course (current catalog, version 3): weeks 1–6 teach fundamentals with
-the LLM as a tutor, weeks 7–12 are projects where the student directs it. The LLM either tutors
-(ask mode) or generates complete files (build mode). Python runs in the browser (Pyodide);
-the older HTML/CSS/JS course (version 2) stays readable and renders in a sandboxed iframe. Teachers and
-admins run classes, review homework, and manage invoices/receipts (delivered over Telegram)
-through a back office.
+Student Code Builder: an AI-assisted Python platform for students aged 10–16. Students work
+through a 12-week Python course (the only catalog, version 3): weeks 1–6 teach fundamentals with
+the LLM as a tutor, weeks 7–12 are projects where the student directs it. Every project is a
+lesson project and opens on the tutor board (`/board/[id]`), where the LLM talks in short
+captions and draws on a shared board with tools; Python runs in the browser (Pyodide). Teachers
+and admins run classes, review homework, and manage invoices/receipts (delivered over Telegram)
+through a back office. The original HTML/CSS/JS course, its srcdoc preview editor, free-form
+projects and the public gallery were removed in September 2026 — do not reintroduce them.
 
 ## Commands
 
@@ -48,10 +49,12 @@ independently. Fixtures (`makeUser`, `grantRole`, `makeClass`, `addClassMember`)
 
 Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
 
-1. **Editor** (`app/editor/[id]/`, `components/Editor.tsx`) — student prompts hit
-   `POST /api/generate`, which streams from DeepSeek via the `openai` SDK pointed at DeepSeek's
-   `baseURL` (`lib/gemini.ts` — despite the filename, no Gemini code) and renders into a
-   sandboxed `srcdoc` iframe (`components/Preview.tsx`).
+1. **Board** (`app/board/`, `lib/board/`, `lib/tutor/`) — the student's workspace. Each
+   student event hits `POST /api/projects/[id]/turn`, which runs one tutor turn (`lib/tutor/turn.ts`)
+   against DeepSeek via the `openai` SDK pointed at DeepSeek's `baseURL` (`lib/deepseek.ts`)
+   with tool calls that edit the board (`lib/board/tools.ts`, reduced by `lib/board/reducer.ts`).
+   Code nodes are Python only and run in a Pyodide worker (`hooks/usePythonRunner.ts`,
+   `public/py-worker.js`).
 2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/task-checks.ts`,
    `public/templates/`) — weekly lessons backed by starter files with in-file task anchors,
    code-aware task verification, gated homework, and a game layer (`lib/xp.ts`: XP, levels,
@@ -61,7 +64,7 @@ Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
    parents over Telegram.
 
 **Colocation rule:** route-specific client components live beside their route
-(`app/editor/[id]/EditorLayout.tsx`, `app/admin/classes/ClassesClient.tsx`). Only genuinely
+(`app/board/LiveBoard.tsx`, `app/admin/classes/ClassesClient.tsx`). Only genuinely
 reusable UI goes in `components/`. A `page.tsx` next to a `*Client.tsx` is always a
 server-fetch / client-interact pair.
 
@@ -127,23 +130,18 @@ why (an upstream drizzle-kit bug makes them hang or crash; `lib/db/schema.ts`'s 
 database is hosted on Supabase, that project's own migration dashboard/`db reset`/MCP branching
 tools no longer reflect schema state).
 
-**The LLM contract is delimiter-based and full-file.** Build responses must be
-`--- FILE: <name> ---` … `--- DONE ---` blocks followed by a summary sentence, parsed by
-`lib/parse-multi-file.ts`; `/api/generate` classifies a response as code with
-`trimStart().startsWith('--- FILE:')`. Files are replaced wholesale — no diff or patch format.
-Changing the delimiters means changing the prompt, the parser, and the classification check
-together. Model is pinned to `deepseek-v4-flash` via the native DeepSeek API for cost control —
-**do not change providers or models without approval**. (`/api/generate` also logs stream
-failures as `'OpenRouter stream error:'` — a stale provider name in the log line, not a real
-dependency.)
+**The LLM contract is tool calls on a board, not generated files.** The tutor never returns a
+file; it speaks in captions and calls board tools (`board_add`, `board_edit`, `request_trace`
+…) that `lib/board/reducer.ts` applies to a zod-validated `BoardState` (`lib/board/schema.ts`,
+where `Lang` is `python` only). A student's code lives in an editable code node per task page;
+`lib/board/code.ts` projects the board back into `projects.files` so homework review and the
+server-side checks read plain files. Model is pinned to `deepseek-v4-flash` via the native
+DeepSeek API for cost control — **do not change providers or models without approval**.
 
-**Preview is `srcdoc`-only, deliberately** — no WebContainer, Sandpack, or CodeSandbox SDK. The
-iframe is sandboxed with `sandbox="allow-scripts allow-forms"` (no `allow-same-origin`, so the
-frame stays an opaque origin). A console-interceptor script is injected after `<head>` and
-forwards `console.*`/errors to the
-parent via `postMessage({ type: '__console__' })`; it also shims `localStorage`/`sessionStorage`
-(unavailable in the opaque-origin frame). `lib/combine.ts` inlines `style.css` and `script.js`
-by exact filename and strips external `<link>`/`<script src>` tags before rendering.
+**Python runs in the browser, never on the server.** `public/py-worker.js` loads Pyodide in a
+Web Worker with `public/py-runtime.py` (the `sparky` module: colors, the vault door, the alarm —
+events collected by `lib/sparky-events.ts`). Node cannot run Python, which is why runtime task
+checks are client-reported (below).
 
 **Path alias**: `@/` maps to the repo root — kept in sync between `tsconfig.json` (`paths`) and
 `jest.config.ts` (`moduleNameMapper`).
@@ -170,9 +168,8 @@ test against the production database (`DATABASE_URL="<prod url>" bun run dev`) b
 a page that issues several queries.
 
 **Homework is verified, gated, and reviewed.** Each lesson carries 2–3 `type: 'homework'` tasks
-plus a `homeworkBrief`. They're hidden in the task panel until every core task is done, live in
-their own section, and hold back build mode exactly like core tasks —
-`pendingCoreTask()` gates on `['core', 'homework']`. `POST /api/projects/[id]/submit` sets
+plus a `homeworkBrief`. Their board pages stay locked until every core task is done, and they
+gate the tutor exactly like core tasks — `pendingCoreTask()` gates on `['core', 'homework']`. `POST /api/projects/[id]/submit` sets
 `submission_status` to `'submitted'` and refuses with 409 unless `homeworkComplete()` agrees.
 Teachers review at `/admin/homework` via `POST /api/admin/homework/[id]/review`, writing
 `approved` or `needs_work` and inserting feedback as a `messages` row with `role: 'teacher'`
@@ -180,44 +177,66 @@ Teachers review at `/admin/homework` via `POST /api/admin/homework/[id]/review`,
 render as their own bubble and relay to the LLM as `My teacher said: …`, since the model API
 rejects a `teacher` role directly.
 
-**Build mode is server-authoritative, and lessons withhold it.** The client may send
-`mode: 'build'`, but `/api/generate` grants it only if `user_build_mode.enabled` is true for
-that user **and** `pendingCoreTask()` returns null. While a task is open, the request is
-downgraded to ask mode and `buildTaskNudge()` is appended to the system prompt forbidding code.
-The response carries `X-Effective-Mode` and `X-Open-Task` headers so the client can explain the
-downgrade instead of looking broken. Only `POST /api/admin/settings` writes
-`user_build_mode`.
+**Build mode does not exist yet.** `Lesson.aiPolicy` (`'tutor'` | `'director'`) is declared for
+weeks 7–12, where the student is meant to direct the AI, but only `'tutor'` weeks exist and the
+turn route does not read the field. The old per-user `user_build_mode` switch was dropped with
+the web course (migration `0009`); a future director mode belongs in the turn route and the
+tutor's tool set, not in a per-user admin toggle.
 
-**Lesson tasks are verified, not self-reported.** Each task carries `checks: TaskCheck[]`
-(`lib/task-checks.ts`), evaluated against the student's live file in the browser; `Mark done`
-stays disabled until they pass. Python lessons add two runtime kinds, `outputContains` and
-`callReturns`, which run the student's program in a Pyodide worker (`lib/python-checks.ts`,
-`public/py-worker.js`); `runTaskChecks` stays synchronous and takes their verdicts. Invariants:
-HTML lessons — `__tests__/unit/lib/task-checks.test.ts` (no task passes on its starter; every
-`textChanged` check resolves to a real element). Python lessons —
+**Lesson tasks are verified, and the server has the last word.** Each task carries
+`checks: TaskCheck[]` (`lib/task-checks.ts`), evaluated against the student's live file in the
+browser to drive the UI. Recording a task as done goes through
+`POST /api/projects/[id]/lesson-progress/complete`, which re-runs the task's **static** checks
+(`lib/task-verify.ts`) against the code it has **stored** — never code from the request — and
+refuses with 409 plus the failing check's hint. Its `PUT` sibling may
+only ever *shrink* the set (that is how progress is reset); if it could still add an id the
+verification would be one request away from irrelevant. Python lessons add runtime kinds
+(`outputContains`, `worldContains`, `callReturns`) which run the student's program in a Pyodide
+worker (`lib/python-checks.ts`, `public/py-worker.js`); `runTaskChecks` stays synchronous and
+takes their verdicts. Node cannot run Python, so **runtime verdicts remain client-reported** and
+ride along in the request — `verifyTask` applies a reported verdict only to a runtime check, so
+a caller cannot use them to wave a static check through. Callers flush unsaved work
+(`beforeComplete`) before completing, since the server judges what it has stored. The only
+static kind is `sourceMatches` (regex + `min` + a documented `example`). Invariant:
 `__tests__/unit/lib/py-lessons.test.ts` runs real Pyodide: no task passes on the untouched
 starter, every task passes with the reference solution in `__tests__/fixtures/py/` (kept out of
-`public/` so students cannot fetch it). A new Python week needs its `wN.py` starter,
-`wN-bugzap.py`, and both solution fixtures. Verdicts are client-reported and advisory, the same
-trust level as progress.
-Checks fail **open** whenever they cannot run (no DOM, bad regex) — a broken check must never
-dead-end a child. The escape hatch requires both 90s on task and a hint request.
-`LEGACY_LESSONS` has no checks and stays self-reported.
+`public/` so students cannot fetch it). A new week needs its `wN.py` starter, `wN-bugzap.py`,
+and both solution fixtures.
+Checks fail **open** whenever they cannot run (bad regex) — a broken check must never dead-end
+a child. On the board, where nothing is clickable to move on, the escape hatch is 90s
+on the same task, after which the task header offers "I am stuck — show me"; optional
+(`choice`/`bonus`) tasks also carry "Skip this one", without which an unwanted bonus would wall
+off the homework behind it. A task with no checks is never auto-completed.
+
+**The board is one page per task.** `/board/[id]` (Python course, v3) has no task list and no
+`Mark done`: page `t_<taskId>` *is* task `<taskId>` (`lib/board/tasks.ts`), its header shows the
+task and a live checklist of what is still missing, and a task completes itself once its checks
+pass — settle 800ms (`hooks/useAutoComplete.ts`), confetti, then the next task's page opens with
+the code carried forward. The client owns those pages, so `board_new_page` is withheld from the
+tutor in a lesson (`toolsFor`). A task's code is `pageCode(board, taskPageId(task))`, **not**
+`boardCode`: boardCode spans the whole board and would hand an open task the code of a later
+page the moment one appeared. A code node may name a `file` (bugzap.py); absent, it is the entry
+file. There is no other student workspace: `/board/[id]` is where every project opens.
+
+**The board tutor is gated by the same checks the student is.** `app/api/projects/[id]/turn`
+reads `lesson_progress`, resolves the open task with `pendingCoreTask()` and appends
+`buildTaskNudge(task, tier, results)`. Without it the model
+narrates the lesson on vibes: it congratulates a student whose checks have not passed and
+announces the next task while their board correctly refuses to move on.
 
 **Student-facing lesson copy has a word budget.** `__tests__/unit/lib/lesson-copy.test.ts` caps
 chips at 5 words, goals at 8, check labels at 6, hints at 10, bans vocabulary above roughly a
-9-year-old ESL reading level, and caps total reading load. The HTML course (v2) was written for
-8–13; the Python course (v3) is pitched at 10–16, so it keeps the per-string caps, may use the
-Python words it teaches (`variable`), and gets a per-lesson total (`300 × lessons`). Many
+9-year-old ESL reading level, and caps total reading load. The course is pitched at 10–16, so
+it keeps tight per-string caps, may use the Python words it teaches (`variable`), and gets a
+per-lesson total (`300 × lessons`). Many
 students still read English as a second language; long or advanced copy turns a lesson gate
 into a reading test.
 
-**The editor autosaves; there is no Save button in lesson projects.** `CodeEditor` reports
-typing upward after 300ms (driving preview and checks); `EditorLayout` writes to
-`/api/projects` after 1200ms idle, coalesced through `pendingFilesRef` with an in-flight guard.
-`CodeEditor` must keep adopting external `code` changes while ignoring the echo of its own
-emissions (`lastEmitted`), or a generation arriving while mounted in split view gets
-overwritten. One step of undo is kept in `undoFiles`, discarded as soon as the student types.
+**The board autosaves; there is no Save button.** `CodeEditor` (CodeMirror, Python only) reports
+typing upward after 300ms (driving checks); `LiveBoard` persists the board through
+`PATCH /api/projects` (`board` is validated with `SavedBoard.safeParse` server-side). `CodeEditor`
+must keep adopting external `code` changes while ignoring the echo of its own emissions
+(`lastEmitted`), or a tutor edit arriving mid-keystroke gets overwritten.
 
 **Admin API routes re-verify authorization themselves.** The route guard (`proxy.ts`) only
 guards page navigation under `/admin`/`/teacher`/`/staff`. Every admin route file calls
@@ -262,7 +281,7 @@ makes the *first* command of every connection fail. Under `NODE_ENV=test` the UR
 sorted-set sliding window in a Lua script — one `EVALSHA` round-trip, atomic because a
 `ZCARD`-then-`ZADD` pair would admit every request in a concurrent burst. A failed Redis call, or
 no Redis at all, allows the request. Admins and teachers bypass it entirely
-(`app/api/generate/route.ts`). `prompts` remains the permanent log of every prompt (used by
+(`app/api/projects/[id]/turn/route.ts`). `prompts` remains the permanent log of every prompt (used by
 homework review and admin views) but is no longer read to compute the limit.
 
 **Read caching is a thin Redis wrapper, not a framework feature.** `lib/cache.ts`'s `cached()`
@@ -270,43 +289,38 @@ helper (get-or-set against Redis via `lib/redis.ts`, JSON-encoded since ioredis 
 wraps a handful of
 high-traffic, low-volatility reads: role/permission checks (`lib/auth/permissions.ts` —
 `hasPermission`, `isAdmin`, `isTeacher`, `getStaffContext`, 30s TTL), a project's
-`lesson_id`/`lesson_version`
-(`app/api/generate/route.ts`, 1h TTL — these never change post-creation), a project's
-`lesson_progress` (15s TTL plus explicit invalidation from the lesson-progress PUT route, since
-it directly feeds build-mode task gating), a user's `user_build_mode.enabled` (30s TTL plus
-explicit invalidation from `POST /api/admin/settings`), and a student's enabled-lesson ids
+`lesson_progress` (15s TTL plus explicit invalidation from both lesson-progress routes, since
+it directly feeds the tutor's task gating), and a student's enabled-lesson ids
 (`lib/lesson-availability.ts`, 60s TTL, no invalidation). A cache read/write failure never
 changes the answer — it just falls through to the original fail-open or fail-closed DB call.
 
-**Lesson versioning uses parallel catalogs, not migrations.** `LESSON_CATALOGS` maps a version
-to its catalog (2 = `HTML_LESSONS`, 3 = `LESSONS`, the Python course); `getLessonForProject`
-falls back to `LEGACY_LESSONS` for `null` or unknown versions. Old projects keep their original
-task ids since `lesson_progress.completed_task_ids` stores those ids as plain strings. Bump the
-version by adding a catalog — never edit the old one in place. Python lesson ids start at 101 so
-they never collide with 1–6 in `class_enabled_lessons`; consequence: after a catalog flip,
-students see every week locked until a teacher enables it for their class (admins and teachers
-bypass). A lesson names its `starterFile` (`main.py`), optional `extraFiles` (seeded next to it,
-e.g. `bugzap.py`) and `aiPolicy`: `'tutor'` keeps build mode locked behind open tasks,
-`'director'` (weeks 7–12) always allows it.
+**Projects pin a catalog version; only version 3 exists.** `projects.lesson_version` is stamped
+with `CURRENT_LESSON_VERSION` on creation and `getLessonForProject` resolves a lesson only for
+that version — rows from the retired web course (version 2 or null) resolve to no lesson, earn
+no XP, and open as an empty board. Never edit a catalog in place once students have progress on
+it: `lesson_progress.completed_task_ids` stores task ids as plain strings, so bump the version
+and add a catalog instead. Lesson ids start at 101 because `class_enabled_lessons` may still
+hold the old ids 1–6 (migration `0009` clears them); a lesson is locked until a teacher enables
+it for the student's class (admins and teachers bypass). A lesson names its `starterFile`
+(`main.py`), optional `extraFiles` (seeded next to it, e.g. `bugzap.py`) and `aiPolicy`.
 
 **XP, levels and badges are derived, the streak is stored.** `lib/xp.ts` computes XP from
-`lesson_progress` + the catalog (only version ≥ 3 earns XP); a lesson's badge is won by its
+`lesson_progress` + the catalog; a lesson's badge is won by its
 `boss` task. Only the streak needs a table: `PUT …/lesson-progress` upserts one `activity_days`
 row per user per day, in `APP_TIMEZONE` (default UTC). The plan's +5 solo/predict bonuses are
 not built (progress does not record hint use or first-try guesses).
 
-**Lesson tasks bind to code by string match.** Each task's `commentAnchor` is searched for in
-the file text to drive editor highlighting. Renaming an anchor comment in
-`public/templates/*.html` silently breaks it.
+**Lesson tasks bind to code by string match.** Each task's `commentAnchor` (`# TASK: <id>`) is
+searched for in the file text to drive line highlighting and the tutor's "point at the line"
+nudges. Renaming an anchor comment in `public/templates/py/*.py` silently breaks it.
 
 **Component tests need a jsdom docblock.** `jest.config.ts` sets `testEnvironment: 'node'`
 globally, so every `.tsx` test starts with `/** @jest-environment jsdom */`.
 
 ## Config-Derived Facts
 
-- `proxy.ts`'s matcher excludes `_next/static`, `_next/image`, `favicon.ico`, `api/auth`, and
-  `share` — the last two deliberately, so the OAuth callback can complete without a session and
-  share pages stay public. `proxy.ts` replaced `middleware.ts` (deprecated in Next 16); Proxy
+- `proxy.ts`'s matcher excludes `_next/static`, `_next/image`, `favicon.ico` and `api/auth` —
+  the last deliberately, so the OAuth callback can complete without a session. `proxy.ts` replaced `middleware.ts` (deprecated in Next 16); Proxy
   defaults to the Node.js runtime, and setting the `runtime` config option there throws.
 - `next.config.js` sets only `turbopack.root` (pinned because an unrelated `package-lock.json`
   in a parent directory made Turbopack infer the wrong workspace root).
@@ -355,7 +369,7 @@ APP_TIMEZONE=                    # OPTIONAL IANA zone (e.g. Asia/Phnom_Penh) for
   from the browser.
 - Because `db` connects as the owner and bypasses RLS, every query needs its own ownership or
   admin check.
-- **RLS is on for all 22 tables with zero policies, and that is the design.**
+- **RLS is on for all 21 tables with zero policies, and that is the design.**
   `drizzle/0002_postgrest_lockdown.sql` enables row security and revokes every
   `anon`/`authenticated` grant, including the default privileges. The application is unaffected
   (the owner bypasses RLS), so this costs nothing and closes the hole that a Supabase-hosted
@@ -374,12 +388,12 @@ Pre-existing on a clean checkout — don't attribute these to your change:
 - `bun run test:unit` and `bun run test:integration` find nothing — they pass
   `--selectProjects` but `jest.config.ts` defines no `projects`. Use `bun run test` or a path
   filter.
-- `types/index.ts` has no interfaces for `app_settings` or `user_build_mode`.
-- `bun run lint` reports 6 pre-existing `no-html-link-for-pages` errors
-  (`components/Footer.tsx`, `app/share/[id]/page.tsx`, `app/about/page.tsx`,
-  `app/dashboard/DashboardClient.tsx` use `<a>` where `<Link>` belongs) and one
-  `no-page-custom-font` warning in `app/layout.tsx`. These predate the Next 16 upgrade, so the
-  CI workflow runs lint with `continue-on-error: true`; make it blocking once they're fixed.
+- `types/index.ts` has no interface for `app_settings`.
+- `bun run lint` reports one `no-page-custom-font` warning in `app/layout.tsx`. Lint is a
+  blocking CI step; warnings do not fail it.
+- `components/SparkyWorld.tsx` and `components/PythonRunner.tsx` (the robot/vault canvas that
+  draws `sparky` events) have no caller: the board evaluates `worldContains` checks but does not
+  draw the world yet. `Lesson.scene` is set for that future board node.
 - If stray `.claude/worktrees/agent-*/` directories exist (leftover from prior agent
   sessions — gitignored, don't delete without checking), `bun run lint` picks up the copies
   inside them and inflates the error count. Jest no longer has this problem:
@@ -419,14 +433,16 @@ when available, and include screenshots for visible UI changes.
 | -------------------------------------------- | --------------------------------------------------- |
 | Route guards, admin gate, deactivation check | `proxy.ts`                                          |
 | Authentication (Better Auth + Google)        | `lib/auth/index.ts`, `lib/auth/session.ts`          |
-| Student workspace                            | `app/editor/[id]/page.tsx` → `EditorLayout.tsx`     |
-| LLM pipeline                                 | `app/api/generate/route.ts`                         |
+| Student workspace (the board)                | `app/board/[id]/page.tsx` → `app/board/LiveBoard.tsx` |
+| Tutor turn (LLM + board tools)               | `app/api/projects/[id]/turn/route.ts`, `lib/tutor/`  |
 | Project CRUD                                 | `app/api/projects/route.ts`                         |
-| LLM client + system prompts                  | `lib/gemini.ts`                                     |
+| LLM client                                   | `lib/deepseek.ts` (prompts: `lib/tutor/prompt.ts`)   |
 | Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schema.ts`              |
-| Lesson catalog + versioning                  | `lib/lessons.ts`, `lib/py-lessons.ts`               |
+| Lesson catalog                               | `lib/lessons.ts`, `lib/py-lessons.ts`, `public/templates/py/` |
 | XP / levels / badges / streak                | `lib/xp.ts`, `lib/player-stats.ts`                  |
-| Task verification                            | `lib/task-checks.ts`                                |
+| Task verification (client UI)                | `lib/task-checks.ts`                                |
+| Task verification (server, authoritative)    | `lib/task-verify.ts`, `.../lesson-progress/complete` |
+| Board task pages / auto-advance              | `lib/board/tasks.ts`, `hooks/useAutoComplete.ts`    |
 | Rate limiting (Redis + Lua)                  | `lib/ratelimit.ts`                                  |
 | Read caching (Redis)                         | `lib/cache.ts`, `lib/redis.ts`                      |
 | Schema of record                             | `drizzle/` (authored via `lib/db/schema.ts`)         |

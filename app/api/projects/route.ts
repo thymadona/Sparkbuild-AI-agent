@@ -3,7 +3,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { messages, projects as projectsTable, prompts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
-import { LESSON_CATALOGS, getLessonForProject } from '@/lib/lessons'
+import { CURRENT_LESSON_VERSION, getLessonForProject } from '@/lib/lessons'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
@@ -54,170 +54,48 @@ export async function GET() {
   }
 }
 
-// POST /api/projects — create a new project
+// POST /api/projects — start a lesson. Every project belongs to a lesson on
+// the current catalog; the caller sends the starter it fetched from
+// public/templates so the server never reads the filesystem here.
 export async function POST(req: Request) {
   const user = await getSessionUser()
-
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await req.json().catch(() => ({}))
+  const { lessonId, starter } = body
 
-  const ADJECTIVES = ['Cosmic', 'Neon', 'Blazing', 'Turbo', 'Quantum', 'Solar', 'Arctic', 'Pixel', 'Hyper', 'Lunar']
-  const NOUNS = ['Rocket', 'Panda', 'Wizard', 'Robot', 'Ninja', 'Dragon', 'Phoenix', 'Comet', 'Shark', 'Tiger']
-  const randomTitle = `${ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]} ${NOUNS[Math.floor(Math.random() * NOUNS.length)]}`
-  const title = body.title || randomTitle
-  const { templateHtml, lessonId, lessonVersion } = body
+  if (typeof lessonId !== 'number' || typeof starter !== 'string') {
+    return NextResponse.json({ error: 'lessonId and starter are required' }, { status: 400 })
+  }
 
-  if (typeof lessonId === 'number' && !(await isAdmin(user.id)) && !(await isTeacher(user.id))) {
+  const lesson = getLessonForProject(lessonId, CURRENT_LESSON_VERSION)
+  if (!lesson) {
+    return NextResponse.json({ error: 'Unknown lesson' }, { status: 404 })
+  }
+
+  if (!(await isAdmin(user.id)) && !(await isTeacher(user.id))) {
     const enabledLessonIds = await getEnabledLessonIdsForUser(user.id)
     if (!enabledLessonIds.has(lessonId)) {
       return NextResponse.json({ error: 'This lesson is not available for your class right now' }, { status: 403 })
     }
   }
 
+  const files: Record<string, string> = { [lesson.starterFile]: starter }
+  // Extra seeded files (e.g. bugzap.py). Only names the lesson declares are kept.
+  for (const name of Object.keys(lesson.extraFiles ?? {})) {
+    if (typeof body.extraFiles?.[name] === 'string') files[name] = body.extraFiles[name]
+  }
+
   const insertData: typeof projectsTable.$inferInsert = {
     userId: user.id,
-    title,
+    title: body.title || lesson.title,
     isPublic: false,
-    files: {},
-  }
-  if (lessonId !== undefined) {
-    insertData.lessonId = lessonId
-    if (typeof lessonVersion === 'number' && lessonVersion in LESSON_CATALOGS) insertData.lessonVersion = lessonVersion
-  }
-
-  if (templateHtml) {
-    const starterFile = (typeof lessonId === 'number' && getLessonForProject(lessonId, insertData.lessonVersion ?? null)?.starterFile) || 'index.html'
-    const files: Record<string, string> = { [starterFile]: templateHtml }
-    // Extra seeded files (e.g. bugzap.py). Only names the lesson declares are kept.
-    const declared = typeof lessonId === 'number' ? getLessonForProject(lessonId, insertData.lessonVersion ?? null)?.extraFiles : undefined
-    for (const name of Object.keys(declared ?? {})) {
-      if (typeof body.extraFiles?.[name] === 'string') files[name] = body.extraFiles[name]
-    }
-    insertData.files = files
-  } else {
-    insertData.files = {
-      'index.html': `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Start Building</title>
-  <style>
-    :root { --ink: #18233f; --paper: #fffdf8; --pink: #ff6b9d; --purple: #7655e8; --yellow: #ffd86b; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      min-height: 100vh;
-      color: var(--ink);
-      font-family: ui-rounded, "Nunito", system-ui, sans-serif;
-      background:
-        radial-gradient(circle at 8% 10%, #ffe3ef 0 11%, transparent 11.5%),
-        radial-gradient(circle at 92% 12%, #d9fff4 0 12%, transparent 12.5%),
-        #f4f1ff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .card {
-      width: min(620px, 100%);
-      text-align: center;
-      padding: clamp(32px, 6vw, 56px);
-      border: 3px solid var(--ink);
-      border-radius: 28px;
-      background: var(--paper);
-      box-shadow: 10px 10px 0 var(--ink);
-    }
-
-    .badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      border: 2px solid var(--ink);
-      border-radius: 999px;
-      background: var(--yellow);
-      box-shadow: 3px 3px 0 var(--ink);
-      padding: 0.45rem 0.8rem;
-      margin-bottom: 1.6rem;
-    }
-
-    h1 {
-      max-width: 14ch;
-      margin: 0 auto 1.2rem;
-      font-size: clamp(2.4rem, 7vw, 4rem);
-      line-height: 0.95;
-      letter-spacing: -0.05em;
-    }
-
-    h1 .accent { color: var(--pink); }
-
-    p {
-      max-width: 40ch;
-      margin: 0 auto 2rem;
-      font-size: 1.05rem;
-      line-height: 1.6;
-      color: var(--ink);
-      opacity: 0.75;
-    }
-
-    .ideas {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      justify-content: center;
-      margin-bottom: 2rem;
-    }
-
-    .idea {
-      background: #fff;
-      border: 2px solid var(--ink);
-      border-radius: 999px;
-      padding: 0.55rem 0.9rem;
-      font-size: 0.85rem;
-      font-weight: 800;
-      cursor: default;
-      transition: transform 0.15s;
-    }
-
-    .idea:hover {
-      transform: translateY(-3px) rotate(-1deg);
-    }
-
-    .hint {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--purple);
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <span class="badge">Your canvas is ready</span>
-    <h1>What will you<br>build <span class="accent">today?</span></h1>
-    <p>Type an idea in the chat and the AI turns it into real, working code — instantly.</p>
-    <div class="ideas">
-      <span class="idea">🎮 Quiz game</span>
-      <span class="idea">⏱ Countdown timer</span>
-      <span class="idea">🎨 Drawing app</span>
-      <span class="idea">🌦 Weather card</span>
-      <span class="idea">📝 To-do list</span>
-      <span class="idea">🎵 Music visualizer</span>
-      <span class="idea">🐍 Snake game</span>
-      <span class="idea">🌌 Starfield</span>
-    </div>
-    <p class="hint">Open the Chat panel and describe your idea &rarr;</p>
-  </div>
-</body>
-</html>`,
-    }
+    files,
+    lessonId,
+    lessonVersion: CURRENT_LESSON_VERSION,
   }
 
   try {

@@ -2,9 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
-import { html } from '@codemirror/lang-html'
-import { css } from '@codemirror/lang-css'
-import { javascript } from '@codemirror/lang-javascript'
 import { python } from '@codemirror/lang-python'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { Decoration, DecorationSet } from '@codemirror/view'
@@ -14,7 +11,6 @@ import type { ViewUpdate } from '@codemirror/view'
 interface CodeEditorProps {
   code: string
   onSave: (code: string) => void
-  language?: 'html' | 'css' | 'js' | 'py'
   onSelectionChange?: (selection: { text: string; startLine: number; endLine: number } | null) => void
   highlightLines?: number[] | null
   // Bumped every time the parent asks to point at a line, so asking twice for
@@ -104,7 +100,7 @@ const parchmentDark = [
   }, { dark: true }),
 ]
 
-export default function CodeEditor({ code, onSave, language = 'html', onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap, hideToolbar }: CodeEditorProps) {
+export default function CodeEditor({ code, onSave, onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap, hideToolbar }: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
   const [viewReady, setViewReady] = useState(false)
@@ -196,7 +192,7 @@ export default function CodeEditor({ code, onSave, language = 'html', onSelectio
   const extensions = [
     highlightField,
     highlightTheme,
-    ...(language === 'css' ? [css()] : language === 'js' ? [javascript()] : language === 'py' ? [python()] : [html()]),
+    python(),
     ...(wrap ? [EditorView.lineWrapping] : []),
   ]
 

@@ -21,8 +21,8 @@ jest.mock('next/headers', () => ({
 import { eq } from 'drizzle-orm'
 import { GET, POST, PATCH, DELETE } from '@/app/api/projects/route'
 import { db } from '@/lib/db/client'
-import { messages, projects, prompts } from '@/lib/db/schema'
-import { grantRole, makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
+import { classEnabledLessons, messages, projects, prompts } from '@/lib/db/schema'
+import { addClassMember, grantRole, makeClass, makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 
 function makeRequest(method: string, body?: object, url = 'http://localhost/api/projects') {
   return new Request(url, {
@@ -75,31 +75,59 @@ describe('POST /api/projects', () => {
     expect((await POST(makeRequest('POST', { title: 'Test' }))).status).toBe(401)
   })
 
-  it('creates a project and returns 201 with the new project', async () => {
+  it('creates a lesson project and returns 201 with the new project', async () => {
     const owner = await makeUser()
+    await grantRole(owner.id, 'admin')
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const res = await POST(makeRequest('POST', { title: 'My App' }))
+    const res = await POST(makeRequest('POST', { title: 'My App', lessonId: 101, starter: 'print(1)' }))
     expect(res.status).toBe(201)
 
     const json = await res.json()
     expect(json.title).toBe('My App')
     expect(json.user_id).toBe(owner.id)
+    expect(json.lesson_id).toBe(101)
     expect(json.is_public).toBe(false)
 
     const [row] = await db.select().from(projects).where(eq(projects.id, json.id))
     expect(row.userId).toBe(owner.id)
   })
 
-  it('pins the lesson version a catalog owns and drops one it does not', async () => {
+  it('lets a student start only a lesson their class has turned on', async () => {
+    const student = await makeUser()
+    mockGetSessionUser.mockResolvedValue(student)
+    const body = { lessonId: 101, starter: 'print(1)' }
+
+    expect((await POST(makeRequest('POST', body))).status).toBe(403)
+
+    const klass = await makeClass()
+    await addClassMember(klass.id, student.id, 'student')
+    await db.insert(classEnabledLessons).values({ classId: klass.id, lessonId: 101 })
+    // The enabled-lesson set is cached per user; a fresh student sees the new row.
+    const other = await makeUser()
+    await addClassMember(klass.id, other.id, 'student')
+    mockGetSessionUser.mockResolvedValue(other)
+
+    expect((await POST(makeRequest('POST', body))).status).toBe(201)
+  })
+
+  it('always pins the current catalog version, whatever the client sends', async () => {
     const admin = await makeUser()
     await grantRole(admin.id, 'admin')
     mockGetSessionUser.mockResolvedValue(admin)
 
-    const pinned = await (await POST(makeRequest('POST', { lessonId: 1, lessonVersion: 2, templateHtml: '<p>x</p>' }))).json()
-    const unknown = await (await POST(makeRequest('POST', { lessonId: 1, lessonVersion: 99 }))).json()
-    expect(pinned.lesson_version).toBe(2)
-    expect(unknown.lesson_version).toBeNull()
+    const pinned = await (await POST(makeRequest('POST', { lessonId: 101, lessonVersion: 2, starter: 'print(1)' }))).json()
+    expect(pinned.lesson_version).toBe(3)
+  })
+
+  it('refuses a project without a lesson or starter, or for a lesson that does not exist', async () => {
+    const admin = await makeUser()
+    await grantRole(admin.id, 'admin')
+    mockGetSessionUser.mockResolvedValue(admin)
+
+    expect((await POST(makeRequest('POST', {}))).status).toBe(400)
+    expect((await POST(makeRequest('POST', { lessonId: 101 }))).status).toBe(400)
+    expect((await POST(makeRequest('POST', { lessonId: 1, starter: 'print(1)' }))).status).toBe(404)
   })
 
   it('stores a Python lesson under its starter file with only the extra files it declares', async () => {
@@ -109,8 +137,7 @@ describe('POST /api/projects', () => {
 
     const res = await POST(makeRequest('POST', {
       lessonId: 101,
-      lessonVersion: 3,
-      templateHtml: 'print("beep boop")',
+      starter: 'print("beep boop")',
       extraFiles: { 'bugzap.py': 'print("oops)', 'evil.py': 'import os' },
     }))
     const json = await res.json()
@@ -118,24 +145,22 @@ describe('POST /api/projects', () => {
     expect(json.files).toEqual({ 'main.py': 'print("beep boop")', 'bugzap.py': 'print("oops)' })
   })
 
-  it('generates a random two-word title when none is provided', async () => {
+  it('names the project after the lesson when no title is given', async () => {
     const owner = await makeUser()
+    await grantRole(owner.id, 'admin')
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const res = await POST(makeRequest('POST', {}))
+    const res = await POST(makeRequest('POST', { lessonId: 101, starter: 'print(1)' }))
     expect(res.status).toBe(201)
-
-    // The route picks an "<Adjective> <Noun>" name rather than a fixed
-    // placeholder, so that a dashboard of new projects is scannable.
-    const json = await res.json()
-    expect(json.title).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/)
+    expect((await res.json()).title).toMatch(/^Week #1/)
   })
 
   it('returns the snake_case shape the client components expect', async () => {
     const owner = await makeUser()
+    await grantRole(owner.id, 'admin')
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const json = await (await POST(makeRequest('POST', { title: 'Shape' }))).json()
+    const json = await (await POST(makeRequest('POST', { title: 'Shape', lessonId: 101, starter: 'print(1)' }))).json()
     expect(Object.keys(json).sort()).toEqual(
       [
         'created_at',

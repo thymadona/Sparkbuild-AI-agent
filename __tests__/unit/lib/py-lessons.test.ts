@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { PY_LESSONS } from '@/lib/py-lessons'
-import { LESSON_CATALOGS, CURRENT_LESSON_VERSION } from '@/lib/lessons'
+import { CURRENT_LESSON_VERSION, LESSONS, getLessonForProject } from '@/lib/lessons'
 import { runPythonChecks } from '@/lib/python-checks'
 import { allChecksPassed, isRuntimeCheck, runTaskChecks } from '@/lib/task-checks'
 import { nodeExec } from '@/__tests__/helpers/pyodide'
@@ -30,13 +30,16 @@ async function results(lesson: (typeof PY_LESSONS)[number], files: Record<string
 }
 
 describe('python catalog', () => {
-  it('is the current version, and the HTML course stays reachable as v2', () => {
-    expect(LESSON_CATALOGS[CURRENT_LESSON_VERSION]).toBe(PY_LESSONS)
-    expect(LESSON_CATALOGS[2]).toBeDefined()
-    expect(LESSON_CATALOGS[2]).not.toBe(PY_LESSONS)
+  it('is the only catalog: projects pinned to any other version resolve to no lesson', () => {
+    expect(CURRENT_LESSON_VERSION).toBe(3)
+    expect(LESSONS).toBe(PY_LESSONS)
+    expect(getLessonForProject(101, 3)?.starterFile).toBe('main.py')
+    expect(getLessonForProject(101, 2)).toBeNull()
+    expect(getLessonForProject(101, null)).toBeNull()
+    expect(getLessonForProject(1, 2)).toBeNull()
   })
 
-  it('uses ids that cannot collide with the HTML course', () => {
+  it('uses ids above the retired web course range still present in class_enabled_lessons', () => {
     for (const lesson of PY_LESSONS) expect(lesson.id).toBeGreaterThan(100)
     expect(new Set(PY_LESSONS.map((l) => l.id)).size).toBe(PY_LESSONS.length)
   })

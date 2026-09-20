@@ -23,7 +23,6 @@ export default async function DashboardPage() {
         title: projects.title,
         lesson_id: projects.lessonId,
         updated_at: projects.updatedAt,
-        is_public: projects.isPublic,
       })
       .from(projects)
       .where(eq(projects.userId, user.id))

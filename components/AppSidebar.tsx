@@ -2,13 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Map, Users, User as UserIcon } from 'lucide-react'
+import { Home, Map, User as UserIcon } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 const NAV = [
   { href: '/dashboard', label: 'Home', icon: Home },
   { href: '/lessons', label: 'Roadmap', icon: Map },
-  { href: '/explore', label: 'Community', icon: Users },
   { href: '/profile', label: 'Profile', icon: UserIcon },
 ]
 

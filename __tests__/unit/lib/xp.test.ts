@@ -21,7 +21,7 @@ describe('xpFor', () => {
     expect(xpFor([row(['first-words']), row(['first-words', 'name-tag'])])).toBe(20)
   })
 
-  it('ignores unknown tasks, unpinned projects and the HTML course', () => {
+  it('ignores unknown tasks, unpinned projects and the retired web course', () => {
     expect(xpFor([row(['nope']), row(['first-words'], week1.id, null), row(['identity'], 1, 2)])).toBe(0)
   })
 })

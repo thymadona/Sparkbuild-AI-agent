@@ -4,10 +4,11 @@ import { useLessonProgress } from '@/hooks/useLessonProgress'
 import type { Lesson } from '@/lib/lessons'
 
 const lesson: Lesson = {
-  id: 1,
+  id: 101,
   title: 'Week #1',
   description: '',
-  templateFile: 'personal-page.html',
+  templateFile: 'py/w1.py',
+  starterFile: 'main.py',
   tasks: [
     { id: 'task-1', type: 'core', chip: '', success: '', prompt: '', commentAnchor: '' },
     { id: 'task-2', type: 'core', chip: '', success: '', prompt: '', commentAnchor: '' },

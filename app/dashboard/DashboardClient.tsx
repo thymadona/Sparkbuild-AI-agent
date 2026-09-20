@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Plus, Globe, ArrowRight, Lock, Sparkles,
+  ArrowRight, Lock, Sparkles,
   User, Palette, Flame, Zap, Lightbulb, Rocket,
 } from 'lucide-react'
 import AppShell from '@/components/AppShell'
@@ -22,7 +21,6 @@ type ProjectListItem = {
   title: string
   lesson_id: number | null
   updated_at: string
-  is_public: boolean
 }
 
 interface Props {
@@ -35,13 +33,9 @@ interface Props {
 export default function DashboardClient({ initialProjects, userEmail, enabledLessonIds = [], stats }: Props) {
   const enabledSet = new Set(enabledLessonIds)
   const [projects, setProjects] = useState(initialProjects)
-  const [creating, setCreating] = useState(false)
-  const [duplicating, setDuplicating] = useState<string | null>(null)
-  const router = useRouter()
   const firstName = userEmail.split('@')[0] || 'there'
   // Only count lessons in the current course; older projects belong to a retired catalog.
   const lessonsStarted = new Set(projects.filter(p => LESSONS.some(l => l.id === p.lesson_id)).map(p => p.lesson_id)).size
-  const publicCount = projects.filter(p => p.is_public).length
 
   // Projects arrive newest-first from the server, so the first lesson
   // project is the most recently touched one — the natural "pick up where
@@ -51,46 +45,10 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
     ? LESSONS.find(l => l.id === inProgressProject.lesson_id)
     : undefined
 
-  async function handleNewProject() {
-    setCreating(true)
-    const res = await fetch('/api/projects', { method: 'POST', body: JSON.stringify({}), headers: { 'Content-Type': 'application/json' } })
-    const project = await res.json()
-    setCreating(false)
-    if (project.id) {
-      router.push(`/editor/${project.id}`)
-    }
-  }
-
   async function handleDelete(id: string) {
     if (!confirm('Delete this project?')) return
     await fetch(`/api/projects?id=${id}`, { method: 'DELETE' })
     setProjects((prev) => prev.filter((p) => p.id !== id))
-  }
-
-  async function handleTogglePublic(project: ProjectListItem) {
-    const res = await fetch('/api/projects', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: project.id, is_public: !project.is_public }),
-    })
-    const updated = await res.json()
-    setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-  }
-
-  async function handleDuplicate(project: ProjectListItem) {
-    setDuplicating(project.id)
-    const res = await fetch('/api/projects/duplicate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: project.id }),
-    })
-    const copy = await res.json()
-    setDuplicating(null)
-    if (copy.id) router.push(`/editor/${copy.id}`)
-  }
-
-  function handleCopyLink(id: string) {
-    navigator.clipboard.writeText(`${window.location.origin}/share/${id}`)
   }
 
   return (
@@ -103,10 +61,6 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
           </h1>
           <p className="mt-2 text-lg text-fg-secondary">Ready to write some code today?</p>
         </div>
-        <button onClick={handleNewProject} disabled={creating} className="btn-primary shrink-0 py-3">
-          <Plus size={16} strokeWidth={2.5} />
-          {creating ? 'Creating…' : 'New project'}
-        </button>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -121,10 +75,10 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
                 {inProgressLesson.title.split('—')[1]?.trim() ?? inProgressLesson.title}
               </h2>
               <p className="mt-2 max-w-lg text-sm leading-relaxed text-fg-secondary">{inProgressLesson.description}</p>
-              <a href={`/editor/${inProgressProject.id}`} className="btn-primary mt-6 py-3">
+              <Link href={`/board/${inProgressProject.id}`} className="btn-primary mt-6 py-3">
                 Continue learning
                 <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
               <Sparkles className="pointer-events-none absolute right-6 top-6 h-10 w-10 text-fg-primary/10" />
             </section>
           )}
@@ -171,7 +125,6 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
             {[
               { value: projects.length, label: 'Projects' },
               { value: `${lessonsStarted}/${LESSONS.length}`, label: 'Lessons started' },
-              { value: publicCount, label: 'Shared publicly' },
             ].map(({ value, label }) => (
               <div key={label} className="rounded-2xl border border-border bg-card px-5 py-4">
                 <p className="text-xs text-fg-secondary">{label}</p>
@@ -193,50 +146,34 @@ export default function DashboardClient({ initialProjects, userEmail, enabledLes
           <div className="rounded-2xl border border-dashed border-border py-16 text-center">
             <p className="mb-4 text-5xl">🚀</p>
             <p className="font-display text-xl font-semibold text-fg-primary">Nothing here yet!</p>
-            <p className="mb-6 mt-2 text-sm text-fg-muted">Start a lesson or create a blank project.</p>
-            <div className="flex justify-center gap-3">
-              <Link href="/lessons" className="btn-primary">Start a lesson</Link>
-              <button onClick={handleNewProject} disabled={creating} className="btn-outline">Blank project</button>
-            </div>
+            <p className="mb-6 mt-2 text-sm text-fg-muted">Start a lesson to make your first project.</p>
+            <Link href="/lessons" className="btn-primary">Start a lesson</Link>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {projects.map((project) => {
+              const weekIndex = LESSONS.findIndex(l => l.id === project.lesson_id)
+              return (
               <div key={project.id} className="rounded-2xl border border-border bg-card p-5">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tint-sand text-[11px] font-semibold text-fg-primary">
-                      {project.lesson_id ?? <Globe size={12} />}
-                    </span>
-                    <span className="text-xs text-fg-muted">Updated {new Date(project.updated_at).toLocaleDateString()}</span>
-                  </div>
-                  {project.is_public && (
-                    <span className="rounded-full bg-tint-mint px-2.5 py-0.5 text-xs font-bold text-fg-primary">Public</span>
-                  )}
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tint-sand text-[11px] font-semibold text-fg-primary">
+                    {weekIndex >= 0 ? weekIndex + 1 : '·'}
+                  </span>
+                  <span className="text-xs text-fg-muted">Updated {new Date(project.updated_at).toLocaleDateString()}</span>
                 </div>
 
                 <p className="mb-0.5 truncate text-sm font-semibold text-fg-primary">{project.title}</p>
-                <p className="mb-4 text-xs text-fg-muted">{project.lesson_id ? `Week ${project.lesson_id}` : 'Free build'}</p>
+                <p className="mb-4 text-xs text-fg-muted">{weekIndex >= 0 ? `Week ${weekIndex + 1}` : 'Older course'}</p>
 
                 <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                  <a href={`/editor/${project.id}`} className="btn-primary !px-4 !py-1.5 !text-xs">Open</a>
-                  <button onClick={() => handleTogglePublic(project)} className="btn-outline !px-3 !py-1.5 !text-xs">
-                    {project.is_public ? 'Unshare' : 'Share'}
-                  </button>
-                  <button onClick={() => handleDuplicate(project)} disabled={duplicating === project.id} className="btn-outline !px-3 !py-1.5 !text-xs">
-                    {duplicating === project.id ? '…' : 'Copy'}
-                  </button>
+                  <Link href={`/board/${project.id}`} className="btn-primary !px-4 !py-1.5 !text-xs">Open</Link>
                   <button onClick={() => handleDelete(project.id)} className="btn-outline ml-auto !px-3 !py-1.5 !text-xs !text-red-600 hover:!bg-red-50">
                     Delete
                   </button>
                 </div>
-                {project.is_public && (
-                  <button onClick={() => handleCopyLink(project.id)} className="btn-outline mt-2.5 w-full !py-1.5 !text-xs">
-                    Copy share link
-                  </button>
-                )}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>

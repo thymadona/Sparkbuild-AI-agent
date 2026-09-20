@@ -13,9 +13,9 @@ const GATED_TYPES: LessonTask['type'][] = ['core', 'homework']
  * tutor may point and explain, but it may not write the file. Once the gated
  * tasks are done, build mode returns, so creative and bonus work is unrestricted.
  *
- * Gating on recorded progress rather than on live checks is deliberate — the
- * check evaluator needs a DOM, which the Node runtime does not have, and
- * progress is server-side truth.
+ * Gating on recorded progress rather than on live checks is deliberate —
+ * runtime checks only run in the student's browser, and progress is
+ * server-side truth.
  */
 export function pendingCoreTask(lesson: Lesson | null, completedTaskIds: string[]): LessonTask | null {
   if (!lesson) return null
@@ -82,7 +82,7 @@ function escalationBlock(task: LessonTask, tier: EscalationTier, isHomework: boo
       'ESCALATION LEVEL 2: your last hints did not work. Do NOT repeat your earlier wording — say it a completely different way.',
       isHomework
         ? `Narrow to the exact line with the comment "${task.commentAnchor}" and ask one question about what they want it to say. Never state the answer text — this is homework.`
-        : `Show the exact line with the comment "${task.commentAnchor}" as a fill-in-the-blank, e.g. the exact tag with a blank where their words go.`,
+        : `Show the exact line with the comment "${task.commentAnchor}" as a fill-in-the-blank, e.g. the exact line with a blank where their words go.`,
       'One short step. No more than three sentences. Simple words — they are about 10.',
     ].join('\n')
   }
@@ -95,9 +95,9 @@ function escalationBlock(task: LessonTask, tier: EscalationTier, isHomework: boo
   ].join('\n')
 }
 
-// The caller (app/api/generate/route.ts) polyfills DOMParser before calling
-// runTaskChecks, so textChanged results are real verdicts here too — same
-// DOM-based evaluation the browser's own "Mark done" check uses, not a guess.
+// Results come from runTaskChecks over the code the server has stored plus the
+// browser's reported runtime verdicts — the same evaluation that drives the
+// student's own task page, not a guess.
 function describeCheckStatus(check: TaskCheck, result: TaskCheckResult | undefined): string {
   return `- ${check.label}: ${result?.passed ? 'DONE' : 'NOT DONE YET'}.`
 }
@@ -121,26 +121,6 @@ export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1, resul
     `Point them at the line that contains the comment "${task.commentAnchor}".`,
     'If they ask you to do it for them: one warm sentence, then one tiny step they can do.',
     escalationBlock(task, tier, isHomework),
-  ]
-    .filter(Boolean)
-    .join('\n')
-}
-
-/**
- * Build-mode counterpart of buildTaskNudge, for lessons where the student
- * directs the AI. The AI may write code here, but only for this task, and
- * the checklist stays the source of truth for what is done.
- */
-export function buildDirectorNudge(task: LessonTask, results: TaskCheckResult[] = []): string {
-  const checklist = (task.checks ?? []).map((check, i) => describeCheckStatus(check, results[i])).join('\n')
-  return [
-    `THE STUDENT IS DIRECTING YOU ON THIS TASK: "${task.chip}".`,
-    `Goal: ${task.success}`,
-    checklist
-      ? `Real status of each requirement, checked against their current code:\n${checklist}\nTrust this list. Do not say the task is done unless every line says DONE.`
-      : '',
-    'Build only what they asked for. Do not do other tasks for them.',
-    'Keep the code short and readable enough that they can explain it to their teacher.',
   ]
     .filter(Boolean)
     .join('\n')

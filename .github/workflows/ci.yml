@@ -78,15 +78,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Non-blocking for now: `bun run lint` reports 6 pre-existing
-      # no-html-link-for-pages errors (app/about, app/dashboard,
-      # app/share/[id], components/Footer) and 1 no-page-custom-font warning,
-      # all of which predate this workflow. Flip this to a blocking step once
-      # those are fixed — leaving it red-but-ignored is the honest state, not
-      # a permanent exemption.
+      # Blocking: the only remaining report is one no-page-custom-font warning
+      # in app/layout.tsx, and warnings do not fail eslint.
       - name: Lint
         run: bun run lint
-        continue-on-error: true
 
       # Kept even though Vercel's build also typechecks: this reports in seconds
       # on the PR itself, rather than only inside a deployment log.

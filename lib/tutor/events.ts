@@ -15,6 +15,9 @@ export const ClientEvent = z.discriminatedUnion('type', [
     stderr: z.string().max(20000),
   }),
   z.object({ type: z.literal('trace_result'), nodeId: NodeId, source: z.string().max(4000), steps: z.array(TraceStep).max(200) }),
+  // The student passed a task's checks; their screen has already opened the
+  // next task's page. The tutor is told so it can introduce it.
+  z.object({ type: z.literal('task_advanced'), done: z.string().max(64), next: z.string().max(64).nullable(), pageId: z.string().max(64).nullable() }),
 ])
 export type ClientEvent = z.infer<typeof ClientEvent>
 
@@ -34,6 +37,13 @@ export function applyClientEvent(board: BoardState, ev: ClientEvent): { board: B
       // The tutor gets the tail of stderr (where Python puts the real error), not the whole traceback.
       const payload = { nodeId: ev.nodeId, ok: ev.ok, stdout: ev.stdout.slice(0, 500), error: ev.stderr.trim().split('\n').slice(-3).join('\n') }
       return { board: next, content: `<student_event type="code_run">${JSON.stringify(payload)}</student_event>` }
+    }
+    case 'task_advanced': {
+      const payload = { finished: ev.done, nowOpen: ev.next, pageId: ev.pageId }
+      const note = ev.next
+        ? 'Their next page is already open and holds their code so far. Say one short, specific sentence about what they just got working, then start that task with a small question. Do not repeat the task name back as a heading.'
+        : 'That was the last task. Congratulate them warmly in one sentence.'
+      return { board, content: `<student_event type="task_advanced">${JSON.stringify(payload)}</student_event>\n${note}` }
     }
     case 'trace_result': {
       const next = traceOps(board, ev.nodeId, ev.source, ev.steps).reduce((b, op) => apply(b, op, 'client'), board)

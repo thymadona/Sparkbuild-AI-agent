@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, MessageSquareCode, PlayCircle, Share2, Star } from 'lucide-react'
+import { ArrowRight, CheckCircle2, MessageSquareCode, PlayCircle, Star, Trophy } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { LESSONS } from '@/lib/lessons'
@@ -14,8 +14,8 @@ const FEATURES = [
   {
     icon: MessageSquareCode,
     chipClass: 'bg-teal-400',
-    title: 'Ask mode teaches. Build mode ships.',
-    description: 'The AI tutors by default and only writes full code once a task says you\'re ready — it guides, it doesn\'t solve.',
+    title: 'A tutor, not an answer key',
+    description: 'The AI sits beside your code and nudges — one line, one question at a time. It guides, it doesn\'t solve.',
   },
   {
     icon: CheckCircle2,
@@ -24,10 +24,10 @@ const FEATURES = [
     description: 'Each lesson checks your actual code before it lets you mark a task done — no boxes ticked for work you didn\'t do.',
   },
   {
-    icon: Share2,
+    icon: Trophy,
     chipClass: 'bg-amber-300',
-    title: 'Ship it, share it',
-    description: 'Every project gets a live link. Show your family, remix a classmate\'s, or browse what everyone else built.',
+    title: 'Earn XP, beat the boss',
+    description: 'Every task earns XP. Beat the week\'s boss task to win its badge, and keep your streak alive by showing up.',
   },
 ] as const
 
@@ -63,7 +63,7 @@ export default async function Home() {
                 at a time.
               </h1>
               <p className="mt-6 max-w-md text-body-lg text-fg-secondary">
-                Six weeks, six real projects. An AI tutor that nudges instead of solving, so what ships is actually yours.
+                Real Python, one week at a time. An AI tutor that nudges instead of solving, so what runs is actually yours.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
@@ -134,7 +134,7 @@ export default async function Home() {
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <h2 className="font-display text-headline-lg-mobile text-fg-primary sm:text-headline-lg">
-                Six weeks. Six real builds.
+                Week by week. Real Python.
               </h2>
               <Link
                 href="/about"

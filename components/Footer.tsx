@@ -10,7 +10,6 @@ export default function Footer() {
         <nav className="flex gap-6 text-sm text-fg-muted">
           <Link href="/about" className="hover:text-fg-primary transition-colors">About</Link>
           <Link href="/lessons" className="hover:text-fg-primary transition-colors">Lessons</Link>
-          <Link href="/explore" className="hover:text-fg-primary transition-colors">Explore</Link>
         </nav>
         <p className="text-xs text-fg-muted">Built for students. Powered by AI.</p>
       </div>

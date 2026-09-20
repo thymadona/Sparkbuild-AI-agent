@@ -64,6 +64,13 @@
       "when": 1789829335442,
       "tag": "0008_thick_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789896446052,
+      "tag": "0009_drop_user_build_mode",
+      "breakpoints": true
     }
   ]
 }

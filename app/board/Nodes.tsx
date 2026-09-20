@@ -49,7 +49,6 @@ function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
       <div style={{ height: `${lines * 20 + 36}px` }}>
         <CodeEditor
           code={node.source}
-          language="py"
           hideToolbar
           onViewReady={(v) => { view.current = v }}
           onSave={() => {}}
