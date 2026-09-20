@@ -1,6 +1,5 @@
-import { HTML_LESSONS as LESSONS, LEGACY_LESSONS } from '@/lib/lessons'
+import { LESSONS } from '@/lib/lessons'
 import {
-  buildDirectorNudge,
   buildTaskNudge,
   detectConfusion,
   escalationTier,
@@ -10,9 +9,8 @@ import {
   pendingCoreTask,
 } from '@/lib/task-guard'
 import { runTaskChecks } from '@/lib/task-checks'
-import { JSDOM } from 'jsdom'
 
-const week3 = LESSONS.find((lesson) => lesson.id === 3)!
+const week3 = LESSONS.find((lesson) => lesson.id === 103)!
 const coreIds = week3.tasks.filter((task) => task.type === 'core').map((task) => task.id)
 const homeworkIds = week3.tasks.filter((task) => task.type === 'homework').map((task) => task.id)
 const optionalIds = week3.tasks.filter((task) => task.type === 'choice' || task.type === 'bonus').map((task) => task.id)
@@ -43,11 +41,6 @@ describe('pendingCoreTask', () => {
   it('returns null for a project with no lesson', () => {
     expect(pendingCoreTask(null, [])).toBeNull()
   })
-
-  it('works for legacy lesson catalogs too', () => {
-    const legacy = LEGACY_LESSONS.find((lesson) => lesson.id === 3)!
-    expect(pendingCoreTask(legacy, [])?.id).toBe(legacy.tasks[0].id)
-  })
 })
 
 describe('homework helpers', () => {
@@ -65,9 +58,9 @@ describe('homework helpers', () => {
   })
 
   it('never reports complete for a lesson with no homework', () => {
-    const legacy = LEGACY_LESSONS.find((lesson) => lesson.id === 3)!
-    expect(homeworkTasks(legacy)).toEqual([])
-    expect(homeworkComplete(legacy, [])).toBe(false)
+    const noHomework = { ...week3, tasks: week3.tasks.filter((task) => task.type !== 'homework') }
+    expect(homeworkTasks(noHomework)).toEqual([])
+    expect(homeworkComplete(noHomework, [])).toBe(false)
     expect(homeworkComplete(null, [])).toBe(false)
   })
 })
@@ -161,42 +154,30 @@ describe('buildTaskNudge', () => {
     expect(buildTaskNudge(task, 3)).toMatch(/do not bring up another task/i)
   })
 
-  it('marks textChanged checks NOT DONE YET when no result is given, never silently DONE', () => {
-    const task = week3.tasks[0] // 'goal': two textChanged checks
+  it('marks every check NOT DONE YET when no results are given, never silently DONE', () => {
+    const task = week3.tasks[0]
     const nudge = buildTaskNudge(task)
     expect(nudge).toContain('NOT DONE YET')
+    expect(nudge).not.toMatch(/: DONE\./)
     expect(nudge).toMatch(/do not bring up another task/i)
   })
 
-  it('resolves textChanged checks with real DONE/NOT DONE YET verdicts, same as the browser Mark-done check — this is the fix for the tutor disagreeing with an already-completed task', () => {
-    // app/api/generate/route.ts polyfills DOMParser from jsdom before calling
-    // runTaskChecks; mirror that here so textChanged checks can resolve.
-    if (typeof DOMParser === 'undefined') {
-      globalThis.DOMParser = new JSDOM().window.DOMParser as unknown as typeof DOMParser
-    }
-    const task = week3.tasks[0] // 'goal': h1 + .subtitle textChanged checks
-    const untouched = runTaskChecks(task.checks, '<h1>My reading streak.</h1><p class="subtitle">One little action can turn into a habit. What will you track today?</p>')
-    const changed = runTaskChecks(task.checks, '<h1>My drawing streak.</h1><p class="subtitle">One little action can turn into a habit. What will you track today?</p>')
+  it('reports real DONE/NOT DONE YET verdicts per check from runTaskChecks', () => {
+    const task = week3.tasks.find((t) => t.id === 'times-table')! // sourceMatches + outputContains
+    const untouched = runTaskChecks(task.checks, 'for n in range(3):\n    print(n)\n')
+    const stepped = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n')
+    const ran = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n', [undefined, true])
 
     expect(buildTaskNudge(task, 1, untouched)).toContain('NOT DONE YET')
-    const changedNudge = buildTaskNudge(task, 1, changed)
-    expect(changedNudge).toContain('DONE')
-    expect(changedNudge).toContain('NOT DONE YET') // .subtitle is still unchanged
+    const steppedNudge = buildTaskNudge(task, 1, stepped)
+    expect(steppedNudge).toContain('You gave range a step: DONE')
+    expect(steppedNudge).toContain('It runs without errors: NOT DONE YET')
+    expect(buildTaskNudge(task, 1, ran)).not.toContain('NOT DONE YET')
   })
 
-  it('marks sourceOmits checks DONE or NOT DONE YET from real check results', () => {
-    const palette = LESSONS.find((lesson) => lesson.id === 1)!.tasks.find((t) => t.id === 'palette')!
-    const untouched = runTaskChecks(palette.checks, '--pink: #ff6b9d; --purple: #7655e8; --yellow: #ffd86b;')
-    const changed = runTaskChecks(palette.checks, '--pink: #123456; --purple: #654321; --yellow: #abcdef;')
-
-    expect(buildTaskNudge(palette, 1, untouched)).toContain('NOT DONE YET')
-    expect(buildTaskNudge(palette, 1, changed)).not.toContain('NOT DONE YET')
-    expect(buildTaskNudge(palette, 1, changed)).toContain('DONE')
-  })
-
-  it('falls back to the original guardrail for legacy tasks with no checks', () => {
-    const legacy = LEGACY_LESSONS.find((lesson) => lesson.id === 3)!.tasks[0]
-    const nudge = buildTaskNudge(legacy)
+  it('falls back to the original guardrail for a task with no checks', () => {
+    const unchecked = { ...week3.tasks[0], checks: undefined }
+    const nudge = buildTaskNudge(unchecked)
     expect(nudge).toMatch(/cannot see which parts/i)
     expect(nudge).not.toMatch(/NOT DONE YET|DONE\./)
   })
@@ -245,17 +226,5 @@ describe('detectConfusion', () => {
 
   it('does not treat "no" as confusion', () => {
     expect(detectConfusion('no')).toBe(false)
-  })
-})
-
-describe('buildDirectorNudge', () => {
-  const task = week3.tasks[0]
-
-  it('lets the AI write code but only for this task, and reports real check status', () => {
-    const nudge = buildDirectorNudge(task, task.checks!.map(() => ({ label: 'x', hint: 'h', passed: false })))
-    expect(nudge).toContain(task.chip)
-    expect(nudge).toContain('NOT DONE YET')
-    expect(nudge).toContain('Do not do other tasks')
-    expect(nudge).not.toContain('Never write or edit their code')
   })
 })

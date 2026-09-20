@@ -18,20 +18,20 @@ export default async function AboutPage() {
             A place to learn to code<br />by building real things.
           </h1>
           <p className="mt-6 text-lg text-fg-secondary leading-relaxed">
-            CodeBuilder is a guided coding platform for students aged 10–16. Instead of watching videos or memorising syntax, you build actual websites — a personal page, an interactive game, a tool that fetches live data — and an AI tutor helps you when you get stuck.
+            CodeBuilder is a guided coding platform for students aged 10–16. Instead of watching videos or memorising syntax, you write real Python — waking up a robot, guessing games, a vault with a secret code — and an AI tutor helps you when you get stuck.
           </p>
         </section>
 
         <section className="mt-16 rounded-2xl border border-surface-600 bg-surface-800 p-8">
           <h2 className="font-display text-2xl font-bold text-fg-primary">For teachers and parents</h2>
           <p className="mt-3 text-fg-secondary leading-relaxed">
-            Each of the 6 guided lessons takes 45–60 minutes. Students work entirely in their browser — nothing to install. Projects are saved automatically. Students can share their work with a public link. Teachers can see activity in the admin dashboard.
+            Each weekly lesson takes 45–60 minutes. Students work entirely in their browser — Python runs right there, nothing to install. Projects are saved automatically. Teachers can see activity and review homework in the admin dashboard.
           </p>
           <ul className="mt-5 space-y-2.5 text-sm text-fg-secondary">
             {[
               'No account setup for students — just a school email',
               'AI is in tutor mode by default — it guides, never solves for you',
-              'All student work is private by default; students choose to share',
+              'Homework is checked by the platform and reviewed by the teacher',
               'Works on any device with a modern browser',
             ].map(item => (
               <li key={item} className="flex items-start gap-2">

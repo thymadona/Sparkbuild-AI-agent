@@ -63,12 +63,12 @@ describe('lesson progress API', () => {
   it('loads progress only after confirming the project belongs to the student', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
-    await setLessonProgress(project.id, ['identity'], new Date().toISOString())
+    await setLessonProgress(project.id, ['first-words'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
 
     const res = await GET(new Request('http://localhost'), props(project.id))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
+    expect(await res.json()).toEqual({ completedTaskIds: ['first-words'] })
   })
 
   it('rejects task IDs that do not belong to the lesson', async () => {
@@ -88,7 +88,7 @@ describe('lesson progress API', () => {
     const project = await makeProject(owner.id)
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const res = await PUT(request({ completedTaskIds: ['identity'] }), props(project.id))
+    const res = await PUT(request({ completedTaskIds: ['first-words'] }), props(project.id))
     expect(res.status).toBe(409)
     expect((await res.json()).error).toMatch(/complete endpoint/i)
 
@@ -99,12 +99,12 @@ describe('lesson progress API', () => {
   it('clears progress, and drops tasks without adding any', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
-    await setLessonProgress(project.id, ['identity', 'interests'], new Date().toISOString())
+    await setLessonProgress(project.id, ['first-words', 'name-tag'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const shrunk = await PUT(request({ completedTaskIds: ['identity', 'identity'] }), props(project.id))
+    const shrunk = await PUT(request({ completedTaskIds: ['first-words', 'first-words'] }), props(project.id))
     expect(shrunk.status).toBe(200)
-    expect(await shrunk.json()).toEqual({ completedTaskIds: ['identity'] })
+    expect(await shrunk.json()).toEqual({ completedTaskIds: ['first-words'] })
 
     const reset = await PUT(request({ completedTaskIds: [] }), props(project.id))
     expect(reset.status).toBe(200)
@@ -125,14 +125,14 @@ describe('lesson progress API', () => {
     const owner = await makeUser()
     const intruder = await makeUser()
     const project = await makeProject(owner.id)
-    await setLessonProgress(project.id, ['identity'], new Date().toISOString())
+    await setLessonProgress(project.id, ['first-words'], new Date().toISOString())
 
     mockGetSessionUser.mockResolvedValue(intruder)
     expect((await PUT(request({ completedTaskIds: [] }), props(project.id))).status).toBe(404)
 
     mockGetSessionUser.mockResolvedValue(owner)
     const res = await GET(new Request('http://localhost'), props(project.id))
-    expect(await res.json()).toEqual({ completedTaskIds: ['identity'] })
+    expect(await res.json()).toEqual({ completedTaskIds: ['first-words'] })
   })
 
   // The streak is credit for doing work. Clearing progress is not work, and
@@ -141,7 +141,7 @@ describe('lesson progress API', () => {
   it('never records a day of activity, even for the owner', async () => {
     const owner = await makeUser()
     const project = await makeProject(owner.id)
-    await setLessonProgress(project.id, ['identity'], new Date().toISOString())
+    await setLessonProgress(project.id, ['first-words'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
 
     await PUT(request({ completedTaskIds: [] }), props(project.id))

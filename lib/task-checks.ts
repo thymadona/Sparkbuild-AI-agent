@@ -1,29 +1,14 @@
 // Executable versions of a lesson task's `success` sentence.
 //
-// A task is only "done" when the student's file actually shows the change.
-// Checks are deliberately shape-tolerant: they compare against the template
-// default rather than demanding an exact answer, because there is no single
-// right answer to "name your goal".
+// A task is only "done" when the student's program actually shows the change.
+// Checks are deliberately shape-tolerant: they match the source loosely or run
+// it, rather than demanding exact words, because there is no single right
+// answer to "give Sparky a name".
 //
-// Every check fails OPEN when it cannot run (no DOM available, bad pattern).
-// A broken check must never dead-end an 8-year-old.
+// Every check fails OPEN when it cannot run (bad pattern). A broken check must
+// never dead-end a child.
 
 export type TaskCheck =
-  | {
-      // An element's visible text must differ from the starter template text.
-      kind: 'textChanged'
-      label: string
-      hint: string
-      selector: string
-      from: string
-    }
-  | {
-      // A starter string must no longer appear anywhere in the file.
-      kind: 'sourceOmits'
-      label: string
-      hint: string
-      snippet: string
-    }
   | {
       // The file must contain at least `min` matches of a pattern.
       kind: 'sourceMatches'
@@ -87,38 +72,12 @@ export interface TaskCheckResult {
   passed: boolean
 }
 
-function normalize(text: string) {
-  return text.replace(/\s+/g, ' ').trim().toLowerCase()
-}
-
-function parseDocument(code: string): Document | null {
-  if (typeof DOMParser === 'undefined') return null
-  try {
-    return new DOMParser().parseFromString(code, 'text/html')
-  } catch {
-    return null
-  }
-}
-
-function evaluate(check: TaskCheck, code: string, doc: Document | null, verdict: boolean | undefined): boolean {
+function evaluate(check: TaskCheck, code: string, verdict: boolean | undefined): boolean {
   switch (check.kind) {
     case 'outputContains':
     case 'worldContains':
     case 'callReturns':
       return verdict ?? false
-    case 'textChanged': {
-      if (!doc) return true
-      const element = doc.querySelector(check.selector)
-      if (!element) return false
-      const current = normalize(element.textContent ?? '')
-      return current.length > 0 && current !== normalize(check.from)
-    }
-    case 'sourceOmits': {
-      // An emptied file trivially "omits" the starter snippet — require the
-      // file to still hold real content, not just the snippet's absence.
-      const normalized = normalize(code)
-      return normalized.length > 0 && !normalized.includes(normalize(check.snippet))
-    }
     case 'sourceMatches': {
       const flags = check.flags?.includes('g') ? check.flags : `${check.flags ?? ''}g`
       try {
@@ -137,12 +96,10 @@ export function runTaskChecks(
   runtime: RuntimeVerdicts = [],
 ): TaskCheckResult[] {
   if (!checks?.length) return []
-  const needsDom = checks.some((check) => check.kind === 'textChanged')
-  const doc = needsDom ? parseDocument(code) : null
   return checks.map((check, i) => ({
     label: check.label,
     hint: check.hint,
-    passed: evaluate(check, code, doc, runtime[i]),
+    passed: evaluate(check, code, runtime[i]),
   }))
 }
 
@@ -155,9 +112,8 @@ export function firstUnmetCheck(results: TaskCheckResult[]) {
 }
 
 // Every line the student actually needs to touch for a task: the anchor
-// comment plus one line per check whose target text/pattern is found in the
-// raw source. A check whose target isn't found (e.g. textChanged.from split
-// across tags) just contributes nothing — same fail-open spirit as evaluate().
+// comment plus every line a static check's pattern matches. A pattern that
+// matches nothing just contributes nothing — same fail-open spirit as evaluate().
 export function highlightLinesForTask(code: string, commentAnchor: string, checks?: TaskCheck[]): number[] {
   const lines = code.split('\n')
   const found = new Set<number>()
@@ -166,17 +122,7 @@ export function highlightLinesForTask(code: string, commentAnchor: string, check
   if (anchorLine >= 0) found.add(anchorLine + 1)
 
   for (const check of checks ?? []) {
-    if (check.kind === 'textChanged') {
-      // check.from is DOM textContent, but the source line it came from
-      // usually wraps part of it in an inline tag (e.g. <span>) — strip tags
-      // and normalize the same way evaluate() does before comparing.
-      const needle = normalize(check.from)
-      const idx = lines.findIndex((line) => normalize(line.replace(/<[^>]+>/g, '')).includes(needle))
-      if (idx >= 0) found.add(idx + 1)
-    } else if (check.kind === 'sourceOmits') {
-      const idx = lines.findIndex((line) => line.includes(check.snippet))
-      if (idx >= 0) found.add(idx + 1)
-    } else if (check.kind === 'sourceMatches') {
+    if (check.kind === 'sourceMatches') {
       lines.forEach((line, i) => {
         try {
           if (new RegExp(check.pattern, check.flags).test(line)) found.add(i + 1)

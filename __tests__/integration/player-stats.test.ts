@@ -30,9 +30,9 @@ describe('getPlayerStats', () => {
     expect(stats.level.name).toBe('Rookie')
   })
 
-  it('ignores HTML-course projects', async () => {
+  it('ignores projects from the retired web course', async () => {
     const user = await makeUser()
-    const p = await makeProject(user.id) // lesson 1, v2
+    const p = await makeProject(user.id, { lessonId: 1, lessonVersion: 2, files: { 'index.html': '' } })
     await db.insert(lessonProgress).values({ projectId: p.id, completedTaskIds: ['identity'] })
     expect((await getPlayerStats(user.id)).xp).toBe(0)
   })

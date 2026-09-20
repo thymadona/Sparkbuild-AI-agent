@@ -7,7 +7,6 @@ import Logo from './Logo'
 
 const LINKS = [
   { href: '/lessons', label: 'Lessons' },
-  { href: '/explore', label: 'Explore' },
 ]
 
 interface NavbarProps {

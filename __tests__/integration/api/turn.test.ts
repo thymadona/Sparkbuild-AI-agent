@@ -8,7 +8,7 @@ const mockCreate = jest.fn()
 jest.mock('@/lib/auth/session', () => ({ getSessionUser: () => mockGetSessionUser() }))
 jest.mock('@/lib/ratelimit', () => ({ checkRateLimit: (...a: unknown[]) => mockCheckRateLimit(...a) }))
 jest.mock('@/lib/auth/permissions', () => ({ isAdmin: async () => false, isTeacher: async () => false }))
-jest.mock('@/lib/gemini', () => ({ deepseek: { chat: { completions: { create: (...a: unknown[]) => mockCreate(...a) } } }, MODEL: 'm' }))
+jest.mock('@/lib/deepseek', () => ({ deepseek: { chat: { completions: { create: (...a: unknown[]) => mockCreate(...a) } } }, MODEL: 'm' }))
 jest.mock('next/headers', () => ({ cookies: () => ({ getAll: () => [], set: jest.fn() }) }))
 
 import { eq } from 'drizzle-orm'
@@ -98,7 +98,7 @@ describe('POST /api/projects/[id]/turn', () => {
     const saved = row.board as { nodes: Record<string, { source?: string; stdout?: string }> }
     expect(saved.nodes.c1.source).toBe('print("hi")')
     expect(saved.nodes.out_c1.stdout).toBe('hi\n')
-    expect((row.files as Record<string, string>)['index.html']).toBe('print("hi")') // share/fork read files, not the board
+    expect((row.files as Record<string, string>)['main.py']).toBe('print("hi")') // homework review reads files, not the board
     expect(JSON.stringify(mockCreate.mock.calls[0][0].messages.at(-1))).toContain('code_run')
 
     expect((await post(project.id, { ...run, nodeId: 'nope' })).status).toBe(400)

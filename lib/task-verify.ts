@@ -1,15 +1,8 @@
-import { JSDOM } from 'jsdom'
 import type { LessonTask } from '@/lib/lessons'
 import type { BoardState } from '@/lib/board/reducer'
 import { boardCode, pageCode } from '@/lib/board/code'
 import { taskPageId } from '@/lib/board/tasks'
 import { isRuntimeCheck, runTaskChecks, type RuntimeVerdicts, type TaskCheckResult } from '@/lib/task-checks'
-
-// textChanged compares rendered text, so it needs a DOM the Node runtime does
-// not have. Without this the check would fail open and wave work through.
-if (typeof DOMParser === 'undefined') {
-  globalThis.DOMParser = new JSDOM().window.DOMParser as unknown as typeof DOMParser
-}
 
 // The code a task is judged on, read from what the server has persisted — never
 // from anything the caller sent. A task owns one board page, so that page's

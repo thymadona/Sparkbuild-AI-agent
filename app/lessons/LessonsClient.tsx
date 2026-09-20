@@ -3,10 +3,9 @@
 import PlayerCard from '@/components/PlayerCard'
 import type { PlayerStats } from '@/lib/xp'
 import { fetchLessonFiles } from '@/lib/lesson-files'
-import { CURRENT_LESSON_VERSION, Lesson } from '@/lib/lessons'
+import type { Lesson } from '@/lib/lessons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import Link from 'next/link'
 import { Check, Compass, Lock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 
@@ -42,29 +41,28 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
   async function handleStart(lesson: Lesson) {
     const existingProjectId = projectByLessonId.get(lesson.id)
     if (existingProjectId) {
-      router.push(`/editor/${existingProjectId}`)
+      router.push(`/board/${existingProjectId}`)
       return
     }
 
     setLoadingId(lesson.id)
     setError(null)
     try {
-      const { templateHtml, extraFiles } = await fetchLessonFiles(lesson)
+      const { starter, extraFiles } = await fetchLessonFiles(lesson)
 
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: lesson.title,
-          templateHtml,
+          starter,
           extraFiles,
           lessonId: lesson.id,
-          lessonVersion: CURRENT_LESSON_VERSION,
         }),
       })
       if (!res.ok) throw new Error('Failed to create project')
       const data = await res.json()
-      router.push(`/editor/${data.id}`)
+      router.push(`/board/${data.id}`)
     } catch {
       setError('Something went wrong. Please try again.')
       setLoadingId(null)
@@ -178,16 +176,6 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
           {/* Sidebar */}
           <div className="space-y-5">
             {stats && <PlayerCard stats={stats} />}
-            <div className={`rounded-2xl border border-border/60 bg-tint-sage p-5 text-fg-primary`}>
-              <h3 className="font-display text-base font-bold">Need inspiration?</h3>
-              <p className="mt-2 text-sm">Browse what other students built and remix an idea for your own project.</p>
-              <Link
-                href="/explore"
-                className="mt-4 btn-primary"
-              >
-                Browse Explore →
-              </Link>
-            </div>
           </div>
         </div>
     </AppShell>

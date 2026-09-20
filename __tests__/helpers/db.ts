@@ -98,8 +98,8 @@ export async function makeMessages(
   await db.insert(messages).values(turns.map((turn) => ({ projectId, userId, ...turn })))
 }
 
-/** Creates a project owned by `userId`. Defaults to a lesson-1 project on the
- *  HTML catalog (v2): most route tests predate the Python course. */
+/** Creates a project owned by `userId`. Defaults to week 1 of the Python
+ *  course with an empty main.py. */
 export async function makeProject(
   userId: string,
   overrides: Partial<typeof projects.$inferInsert> = {}
@@ -109,9 +109,9 @@ export async function makeProject(
     .values({
       userId,
       title: `Project ${uniq()}`,
-      files: { 'index.html': '<!doctype html>' },
-      lessonId: 1,
-      lessonVersion: 2,
+      files: { 'main.py': '' },
+      lessonId: 101,
+      lessonVersion: 3,
       ...overrides,
     })
     .returning()

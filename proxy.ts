@@ -32,7 +32,6 @@ export async function proxy(request: NextRequest) {
 
   const isProtected =
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/editor') ||
     pathname.startsWith('/board') ||
     pathname.startsWith('/profile')
   const isAdminPath = pathname.startsWith('/admin')
@@ -118,8 +117,7 @@ export const config = {
      * - favicon.ico
      * - /api/auth (Better Auth's own endpoints — the OAuth callback must be
      *   reachable without a session, or sign-in can never complete)
-     * - /share (public share pages)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/auth|share).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
   ],
 }

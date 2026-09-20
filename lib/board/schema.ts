@@ -8,7 +8,7 @@ const base = {
   createdBy: z.enum(['tutor', 'student', 'system']),
 }
 
-export const Lang = z.enum(['python', 'javascript', 'html'])
+export const Lang = z.enum(['python'])
 
 export const TraceStep = z.object({
   line: z.number().int().positive(),

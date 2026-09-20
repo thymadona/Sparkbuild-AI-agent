@@ -26,7 +26,7 @@ jest.mock('@uiw/react-codemirror', () => {
 })
 
 
-const STARTER = '<h1>My reading streak.</h1>'
+const STARTER = 'print("beep boop")'
 
 function type(value: string) {
   fireEvent.change(screen.getByTestId('code-input'), { target: { value } })
@@ -40,14 +40,14 @@ describe('CodeEditor autosave', () => {
     const onChange = jest.fn()
     render(<CodeEditor code={STARTER} onSave={jest.fn()} onChange={onChange} saveState="saved" />)
 
-    type('<h1>My piano')
-    type('<h1>My piano streak.</h1>')
+    type('print("hello')
+    type('print("hello world")')
     expect(onChange).not.toHaveBeenCalled()
 
     act(() => { jest.advanceTimersByTime(300) })
 
     expect(onChange).toHaveBeenCalledTimes(1)
-    expect(onChange).toHaveBeenCalledWith('<h1>My piano streak.</h1>')
+    expect(onChange).toHaveBeenCalledWith('print("hello world")')
   })
 
   it('shows save status instead of a Save button when autosaving', () => {
@@ -70,19 +70,19 @@ describe('CodeEditor autosave', () => {
     const onSave = jest.fn()
     render(<CodeEditor code={STARTER} onSave={onSave} onChange={jest.fn()} saveState="dirty" />)
 
-    type('<h1>Done early</h1>')
+    type('print("Done early")')
     fireEvent.keyDown(screen.getByTestId('code-input'), { key: 's', ctrlKey: true })
 
-    expect(onSave).toHaveBeenCalledWith('<h1>Done early</h1>')
+    expect(onSave).toHaveBeenCalledWith('print("Done early")')
   })
 
   it('adopts an AI generation that arrives while the editor stays mounted', () => {
     const onChange = jest.fn()
     const { rerender } = render(<CodeEditor code={STARTER} onSave={jest.fn()} onChange={onChange} saveState="saved" />)
 
-    rerender(<CodeEditor code="<h1>AI wrote this</h1>" onSave={jest.fn()} onChange={onChange} saveState="saved" />)
+    rerender(<CodeEditor code='print("AI wrote this")' onSave={jest.fn()} onChange={onChange} saveState="saved" />)
 
-    expect(screen.getByTestId('code-input')).toHaveValue('<h1>AI wrote this</h1>')
+    expect(screen.getByTestId('code-input')).toHaveValue('print("AI wrote this")')
   })
 
   it('does not let a pending keystroke echo overwrite an AI generation that lands first', () => {
@@ -90,29 +90,29 @@ describe('CodeEditor autosave', () => {
     const { rerender } = render(<CodeEditor code={STARTER} onSave={jest.fn()} onChange={onChange} saveState="saved" />)
 
     // Student types, but the 300ms live-echo timer hasn't fired yet.
-    type('<h1>Half typed</h1>')
+    type('print("Half typed")')
 
     // An AI generation for this file arrives before that timer fires (e.g. split view).
-    rerender(<CodeEditor code="<h1>AI wrote this</h1>" onSave={jest.fn()} onChange={onChange} saveState="saved" />)
+    rerender(<CodeEditor code='print("AI wrote this")' onSave={jest.fn()} onChange={onChange} saveState="saved" />)
 
     // The stale timer from the earlier keystroke must not fire and clobber it.
     act(() => { jest.advanceTimersByTime(300) })
 
     expect(onChange).not.toHaveBeenCalled()
-    expect(screen.getByTestId('code-input')).toHaveValue('<h1>AI wrote this</h1>')
+    expect(screen.getByTestId('code-input')).toHaveValue('print("AI wrote this")')
   })
 
   it('does not fight the student while they are typing', () => {
     const onChange = jest.fn()
     const { rerender } = render(<CodeEditor code={STARTER} onSave={jest.fn()} onChange={onChange} saveState="saved" />)
 
-    type('<h1>Half typed')
+    type('print("Half typed')
     act(() => { jest.advanceTimersByTime(300) })
 
     // The parent echoes our own value back as the new `code` prop.
-    rerender(<CodeEditor code="<h1>Half typed" onSave={jest.fn()} onChange={onChange} saveState="saved" />)
-    type('<h1>Half typed and more</h1>')
+    rerender(<CodeEditor code='print("Half typed' onSave={jest.fn()} onChange={onChange} saveState="saved" />)
+    type('print("Half typed and more")')
 
-    expect(screen.getByTestId('code-input')).toHaveValue('<h1>Half typed and more</h1>')
+    expect(screen.getByTestId('code-input')).toHaveValue('print("Half typed and more")')
   })
 })

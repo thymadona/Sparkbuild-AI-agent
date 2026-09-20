@@ -3,7 +3,7 @@
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import LessonDetailClient from '@/app/lessons/[id]/LessonDetailClient'
-import { CURRENT_LESSON_VERSION, type Lesson } from '@/lib/lessons'
+import type { Lesson } from '@/lib/lessons'
 
 const push = jest.fn()
 
@@ -12,10 +12,11 @@ jest.mock('next/navigation', () => ({
 }))
 
 const lesson: Lesson = {
-  id: 1,
-  title: 'Week #1 — Personal Page',
-  description: 'Make a page.',
-  templateFile: 'personal-page.html',
+  id: 101,
+  title: 'Week #1 — Wake the Robot',
+  description: 'Wake Sparky up.',
+  templateFile: 'py/w1.py',
+  starterFile: 'main.py',
   tasks: [],
 }
 
@@ -30,21 +31,21 @@ describe('LessonDetailClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume lesson' }))
 
-    expect(push).toHaveBeenCalledWith('/editor/existing-project')
+    expect(push).toHaveBeenCalledWith('/board/existing-project')
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
   it('creates a project for a first-time lesson', async () => {
     ;(global.fetch as jest.Mock)
-      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('<html>template</html>') })
+      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print("beep boop")') })
       .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ id: 'new-project' }) })
 
     render(<LessonDetailClient lesson={lesson} existingProjectId={null} />)
     fireEvent.click(screen.getByRole('button', { name: 'Start lesson' }))
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/editor/new-project'))
-    expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/personal-page.html')
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
+    expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/py/w1.py')
     expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects', expect.objectContaining({ method: 'POST' }))
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 1, lessonVersion: CURRENT_LESSON_VERSION })
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 101, starter: 'print("beep boop")' })
   })
 })

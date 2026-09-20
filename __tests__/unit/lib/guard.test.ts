@@ -10,7 +10,7 @@ const BASE: GuardInput = {
 }
 
 describe('decideGuard — unauthenticated', () => {
-  it.each(['/dashboard', '/editor/1', '/profile', '/admin', '/teacher', '/staff'])(
+  it.each(['/dashboard', '/board/1', '/profile', '/admin', '/teacher', '/staff'])(
     'redirects to /login for %s',
     (pathname) => {
       expect(decideGuard({ ...BASE, pathname, user: null })).toEqual({ redirect: '/login' })
@@ -18,7 +18,7 @@ describe('decideGuard — unauthenticated', () => {
   )
 
   it('allows an unguarded path through', () => {
-    expect(decideGuard({ ...BASE, pathname: '/explore', user: null })).toBeNull()
+    expect(decideGuard({ ...BASE, pathname: '/about', user: null })).toBeNull()
   })
 })
 
@@ -42,8 +42,8 @@ describe('decideGuard — needs class assignment', () => {
     })
   })
 
-  it('redirects on /editor too', () => {
-    expect(decideGuard({ ...BASE, pathname: '/editor/1', needsClassAssignment: true })).toEqual({
+  it('redirects on /board too', () => {
+    expect(decideGuard({ ...BASE, pathname: '/board/1', needsClassAssignment: true })).toEqual({
       redirect: '/no-class',
     })
   })

@@ -6,11 +6,10 @@ import { nodeTrace } from '@/__tests__/helpers/pyodide'
 
 jest.setTimeout(60_000)
 
-const boardWithCode = (language = 'python'): BoardState =>
-  [
-    { op: 'new_page', pageId: 'p1', title: 'One' },
-    { op: 'add', pageId: 'p1', node: { id: 'c1', parentId: null, createdBy: 'tutor', type: 'code', language, source: 'x = 1', editable: true, highlightLines: [] } },
-  ].reduce((b, op) => apply(b, op), emptyBoard())
+const codeNode = (language = 'python') =>
+  ({ op: 'add', pageId: 'p1', node: { id: 'c1', parentId: null, createdBy: 'tutor', type: 'code', language, source: 'x = 1', editable: true, highlightLines: [] } })
+const boardWithCode = (): BoardState =>
+  [{ op: 'new_page', pageId: 'p1', title: 'One' }, codeNode()].reduce((b, op) => apply(b, op), emptyBoard())
 
 describe('_trace (real Pyodide)', () => {
   it('records each line with the variables as they were before it ran', async () => {
@@ -74,8 +73,8 @@ describe('request_trace tool', () => {
     expect(await run(boardWithCode(), 'c1')).toContainEqual({ type: 'trace.request', nodeId: 'c1' })
   })
 
-  it('refuses other languages and unknown nodes without a request', async () => {
-    expect((await run(boardWithCode('javascript'), 'c1')).some((e) => e.type === 'trace.request')).toBe(false)
+  it('refuses unknown nodes without a request, and the board refuses non-Python code nodes outright', async () => {
     expect((await run(boardWithCode(), 'zzz')).some((e) => e.type === 'trace.request')).toBe(false)
+    expect(() => apply(apply(emptyBoard(), { op: 'new_page', pageId: 'p1', title: 'One' }), codeNode('javascript'))).toThrow(/python/)
   })
 })

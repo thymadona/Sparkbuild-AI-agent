@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LessonTask } from '@/lib/lessons'
 import { isRuntimeCheck, type RuntimeVerdicts } from '@/lib/task-checks'
 import { runPythonChecks } from '@/lib/python-checks'
@@ -12,8 +12,6 @@ export interface RuntimeChecks {
   taskId: string
   verdicts: RuntimeVerdicts
 }
-
-export const RuntimeChecksContext = createContext<RuntimeChecks | null>(null)
 
 // Runs the active task's Python checks a moment after the student stops
 // typing. Returns verdicts tagged with the task they belong to, so a stale

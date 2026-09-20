@@ -14,7 +14,6 @@ import {
   receipts,
   sessions,
   studentProfiles,
-  userBuildMode,
   users as usersTable,
 } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
@@ -23,7 +22,6 @@ import DeactivateToggle from '@/components/admin/DeactivateToggle'
 import EditStudentModal from '@/components/admin/EditStudentModal'
 import CreateInvoiceModal from '@/components/admin/CreateInvoiceModal'
 import AddToClassModal from '@/components/admin/AddToClassModal'
-import BuildModeToggle from '@/components/BuildModeToggle'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -57,7 +55,6 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
     allClasses,
     promptCount,
     projectCount,
-    buildModeRows,
   ] = await Promise.all([
     // Replaces the Supabase Auth admin user lookup. Sign-in provider comes from
     // the linked OAuth account, and "last signed in" from the newest session
@@ -123,18 +120,12 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       .orderBy(asc(classesTable.name)),
     db.$count(prompts, eq(prompts.userId, userId)),
     db.$count(projects, eq(projects.userId, userId)),
-    db
-      .select({ enabled: userBuildMode.enabled })
-      .from(userBuildMode)
-      .where(eq(userBuildMode.userId, userId))
-      .limit(1),
   ])
 
   const user = accountRow[0]
   if (!user) notFound()
 
   const profile = profileRows[0] ?? null
-  const buildMode = buildModeRows[0] ?? null
 
   // Newest session stands in for the old auth.users.last_sign_in_at.
   const [lastSession] = await db
@@ -281,10 +272,6 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
             <div>
               <span className="text-muted-foreground">Projects</span>
               <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">{projectCount ?? 0}</p>
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-muted-foreground">Build mode</span>
-              <BuildModeToggle userId={userId} initialEnabled={buildMode?.enabled === true} />
             </div>
           </div>
         </CardContent>

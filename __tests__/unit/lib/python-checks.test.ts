@@ -72,7 +72,7 @@ describe('callReturns', () => {
 
 describe('runPythonChecks', () => {
   it('leaves static checks undefined so indexes line up', async () => {
-    const static_: TaskCheck = { kind: 'sourceOmits', label: 's', hint: 'h', snippet: 'x' }
+    const static_: TaskCheck = { kind: 'sourceMatches', label: 's', hint: 'h', pattern: 'x' }
     expect(await verdicts([static_, say('a')], 'print("a")')).toEqual([undefined, true])
   })
 

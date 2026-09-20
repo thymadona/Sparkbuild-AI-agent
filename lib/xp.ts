@@ -1,4 +1,4 @@
-import { LESSON_CATALOGS, type Lesson, type LessonTask } from './lessons'
+import { getLessonForProject, type Lesson, type LessonTask } from './lessons'
 
 // The game layer. XP, levels and badges are pure functions of the student's
 // saved task progress and the lesson catalog, so there is nothing to store or
@@ -9,9 +9,6 @@ import { LESSON_CATALOGS, type Lesson, type LessonTask } from './lessons'
 
 export const XP_PER_TASK = { core: 10, choice: 15, bonus: 20, homework: 15 } as const
 export const XP_BOSS = 40
-
-// The HTML course predates the game layer, so only the Python course earns XP.
-const FIRST_XP_VERSION = 3
 
 export const LEVELS = [
   { name: 'Rookie', xp: 0 },
@@ -35,8 +32,9 @@ export interface ProgressRow {
 function doneByLesson(rows: ProgressRow[]) {
   const done = new Map<string, { lesson: Lesson; ids: Set<string> }>()
   for (const row of rows) {
-    if (row.lessonId === null || row.lessonVersion === null || row.lessonVersion < FIRST_XP_VERSION) continue
-    const lesson = LESSON_CATALOGS[row.lessonVersion]?.find((l) => l.id === row.lessonId)
+    // Progress rows from the retired web course resolve to no lesson and earn nothing.
+    if (row.lessonId === null) continue
+    const lesson = getLessonForProject(row.lessonId, row.lessonVersion)
     if (!lesson) continue
     const key = `${row.lessonVersion}:${row.lessonId}`
     const entry = done.get(key) ?? { lesson, ids: new Set<string>() }
