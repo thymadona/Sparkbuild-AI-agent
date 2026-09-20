@@ -20,7 +20,7 @@ interface NavigatorProps {
 }
 
 export default function Navigator({ lesson, code, progress, classSlots = [], onShowTaskLocation }: NavigatorProps) {
-  const { done, activeIndex, activeTask, isSaving, saveError, submission, isSubmitting, submitError, activateTask, markDone, submitHomework } = progress
+  const { done, activeIndex, activeTask, isSaving, saveError, submission, isSubmitting, submitError, markDone, submitHomework } = progress
   const [homeworkOpen, setHomeworkOpen] = useState(false)
 
   const coreTasks = lesson.tasks.filter((task) => task.type === 'core')
@@ -92,16 +92,14 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
             const locked = isTaskLocked(lesson.tasks, index, done)
             const isActive = activeIndex === index && !isDone
             return (
-              <button
+              <div
                 key={task.id}
-                onClick={() => activateTask(index)}
-                disabled={isDone || locked}
-                className={`flex items-start gap-2 rounded-lg border-2 px-2.5 py-2 text-left transition-all disabled:cursor-default ${SCALE.chip} ${
+                className={`flex items-start gap-2 rounded-lg border-2 px-2.5 py-2 text-left transition-all ${SCALE.chip} ${
                   isDone || locked
                     ? 'border-surface-600 bg-transparent text-fg-muted opacity-60'
                     : isActive
                       ? 'border-brand-500 bg-surface-800 text-fg-primary shadow-hard-sm'
-                      : 'border-surface-600 bg-surface-700/60 text-fg-muted shadow-hard-sm hover:bg-surface-700 hover:text-fg-secondary'
+                      : 'border-surface-600 bg-surface-700/60 text-fg-muted shadow-hard-sm'
                 }`}
               >
                 <span className={`mt-0.5 shrink-0 flex items-center justify-center rounded-full font-bold h-5 w-5 text-[11px] border-2 ${
@@ -124,7 +122,7 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
                   <span className={`block ${SCALE.label} text-fg-muted`}>{taskLabel(task)}</span>
                   <span className={isDone ? 'line-through' : ''}>{task.chip}</span>
                 </span>
-              </button>
+              </div>
             )
           })}
         </div>
@@ -138,7 +136,7 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
           <button
             onClick={() => coreComplete && setHomeworkOpen(true)}
             disabled={!coreComplete}
-            className="flex items-center justify-between gap-2 rounded-lg border-2 border-surface-600 bg-surface-700/60 px-3 py-2 text-left shadow-hard-sm transition-all disabled:cursor-default disabled:opacity-60 enabled:hover:bg-surface-700 enabled:active:translate-x-0.5 enabled:active:translate-y-0.5 enabled:active:shadow-none"
+            className="flex items-center justify-between gap-2 rounded-lg border-2 border-surface-600 bg-surface-700/60 px-3 py-2 text-left shadow-hard-sm transition-all disabled:opacity-60 enabled:hover:bg-surface-700 enabled:active:translate-x-0.5 enabled:active:translate-y-0.5 enabled:active:shadow-none"
           >
             <span className="flex min-w-0 items-center gap-2">
               <svg className="h-4 w-4 shrink-0 text-fg-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -194,21 +192,19 @@ export default function Navigator({ lesson, code, progress, classSlots = [], onS
                   const isDone = done.has(task.id)
                   const isActive = activeIndex === index && !isDone
                   return (
-                    <button
+                    <div
                       key={task.id}
-                      onClick={() => activateTask(index)}
-                      disabled={isDone}
-                      className={`flex items-start gap-2 rounded-lg border-2 px-2.5 py-2 text-left ${SCALE.check} transition-all disabled:cursor-default ${
+                      className={`flex items-start gap-2 rounded-lg border-2 px-2.5 py-2 text-left ${SCALE.check} transition-all ${
                         isDone
                           ? 'border-surface-600 text-fg-muted opacity-60'
                           : isActive
                             ? 'border-brand-500 bg-surface-900 text-fg-primary shadow-hard-sm'
-                            : 'border-surface-600 bg-surface-900/60 text-fg-muted shadow-hard-sm hover:bg-surface-900 hover:text-fg-secondary'
+                            : 'border-surface-600 bg-surface-900/60 text-fg-muted shadow-hard-sm'
                       }`}
                     >
                       <span aria-hidden="true">{isDone ? '✓' : '○'}</span>
                       <span className={isDone ? 'line-through' : ''}>{task.chip.replace(/^Homework: /, '')}</span>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
