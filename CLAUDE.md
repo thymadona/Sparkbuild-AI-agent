@@ -108,7 +108,7 @@ Two consequences of Postgres being reached directly rather than through PostgRES
 
 Never import `db` into a Client Component.
 
-**Naming: camelCase in TypeScript, snake_case in Postgres.** Every column in `lib/db/schema.ts`
+**Naming: camelCase in TypeScript, snake_case in Postgres.** Every column in `lib/db/schemas/*.ts`
 carries an explicit name string — `userId: uuid('user_id')` — so the two sides are decoupled and
 renaming a property is DDL-neutral (`bun run db:generate` must report "No schema changes"). Do
 **not** adopt drizzle-kit's `casing: 'snake_case'` option and drop those strings: with it the DDL
@@ -119,7 +119,9 @@ Components all see one shape. This outlived PostgREST on purpose: flipping ~60 r
 `types/index.ts` and every client component to camelCase is its own change, not a rider on the
 data-client swap. `./drizzle` (applied via `bun run db:migrate`) is the schema of record:
 `./drizzle` (applied via `bun run db:migrate`) is the schema of record — `supabase/migrations/`
-no longer exists. Workflow for a schema change: edit `lib/db/schema.ts` first, run
+no longer exists. Workflow for a schema change: edit the table's file in `lib/db/schemas/` first (one
+table per file; `lib/db/schema.ts` is only the barrel that re-exports them, and a **new table
+needs an `export *` line there** or `db:generate` never sees it), run
 `bun run db:generate` (diffs against the snapshot in `./drizzle`, safe — see below) to derive
 DDL into `./drizzle`, hand-add whatever Drizzle's DSL can't express (RLS policies, grants,
 security-definer functions, data backfills — `drizzle-kit generate --custom` for those), then
@@ -417,7 +419,7 @@ persistence logic. `jest.config.ts` pins `maxWorkers: 1`: every database-backed 
 and unrelated suites fail at random. Run focused tests during
 development, then `bun run test` before opening a pull request.
 
-Schema changes go through `lib/db/schema.ts` → `bun run db:generate` → `./drizzle` → `bun run
+Schema changes go through `lib/db/schemas/*.ts` → `bun run db:generate` → `./drizzle` → `bun run
 db:migrate` — see the Drizzle paragraph above and `drizzle/README.md`. On a fresh database,
 `bun run db:migrate` alone applies the full migration history from `./drizzle`.
 
@@ -437,7 +439,7 @@ when available, and include screenshots for visible UI changes.
 | Tutor turn (LLM + board tools)               | `app/api/projects/[id]/turn/route.ts`, `lib/tutor/`  |
 | Project CRUD                                 | `app/api/projects/route.ts`                         |
 | LLM client                                   | `lib/deepseek.ts` (prompts: `lib/tutor/prompt.ts`)   |
-| Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schema.ts`              |
+| Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schemas/*.ts` (barrel: `lib/db/schema.ts`) |
 | Lesson catalog                               | `lib/lessons.ts`, `lib/py-lessons.ts`, `public/templates/py/` |
 | XP / levels / badges / streak                | `lib/xp.ts`, `lib/player-stats.ts`                  |
 | Task verification (client UI)                | `lib/task-checks.ts`                                |
@@ -445,7 +447,7 @@ when available, and include screenshots for visible UI changes.
 | Board task pages / auto-advance              | `lib/board/tasks.ts`, `hooks/useAutoComplete.ts`    |
 | Rate limiting (Redis + Lua)                  | `lib/ratelimit.ts`                                  |
 | Read caching (Redis)                         | `lib/cache.ts`, `lib/redis.ts`                      |
-| Schema of record                             | `drizzle/` (authored via `lib/db/schema.ts`)         |
+| Schema of record                             | `drizzle/` (authored via `lib/db/schemas/*.ts`)      |
 
 <!-- BEGIN:nextjs-agent-rules -->
 

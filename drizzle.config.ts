@@ -1,8 +1,9 @@
 import { defineConfig } from 'drizzle-kit'
 
 // `./drizzle` (applied via `bun run db:migrate`) is the schema of record and
-// `lib/db/schema.ts` is where it is authored. Workflow for any schema
-// change: edit lib/db/schema.ts first, run `bun run db:generate` to derive
+// `lib/db/schemas/*.ts` (one table per file, re-exported by lib/db/schema.ts
+// — the module named below) is where it is authored. Workflow for any schema
+// change: edit the table's file first, run `bun run db:generate` to derive
 // DDL into `./drizzle`, hand-add whatever the DSL can't express (grants,
 // security-definer functions, data backfills — `drizzle-kit generate
 // --custom` for those), then `bun run db:migrate` to apply. See
@@ -15,7 +16,7 @@ import { defineConfig } from 'drizzle-kit'
 // reproducing on drizzle-kit 0.31.10 — `pull` hangs indefinitely fetching
 // foreign keys, and `push --init`'s baselining also introspects first so it
 // hits the same hang). `generate` doesn't introspect — it only diffs
-// lib/db/schema.ts against the snapshot in `./drizzle` — so it's unaffected
+// lib/db/schema.ts's exports against the snapshot in `./drizzle` — so it's unaffected
 // and is the only way schema changes get authored here.
 //
 // History starts at `0000_baseline.sql`. The nineteen pre-Supabase-cutover
