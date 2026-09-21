@@ -529,27 +529,11 @@ export default function LiveBoard({
     [lesson, progress.done, viewedTask]
   )
 
-  // A choice or bonus the student does not want must not wall off the homework
-  // behind it, and there is no Mark done button to click past it with.
-  const skip = useCallback(
-    (task: LessonTask) => {
-      if (!lesson) return
-      const next = lesson.tasks
-        .slice(lesson.tasks.indexOf(task) + 1)
-        .find((t) => !progress.done.has(t.id))
-      if (!next) return
-      openPageFor(next, pageCode(boardRef.current, taskPageId(task)) ?? undefined)
-      setViewedPageId(taskPageId(next))
-    },
-    [lesson, progress.done, openPageFor]
-  )
-
   const header = useCallback(
     (pageId: string) => {
       const task = taskForPageId(lesson, pageId)
       if (!task) return null
       const showing = task.id === viewedTask?.id
-      const optional = task.type === 'choice' || task.type === 'bonus'
       return (
         <TaskHeader
           task={task}
@@ -559,7 +543,6 @@ export default function LiveBoard({
           done={progress.done.has(task.id)}
           busy={busy}
           error={showing ? progress.saveError : null}
-          onSkip={optional ? () => skip(task) : undefined}
           onStuck={() =>
             void sendRef.current({
               type: 'student_message',
@@ -569,7 +552,7 @@ export default function LiveBoard({
         />
       )
     },
-    [lesson, viewedTask, waiting, progress.done, progress.saveError, checks, busy, skip]
+    [lesson, viewedTask, waiting, progress.done, progress.saveError, checks, busy]
   )
 
   const footer = useCallback(

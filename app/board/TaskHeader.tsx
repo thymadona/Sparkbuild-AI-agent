@@ -17,9 +17,6 @@ interface Props {
   // Concept steps are still showing: there is no editor yet, so nothing to be stuck on.
   waiting?: boolean
   onStuck: () => void
-  // Present on optional tasks only. A choice or bonus a student does not want
-  // must not wall off the homework behind it.
-  onSkip?: () => void
   // A refusal from the server, which has the last word on whether a task is done.
   error?: string | null
   busy: boolean
@@ -39,7 +36,6 @@ export default function TaskHeader({
   done,
   waiting = false,
   onStuck,
-  onSkip,
   error,
   busy,
 }: Props) {
@@ -108,14 +104,6 @@ export default function TaskHeader({
             className="min-h-11 rounded-xl border-2 border-[#2b2118] px-4 text-sm font-bold text-[#2b2118] transition-colors hover:bg-[#e4d3b3] disabled:opacity-50"
           >
             {asked ? 'Asking Spark…' : 'I am stuck — show me'}
-          </button>
-        )}
-        {onSkip && !done && (
-          <button
-            onClick={onSkip}
-            className="min-h-11 rounded-xl px-4 text-sm font-semibold text-[#7a6a52] underline transition-colors hover:text-[#2b2118]"
-          >
-            Skip this one
           </button>
         )}
       </div>
