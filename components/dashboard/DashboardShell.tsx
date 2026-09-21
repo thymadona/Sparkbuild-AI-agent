@@ -202,8 +202,8 @@ export default function DashboardShell({ email, roleLabel, permissions, children
           <span className="truncate text-xs text-muted-foreground max-w-[16rem]">
             {email} · {roleLabel}
           </span>
-          <a
-            href="/dashboard"
+          <Link
+            href="/lessons"
             title="Back to app"
             className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
@@ -217,7 +217,7 @@ export default function DashboardShell({ email, roleLabel, permissions, children
               <path d="M3 12l9-9 9 9" />
               <path d="M5 10v10h14V10" />
             </svg>
-          </a>
+          </Link>
         </header>
         <main className="flex-1 mx-auto w-full max-w-7xl px-8 py-6">{children}</main>
       </div>

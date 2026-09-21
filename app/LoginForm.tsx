@@ -17,7 +17,7 @@ export default function LoginForm() {
     // handles the callback at /api/auth/callback/google.
     const { error } = await authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/dashboard',
+      callbackURL: '/lessons',
     })
 
     if (error) {

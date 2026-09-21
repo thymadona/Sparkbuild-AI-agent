@@ -18,7 +18,7 @@ The app talks to Google directly; there is no Supabase Auth and no `middleware.t
 | `lib/auth/guard.ts`                           | Pure `decideGuard(input): { redirect, params? }                                                                                                                                                                                                                    | null`; no DB, unit-tested directly.                                                                                                                                                                                                   |
 | `proxy.ts`                                    | Next 16 Proxy (Node runtime — setting `runtime` throws). Gathers facts from the DB, calls `decideGuard`, redirects. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, **`api/auth`** (so the OAuth callback completes without a session).             |
 | `app/api/auth/[...all]/route.ts`              | `toNextJsHandler(auth)` — serves `/api/auth/sign-in/social`, `/api/auth/callback/google`, `/api/auth/sign-out`, `/api/auth/get-session`, …                                                                                                                         |
-| `app/login/page.tsx`, `app/register/page.tsx` | Server pages; both render `app/LoginForm.tsx`; redirect to `/dashboard` when already signed in; `/login?reason=deactivated` shows a banner.                                                                                                                        |
+| `app/login/page.tsx`, `app/register/page.tsx` | Server pages; both render `app/LoginForm.tsx`; redirect to `/lessons` when already signed in; `/login?reason=deactivated` shows a banner.                                                                                                                          |
 | `app/no-class/`                               | "Waiting for a class" page for students not in any class.                                                                                                                                                                                                          |
 | `scripts/seed-superadmin.ts`                  | `bun run db:seed:admin`: finds/creates a `users` row for `SUPERADMIN_EMAIL` (`emailVerified: true`, no credential) and grants `admin`. Idempotent. The person claims it by signing in with Google on that address.                                                 |
 | `lib/auth/permissions.ts`                     | Roles/permissions — see the `roles-permissions` skill.                                                                                                                                                                                                             |
@@ -35,11 +35,11 @@ The app talks to Google directly; there is no Supabase Auth and no `middleware.t
 
 ## Sign-in sequence
 
-1. `/login` → `LoginForm` → `authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' })` → POST `/api/auth/sign-in/social` → redirect to Google.
+1. `/login` → `LoginForm` → `authClient.signIn.social({ provider: 'google', callbackURL: '/lessons' })` → POST `/api/auth/sign-in/social` → redirect to Google.
 2. Google → `/api/auth/callback/google` (proxy skips it).
 3. Better Auth finds or links the `accounts` row; creates `users` if new → `user.create.after` → `ensureStudentDefaults`.
 4. `sessions` row inserted → `session.create.after` → `ensureStudentDefaults` again (idempotent).
-5. Redirect to `/dashboard` → `proxy.ts` runs the guard below.
+5. Redirect to `/lessons` → `proxy.ts` runs the guard below.
 
 `ensureStudentDefaults(userId, name)`: returns early if the user holds `admin` or `teacher`;
 otherwise in one transaction upserts `student_profiles { userId, fullName }` and
@@ -51,7 +51,7 @@ identity marker (`roles-permissions`).
 
 Facts gathered per request (only when relevant to the path):
 
-- `/dashboard`, `/board`, `/profile` ("protected"): `student_profiles.is_active` and SQL
+- `/lessons`, `/board`, `/profile` ("protected"): `student_profiles.is_active` and SQL
   `is_enrolled_in_class(user)`. `isDeactivated = profile exists && is_active === false`.
   `needsClassAssignment = profile exists && !enrolled`. **Enrollment fails open** (DB error → treated as enrolled).
 - `/admin`, `/teacher`, `/staff`: SQL `is_admin(user)` and `can_access_teacher_dashboard(user)` (admin-inclusive). **Fail closed** (`=== true` only).
@@ -61,8 +61,8 @@ Facts gathered per request (only when relevant to the path):
 1. No user on any of the above paths → `/login`.
 2. Protected + deactivated → `/login?reason=deactivated`.
 3. Protected + needs class → `/no-class`.
-4. `/admin` and not admin → `/dashboard`.
-5. `/teacher` or `/staff` and no teacher access → `/dashboard`.
+4. `/admin` and not admin → `/lessons`.
+5. `/teacher` or `/staff` and no teacher access → `/lessons`.
 
 A missing `student_profiles` row means "not a student" and passes (staff accounts typically
 have none). `is_enrolled_in_class` is true for admins and teacher-role holders even without

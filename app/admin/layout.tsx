@@ -7,7 +7,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  if (!(await isAdmin(user.id))) redirect('/dashboard')
+  if (!(await isAdmin(user.id))) redirect('/lessons')
 
   return (
     <div className="min-h-screen bg-background text-foreground">

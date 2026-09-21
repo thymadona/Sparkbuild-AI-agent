@@ -85,7 +85,7 @@ export default function LessonsClient({
   const progressPct = Math.round((tasksDone / tasksTotal) * 100)
 
   return (
-    <AppShell userEmail={userEmail} pageTitle="Roadmap">
+    <AppShell userEmail={userEmail} xp={stats?.xp}>
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">

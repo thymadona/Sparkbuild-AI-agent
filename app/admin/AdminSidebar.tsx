@@ -173,12 +173,12 @@ export default function AdminSidebar({ email }: { email: string }) {
       {/* Footer */}
       <div className="border-t border-border px-4 py-3">
         <p className="truncate text-xs text-fg-muted">{email}</p>
-        <a
-          href="/dashboard"
+        <Link
+          href="/lessons"
           className="mt-1 block text-xs text-fg-muted hover:text-muted-foreground transition-colors"
         >
           Back to app
-        </a>
+        </Link>
       </div>
     </aside>
   )

@@ -11,6 +11,8 @@ import { boardFromFiles } from '@/lib/board/code'
 import { lessonFiles } from '@/lib/lesson-files'
 import type { ClassSlot } from '@/lib/schedule'
 import type { SubmissionStatus } from '@/types'
+import { getPlayerStats } from '@/lib/player-stats'
+import { taskXp } from '@/lib/xp'
 import LiveBoard from '../LiveBoard'
 
 interface Props {
@@ -82,6 +84,13 @@ export default async function LiveBoardPage({ params }: Props) {
         )
   }
 
+  // Course-wide XP minus this lesson's share; the client adds the live lesson XP back.
+  const { xp } = await getPlayerStats(user.id)
+  const baseXp = Math.max(
+    0,
+    xp - (lesson?.tasks ?? []).reduce((n, t) => n + (completed.includes(t.id) ? taskXp(t) : 0), 0)
+  )
+
   return (
     <LiveBoard
       projectId={id}
@@ -93,6 +102,7 @@ export default async function LiveBoardPage({ params }: Props) {
       completedTaskIds={completed}
       submission={project.submission as SubmissionStatus | null}
       classSlots={classSlots}
+      baseXp={baseXp}
     />
   )
 }

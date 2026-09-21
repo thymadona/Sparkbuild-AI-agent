@@ -12,7 +12,7 @@ export default async function LoginPage(props: { searchParams: Promise<{ reason?
   // student_profiles.is_active, it doesn't delete the sessions row), so
   // `user` stays truthy here. Redirecting to /dashboard in that case would
   // bounce straight back to this page via proxy.ts's deactivation check.
-  if (user && !isDeactivated) redirect('/dashboard')
+  if (user && !isDeactivated) redirect('/lessons')
 
   return (
     <div className="min-h-screen bg-surface-900 font-body">

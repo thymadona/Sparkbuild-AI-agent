@@ -39,10 +39,10 @@ export default async function Home() {
   const isLoggedIn = !!user
 
   const heroCta = isLoggedIn
-    ? { href: '/dashboard', label: 'Go to dashboard' }
+    ? { href: '/lessons', label: 'Go to lessons' }
     : { href: '/register', label: 'Start building free' }
   const bannerCta = isLoggedIn
-    ? { href: '/dashboard', label: 'Go to dashboard' }
+    ? { href: '/lessons', label: 'Go to lessons' }
     : { href: '/register', label: 'Create your free account' }
 
   return (
