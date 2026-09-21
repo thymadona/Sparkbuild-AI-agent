@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import type { LessonTask } from '@/lib/lessons'
-import { taskLabel } from '@/lib/lesson-ui'
-import { taskXp } from '@/lib/xp'
 import type { TaskCheckResult } from '@/lib/task-checks'
 import SpeakButton from '@/components/SpeakButton'
 
@@ -49,10 +47,6 @@ export default function TaskHeader({ task, results, evaluated, done, onStuck, on
     <header className="mb-6 border-b-2 border-[#e4d3b3] pb-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#7a6a52]">
-            {taskLabel(task)}
-            {task.kind && <span className="ml-2 font-normal normal-case">+{taskXp(task)} XP</span>}
-          </p>
           <h1 className="mt-1 text-2xl font-bold leading-tight text-[#2b2118]">{task.chip}</h1>
           <p className="mt-1 text-base text-[#5c4f3d]">{task.success}</p>
         </div>

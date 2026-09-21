@@ -17,6 +17,8 @@ import type { ClassSlot } from '@/lib/schedule'
 import type { SubmissionStatus } from '@/types'
 import BoardView, { type PageStatus } from './BoardView'
 import TaskHeader from './TaskHeader'
+import ProgressBar from './ProgressBar'
+import { taskXp } from '@/lib/xp'
 import HomeworkFooter from './HomeworkFooter'
 import type { MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
@@ -325,6 +327,7 @@ export default function LiveBoard({ projectId, initialBoard, lastCaption, lesson
         busy={busy}
         header={lesson ? header : undefined}
         footer={lesson ? footer : undefined}
+        progress={lesson ? <ProgressBar done={progress.done.size} total={lesson.tasks.length} xp={lesson.tasks.reduce((sum, t) => sum + (progress.done.has(t.id) ? taskXp(t) : 0), 0)} /> : undefined}
         statusOf={lesson ? statusOf : undefined}
         onViewPage={onViewPage}
         onSend={(text) => void send({ type: 'student_message', text })}

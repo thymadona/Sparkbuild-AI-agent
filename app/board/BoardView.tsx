@@ -26,13 +26,15 @@ interface Props {
   // for and what is still missing from it.
   header?: (pageId: string) => ReactNode
   footer?: (pageId: string) => ReactNode
+  // Sticky strip above the page (lesson progress and XP).
+  progress?: ReactNode
   statusOf?: (pageId: string) => PageStatus
   // Which page the student is actually looking at. On a lesson board that is
   // the task they are working on, so the owner needs to know.
   onViewPage?: (pageId: string) => void
 }
 
-export default function BoardView({ board, captions, live, mascot, mood, code, onReplay, onSend, busy, header, footer, statusOf, onViewPage }: Props) {
+export default function BoardView({ board, captions, live, mascot, mood, code, onReplay, onSend, busy, header, footer, progress, statusOf, onViewPage }: Props) {
   const [minimized, setMinimized] = useState(false)
   const [showEarlier, setShowEarlier] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
@@ -116,6 +118,7 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
         </nav>
 
         <main className="relative flex-1 min-w-0 rounded-3xl bg-[#fffdf8] shadow-md">
+          {progress}
           <div ref={paperRef} onScroll={onScroll} className="h-full overflow-y-auto px-6 md:px-12 py-8 pb-56">
             <div className="mx-auto max-w-2xl">
               {page && header?.(page.id)}
