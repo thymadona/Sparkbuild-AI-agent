@@ -11,7 +11,7 @@ export const CURRENT_LESSON_VERSION = 3
 
 // Scripted concept steps a task page shows before its code editor opens
 // (app/board/LiveBoard.tsx reveals them one at a time). Graded on the client with
-// no LLM call: a wrong answer twice still moves on, so a step never dead-ends a child.
+// no LLM call: a wrong answer twice shows the answer, then Next moves on, so a step never dead-ends a child.
 export type LessonStep =
   | {
       kind: 'choose'
@@ -45,8 +45,19 @@ export type LessonStep =
       palette: { label: string; ops: string[] }[]
       solution: number[]
     }
+  // Step through a short program one line at a time (frames are checked against a real run in a test).
+  // `vars` maps a name to its value, or to a list of items; `out` is what was printed so far.
+  | { kind: 'walk'; prompt: string; code: string; frames: WalkFrame[] }
   // Tap a code piece, then what it does.
   | { kind: 'match'; prompt: string; pairs: { left: string; right: string }[] }
+
+export interface WalkFrame {
+  line: number
+  vars: Record<string, string | string[]>
+  out?: string
+  stack?: string[]
+  note?: string
+}
 
 export interface LessonTask {
   id: string

@@ -119,6 +119,8 @@ export function describeStep(board: BoardState, task: LessonTask): string | null
       return `${head}${done}, match code to its job: ${n.pairs.map((p) => `${p.left} = ${p.right}`).join('; ')}. Matched so far: ${n.matched.length} of ${n.pairs.length}; misses: ${n.attempts}.`
     case 'learn':
       return `${head}${done}, an explainer card ("${n.prompt}"), showing part ${n.frame + 1} of ${n.frames.length}: ${n.frames[Math.min(n.frame, n.frames.length - 1)].note ?? ''}`
+    case 'walk':
+      return `${head}${done}, a walk through ${JSON.stringify(n.code)}, now at line ${n.frames[Math.min(n.cursor, n.frames.length - 1)].line}: ${n.frames[Math.min(n.cursor, n.frames.length - 1)].note ?? ''}`
     case 'sandbox':
       return `${head}${done}, a "type words and watch Sparky say them" sandbox: ${n.prompt} They have tried ${n.seen.length} of ${n.need} different lines${n.seen.length ? `: ${n.seen.map((w) => JSON.stringify(w)).join(', ')}` : ''}.`
     case 'stage': {

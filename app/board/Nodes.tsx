@@ -11,7 +11,8 @@ import { blockOf } from '@/lib/board/code'
 import { cn } from '@/lib/utils'
 import QuizNode from './QuizNode'
 import SandboxNode from './SandboxNode'
-import { BugNode, LearnNode, MatchNode, OrderNode } from './StepNodes'
+import { Boxes, TraceView, type Box } from './TraceView'
+import { BugNode, LearnNode, MatchNode, OrderNode, WalkNode } from './StepNodes'
 import StageNode from './StageNode'
 
 type Of<T extends BoardNode['type']> = Extract<BoardNode, { type: T }>
@@ -129,6 +130,18 @@ function CodeNode({ node, code }: { node: Of<'code'>; code?: CodeActions }) {
   )
 }
 
+// One plain sentence per common Python error, so it reads well even when Spark is hidden.
+const FRIENDLY: [RegExp, string][] = [
+  [/was never closed/, 'A bracket ( opened but never closed ).'],
+  [/unterminated string|EOL while scanning/, 'A quote " opened but never closed.'],
+  [/NameError/, 'Python does not know that name. Check the spelling.'],
+  [/IndentationError/, 'A line has the wrong space at the start.'],
+  [/SyntaxError/, 'Python cannot read this line. Check the marks: ( ) " :'],
+  [/TypeError/, 'These two values cannot be used together.'],
+  [/ZeroDivisionError/, 'You cannot divide by zero.'],
+  [/IndexError/, 'That list slot does not exist.'],
+]
+
 function OutputNode({ node }: { node: Of<'output'> }) {
   const lastLine = node.stderr.trim().split('\n').at(-1) ?? ''
   return (
@@ -147,6 +160,9 @@ function OutputNode({ node }: { node: Of<'output'> }) {
       {node.stderr && (
         <>
           <p className="font-semibold">{lastLine}</p>
+          {FRIENDLY.find(([re]) => re.test(node.stderr)) && (
+            <p className="text-sm">{FRIENDLY.find(([re]) => re.test(node.stderr))![1]}</p>
+          )}
           <details className="mt-1 text-xs">
             <summary className="cursor-pointer">Details</summary>
             <pre className="whitespace-pre-wrap">{node.stderr}</pre>
@@ -158,48 +174,6 @@ function OutputNode({ node }: { node: Of<'output'> }) {
 }
 
 // One box per variable, one row of cells per list. Fed by the tutor's diagram data or by a trace step.
-interface Box {
-  name: string
-  value: string
-  items?: string[]
-}
-
-function Boxes({ boxes }: { boxes: Box[] }) {
-  return (
-    <div
-      className="flex flex-wrap gap-4"
-      role="img"
-      aria-label={
-        boxes
-          .map((b) => `${b.name} holds ${b.items ? `a list of ${b.items.join(', ')}` : b.value}`)
-          .join(', ') || 'no variables yet'
-      }
-    >
-      {boxes.map((b) => (
-        <div key={b.name} className="text-center">
-          {b.items ? (
-            <div className="flex">
-              {b.items.map((it, i) => (
-                <div
-                  key={i}
-                  className="min-w-10 border-2 border-l-0 first:border-l-2 border-amber-500 bg-amber-50 px-3 py-2 font-mono first:rounded-l-lg last:rounded-r-lg"
-                >
-                  {it}
-                  <div className="text-[10px] text-[#7a6a52]">{i}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="min-w-24 rounded-lg border-2 border-amber-500 bg-amber-50 px-4 py-3 font-mono text-lg">
-              {b.value}
-            </div>
-          )}
-          <div className="mt-1 text-sm font-mono text-[#7a6a52]">{b.name}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function DiagramNode({ node }: { node: Of<'diagram'> }) {
   const list = (k: string) =>
@@ -229,65 +203,14 @@ function TraceNode({
 }) {
   const last = node.steps.length - 1
   const at = Math.min(node.cursor, Math.max(last, 0))
-  const step = node.steps[at]
-  if (!step) return <p className="text-sm text-[#7a6a52]">The trace has no steps.</p>
-  const go = (n: number) => code?.setCursor(node.id, Math.min(Math.max(n, 0), last))
-  const lines = source.split('\n')
+  if (!node.steps[at]) return <p className="text-sm text-[#7a6a52]">The trace has no steps.</p>
   return (
-    <div className="rounded-xl border border-[#e4d9c5] p-4 space-y-3">
-      <pre className="rounded-lg bg-[#2b2118] p-3 text-sm leading-6 font-mono text-[#f3e9d8] overflow-x-auto">
-        {lines.map((l, i) => (
-          <div
-            key={i}
-            className={cn('px-2 -mx-2 rounded', i + 1 === step.line && 'bg-amber-400/30')}
-          >
-            <span className="inline-block w-6 text-[#f3e9d8]/40 select-none">{i + 1}</span>
-            {l || ' '}
-          </div>
-        ))}
-      </pre>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => go(at - 1)}
-          disabled={at === 0}
-          aria-label="Previous step"
-          className="min-h-11 min-w-11 rounded-full bg-[#e4d3b3] font-bold disabled:opacity-40"
-        >
-          ◀
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={last}
-          value={at}
-          onChange={(e) => go(Number(e.target.value))}
-          aria-label="Step"
-          className="flex-1"
-        />
-        <button
-          onClick={() => go(at + 1)}
-          disabled={at === last}
-          aria-label="Next step"
-          className="min-h-11 min-w-11 rounded-full bg-[#e4d3b3] font-bold disabled:opacity-40"
-        >
-          ▶
-        </button>
-        <span className="text-xs text-[#7a6a52] tabular-nums">
-          {at + 1}/{node.steps.length}
-        </span>
-      </div>
-      <Boxes boxes={step.vars.map((v) => ({ name: v.name, value: v.repr, items: v.items }))} />
-      {step.callStack.length > 1 && (
-        <p className="text-xs font-mono text-[#7a6a52]">
-          in {step.callStack.map((f) => (f === '<module>' ? 'main' : f)).join(' → ')}
-        </p>
-      )}
-      {step.stdout && (
-        <pre className="rounded-lg bg-emerald-50 p-2 text-sm font-mono text-emerald-900 whitespace-pre-wrap">
-          {step.stdout}
-        </pre>
-      )}
-    </div>
+    <TraceView
+      source={source}
+      steps={node.steps}
+      at={at}
+      go={(n) => code?.setCursor(node.id, Math.min(Math.max(n, 0), last))}
+    />
   )
 }
 
@@ -321,6 +244,8 @@ export function NodeView({
       return <LearnNode node={node} code={code} />
     case 'order':
       return <OrderNode node={node} code={code} />
+    case 'walk':
+      return <WalkNode node={node} code={code} />
     case 'bug':
       return <BugNode node={node} code={code} />
     case 'match':

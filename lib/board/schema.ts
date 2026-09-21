@@ -138,6 +138,30 @@ export const BoardNode = z.discriminatedUnion('type', [
     attempts: z.number().int().min(0).default(0),
     answered: z.boolean().default(false),
   }),
+  // Step through a short program line by line (authored frames, no run). Done at the last frame.
+  z.object({
+    ...base,
+    type: z.literal('walk'),
+    prompt: z.string().max(120),
+    code: z.string().max(200),
+    frames: z
+      .array(
+        z.object({
+          line: z.number().int().positive(),
+          vars: z.record(
+            z.string().max(30),
+            z.union([z.string().max(40), z.array(z.string().max(20)).max(6)])
+          ),
+          out: z.string().max(100).optional(),
+          stack: z.array(z.string().max(30)).max(4).optional(),
+          note: z.string().max(60).optional(),
+        })
+      )
+      .min(2)
+      .max(12),
+    cursor: z.number().int().min(0).default(0),
+    answered: z.boolean().default(false),
+  }),
   // Tap a code piece, then tap what it does. `picked` is the piece waiting for its partner.
   z.object({
     ...base,
@@ -199,6 +223,7 @@ export const CLIENT_ONLY_TYPES = [
   'learn',
   'order',
   'bug',
+  'walk',
   'match',
   'stage',
 ] as const

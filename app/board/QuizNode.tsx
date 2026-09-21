@@ -1,6 +1,7 @@
 'use client'
 
 import type { BoardNode } from '@/lib/board/schema'
+import NextButton from './NextButton'
 import { cn } from '@/lib/utils'
 import type { CodeActions } from './Nodes'
 
@@ -15,11 +16,12 @@ export default function QuizNode({
   const graded = node.answer !== undefined && !!code
   const picked = node.picked ?? null
   const right = picked !== null && picked === node.answer
+  const revealed = graded && !node.answered && node.attempts >= 2 // two misses: show the answer, wait for Next
   const pick = (i: number) => {
     if (!graded || node.answered) return
     const attempts = node.attempts + 1
     const ok = i === node.answer
-    code.patch(node.id, { picked: i, attempts, answered: ok || attempts >= 2 })
+    code.patch(node.id, { picked: i, attempts, answered: ok })
     if (!ok)
       code.feedback?.({
         type: 'step_answer',
@@ -40,9 +42,9 @@ export default function QuizNode({
       <div className="flex flex-wrap gap-2" role="group" aria-label={node.prompt}>
         {node.options?.map((o, i) => {
           const shown =
-            node.answered && node.answer === i
+            (node.answered || revealed) && node.answer === i
               ? 'right'
-              : picked === i && !right && !node.answered
+              : picked === i && !right && !node.answered && !revealed
                 ? 'wrong'
                 : picked === i && right
                   ? 'right'
@@ -50,7 +52,7 @@ export default function QuizNode({
           return (
             <button
               key={o}
-              disabled={!graded || node.answered}
+              disabled={!graded || node.answered || revealed}
               onClick={() => pick(i)}
               className={cn(
                 'min-h-11 rounded-full border-2 px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2',
@@ -68,7 +70,7 @@ export default function QuizNode({
         })}
       </div>
       <p role="status" className="min-h-6 text-sm">
-        {node.answered && node.explain ? (
+        {(node.answered || revealed) && node.explain ? (
           <span className={right ? 'text-teal-800' : 'text-[#5c4f3d]'}>
             {right ? 'Yes! ' : 'Here it is: '}
             {node.explain}
@@ -77,6 +79,7 @@ export default function QuizNode({
           <span className="text-red-800">Not quite. Try again.</span>
         ) : null}
       </p>
+      {revealed && <NextButton onClick={() => code?.patch(node.id, { answered: true })} />}
     </div>
   )
 }

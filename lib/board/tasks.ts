@@ -101,6 +101,15 @@ export function stepNode(task: LessonTask, i: number): BoardNode | null {
       arranged: [],
       attempts: 0,
     }
+  if (step.kind === 'walk')
+    return {
+      ...base,
+      type: 'walk',
+      prompt: step.prompt,
+      code: step.code,
+      frames: step.frames,
+      cursor: 0,
+    }
   if (step.kind === 'bug')
     return {
       ...base,
@@ -166,6 +175,15 @@ export const cheer = (i: number) => CHEERS[i % CHEERS.length]
 // What the student has to DO on a step, in words a 10-year-old can follow. Said by Sparky when the box
 // opens, and given to the tutor, so nobody is left staring at a card wondering what to press.
 export function stepAction(node: BoardNode): string {
+  // After the last miss the answer is on screen and the box waits for Next.
+  const misses = 'attempts' in node ? node.attempts : 0
+  const open = !('answered' in node && node.answered)
+  if (
+    open &&
+    ((['quiz', 'bug', 'order'].includes(node.type) && misses >= 2) ||
+      (node.type === 'stage' && misses >= 3))
+  )
+    return 'Read the answer. Tap Next.'
   switch (node.type) {
     case 'learn':
       return node.frame >= node.frames.length - 1
@@ -179,6 +197,8 @@ export function stepAction(node: BoardNode): string {
       return 'Tap the answer you think is right.'
     case 'order':
       return 'Tap the lines in order. Then press Say it.'
+    case 'walk':
+      return 'Tap ▶ to walk through each line.'
     case 'bug':
       return 'Tap the line with the mistake.'
     case 'match':

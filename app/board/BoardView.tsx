@@ -56,6 +56,7 @@ export default function BoardView({
   onVoice,
 }: Props) {
   const [minimized, setMinimized] = useState(false)
+  const [unread, setUnread] = useState(false) // a reply arrived while Spark was hidden
   const [showEarlier, setShowEarlier] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -71,6 +72,11 @@ export default function BoardView({
     const t = setTimeout(() => setQuiet(true), 20_000)
     return () => clearTimeout(t)
   }, [draft, mascot, mood, board])
+  const latest = live || captions.at(-1) || ''
+  useEffect(() => {
+    if (minimized) setUnread(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latest])
   const face: MascotState =
     mood ?? (mascot !== 'idle' ? mascot : draft ? 'listening' : quiet ? 'puzzled' : 'idle')
   const behavior = (): ScrollBehavior =>
@@ -166,7 +172,7 @@ export default function BoardView({
           <div
             ref={paperRef}
             onScroll={onScroll}
-            className="min-h-0 flex-1 overflow-y-auto px-6 md:px-12 py-8 pb-32"
+            className="min-h-0 flex-1 overflow-y-auto px-6 md:px-12 py-8 pb-44"
           >
             <div className="mx-auto max-w-2xl">
               {page && header?.(page.id)}
@@ -205,7 +211,7 @@ export default function BoardView({
             )}
           >
             {!minimized && (
-              <div className="pointer-events-auto max-h-40 w-72 max-w-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
+              <div className="pointer-events-auto w-[20rem] max-w-full break-words rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
                 {showEarlier &&
                   captions.slice(0, -1).map((c, i) => (
                     <p key={i} className="mb-2 text-sm text-[#faf6ee]/75">
@@ -245,10 +251,16 @@ export default function BoardView({
                 <button
                   type="button"
                   aria-label={minimized ? 'Show Spark' : 'Hide Spark'}
-                  onClick={() => setMinimized((v) => !v)}
-                  className="pointer-events-auto grid place-items-center rounded-full"
+                  onClick={() => {
+                    setMinimized((v) => !v)
+                    setUnread(false)
+                  }}
+                  className="pointer-events-auto relative grid place-items-center rounded-full"
                 >
                   <Mascot state={face} className="size-16" />
+                  {unread && minimized && (
+                    <span className="absolute right-1 top-1 size-4 rounded-full border-2 border-white bg-red-500" />
+                  )}
                 </button>
               )}
               <form

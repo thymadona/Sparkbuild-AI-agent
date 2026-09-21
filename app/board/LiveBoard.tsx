@@ -131,6 +131,7 @@ export default function LiveBoard({
   // True between a task completing and its successor's page opening, so the
   // reconciler below does not race the celebration and open it early.
   const [advancing, setAdvancing] = useState(false)
+  const [won, setWon] = useState<string | null>(null) // "+10 XP · <what they did>" while the confetti plays
   const [viewedPageId, setViewedPageId] = useState<string | null>(initialBoard.activePageId)
   const onViewPage = useCallback((id: string) => setViewedPageId(id), [])
 
@@ -193,6 +194,8 @@ export default function LiveBoard({
         key: `${task.id}:${Date.now()}`,
         big: lesson != null && done.size === lesson.tasks.length,
       })
+      setWon(`+${taskXp(task)} XP · ${task.success}`)
+      setTimeout(() => setWon(null), CONFETTI_MS + 600)
       setAdvancing(true)
       advanceTo(task, done)
     },
@@ -599,6 +602,14 @@ export default function LiveBoard({
   return (
     <>
       <ConfettiBurst trigger={confetti.key} big={confetti.big} />
+      {won && (
+        <div
+          role="status"
+          className="pointer-events-none fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow-lg"
+        >
+          {won}
+        </div>
+      )}
       <BoardView
         board={board}
         captions={captions}
