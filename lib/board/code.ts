@@ -10,7 +10,10 @@ export function codeNodeId(board: BoardState): string | null {
   const isCode = (id: string) => { const n = board.nodes[id]; return n?.type === 'code' && n.editable && n.language === 'python' }
   if (isCode(MAIN_ID)) return MAIN_ID
   // Page order, not Object.keys: jsonb storage reorders object keys, so key order is not creation order.
-  return board.pages.flatMap((p) => p.nodeIds).filter(isCode).at(-1) ?? null
+  const all = board.pages.flatMap((p) => p.nodeIds).filter(isCode)
+  // A task can hold a second, separate program (lib/lessons.ts `then`); it must
+  // never be mistaken for the student's main program and carried to the next task.
+  return all.filter((id) => !(board.nodes[id] as { file?: string }).file).at(-1) ?? all.at(-1) ?? null
 }
 
 export function boardCode(board: BoardState): string | null {
@@ -30,13 +33,44 @@ const isEditablePython = (board: BoardState, id: string) => {
 // code of a later one the moment a new page appears.
 export function pageCodeNodeId(board: BoardState, pageId: string | null): string | null {
   const page = board.pages.find((p) => p.id === pageId)
-  return page?.nodeIds.filter((id) => isEditablePython(board, id)).at(-1) ?? null
+  const all = page?.nodeIds.filter((id) => isEditablePython(board, id)) ?? []
+  return all.filter((id) => !(board.nodes[id] as { file?: string }).file).at(-1) ?? all.at(-1) ?? null
 }
 
 export function pageCode(board: BoardState, pageId: string | null): string | null {
   const id = pageCodeNodeId(board, pageId)
   const n = id ? board.nodes[id] : null
   return n?.type === 'code' ? n.source : null
+}
+
+// The part of a file one task works in: the lines under its `# TASK: <id>`
+// comment, up to the next `# TASK:` comment. The node keeps the whole program
+// (it is what runs, is checked and is carried forward); the editor shows only
+// this block, so a child sees the few lines to change, not the whole starter.
+// `compose` puts an edited block back. Without an anchor, or when the comment is
+// gone, it is the whole file: a broken anchor must never hide the student's code.
+export interface Block {
+  block: string
+  // Lines above the block, to turn a whole-file line number into a block line number.
+  offset: number
+  compose: (block: string) => string
+}
+
+export function blockOf(source: string, anchor?: string): Block {
+  const lines = source.split('\n')
+  const at = anchor ? lines.findIndex((l) => l.trim() === `# ${anchor}`) : -1
+  if (at < 0) return { block: source, offset: 0, compose: (v) => v }
+  const next = lines.findIndex((l, i) => i > at && /^#\s*TASK:/.test(l))
+  const end = next < 0 ? lines.length : next
+  const head = lines.slice(0, at + 1)
+  const rest = lines.slice(end)
+  const empty = end === at + 1
+  return {
+    block: lines.slice(at + 1, end).join('\n'),
+    offset: at + 1,
+    // An untouched empty block must stay empty, or every Run would add a blank line.
+    compose: (v) => [...head, ...(v === '' && empty ? [] : v.split('\n')), ...rest].join('\n'),
+  }
 }
 
 // The file a code node edits. Nodes carry `file` only for multi-file tasks
@@ -69,7 +103,7 @@ export function boardFromFiles(source: string): BoardState {
     pages: [{ id: 'p_main', title: 'My code', nodeIds: [MAIN_ID] }],
     activePageId: 'p_main',
     focusId: null,
-    nodes: { [MAIN_ID]: { id: MAIN_ID, parentId: null, createdBy: 'student', type: 'code', language: 'python', source, editable: true, highlightLines: [] } },
+    nodes: { [MAIN_ID]: { id: MAIN_ID, parentId: null, createdBy: 'student', type: 'code', language: 'python', source, editable: true } },
   }
 }
 

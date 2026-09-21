@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import type { LessonTask } from '@/lib/lessons'
-import { taskLabel } from '@/lib/lesson-ui'
-import { taskXp } from '@/lib/xp'
 import type { TaskCheckResult } from '@/lib/task-checks'
 import SpeakButton from '@/components/SpeakButton'
 
@@ -16,6 +14,8 @@ interface Props {
   results: TaskCheckResult[]
   evaluated: boolean
   done: boolean
+  // Concept steps are still showing: there is no editor yet, so nothing to be stuck on.
+  waiting?: boolean
   onStuck: () => void
   // Present on optional tasks only. A choice or bonus a student does not want
   // must not wall off the homework behind it.
@@ -32,7 +32,7 @@ interface Props {
  * makes the checklist the only thing telling a student why they have not moved
  * on yet, so it is never hidden.
  */
-export default function TaskHeader({ task, results, evaluated, done, onStuck, onSkip, error, busy }: Props) {
+export default function TaskHeader({ task, results, evaluated, done, waiting = false, onStuck, onSkip, error, busy }: Props) {
   const [canAskForHelp, setCanAskForHelp] = useState(false)
   const [asked, setAsked] = useState(false)
 
@@ -41,18 +41,15 @@ export default function TaskHeader({ task, results, evaluated, done, onStuck, on
   useEffect(() => {
     setCanAskForHelp(false)
     setAsked(false)
+    if (waiting) return
     const t = setTimeout(() => setCanAskForHelp(true), STUCK_DELAY_MS)
     return () => clearTimeout(t)
-  }, [task.id])
+  }, [task.id, waiting])
 
   return (
     <header className="mb-6 border-b-2 border-[#e4d3b3] pb-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#7a6a52]">
-            {taskLabel(task)}
-            {task.kind && <span className="ml-2 font-normal normal-case">+{taskXp(task)} XP</span>}
-          </p>
           <h1 className="mt-1 text-2xl font-bold leading-tight text-[#2b2118]">{task.chip}</h1>
           <p className="mt-1 text-base text-[#5c4f3d]">{task.success}</p>
         </div>

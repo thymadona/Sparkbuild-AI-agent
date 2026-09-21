@@ -8,7 +8,6 @@ import {
   isTaskLocked,
   pendingCoreTask,
 } from '@/lib/task-guard'
-import { runTaskChecks } from '@/lib/task-checks'
 
 const week3 = LESSONS.find((lesson) => lesson.id === 103)!
 const coreIds = week3.tasks.filter((task) => task.type === 'core').map((task) => task.id)
@@ -105,7 +104,7 @@ describe('buildTaskNudge', () => {
 
     expect(nudge).toContain(task.chip)
     expect(nudge).toContain(task.success)
-    expect(nudge).toContain(task.commentAnchor)
+    expect(nudge).not.toContain(task.commentAnchor) // the comment line is hidden from the student
     expect(nudge).toMatch(/never write or edit their code/i)
   })
 
@@ -154,32 +153,19 @@ describe('buildTaskNudge', () => {
     expect(buildTaskNudge(task, 3)).toMatch(/do not bring up another task/i)
   })
 
-  it('marks every check NOT DONE YET when no results are given, never silently DONE', () => {
-    const task = week3.tasks[0]
+  it('lists the requirements as a rubric and makes the tutor the judge', () => {
+    const task = week3.tasks.find((t) => t.id === 'times-table')!
     const nudge = buildTaskNudge(task)
-    expect(nudge).toContain('NOT DONE YET')
-    expect(nudge).not.toMatch(/: DONE\./)
-    expect(nudge).toMatch(/do not bring up another task/i)
+    for (const c of task.checks ?? []) expect(nudge).toContain(`- ${c.label}`)
+    expect(nudge).toContain(`task_complete with taskId "${task.id}"`)
+    expect(nudge).toMatch(/Never call task_complete because the student says they are done/i)
+    expect(nudge).not.toMatch(/NOT DONE YET|: DONE\./)
   })
 
-  it('reports real DONE/NOT DONE YET verdicts per check from runTaskChecks', () => {
-    const task = week3.tasks.find((t) => t.id === 'times-table')! // sourceMatches + outputContains
-    const untouched = runTaskChecks(task.checks, 'for n in range(3):\n    print(n)\n')
-    const stepped = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n')
-    const ran = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n', [undefined, true])
-
-    expect(buildTaskNudge(task, 1, untouched)).toContain('NOT DONE YET')
-    const steppedNudge = buildTaskNudge(task, 1, stepped)
-    expect(steppedNudge).toContain('You gave range a step: DONE')
-    expect(steppedNudge).toContain('It runs without errors: NOT DONE YET')
-    expect(buildTaskNudge(task, 1, ran)).not.toContain('NOT DONE YET')
-  })
-
-  it('falls back to the original guardrail for a task with no checks', () => {
-    const unchecked = { ...week3.tasks[0], checks: undefined }
-    const nudge = buildTaskNudge(unchecked)
-    expect(nudge).toMatch(/cannot see which parts/i)
-    expect(nudge).not.toMatch(/NOT DONE YET|DONE\./)
+  it('still says what to do for a task with no checks', () => {
+    const nudge = buildTaskNudge({ ...week3.tasks[0], checks: undefined })
+    expect(nudge).not.toContain('Every requirement must be met')
+    expect(nudge).toContain('task_complete')
   })
 })
 

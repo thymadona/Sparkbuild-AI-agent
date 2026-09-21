@@ -9,7 +9,7 @@
 import type { Lesson } from '@/lib/lessons'
 import { PY_LESSONS } from '@/lib/py-lessons'
 
-const MAX_WORDS = { chip: 5, success: 8, label: 6, hint: 10, brief: 8 }
+const MAX_WORDS = { chip: 5, success: 8, label: 6, hint: 10, brief: 8, question: 10, option: 6, explain: 12, go: 14 }
 
 // Words a 9-year-old ESL reader should not have to decode to make progress.
 // Code identifiers are exempt: they are names on screen, not prose.
@@ -36,6 +36,19 @@ function prose(text: string) {
     .join(' ')
 }
 
+// The short strings a non-quiz step shows besides its prompt.
+const stepWords = (step: NonNullable<Lesson['tasks'][number]['steps']>[number]): string[] => {
+  switch (step.kind) {
+    case 'try': return step.chips ?? []
+    case 'learn': return step.frames.flatMap((f) => [f.note, ...(f.speak ? [f.speak] : [])])
+    case 'order': return []
+    case 'bug': return [step.explain]
+    case 'match': return step.pairs.map((p) => p.right)
+    case 'stage': return step.palette.map((b) => b.label)
+    default: return []
+  }
+}
+
 type Entry = { where: string; kind: keyof typeof MAX_WORDS; text: string }
 
 const entriesFor = (lessons: Lesson[]): Entry[] => lessons.flatMap((lesson) => [
@@ -43,6 +56,17 @@ const entriesFor = (lessons: Lesson[]): Entry[] => lessons.flatMap((lesson) => [
   ...lesson.tasks.flatMap((task) => [
     { where: `${lesson.id}/${task.id}`, kind: 'chip' as const, text: task.chip },
     { where: `${lesson.id}/${task.id}`, kind: 'success' as const, text: task.success },
+    ...(task.go ? [{ where: `${lesson.id}/${task.id}`, kind: 'go' as const, text: task.go }] : []),
+    ...(task.then ? [{ where: `${lesson.id}/${task.id}`, kind: 'go' as const, text: task.then.go }] : []),
+    ...(task.steps ?? []).flatMap((step) => [
+      { where: `${lesson.id}/${task.id}`, kind: 'question' as const, text: step.prompt },
+      ...(step.kind === 'choose'
+        ? [
+            ...step.options.map((text) => ({ where: `${lesson.id}/${task.id}`, kind: 'option' as const, text })),
+            { where: `${lesson.id}/${task.id}`, kind: 'explain' as const, text: step.explain },
+          ]
+        : stepWords(step).map((text) => ({ where: `${lesson.id}/${task.id}`, kind: 'option' as const, text }))),
+    ]),
     ...(task.checks ?? []).flatMap((check) => [
       { where: `${lesson.id}/${task.id}`, kind: 'label' as const, text: check.label },
       { where: `${lesson.id}/${task.id}`, kind: 'hint' as const, text: check.hint },
@@ -79,7 +103,12 @@ describe('Python course reading level', () => {
   })
 
   it('keeps the total reading load down', () => {
-    const total = entries.reduce((sum, entry) => sum + words(entry.text), 0)
+    // Steps are read once, on the way to the editor, so they get their own budget
+    // and do not eat into the per-lesson budget for the task text.
+    const STEP_KINDS = ['question', 'option', 'explain', 'go']
+    const total = entries.filter((e) => !STEP_KINDS.includes(e.kind)).reduce((sum, entry) => sum + words(entry.text), 0)
+    const steps = entries.filter((e) => STEP_KINDS.includes(e.kind)).reduce((sum, entry) => sum + words(entry.text), 0)
     expect(total).toBeLessThan(budget)
+    expect(steps).toBeLessThan(60 * lessons.length + 100 * lessons.filter((l) => l.tasks.some((t) => t.steps)).length)
   })
 })

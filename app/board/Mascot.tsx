@@ -21,13 +21,13 @@ const SPARKS: Rect[] = [[1, 1, 1, 1], [14, 2, 1, 1], [2, 4, 1, 1], [0, 3, 1, 1]]
 
 const r = (rects: Rect[], fill: string, key = fill) => rects.map(([x, y, w, h], i) => <rect key={`${key}${i}`} x={x} y={y} width={w} height={h} fill={fill} />)
 
-export default function Mascot({ state }: { state: MascotState }) {
+export default function Mascot({ state, className = 'size-16', body = BODY }: { state: MascotState; className?: string; body?: string }) {
   const armsUp = state === 'celebrating'
   return (
-    <svg viewBox="0 0 16 16" shapeRendering="crispEdges" className="size-16 shrink-0" role="img" aria-label={`Spark is ${state}`}>
+    <svg viewBox="0 0 16 16" shapeRendering="crispEdges" className={`${className} shrink-0`} role="img" aria-label={`Spark is ${state}`}>
       <g className={`spark spark-${state}`}>
-        {r([armsUp ? [1, 3, 14, 2] : [1, 6, 14, 2]], BODY, 'arms')}
-        {r([[3, 3, 10, 6], [4, 9, 1, 3], [6, 9, 1, 3], [9, 9, 1, 3], [11, 9, 1, 3]], BODY, 'body')}
+        {r([armsUp ? [1, 3, 14, 2] : [1, 6, 14, 2]], body, 'arms')}
+        {r([[3, 3, 10, 6], [4, 9, 1, 3], [6, 9, 1, 3], [9, 9, 1, 3], [11, 9, 1, 3]], body, 'body')}
         {r(EYES[state], INK, 'eye')}
         {state === 'speaking' && <g className="spark-mouth">{r(MOUTH, INK, 'mouth')}</g>}
       </g>

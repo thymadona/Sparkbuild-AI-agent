@@ -110,28 +110,3 @@ export function allChecksPassed(results: TaskCheckResult[]) {
 export function firstUnmetCheck(results: TaskCheckResult[]) {
   return results.find((result) => !result.passed) ?? null
 }
-
-// Every line the student actually needs to touch for a task: the anchor
-// comment plus every line a static check's pattern matches. A pattern that
-// matches nothing just contributes nothing — same fail-open spirit as evaluate().
-export function highlightLinesForTask(code: string, commentAnchor: string, checks?: TaskCheck[]): number[] {
-  const lines = code.split('\n')
-  const found = new Set<number>()
-
-  const anchorLine = lines.findIndex((line) => line.includes(commentAnchor))
-  if (anchorLine >= 0) found.add(anchorLine + 1)
-
-  for (const check of checks ?? []) {
-    if (check.kind === 'sourceMatches') {
-      lines.forEach((line, i) => {
-        try {
-          if (new RegExp(check.pattern, check.flags).test(line)) found.add(i + 1)
-        } catch {
-          // bad pattern — fail open, no extra line
-        }
-      })
-    }
-  }
-
-  return Array.from(found).sort((a, b) => a - b)
-}

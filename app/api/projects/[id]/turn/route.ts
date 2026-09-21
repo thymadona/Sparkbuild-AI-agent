@@ -7,13 +7,16 @@ import { deepseek, MODEL } from '@/lib/deepseek'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
-import { getLessonForProject } from '@/lib/lessons'
+import { getLessonForProject, type LessonTask } from '@/lib/lessons'
 import { entryFileFor } from '@/lib/starter-file'
 import { pageCode, withBoardCode } from '@/lib/board/code'
-import { taskPageId } from '@/lib/board/tasks'
+import { awaitingEditor, taskPageId } from '@/lib/board/tasks'
 import { cached } from '@/lib/cache'
-import { buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
-import { runTaskChecks, type RuntimeVerdicts } from '@/lib/task-checks'
+import { CONCEPT_PHASE_NUDGE, buildTaskNudge, detectConfusion, escalationTier, pendingCoreTask } from '@/lib/task-guard'
+import { isRuntimeCheck } from '@/lib/task-checks'
+import { verifyTask } from '@/lib/task-verify'
+import { recordTaskDone } from '@/lib/task-progress'
+import { describeEvidence, describeTaskState, hasRun, outputVerdict, taskPrograms, type Program } from '@/lib/task-evidence'
 import { emptyBoard, summarize, type BoardState } from '@/lib/board/reducer'
 import { toolsFor } from '@/lib/board/tools'
 import { ClientEvent, applyClientEvent } from '@/lib/tutor/events'
@@ -72,8 +75,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // congratulates the student for a task whose checks have not passed and
   // announces the next one, while their screen correctly refuses to move on.
   // Same source of truth as the student's board — the task's own checks.
-  let openTask = null
+  let openTask: LessonTask | null = null
   let nudge = ''
+  let evidence = ''
+  let programs: Program[] = []
+  let canComplete = false
+  let recent = history // the conversation about the open task; older talk is about other tasks
   if (lesson) {
     const progress = await cached(`lesson-progress:${id}`, 15, async () => {
       const [row] = await db
@@ -86,41 +93,59 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     })
     openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
     if (openTask) {
-      // Python checks run in the student's browser; take its verdicts only if
-      // they belong to the task the tutor is about to talk about. Absent, a
-      // runtime check reads as unmet — the safe direction, since the tutor
-      // then under-claims rather than declaring a task done that is not.
-      const reported = body?.runtimeChecks as { taskId?: string; verdicts?: unknown[] } | undefined
-      const verdicts: RuntimeVerdicts =
-        reported?.taskId === openTask.id && Array.isArray(reported.verdicts)
-          ? reported.verdicts.map((v) => (typeof v === 'boolean' ? v : undefined))
-          : []
-      const results = runTaskChecks(openTask.checks, pageCode(board, taskPageId(openTask)) ?? '', verdicts)
+      // The checklist is a rubric for the tutor, not a verdict: the tutor judges
+      // the evidence itself and completes the task with task_complete.
+      const entry = entryFileFor(lesson, files)
+      const run = parsed.data.type === 'code_run_result' ? parsed.data : undefined
+      programs = taskPrograms(board, openTask, entry, run)
+      evidence = describeEvidence(programs)
 
       // Turns spent on this task: messages since it became open. Same reading of
       // lesson_progress.updated_at as /api/generate, valid while the
       // lesson-progress PUT route stays the sole writer of that column.
       const since = progress?.updated_at ? Date.parse(progress.updated_at) : NaN
       const onTask = Number.isNaN(since) ? history : history.filter((m) => Date.parse(String(m.createdAt)) >= since)
-      const stuckTurns = onTask.filter((m) => m.role === 'assistant').length
+      recent = onTask
+      // Only what the student wrote counts: Spark's replies to each Run are not a sign
+      // of being stuck, and counting them escalated a first attempt to "do it with them".
+      const stuckTurns = onTask.filter((m) => m.role === 'user').length
       const prevUserMessage = [...onTask].reverse().find((m) => m.role === 'user')?.content
       const askedNow = parsed.data.type === 'student_message' ? parsed.data.text : ''
       const tier = escalationTier(stuckTurns, detectConfusion(askedNow, prevUserMessage), openTask.type === 'homework')
-      nudge = buildTaskNudge(openTask, tier, results)
+      const concept = awaitingEditor(board, openTask, taskPageId(openTask))
+      canComplete = !concept
+      nudge = concept ? [CONCEPT_PHASE_NUDGE, describeTaskState(board, openTask, programs, entry)].join('\n\n') : [buildTaskNudge(openTask, tier), describeTaskState(board, openTask, programs, entry), evidence].join('\n\n')
     }
   }
 
-  const system = [TUTOR_PROMPT, lessonLayer(lesson, summarize(board), openTask), nudge].filter(Boolean).join('\n\n')
+  // A run is judged from its evidence alone. Spark's earlier replies ("nothing changed") are
+  // stale by now, and a small model repeats them instead of reading the new run.
+  const system = [TUTOR_PROMPT, lessonLayer(lesson, summarize(board, openTask ? taskPageId(openTask) : undefined), openTask), nudge].filter(Boolean).join('\n\n')
   const userContent = event.content
 
   const llm: Llm = (msgs) =>
     deepseek.chat.completions.create({
       model: MODEL,
       stream: true,
-      tools: toolsFor(lesson != null),
+      tools: toolsFor(lesson != null, canComplete),
       messages: msgs,
       thinking: { type: 'disabled' }, // DeepSeek extension; captions must start fast
     } as never) as unknown as ReturnType<Llm>
+
+  // The tutor's verdict, checked before it is written. A child will say "I'm
+  // done" whether or not it is true, and a model can be talked into agreeing.
+  const onTaskComplete = async ({ taskId, reason }: { taskId: string; reason: string }) => {
+    if (!lesson || !openTask || !canComplete) throw new Error('no task is open')
+    if (taskId !== openTask.id) throw new Error(`the open task is "${openTask.id}", not "${taskId}"`)
+    if (!hasRun(programs)) throw new Error('the student has not run this exact code yet (or edited it after running); ask them to press Run')
+    const entry = entryFileFor(lesson, files)
+    const code = programs.find((p) => p.file === entry)?.source ?? programs[0]?.source ?? ''
+    // The floor: static checks, and every output check the reported run can answer. Only
+    // what needs Python itself (world events, calls, typed input) is left to the tutor.
+    const floor = verifyTask(openTask, code, (openTask.checks ?? []).map((c) => outputVerdict(c, programs, entry) ?? (isRuntimeCheck(c) || undefined)))
+    if (!floor.passed) throw new Error(`not finished: ${floor.failed?.hint ?? floor.failed?.label ?? 'a requirement is unmet'}`)
+    return recordTaskDone(id, user.id, openTask.id, { reason, programs })
+  }
 
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -132,9 +157,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           llm,
           board,
           emit: send,
+          onTaskComplete,
           messages: [
             { role: 'system', content: system },
-            ...history.map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: m.content })),
+            ...(parsed.data.type === 'code_run_result' ? [] : recent).map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: m.content })),
             { role: 'user', content: userContent },
           ],
         })

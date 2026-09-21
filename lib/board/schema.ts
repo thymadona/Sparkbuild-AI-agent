@@ -29,9 +29,11 @@ export const BoardNode = z.discriminatedUnion('type', [
     // The project file this node edits. Absent means the lesson's entry file
     // (main.py), which is every node except a multi-file task like bugzap.
     file: z.string().max(64).optional(),
+    // The task's `# TASK: <id>` comment. When set, the editor shows only that
+    // task's block of `source` (lib/board/code.ts blockOf). Absent: whole file.
+    anchor: z.string().max(80).optional(),
     source: z.string().max(4000),
     editable: z.boolean(),
-    highlightLines: z.array(z.number().int().positive()).default([]),
     caption: z.string().max(120).optional(),
   }),
   // Written by the client runner, never by the tutor:
@@ -42,6 +44,8 @@ export const BoardNode = z.discriminatedUnion('type', [
     stdout: z.string(),
     stderr: z.string(),
     ok: z.boolean(),
+    // The source that produced this output. Lets a later edit be told apart from a run.
+    ran: z.string().max(4000).optional(),
   }),
   z.object({
     ...base,
@@ -57,6 +61,83 @@ export const BoardNode = z.discriminatedUnion('type', [
     kind: z.enum(['predict_output', 'multiple_choice', 'fill_blank']),
     prompt: z.string().max(400),
     options: z.array(z.string().max(120)).max(5).optional(),
+    answered: z.boolean().default(false),
+    // A scripted, graded step (lib/lessons.ts LessonStep). Absent `answer` = ungraded tutor quiz.
+    code: z.string().max(200).optional(),
+    answer: z.number().int().min(0).optional(),
+    explain: z.string().max(160).optional(),
+    picked: z.number().int().min(0).nullable().optional(),
+    attempts: z.number().int().min(0).default(0),
+  }),
+  // "Fill the blank and watch Sparky say it." Written by the client from a lesson step.
+  z.object({
+    ...base,
+    type: z.literal('sandbox'),
+    prompt: z.string().max(120),
+    template: z.string().max(60),
+    chips: z.array(z.string().max(30)).max(4).default([]),
+    value: z.string().max(40).default(''),
+    said: z.string().max(40).default(''),
+    seen: z.array(z.string().max(40)).max(12).default([]),
+    need: z.number().int().min(1).max(4).default(1),
+    answered: z.boolean().default(false),
+  }),
+  // A short animated explainer: each frame shows a line of code and what Sparky says about it.
+  z.object({
+    ...base,
+    type: z.literal('learn'),
+    prompt: z.string().max(120),
+    // `say` is the pre-stage shape of `note`; boards saved with it still load.
+    frames: z.array(z.object({ code: z.string().max(60), note: z.string().max(60).optional(), say: z.string().max(80).optional(), hl: z.string().max(30).optional(), speak: z.string().max(40).optional() })).min(1).max(4),
+    frame: z.number().int().min(0).default(0),
+    answered: z.boolean().default(false),
+  }),
+  // Tap lines into the right order, then Sparky says them. `lines` is the correct order.
+  z.object({
+    ...base,
+    type: z.literal('order'),
+    prompt: z.string().max(120),
+    lines: z.array(z.string().max(40)).min(2).max(4),
+    arranged: z.array(z.number().int().min(0).max(3)).max(4).default([]),
+    attempts: z.number().int().min(0).default(0),
+    answered: z.boolean().default(false),
+  }),
+  // Tap the broken line of a short program.
+  z.object({
+    ...base,
+    type: z.literal('bug'),
+    prompt: z.string().max(120),
+    code: z.string().max(200),
+    bugLine: z.number().int().min(0).max(5),
+    explain: z.string().max(120),
+    picked: z.number().int().min(0).nullable().optional(),
+    attempts: z.number().int().min(0).default(0),
+    answered: z.boolean().default(false),
+  }),
+  // Tap a code piece, then tap what it does. `picked` is the piece waiting for its partner.
+  z.object({
+    ...base,
+    type: z.literal('match'),
+    prompt: z.string().max(120),
+    pairs: z.array(z.object({ left: z.string().max(30), right: z.string().max(30) })).min(2).max(4),
+    matched: z.array(z.number().int().min(0).max(3)).max(4).default([]),
+    picked: z.number().int().min(0).nullable().optional(),
+    attempts: z.number().int().min(0).default(0),
+    answered: z.boolean().default(false),
+  }),
+  // A live scene plus a tap-the-blocks program (lib/board/scenes). Won when the program's final state meets `goal`.
+  z.object({
+    ...base,
+    type: z.literal('stage'),
+    prompt: z.string().max(120),
+    scene: z.enum(['room', 'grid', 'boxes', 'machine']),
+    config: z.record(z.string(), z.unknown()).default({}),
+    goal: z.record(z.string(), z.unknown()).default({}),
+    palette: z.array(z.object({ label: z.string().max(30), ops: z.array(z.string().max(40)).min(1).max(6) })).min(1).max(8),
+    // A program that wins: shown after three misses so a child is never stuck.
+    solution: z.array(z.number().int().min(0).max(7)).max(8),
+    program: z.array(z.number().int().min(0).max(7)).max(8).default([]),
+    attempts: z.number().int().min(0).default(0),
     answered: z.boolean().default(false),
   }),
   z.object({
@@ -78,4 +159,8 @@ export const BoardOp = z.discriminatedUnion('op', [
 export type BoardOp = z.infer<typeof BoardOp>
 
 // Node types only client code may create.
-export const CLIENT_ONLY_TYPES = ['output', 'trace', 'preview'] as const
+export const CLIENT_ONLY_TYPES = ['output', 'trace', 'preview', 'sandbox', 'learn', 'order', 'bug', 'match', 'stage'] as const
+
+// Fields that record what the student did on a step. The tutor may not write
+// them, or it could resolve the gate the lesson keeps in front of the editor.
+export const STUDENT_STEP_FIELDS = ['picked', 'attempts', 'answered', 'seen', 'said', 'value', 'frame', 'arranged', 'matched', 'program'] as const

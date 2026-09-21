@@ -6,7 +6,13 @@ import dynamic from 'next/dynamic'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { BoardNode } from '@/lib/board/schema'
+import type { ClientEvent } from '@/lib/tutor/events'
+import { blockOf } from '@/lib/board/code'
 import { cn } from '@/lib/utils'
+import QuizNode from './QuizNode'
+import SandboxNode from './SandboxNode'
+import { BugNode, LearnNode, MatchNode, OrderNode } from './StepNodes'
+import StageNode from './StageNode'
 
 type Of<T extends BoardNode['type']> = Extract<BoardNode, { type: T }>
 
@@ -22,6 +28,10 @@ export interface CodeActions {
   edit(id: string, source: string): void
   sendInput(text: string): void
   setCursor(id: string, cursor: number): void
+  // Records what the student did on a lesson step (picked, seen, ...).
+  patch(id: string, patch: Record<string, unknown>): void
+  // Tells the tutor about a wrong pick or a missed goal so Sparky can react.
+  feedback?(event: Extract<ClientEvent, { type: 'step_answer' | 'stage_result' }>): void
 }
 
 function StaticCode({ node }: { node: Of<'code'> }) {
@@ -29,7 +39,7 @@ function StaticCode({ node }: { node: Of<'code'> }) {
     <figure className="rounded-xl bg-[#2b2118] text-[#f3e9d8] overflow-hidden">
       <pre className="p-4 text-sm leading-6 font-mono overflow-x-auto">
         {node.source.split('\n').map((line, i) => (
-          <div key={i} className={cn('px-2 -mx-2 rounded', node.highlightLines.includes(i + 1) && 'bg-amber-400/25')}>
+          <div key={i} className="px-2 -mx-2 rounded">
             <span className="inline-block w-6 text-[#f3e9d8]/40 select-none">{i + 1}</span>
             {line || ' '}
           </div>
@@ -43,24 +53,26 @@ function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
   const [answer, setAnswer] = useState('')
   const view = useRef<EditorView | null>(null) // Run must use what is typed now, not the debounced board copy
   const running = code.runningId === node.id
-  const lines = Math.min(Math.max(node.source.split('\n').length, 3), 14)
+  // The editor shows this task's block; the node keeps, runs and saves the whole file.
+  const region = blockOf(node.source, node.anchor)
+  const count = region.block.split('\n').length
+  const lines = Math.min(Math.max(count, 3), 14)
   return (
     <figure className="rounded-xl overflow-hidden border border-[#3b2a1c]">
       <div style={{ height: `${lines * 20 + 36}px` }}>
         <CodeEditor
-          code={node.source}
+          code={region.block}
           hideToolbar
           onViewReady={(v) => { view.current = v }}
           onSave={() => {}}
-          onChange={(v) => code.edit(node.id, v)}
-          highlightLines={node.highlightLines}
+          onChange={(v) => code.edit(node.id, region.compose(v))}
         />
       </div>
       <div className="flex items-center gap-3 bg-[#2b2118] px-3 py-2">
         {running ? (
           <button onClick={code.stop} className="min-h-11 rounded-full border-2 border-red-400 px-4 text-sm font-bold text-red-300">■ Stop</button>
         ) : (
-          <button onClick={() => code.run(node, view.current?.state.doc.toString() ?? node.source)} disabled={!code.ready || code.runningId !== null} className="min-h-11 rounded-full bg-emerald-500 px-5 text-sm font-bold text-white disabled:opacity-50">
+          <button onClick={() => code.run(node, region.compose(view.current?.state.doc.toString() ?? region.block))} disabled={!code.ready || code.runningId !== null} className="min-h-11 rounded-full bg-emerald-500 px-5 text-sm font-bold text-white disabled:opacity-50">
             {code.ready ? '▶ Run' : 'Loading Python…'}
           </button>
         )}
@@ -91,19 +103,6 @@ function OutputNode({ node }: { node: Of<'output'> }) {
           <details className="mt-1 text-xs"><summary className="cursor-pointer">Details</summary><pre className="whitespace-pre-wrap">{node.stderr}</pre></details>
         </>
       )}
-    </div>
-  )
-}
-
-function QuizNode({ node }: { node: Of<'quiz'> }) {
-  return (
-    <div className="rounded-xl border border-[#e4d9c5] p-4">
-      <p className="font-semibold mb-2">{node.prompt}</p>
-      <div className="flex flex-wrap gap-2">
-        {node.options?.map((o) => (
-          <span key={o} className="min-h-11 inline-flex items-center rounded-full border border-[#d9c9ab] px-4 text-sm">{o}</span>
-        ))}
-      </div>
     </div>
   )
 }
@@ -179,7 +178,13 @@ export function NodeView({ node, code, sourceOf }: { node: BoardNode; code?: Cod
     case 'text': return <div className="prose prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{node.markdown}</ReactMarkdown></div>
     case 'code': return <CodeNode node={node} code={code} />
     case 'output': return <OutputNode node={node} />
-    case 'quiz': return <QuizNode node={node} />
+    case 'quiz': return <QuizNode node={node} code={code} />
+    case 'sandbox': return <SandboxNode node={node} code={code} />
+    case 'learn': return <LearnNode node={node} code={code} />
+    case 'order': return <OrderNode node={node} code={code} />
+    case 'bug': return <BugNode node={node} code={code} />
+    case 'match': return <MatchNode node={node} code={code} />
+    case 'stage': return <StageNode node={node} code={code} />
     case 'diagram': return <DiagramNode node={node} />
     case 'trace': return <TraceNode node={node} source={sourceOf?.(node.forNodeId) ?? ''} code={code} />
     default: return null // preview: not built

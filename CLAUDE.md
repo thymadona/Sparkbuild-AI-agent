@@ -56,7 +56,7 @@ Three subsystems share one Next.js 16 (App Router) + React 19 codebase:
    Code nodes are Python only and run in a Pyodide worker (`hooks/usePythonRunner.ts`,
    `public/py-worker.js`).
 2. **Lessons** (`app/lessons/`, `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/task-checks.ts`,
-   `public/templates/`) — weekly lessons backed by starter files with in-file task anchors,
+   `lib/lessons/templates.ts`) — weekly lessons whose starters live server-side, with per-task programs,
    code-aware task verification, gated homework, and a game layer (`lib/xp.ts`: XP, levels,
    badges from saved progress; streak from the `activity_days` table).
 3. **Admin back office** (`app/admin/`, `app/api/admin/`, `components/admin/`) — student
@@ -185,40 +185,73 @@ turn route does not read the field. The old per-user `user_build_mode` switch wa
 the web course (migration `0009`); a future director mode belongs in the turn route and the
 tutor's tool set, not in a per-user admin toggle.
 
-**Lesson tasks are verified, and the server has the last word.** Each task carries
-`checks: TaskCheck[]` (`lib/task-checks.ts`), evaluated against the student's live file in the
-browser to drive the UI. Recording a task as done goes through
-`POST /api/projects/[id]/lesson-progress/complete`, which re-runs the task's **static** checks
-(`lib/task-verify.ts`) against the code it has **stored** — never code from the request — and
-refuses with 409 plus the failing check's hint. Its `PUT` sibling may
-only ever *shrink* the set (that is how progress is reset); if it could still add an id the
-verification would be one request away from irrelevant. Python lessons add runtime kinds
-(`outputContains`, `worldContains`, `callReturns`) which run the student's program in a Pyodide
-worker (`lib/python-checks.ts`, `public/py-worker.js`); `runTaskChecks` stays synchronous and
-takes their verdicts. Node cannot run Python, so **runtime verdicts remain client-reported** and
-ride along in the request — `verifyTask` applies a reported verdict only to a runtime check, so
-a caller cannot use them to wave a static check through. Callers flush unsaved work
-(`beforeComplete`) before completing, since the server judges what it has stored. The only
-static kind is `sourceMatches` (regex + `min` + a documented `example`). Invariant:
-`__tests__/unit/lib/py-lessons.test.ts` runs real Pyodide: no task passes on the untouched
+**The tutor decides a task is done; the server records it.** Each task carries
+`checks: TaskCheck[]` (`lib/task-checks.ts`), but they are a *rubric* and a live checklist in the
+task header — the browser no longer completes anything. Every turn on an open task gets an
+EVIDENCE block (`lib/task-evidence.ts`: each editable program on the page and what it last
+printed; a `code_run_result` event supplies the exact source and output of the run that just
+happened) plus `buildTaskNudge`, and the tutor calls the `task_complete` tool when every
+requirement is met. `app/api/projects/[id]/turn/route.ts` then guards the call before
+`recordTaskDone` (`lib/task-progress.ts`, the only writer that grows `lesson_progress`): it must
+be the open task (`pendingCoreTask`), out of the concept phase, backed by a run (a code-run event
+or an `output` node — "I'm done" alone never counts), and the task's **static** checks
+(`sourceMatches`, `lib/task-verify.ts`) must still pass on the server. A refusal goes back to the
+model as an `error:` tool result. Node cannot run Python, so stdout is still browser-reported;
+the model is told to check it against the source, and the static floor is the hard backstop. The
+`PUT …/lesson-progress` route may only ever *shrink* the set. `recordTaskDone` writes, in one
+transaction, the `task_progress` audit row (the tutor's reason, the code and the output it judged)
+and `lesson_progress.completed_task_ids`, which stays the read model for XP, gates and the tutor. On acceptance the turn streams
+`task.complete`; `useTutor` fires it after the stream ends (so the client's next-page save is not
+overwritten by the server's end-of-turn board write), `LiveBoard` applies it, and the existing
+`task_advanced` event has the tutor introduce the next task. An `output` node records the source it ran (`ran`); an edit after the run makes that program *stale*, and a
+stale run is neither proof for `task_complete` nor allowed to reveal a task's second program (`then`), so
+typing alone never advances anything. Every turn also gets a TASK STATE block (`describeTaskState`: phase, the
+on-screen instruction, static requirements met/unmet), the board summary is full only for the open page, and
+history is scoped to messages since the task opened. `bun --env-file=.env run scripts/tutor-eval.ts` replays
+canned student situations against the real model (not in CI); run it after any prompt change.
+Runtime kinds (`outputContains`, …)
+still run in a Pyodide worker for the checklist and reveal logic. Invariant:
+`__tests__/unit/lib/py-lessons.test.ts` runs real Pyodide: no task passes on its untouched
 starter, every task passes with the reference solution in `__tests__/fixtures/py/` (kept out of
-`public/` so students cannot fetch it). A new week needs its `wN.py` starter, `wN-bugzap.py`,
-and both solution fixtures.
-Checks fail **open** whenever they cannot run (bad regex) — a broken check must never dead-end
-a child. On the board, where nothing is clickable to move on, the escape hatch is 90s
-on the same task, after which the task header offers "I am stuck — show me"; optional
-(`choice`/`bonus`) tasks also carry "Skip this one", without which an unwanted bonus would wall
-off the homework behind it. A task with no checks is never auto-completed.
+`public/` so students cannot fetch it). A new week needs its starter and bugzap in
+`lib/lessons/templates.ts` and both solution fixtures. Checks fail **open** whenever they cannot run (bad regex). The
+escape hatch after 90s on a task is "I am stuck — show me" (a tutor message); optional
+(`choice`/`bonus`) tasks also carry "Skip this one". Completion costs a tutor turn, so a student
+past the 50/hour limit cannot finish tasks until it resets.
 
 **The board is one page per task.** `/board/[id]` (Python course, v3) has no task list and no
 `Mark done`: page `t_<taskId>` *is* task `<taskId>` (`lib/board/tasks.ts`), its header shows the
-task and a live checklist of what is still missing, and a task completes itself once its checks
-pass — settle 800ms (`hooks/useAutoComplete.ts`), confetti, then the next task's page opens with
+task and a live checklist of what is still missing, and a task is finished when the tutor says so
+(above), then confetti and the next task's page opens with
 the code carried forward. The client owns those pages, so `board_new_page` is withheld from the
 tutor in a lesson (`toolsFor`). A task's code is `pageCode(board, taskPageId(task))`, **not**
 `boardCode`: boardCode spans the whole board and would hand an open task the code of a later
 page the moment one appeared. A code node may name a `file` (bugzap.py); absent, it is the entry
 file. There is no other student workspace: `/board/[id]` is where every project opens.
+
+**A task can open with scripted concept steps before its editor.** `LessonTask.steps`
+(`lib/lessons.ts`; `first-words` has them) are graded questions and a tiny "fill the blank, watch
+Sparky say it" sandbox, added to the page one at a time by `LiveBoard` and finished by the code
+node. They are scripted and graded on the client with **no LLM call**: the turn route is limited
+to 50 requests an hour, and a wrong answer twice still moves on, so a step never dead-ends a child.
+State lives on the `quiz`/`sandbox` nodes (`picked`, `attempts`, `seen`, `answered`), which the
+tutor may not write (`STUDENT_STEP_FIELDS`) and `sandbox` it may not create (`CLIENT_ONLY_TYPES`).
+Until the editor exists, `awaitingEditor()` makes the task's code `''` — never the `boardCode`
+fallback, which is a previous task's program — and withholds `task_complete` from the tutor. Adding `steps` to a task is additive
+(ids and checks are unchanged), so it needs no catalog version bump.
+
+**Step kinds and Sparky's awareness of them.** A `LessonStep` is `choose`, `try`, `learn`, `order`, `bug`,
+`match` or `stage` (`lib/lessons.ts`); each becomes a client-only node (`stepNode()`, drawn in
+`app/board/StepNodes.tsx`, `QuizNode.tsx`, `SandboxNode.tsx`, `StageNode.tsx`). A `stage` is a scene
+(`lib/board/scenes/`: `room`, `grid`, `boxes`, `machine` — pure `initial/apply/won/describe`, views in
+`app/board/scenes/`) plus a tap-the-blocks program; `__tests__/unit/lib/scenes.test.ts` checks every catalog
+stage's `solution` really wins. Grading and the first hint stay on the client, but a wrong pick or a missed
+stage run now also sends a `step_answer` / `stage_result` event (`CodeActions.feedback`) so Sparky reacts:
+that **costs one tutor turn from the 50/hour limit**, and a failed one is swallowed silently
+(`useTutor.ts` `quiet`). Every tutor turn in the concept phase carries `describeStep()`
+(`lib/task-evidence.ts`): which step, its options, what was picked, the misses. Sparky's voice (browser
+speech, `lib/speech.ts`) reads each new caption, including a box's instruction when it opens; it is off by
+default and remembered in `localStorage`.
 
 **The board tutor is gated by the same checks the student is.** `app/api/projects/[id]/turn`
 reads `lesson_progress`, resolves the open task with `pendingCoreTask()` and appends
@@ -312,9 +345,14 @@ it for the student's class (admins and teachers bypass). A lesson names its `sta
 row per user per day, in `APP_TIMEZONE` (default UTC). The plan's +5 solo/predict bonuses are
 not built (progress does not record hint use or first-try guesses).
 
-**Lesson tasks bind to code by string match.** Each task's `commentAnchor` (`# TASK: <id>`) is
-searched for in the file text to drive line highlighting and the tutor's "point at the line"
-nudges. Renaming an anchor comment in `public/templates/py/*.py` silently breaks it.
+**Tasks own their program (week 1); the server seeds every project.** A task with `starter` (and
+optionally `from: '<earlier task id>'`, which starts it from that page's final code) is its own
+program: its code node holds the whole file, `taskStarter()` (`lib/board/tasks.ts`) builds it when
+its page opens, and its checks judge that program alone. Weeks 2-6 still share one file and bind
+tasks to code by `commentAnchor` (`# TASK: <id>`) in `lib/lessons/templates.ts`; renaming an anchor
+there silently breaks the block view. Starters are TS strings, not files under
+`public/`: `POST /api/projects` builds a new project's files from the catalog (`lib/lesson-files.ts`)
+and ignores any `starter` in the request body, so a student can neither forge nor fetch them.
 
 **Component tests need a jsdom docblock.** `jest.config.ts` sets `testEnvironment: 'node'`
 globally, so every `.tsx` test starts with `/** @jest-environment jsdom */`.
@@ -440,11 +478,11 @@ when available, and include screenshots for visible UI changes.
 | Project CRUD                                 | `app/api/projects/route.ts`                         |
 | LLM client                                   | `lib/deepseek.ts` (prompts: `lib/tutor/prompt.ts`)   |
 | Database client (the only data path)         | `lib/db/client.ts`, `lib/db/schemas/*.ts` (barrel: `lib/db/schema.ts`) |
-| Lesson catalog                               | `lib/lessons.ts`, `lib/py-lessons.ts`, `public/templates/py/` |
+| Lesson catalog                               | `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/lessons/templates.ts` |
 | XP / levels / badges / streak                | `lib/xp.ts`, `lib/player-stats.ts`                  |
 | Task verification (client UI)                | `lib/task-checks.ts`                                |
-| Task verification (server, authoritative)    | `lib/task-verify.ts`, `.../lesson-progress/complete` |
-| Board task pages / auto-advance              | `lib/board/tasks.ts`, `hooks/useAutoComplete.ts`    |
+| Task completion (tutor judges, server records) | `lib/task-evidence.ts`, `lib/task-progress.ts`, `lib/task-verify.ts` |
+| Board task pages / advance                   | `lib/board/tasks.ts`, `app/board/LiveBoard.tsx`     |
 | Rate limiting (Redis + Lua)                  | `lib/ratelimit.ts`                                  |
 | Read caching (Redis)                         | `lib/cache.ts`, `lib/redis.ts`                      |
 | Schema of record                             | `drizzle/` (authored via `lib/db/schemas/*.ts`)      |

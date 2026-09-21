@@ -7,7 +7,7 @@ import { nodeTrace } from '@/__tests__/helpers/pyodide'
 jest.setTimeout(60_000)
 
 const codeNode = (language = 'python') =>
-  ({ op: 'add', pageId: 'p1', node: { id: 'c1', parentId: null, createdBy: 'tutor', type: 'code', language, source: 'x = 1', editable: true, highlightLines: [] } })
+  ({ op: 'add', pageId: 'p1', node: { id: 'c1', parentId: null, createdBy: 'tutor', type: 'code', language, source: 'x = 1', editable: true } })
 const boardWithCode = (): BoardState =>
   [{ op: 'new_page', pageId: 'p1', title: 'One' }, codeNode()].reduce((b, op) => apply(b, op), emptyBoard())
 

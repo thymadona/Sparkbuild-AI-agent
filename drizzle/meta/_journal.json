@@ -71,6 +71,13 @@
       "when": 1789896446052,
       "tag": "0009_drop_user_build_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789966648436,
+      "tag": "0010_bouncy_stardust",
+      "breakpoints": true
     }
   ]
 }

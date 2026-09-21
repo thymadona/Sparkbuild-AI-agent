@@ -4,26 +4,59 @@ import { PY_LESSONS } from '@/lib/py-lessons'
 import { CURRENT_LESSON_VERSION, LESSONS, getLessonForProject } from '@/lib/lessons'
 import { runPythonChecks } from '@/lib/python-checks'
 import { allChecksPassed, isRuntimeCheck, runTaskChecks } from '@/lib/task-checks'
+import { templateFor } from '@/lib/lessons/templates'
+import { taskStarter } from '@/lib/board/tasks'
+import { emptyBoard } from '@/lib/board/reducer'
 import { nodeExec } from '@/__tests__/helpers/pyodide'
 
 jest.setTimeout(120_000)
 
 const read = (...parts: string[]) => fs.readFileSync(path.join(process.cwd(), ...parts), 'utf8')
-const template = (file: string) => read('public/templates', file)
+const template = (file: string) => templateFor(file)
 // Reference solutions live outside public/ so students cannot fetch them.
 const solution = (file: string) => read('__tests__/fixtures/py', file.replace('py/', '').replace(/\.py$/, '.solution.py'))
 
 // The files a new project holds for a lesson, and the fully solved version.
-function filesFor(lesson: (typeof PY_LESSONS)[number], solved: boolean) {
+type Lesson = (typeof PY_LESSONS)[number]
+
+// A week-1 task is its own program: the reference solution is one block per task in
+// the fixture, and a task that builds on another (`from`) starts from that one's finished code.
+const block = (lesson: Lesson, id: string) => {
+  const m = solution(lesson.templateFile).match(new RegExp(`^# TASK: ${id}\\n([\\s\\S]*?)(?=^# TASK: |$(?![\\s\\S]))`, 'm'))
+  if (!m) throw new Error(`no solution block for ${id}`)
+  return m[1]
+}
+const finished = (lesson: Lesson, id: string): string => {
+  const t = lesson.tasks.find((x) => x.id === id)!
+  return `${t.from ? `${finished(lesson, t.from)}\n` : ''}${block(lesson, id)}`
+}
+function programOf(lesson: Lesson, task: Lesson['tasks'][number], solved: boolean): string {
+  if (solved) return finished(lesson, task.id)
+  const from = task.from
+  const board = from
+    ? { pages: [{ id: `t_${from}`, title: '', nodeIds: ['c'] }], activePageId: null, focusId: null, nodes: { c: { id: 'c', parentId: null, createdBy: 'student' as const, type: 'code' as const, language: 'python' as const, source: finished(lesson, from), editable: true } } }
+    : emptyBoard()
+  return taskStarter(board, task)!
+}
+
+// The files a new project holds for a lesson, and the fully solved version. For a
+// task that owns its program, the entry file is that program instead of the shared file.
+function filesFor(lesson: Lesson, solved: boolean, task?: Lesson['tasks'][number]) {
   const get = solved ? solution : template
   return {
-    [lesson.starterFile!]: get(lesson.templateFile),
+    [lesson.starterFile!]: task?.starter !== undefined ? programOf(lesson, task, solved) : get(lesson.templateFile),
     ...Object.fromEntries(Object.entries(lesson.extraFiles ?? {}).map(([name, file]) => [name, get(file)])),
+    // A task's second program is seeded by the board when it appears (lib/lessons.ts `then`).
+    ...Object.fromEntries(lesson.tasks.filter((t) => t.then).map((t) => {
+      const base = lesson.templateFile.replace(/^py\//, '').replace(/\.py$/, '')
+      return [t.then!.file, solved ? read('__tests__/fixtures/py', `${base}-${t.then!.file.replace(/\.py$/, '')}.solution.py`) : t.then!.source]
+    })),
   }
 }
 
-async function results(lesson: (typeof PY_LESSONS)[number], files: Record<string, string>, taskId: string) {
+async function results(lesson: (typeof PY_LESSONS)[number], solved: boolean, taskId: string) {
   const task = lesson.tasks.find((t) => t.id === taskId)!
+  const files = filesFor(lesson, solved, task)
   const entry = lesson.starterFile!
   const verdicts = await runPythonChecks(task.checks!, files, entry, nodeExec)
   return runTaskChecks(task.checks, files[entry], verdicts)
@@ -56,9 +89,21 @@ describe('python catalog', () => {
     const files = filesFor(lesson, false)
     for (const t of lesson.tasks) {
       expect(t.checks?.length).toBeGreaterThan(0)
+      if (t.starter !== undefined) {
+        // Its own program: no anchor to lose, but a `from` must name an earlier task.
+        expect(t.commentAnchor).toBeUndefined()
+        if (t.from) expect(lesson.tasks.findIndex((x) => x.id === t.from)).toBeLessThan(lesson.tasks.indexOf(t))
+        continue
+      }
       // Each anchor must exist in the starter, or highlighting silently breaks.
-      const inSomeFile = Object.values(files).some((code) => code.includes(t.commentAnchor))
+      const inSomeFile = Object.values(files).some((code) => code.includes(t.commentAnchor!))
       expect(`${t.id}: ${inSomeFile}`).toBe(`${t.id}: true`)
+    }
+    // A second program waits on a real check, and something must actually check it.
+    for (const t of lesson.tasks) {
+      if (!t.then) continue
+      expect(t.checks![t.then.after]).toBeDefined()
+      expect(t.checks!.some((c) => isRuntimeCheck(c) && c.file === t.then!.file)).toBe(true)
     }
     // A check aimed at another file needs that file to be seeded.
     for (const t of lesson.tasks) {
@@ -71,27 +116,25 @@ describe('python catalog', () => {
 
 describe.each(PY_LESSONS.map((l) => [l.title, l] as const))('%s: real Python', (_title, lesson) => {
   it('has no task that passes on the untouched starter', async () => {
-    const files = filesFor(lesson, false)
     const passing: string[] = []
     for (const t of lesson.tasks) {
-      if (allChecksPassed(await results(lesson, files, t.id))) passing.push(t.id)
+      if (allChecksPassed(await results(lesson, false, t.id))) passing.push(t.id)
     }
     expect(passing).toEqual([])
   })
 
   it('passes every task with the reference solution', async () => {
-    const files = filesFor(lesson, true)
     const failing: string[] = []
     for (const t of lesson.tasks) {
-      for (const r of await results(lesson, files, t.id)) if (!r.passed) failing.push(`${t.id}: ${r.label}`)
+      for (const r of await results(lesson, true, t.id)) if (!r.passed) failing.push(`${t.id}: ${r.label}`)
     }
     expect(failing).toEqual([])
   })
 
   it('lets a student satisfy every source check with its documented example', () => {
-    const starter = filesFor(lesson, false)[lesson.starterFile!]
     const failing: string[] = []
     for (const t of lesson.tasks) {
+      const starter = filesFor(lesson, false, t)[lesson.starterFile!]
       for (const c of t.checks!) {
         if (c.kind !== 'sourceMatches') continue
         const edited = `${starter}\n${Array.from({ length: c.min ?? 1 }, () => c.example).join('\n')}`
@@ -104,8 +147,36 @@ describe.each(PY_LESSONS.map((l) => [l.title, l] as const))('%s: real Python', (
   it('keeps gated bug files broken until they are fixed', async () => {
     // Every bugzap task must fail on its starter and pass on the fix.
     for (const t of lesson.tasks.filter((x) => x.kind === 'bugzap')) {
-      expect(allChecksPassed(await results(lesson, filesFor(lesson, false), t.id))).toBe(false)
-      expect(allChecksPassed(await results(lesson, filesFor(lesson, true), t.id))).toBe(true)
+      expect(allChecksPassed(await results(lesson, false, t.id))).toBe(false)
+      expect(allChecksPassed(await results(lesson, true, t.id))).toBe(true)
+    }
+  })
+})
+
+describe('week 1: tasks are their own programs', () => {
+  const week1 = PY_LESSONS[0]
+  const intro = week1.tasks.find((t) => t.id === 'intro-3')!
+  const on = async (program: string) => {
+    const files = { 'main.py': program }
+    return runTaskChecks(intro.checks, program, await runPythonChecks(intro.checks!, files, 'main.py', nodeExec))
+  }
+
+  it('does not count the same line three times as three lines about you', async () => {
+    expect(allChecksPassed(await on('print("Hi")\nprint("Hi")\nprint("Hi")\n'))).toBe(false)
+    expect(allChecksPassed(await on('print("Hi")\nprint("I like chess")\nprint("Bye")\n'))).toBe(true)
+  })
+
+  it('judges intro-3 on its own program, with no help from first-words', async () => {
+    expect(allChecksPassed(await on('print("a")\nprint("b")\n'))).toBe(false)
+  })
+
+  it('still passes intro-3 and name-tag on a whole-file program from before tasks owned theirs', async () => {
+    // Old boards hold one shared file; the task-local checks are looser, so that code still counts.
+    const old = solution('py/w1.py')
+    for (const id of ['intro-3', 'name-tag']) {
+      const t = week1.tasks.find((x) => x.id === id)!
+      const verdicts = await runPythonChecks(t.checks!, { 'main.py': old }, 'main.py', nodeExec)
+      expect(allChecksPassed(runTaskChecks(t.checks, old, verdicts))).toBe(true)
     }
   })
 })

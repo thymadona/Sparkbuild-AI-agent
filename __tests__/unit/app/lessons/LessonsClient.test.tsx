@@ -45,18 +45,20 @@ describe('LessonsClient', () => {
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
-  it('creates a project from the template when the lesson has not started', async () => {
+  it('creates a project when the lesson has not started', async () => {
     ;(global.fetch as jest.Mock)
-      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print("beep boop")') })
       .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ id: 'new-project' }) })
 
     render(<LessonsClient lessons={[lesson]} userProjects={[]} enabledLessonIds={[101]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
-    expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/py/w1.py')
-    expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects', expect.objectContaining({ method: 'POST' }))
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 101, starter: 'print("beep boop")' })
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    expect(global.fetch).toHaveBeenCalledWith('/api/projects', expect.objectContaining({ method: 'POST' }))
+    // The server seeds the starter; the browser sends only which lesson.
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(body).toMatchObject({ lessonId: 101 })
+    expect(body).not.toHaveProperty('starter')
   })
 
   it('shows a locked state instead of Start when the class has not turned the lesson on', () => {
@@ -76,23 +78,5 @@ describe('LessonsClient', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Resume →' })).toBeInTheDocument()
-  })
-
-  it('seeds a lesson\'s extra files next to the starter', async () => {
-    ;(global.fetch as jest.Mock)
-      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print(1)') })
-      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print("oops)') })
-      .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ id: 'new-project' }) })
-
-    const withBug: Lesson = { ...lesson, extraFiles: { 'bugzap.py': 'py/w1-bugzap.py' } }
-    render(<LessonsClient lessons={[withBug]} userProjects={[]} enabledLessonIds={[101]} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
-    expect(global.fetch).toHaveBeenNthCalledWith(2, '/templates/py/w1-bugzap.py')
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[2][1].body)).toMatchObject({
-      starter: 'print(1)',
-      extraFiles: { 'bugzap.py': 'print("oops)' },
-    })
   })
 })

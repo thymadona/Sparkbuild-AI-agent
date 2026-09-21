@@ -26,18 +26,26 @@ interface Props {
   // for and what is still missing from it.
   header?: (pageId: string) => ReactNode
   footer?: (pageId: string) => ReactNode
+  // Sticky strip above the page (lesson progress and XP).
+  progress?: ReactNode
   statusOf?: (pageId: string) => PageStatus
   // Which page the student is actually looking at. On a lesson board that is
   // the task they are working on, so the owner needs to know.
   onViewPage?: (pageId: string) => void
+  // Sparky's voice toggle. `voice` undefined = this browser cannot speak, so no toggle.
+  voice?: boolean
+  onVoice?: () => void
 }
 
-export default function BoardView({ board, captions, live, mascot, mood, code, onReplay, onSend, busy, header, footer, statusOf, onViewPage }: Props) {
+export default function BoardView({ board, captions, live, mascot, mood, code, onReplay, onSend, busy, header, footer, progress, statusOf, onViewPage, voice, onVoice }: Props) {
   const [minimized, setMinimized] = useState(false)
   const [showEarlier, setShowEarlier] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [quiet, setQuiet] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const typing = focused // input takes the row on the right; Spark steps aside, and returns on blur
+  const inputRef = useRef<HTMLInputElement>(null)
   const paperRef = useRef<HTMLDivElement>(null)
   const pinned = useRef(true) // false once the student scrolls up
   // Student silent for 20s: Spark looks puzzled until anything happens again.
@@ -115,13 +123,14 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
           })}
         </nav>
 
-        <main className="relative flex-1 min-w-0 rounded-3xl bg-[#fffdf8] shadow-md">
-          <div ref={paperRef} onScroll={onScroll} className="h-full overflow-y-auto px-6 md:px-12 py-8 pb-56">
+        <main className="relative min-w-0 flex-1 overflow-hidden rounded-3xl bg-[#fffdf8] shadow-md">
+          {progress}
+          <div ref={paperRef} onScroll={onScroll} className="h-full overflow-y-auto px-6 md:px-12 py-8 pb-32">
             <div className="mx-auto max-w-2xl">
               {page && header?.(page.id)}
               <div className="space-y-5">
               {page?.nodeIds.map((id) => (
-                <div key={id} id={`node-${id}`} className={cn('board-rise rounded-xl', board.focusId === id && 'board-pulse')}>
+                <div key={id} id={`node-${id}`} className={cn(board.nodes[id].createdBy === 'system' ? 'board-enter' : 'board-rise', 'rounded-xl', board.focusId === id && 'board-pulse')}>
                   <NodeView node={board.nodes[id]} code={code} sourceOf={(n) => { const c = board.nodes[n]; return c?.type === 'code' ? c.source : '' }} />
                 </div>
               ))}
@@ -131,44 +140,56 @@ export default function BoardView({ board, captions, live, mascot, mood, code, o
             </div>
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-end gap-3 p-4">
-            <Mascot state={face} />
-            {!minimized ? (
-              <div className="pointer-events-auto min-w-[16rem] max-w-md flex-1 rounded-2xl bg-[#3b2a1c] p-4 text-[#faf6ee] shadow-lg">
+          <div className={cn('pointer-events-none absolute bottom-3 flex max-w-[calc(100%-1.5rem)] flex-col gap-2', 'left-3 items-start', typing && 'w-[28rem]')}>
+            {!minimized && (
+              <div className="pointer-events-auto max-h-40 w-72 max-w-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
                 {showEarlier && captions.slice(0, -1).map((c, i) => <p key={i} className="mb-2 text-sm text-[#faf6ee]/75">{c}</p>)}
                 <p>{live || captions.at(-1) || '…'}</p>
-                <div className="mt-2 flex gap-3 text-xs text-[#faf6ee]/80">
-                  {captions.length > 1 && <button className="underline min-h-6" onClick={() => setShowEarlier((v) => !v)}>{showEarlier ? 'Hide' : 'Show'} earlier captions</button>}
-                  <button className="underline min-h-6" onClick={() => setMinimized(true)}>Minimize</button>
+                <div className="mt-1 flex gap-3 text-xs text-[#faf6ee]/80">
+                  {captions.length > 1 && <button className="min-h-6 hover:underline focus-visible:underline" onClick={() => setShowEarlier((v) => !v)}>{showEarlier ? 'Hide' : 'Show'} earlier</button>}
+                  <button className="min-h-6 hover:underline focus-visible:underline" onClick={() => setMinimized(true)}>Hide</button>
+                  {voice !== undefined && <button className="min-h-6 hover:underline focus-visible:underline" aria-pressed={voice} onClick={onVoice}>{voice ? '🔊 Voice on' : '🔈 Voice off'}</button>}
                 </div>
               </div>
-            ) : (
-              <button className="pointer-events-auto min-h-11 rounded-full bg-[#3b2a1c] px-4 text-sm text-[#faf6ee]" onClick={() => setMinimized(false)}>Show Spark</button>
             )}
-            <form
-              className="pointer-events-auto ml-auto flex min-w-[16rem] flex-1 basis-80 items-center gap-2 rounded-full border border-[#e4e0d6] bg-[#faf9f6] py-2 pl-5 pr-2 shadow-[0_6px_24px_rgba(43,33,24,0.12)] focus-within:border-[#b45309]"
-              onSubmit={(e) => {
-                e.preventDefault()
-                if (onSend && draft.trim() && !busy) { onSend(draft.trim()); setDraft('') }
-              }}
-            >
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                disabled={!onSend}
-                maxLength={1000}
-                placeholder={onSend ? 'Type to Spark' : 'Spark will listen here soon…'}
-                aria-label="Message Spark"
-                className="board-input min-h-11 min-w-0 flex-1 bg-transparent text-base text-[#2b2118] outline-none placeholder:text-[#6b6357]"
-              />
-              {onReplay ? (
-                <button type="button" onClick={onReplay} className="min-h-11 rounded-full bg-amber-500 px-4 text-sm font-semibold text-[#2b2118]">Replay</button>
-              ) : (
-                <button disabled={busy || !draft.trim()} aria-label="Send" className="grid size-11 shrink-0 place-items-center rounded-full bg-[#2b2118] text-[#faf6ee] transition-colors disabled:bg-[#a29a8f]">
-                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-                </button>
-              )}
-            </form>
+            <div className={cn('flex items-center gap-2', typing && 'w-full')}>
+              {!typing && <button
+                type="button"
+                aria-label={minimized ? 'Show Spark' : 'Hide Spark'}
+                onClick={() => setMinimized((v) => !v)}
+                className="pointer-events-auto grid place-items-center rounded-full"
+              >
+                <Mascot state={face} className="size-16" />
+              </button>}
+              <form
+                className={cn('pointer-events-auto flex items-center gap-1 rounded-full border border-[#e4e0d6] bg-[#faf9f6] p-1 shadow-md focus-within:border-[#b45309]', typing && 'spark-typebox flex-1')}
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (onSend && draft.trim() && !busy) { onSend(draft.trim()); setDraft(''); inputRef.current?.blur() }
+                }}
+              >
+                <input
+                  ref={inputRef}
+                  onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur() }}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  disabled={!onSend}
+                  maxLength={1000}
+                  placeholder={onSend ? 'Type to Spark' : 'Spark will listen here soon…'}
+                  aria-label="Message Spark"
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  className={cn('board-input min-h-10 min-w-0 bg-transparent pl-3 text-base text-[#2b2118] outline-none placeholder:text-[#6b6357]', typing ? 'flex-1' : 'w-44')}
+                />
+                {onReplay ? (
+                  <button type="button" onClick={onReplay} className="min-h-10 rounded-full bg-amber-500 px-4 text-sm font-semibold text-[#2b2118]">Replay</button>
+                ) : (
+                  <button disabled={busy || !draft.trim()} aria-label="Send" className="grid size-10 shrink-0 place-items-center rounded-full bg-[#2b2118] text-[#faf6ee] transition-colors disabled:bg-[#a29a8f]">
+                    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+                  </button>
+                )}
+              </form>
+            </div>
           </div>
         </main>
       </div>

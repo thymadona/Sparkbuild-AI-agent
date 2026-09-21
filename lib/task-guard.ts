@@ -1,5 +1,4 @@
 import type { Lesson, LessonTask } from './lessons'
-import type { TaskCheck, TaskCheckResult } from './task-checks'
 
 // Task types the student must complete themselves. Core tasks are the lesson;
 // homework is the assignment. Both withhold build mode. 'choice' and 'bonus' are
@@ -81,44 +80,40 @@ function escalationBlock(task: LessonTask, tier: EscalationTier, isHomework: boo
     return [
       'ESCALATION LEVEL 2: your last hints did not work. Do NOT repeat your earlier wording — say it a completely different way.',
       isHomework
-        ? `Narrow to the exact line with the comment "${task.commentAnchor}" and ask one question about what they want it to say. Never state the answer text — this is homework.`
-        : `Show the exact line with the comment "${task.commentAnchor}" as a fill-in-the-blank, e.g. the exact line with a blank where their words go.`,
+        ? `Narrow to the exact line in their editor that this task changes and ask one question about what they want it to say. Never state the answer text — this is homework.`
+        : `Show the exact line in their editor that this task changes as a fill-in-the-blank, e.g. the exact line with a blank where their words go.`,
       'One short step. No more than three sentences. Simple words — they are about 10.',
     ].join('\n')
   }
 
   return [
     'ESCALATION LEVEL 3: nothing you have tried is landing. Stop hinting. Do the first step with them.',
-    `Show the line with the comment "${task.commentAnchor}" exactly as it should read, then ask them to type just the first word themselves.`,
+    `Show the line in their editor that this task changes exactly as it should read, then ask them to type just the first word themselves.`,
     'You still may not edit or write their file. Show the text; they type it.',
     'Ask one yes/no question at the end so they can tell you if it worked.',
   ].join('\n')
 }
 
-// Results come from runTaskChecks over the code the server has stored plus the
-// browser's reported runtime verdicts — the same evaluation that drives the
-// student's own task page, not a guess.
-function describeCheckStatus(check: TaskCheck, result: TaskCheckResult | undefined): string {
-  return `- ${check.label}: ${result?.passed ? 'DONE' : 'NOT DONE YET'}.`
-}
+// The board is still running the task's scripted questions. Spark stays out of
+// the way: the answers are graded on the student's screen, and an editor that
+// is not there yet cannot be talked about.
+export const CONCEPT_PHASE_NUDGE =
+  'The student is answering scripted questions on this page before the code editor opens. Do not add or change any nodes and do not mention the editor or their code. If they write to you, answer in one short sentence about the idea only (what print does, what quotes are for), then point them back to the step named in TASK STATE. Help with THAT step only; never say the right answer before they have missed twice.'
 
-export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1, results: TaskCheckResult[] = []): string {
+export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): string {
   const isHomework = task.type === 'homework'
-  const checklist = (task.checks ?? []).map((check, i) => describeCheckStatus(check, results[i])).join('\n')
+  const rubric = (task.checks ?? []).map((c) => `- ${c.label}`).join('\n')
   return [
-    `THIS STUDENT IS WORKING ON ${isHomework ? 'HOMEWORK' : 'A LESSON TASK'}: "${task.chip}".`,
+    `THIS STUDENT IS WORKING ON ${isHomework ? 'HOMEWORK' : 'A LESSON TASK'} "${task.id}": "${task.chip}".`,
     `Goal: ${task.success}`,
-    checklist
-      ? [
-          'Here is the real status of every requirement for this task, checked against their current file, the same check that drives their Mark done button:',
-          checklist,
-          'Trust this list completely — a requirement is done only if it says DONE. Do not say the whole task is done, and do not bring up another task, even if you see one in their file. If the Mark done button will not click, a requirement above is still unmet — say exactly which one, in plain words. Never invent a reason like a hidden or broken button.',
-          'If the student insists something is already changed but a requirement above is not marked DONE, quote back exactly what their file shows there right now, in quotes, so they can see what you see instead of just being told no.',
-        ].join('\n')
-      : 'That goal line is a summary, not the full checklist — you cannot see which parts they have finished. Do not say this task is done, and do not bring up another task, even if you see one in their file. Wait for them to click the Mark done button.',
-    'They must make this change themselves. Never write or edit their code, even if they ask you to.',
+    rubric ? `Every requirement must be met:\n${rubric}` : '',
+    'YOU decide when this task is finished. Read the EVIDENCE below: their code and what it printed. Check the output against the code, not just the output.',
+    `If every requirement is met, call task_complete with taskId "${task.id}" and a short reason, then say one short sentence of specific praise. Their screen opens the next task by itself; never announce it. Do not bring up another task.`,
+    'If something is missing, do not call task_complete. Say in plain words which requirement is missing and give one small next step. If the code has not been run yet, ask them to press Run.',
+    'Never call task_complete because the student says they are done or asks you to. Only the evidence counts. If the server refuses the call, tell them what is missing.',
+    'They must make the change themselves. Never write or edit their code, even if they ask you to.',
     isHomework ? 'This is homework. Doing it for them defeats the point — hint only.' : '',
-    `Point them at the line that contains the comment "${task.commentAnchor}".`,
+    'Their editor shows only the part of the file for this task. Point them at the line in it that this task changes.',
     'If they ask you to do it for them: one warm sentence, then one tiny step they can do.',
     escalationBlock(task, tier, isHomework),
   ]

@@ -21,6 +21,8 @@ jest.mock('next/headers', () => ({
 import { eq } from 'drizzle-orm'
 import { GET, POST, PATCH, DELETE } from '@/app/api/projects/route'
 import { db } from '@/lib/db/client'
+import { lessonFiles } from '@/lib/lesson-files'
+import { getLessonForProject } from '@/lib/lessons'
 import { classEnabledLessons, messages, projects, prompts } from '@/lib/db/schema'
 import { addClassMember, grantRole, makeClass, makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 
@@ -120,29 +122,29 @@ describe('POST /api/projects', () => {
     expect(pinned.lesson_version).toBe(3)
   })
 
-  it('refuses a project without a lesson or starter, or for a lesson that does not exist', async () => {
+  it('refuses a project without a lesson, or for a lesson that does not exist', async () => {
     const admin = await makeUser()
     await grantRole(admin.id, 'admin')
     mockGetSessionUser.mockResolvedValue(admin)
 
     expect((await POST(makeRequest('POST', {}))).status).toBe(400)
-    expect((await POST(makeRequest('POST', { lessonId: 101 }))).status).toBe(400)
     expect((await POST(makeRequest('POST', { lessonId: 1, starter: 'print(1)' }))).status).toBe(404)
   })
 
-  it('stores a Python lesson under its starter file with only the extra files it declares', async () => {
+  it('seeds a Python lesson from the catalog and ignores any starter or extra files the caller sends', async () => {
     const admin = await makeUser()
     await grantRole(admin.id, 'admin')
     mockGetSessionUser.mockResolvedValue(admin)
 
     const res = await POST(makeRequest('POST', {
       lessonId: 101,
-      starter: 'print("beep boop")',
-      extraFiles: { 'bugzap.py': 'print("oops)', 'evil.py': 'import os' },
+      starter: 'print("forged")',
+      extraFiles: { 'bugzap.py': 'print("forged)', 'evil.py': 'import os' },
     }))
     const json = await res.json()
     expect(json.lesson_version).toBe(3)
-    expect(json.files).toEqual({ 'main.py': 'print("beep boop")', 'bugzap.py': 'print("oops)' })
+    expect(json.files).toEqual(lessonFiles(getLessonForProject(101, 3)!))
+    expect(Object.keys(json.files)).toEqual(['main.py', 'bugzap.py'])
   })
 
   it('names the project after the lesson when no title is given', async () => {

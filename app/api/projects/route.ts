@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { messages, projects as projectsTable, prompts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { CURRENT_LESSON_VERSION, getLessonForProject } from '@/lib/lessons'
+import { lessonFiles } from '@/lib/lesson-files'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
@@ -55,8 +56,9 @@ export async function GET() {
 }
 
 // POST /api/projects — start a lesson. Every project belongs to a lesson on
-// the current catalog; the caller sends the starter it fetched from
-// public/templates so the server never reads the filesystem here.
+// the current catalog, and the server seeds its files from that catalog
+// (lib/lesson-files.ts). A `starter` in the body is ignored: it used to be
+// trusted, so any string could become a student's starting program.
 export async function POST(req: Request) {
   const user = await getSessionUser()
 
@@ -65,10 +67,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const { lessonId, starter } = body
+  const { lessonId } = body
 
-  if (typeof lessonId !== 'number' || typeof starter !== 'string') {
-    return NextResponse.json({ error: 'lessonId and starter are required' }, { status: 400 })
+  if (typeof lessonId !== 'number') {
+    return NextResponse.json({ error: 'lessonId is required' }, { status: 400 })
   }
 
   const lesson = getLessonForProject(lessonId, CURRENT_LESSON_VERSION)
@@ -83,11 +85,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const files: Record<string, string> = { [lesson.starterFile]: starter }
-  // Extra seeded files (e.g. bugzap.py). Only names the lesson declares are kept.
-  for (const name of Object.keys(lesson.extraFiles ?? {})) {
-    if (typeof body.extraFiles?.[name] === 'string') files[name] = body.extraFiles[name]
-  }
+  const files = lessonFiles(lesson)
 
   const insertData: typeof projectsTable.$inferInsert = {
     userId: user.id,

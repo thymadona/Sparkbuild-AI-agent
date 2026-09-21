@@ -1,15 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { speak as say, speechSupported, stopSpeaking } from '@/lib/speech'
 
 interface SpeakButtonProps {
   text: string
   label?: string
   className?: string
-}
-
-function speechSupported() {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window
 }
 
 /**
@@ -26,28 +23,19 @@ export default function SpeakButton({ text, label = 'Read this out loud', classN
   useEffect(() => setSupported(speechSupported()), [])
 
   useEffect(() => {
-    return () => {
-      if (speechSupported()) window.speechSynthesis.cancel()
-    }
+    return () => stopSpeaking()
   }, [])
 
   if (!supported || !text.trim()) return null
 
   function speak() {
-    const synth = window.speechSynthesis
-    synth.cancel()
     if (speaking) {
+      stopSpeaking()
       setSpeaking(false)
       return
     }
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'en-US'
-    // Slower than default; these are instructions, not prose.
-    utterance.rate = 0.9
-    utterance.onend = () => setSpeaking(false)
-    utterance.onerror = () => setSpeaking(false)
     setSpeaking(true)
-    synth.speak(utterance)
+    say(text, () => setSpeaking(false))
   }
 
   return (

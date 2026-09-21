@@ -24,11 +24,11 @@ export const fixture: Step[] = [
     ops: [
       {
         op: 'add', pageId: 'p1',
-        node: { id: 'c1', parentId: null, createdBy: T, type: 'code', language: 'python', source: 'print("hello")', editable: true, highlightLines: [1], caption: 'Your first program' },
+        node: { id: 'c1', parentId: null, createdBy: T, type: 'code', language: 'python', source: 'print("hello")', editable: true, caption: 'Your first program' },
       },
       {
         op: 'add', pageId: 'p1',
-        node: { id: 'q1', parentId: null, createdBy: T, type: 'quiz', kind: 'multiple_choice', prompt: 'What appears on screen?', options: ['print', 'hello', '"hello"'], answered: false },
+        node: { id: 'q1', parentId: null, createdBy: T, type: 'quiz', kind: 'multiple_choice', prompt: 'What appears on screen?', options: ['print', 'hello', '"hello"'], answered: false, attempts: 0 },
       },
     ],
     wait: 1800,
@@ -52,7 +52,7 @@ export const fixture: Step[] = [
     ops: [
       {
         op: 'add', pageId: 'p2',
-        node: { id: 'c2', parentId: null, createdBy: T, type: 'code', language: 'python', source: 'name = "Mia"\nprint(name)', editable: true, highlightLines: [1] },
+        node: { id: 'c2', parentId: null, createdBy: T, type: 'code', language: 'python', source: 'name = "Mia"\nprint(name)', editable: true },
       },
       {
         op: 'add', pageId: 'p2',
@@ -63,6 +63,6 @@ export const fixture: Step[] = [
   },
   {
     caption: 'Now line 2 reads the box. Try changing Mia to your name!',
-    ops: [{ op: 'update', id: 'c2', patch: { highlightLines: [2] } }, { op: 'focus', id: 'c2' }],
+    ops: [{ op: 'focus', id: 'c2' }],
   },
 ]
