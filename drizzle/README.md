@@ -1,12 +1,14 @@
 # drizzle/ — the applied migration history
 
 This folder is the schema of record, applied via `bun run db:migrate`
-against `DATABASE_URL`. `lib/db/schema.ts` is the authoring entry point;
+against `DATABASE_URL`. `lib/db/schemas/*.ts` (one table per file, re-exported
+by `lib/db/schema.ts`) is the authoring entry point;
 nothing else defines the schema.
 
 ## Workflow for a schema change
 
-1. Edit `lib/db/schema.ts` first — add/change the table, columns, FKs,
+1. Edit the table's file in `lib/db/schemas/` first (a new table also needs an
+   `export *` line in `lib/db/schema.ts`) — add/change the table, columns, FKs,
    indexes, whatever the change is.
 2. Run `bun run db:generate`. It diffs `schema.ts` against the snapshot in
    `drizzle/meta/` and writes a new `NNNN_*.sql` file here with the DDL.
@@ -42,12 +44,12 @@ go:
    roles `authenticated`/`anon` — all Supabase/PostgREST constructs that do
    not exist on plain Postgres.
 
-`0000_baseline.sql` is generated from `lib/db/schema.ts` and creates the
+`0000_baseline.sql` is generated from `lib/db/schemas/*.ts` and creates the
 whole schema, including the four Better Auth tables (`users`, `sessions`,
 `accounts`, `verifications`) that replaced Supabase's `auth` schema. Every
 `user_id` FK that used to point at `auth.users(id)` now points at
 `public.users(id)`, with the original delete rules preserved — including the
-two deliberate deviations `lib/db/schema.ts` documents (`receipts` does not
+two deliberate deviations `lib/db/schemas/` documents (`receipts` does not
 cascade; `user_roles` is NO ACTION).
 
 `0001_functions_sequence_seed.sql` carries forward everything the Drizzle
@@ -93,7 +95,7 @@ It is re-runnable, and the revokes are guarded on the role existing so the same
 file applies cleanly to a plain Postgres — local development and the CI service
 container, where `anon` and `authenticated` are not defined.
 
-**Anything added to `lib/db/schema.ts` from now on needs a matching
+**Anything added to `lib/db/schemas/` from now on needs a matching
 `enable row level security` line** while PostgREST is still in the picture;
 `bun run db:generate` will not write one for you. That obligation ends with the
 last `supabaseAdmin` call site.

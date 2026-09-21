@@ -75,13 +75,13 @@ cp .env.local.example .env.local
 
 ### Database Setup
 
-Schema is Drizzle-native (`lib/db/schema.ts` → `./drizzle`). Apply the full migration history against `DATABASE_URL`:
+Schema is Drizzle-native (`lib/db/schemas/*.ts` → `./drizzle`). Apply the full migration history against `DATABASE_URL`:
 
 ```bash
 bun run db:migrate
 ```
 
-To change the schema afterward: edit `lib/db/schema.ts`, run `bun run db:generate` to derive DDL, then `bun run db:migrate` again. See `drizzle/README.md`.
+To change the schema afterward: edit the table's file in `lib/db/schemas/` (and re-export a new table from `lib/db/schema.ts`), run `bun run db:generate` to derive DDL, then `bun run db:migrate` again. See `drizzle/README.md`.
 
 ### Development
 
@@ -137,7 +137,8 @@ lib/
 └── utils.ts             cn() and shared helpers
 
 types/index.ts           Shared TypeScript interfaces
-lib/db/schema.ts         Drizzle schema — authoring entry point
+lib/db/schemas/          Drizzle schema — one table per file (authoring entry point)
+lib/db/schema.ts         Barrel re-exporting lib/db/schemas/*; what drizzle-kit and the client import
 drizzle/                 Schema of record (applied SQL migrations)
 public/templates/        Lesson starter HTML files
 __tests__/               Unit and integration tests
@@ -153,7 +154,7 @@ middleware.ts            Session refresh, route guards, admin gate
 | `bun run start` | Serve production build |
 | `bun run test` | Run all Jest tests |
 | `bun run lint` | Run ESLint |
-| `bun run db:generate` | Derive migration DDL from `lib/db/schema.ts` into `./drizzle` |
+| `bun run db:generate` | Derive migration DDL from `lib/db/schemas/*.ts` into `./drizzle` |
 | `bun run db:migrate` | Apply pending `./drizzle` migrations to `DATABASE_URL` |
 | `bun run db:studio` | Open Drizzle Studio against the live DB |
 

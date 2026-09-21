@@ -31,13 +31,13 @@ beforeEach(async () => {
 })
 
 describe('lesson progress API', () => {
-  // Asserted against lib/db/schema.ts rather than a migration file: the
+  // Asserted against lib/db/schemas/lesson-progress.ts rather than a migration file: the
   // schema is the authoring entry point, so that is where someone would
   // break this. (This used to read drizzle/0006_lesson_progress.sql, which
   // moved to drizzle/_archive/ when the history was squashed to
   // 0000_baseline.sql.)
   it('uses a cascading project foreign key so progress is removed with its project', () => {
-    const schema = require('fs').readFileSync('lib/db/schema.ts', 'utf8')
+    const schema = require('fs').readFileSync('lib/db/schemas/lesson-progress.ts', 'utf8')
     expect(schema).toMatch(
       /projectId: uuid\('project_id'\)\.primaryKey\(\)\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
     )
