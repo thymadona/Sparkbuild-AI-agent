@@ -226,8 +226,8 @@ export const PY_LESSONS: Lesson[] = [
           tryIt('Click 2 lines. Watch Sparky.', 2, ['beep boop', 'hello', 'I am Sparky']),
           pairUp('Match each piece to its job.', [
             ['print', 'Sparky speaks'],
-            ['"hi"', 'The words'],
-            ['# note', 'Sparky skips it'],
+            ['hi', 'The words'],
+            ['" "', 'Around the words'],
           ]),
           choose(
             'What will Sparky say?',
