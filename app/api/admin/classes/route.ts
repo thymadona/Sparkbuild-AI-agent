@@ -17,7 +17,8 @@ const classColumns = {
 export async function GET() {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
     const rows = await db.select(classColumns).from(classes).orderBy(desc(classes.createdAt))
@@ -31,9 +32,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, description } = await req.json() as { name: string; description?: string }
+  const { name, description } = (await req.json()) as { name: string; description?: string }
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
   try {

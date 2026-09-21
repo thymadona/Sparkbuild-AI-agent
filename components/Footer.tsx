@@ -8,8 +8,12 @@ export default function Footer() {
           <span className="text-spark">Code</span>Builder
         </Link>
         <nav className="flex gap-6 text-sm text-fg-muted">
-          <Link href="/about" className="hover:text-fg-primary transition-colors">About</Link>
-          <Link href="/lessons" className="hover:text-fg-primary transition-colors">Lessons</Link>
+          <Link href="/about" className="hover:text-fg-primary transition-colors">
+            About
+          </Link>
+          <Link href="/lessons" className="hover:text-fg-primary transition-colors">
+            Lessons
+          </Link>
         </nav>
         <p className="text-xs text-fg-muted">Built for students. Powered by AI.</p>
       </div>

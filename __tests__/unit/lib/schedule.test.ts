@@ -56,16 +56,22 @@ describe('dueLabel', () => {
   })
 
   it('warns when class is today', () => {
-    expect(dueLabel(nextClassMeeting([wednesday4pm], WEDNESDAY), WEDNESDAY)).toBe('Hand in today, before class.')
+    expect(dueLabel(nextClassMeeting([wednesday4pm], WEDNESDAY), WEDNESDAY)).toBe(
+      'Hand in today, before class.'
+    )
   })
 
   it('says tomorrow for the next day', () => {
     const thursday: ClassSlot = { day_of_week: 4, start_time: '10:00' }
-    expect(dueLabel(nextClassMeeting([thursday], WEDNESDAY), WEDNESDAY)).toBe('Hand in by tomorrow.')
+    expect(dueLabel(nextClassMeeting([thursday], WEDNESDAY), WEDNESDAY)).toBe(
+      'Hand in by tomorrow.'
+    )
   })
 
   it('names the weekday for anything further out', () => {
-    expect(dueLabel(nextClassMeeting([friday2pm], WEDNESDAY), WEDNESDAY)).toBe('Hand in before Friday.')
+    expect(dueLabel(nextClassMeeting([friday2pm], WEDNESDAY), WEDNESDAY)).toBe(
+      'Hand in before Friday.'
+    )
   })
 
   it('stays inside the reading budget', () => {

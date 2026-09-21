@@ -13,7 +13,9 @@ import { runTaskChecks } from '@/lib/task-checks'
 const week3 = LESSONS.find((lesson) => lesson.id === 103)!
 const coreIds = week3.tasks.filter((task) => task.type === 'core').map((task) => task.id)
 const homeworkIds = week3.tasks.filter((task) => task.type === 'homework').map((task) => task.id)
-const optionalIds = week3.tasks.filter((task) => task.type === 'choice' || task.type === 'bonus').map((task) => task.id)
+const optionalIds = week3.tasks
+  .filter((task) => task.type === 'choice' || task.type === 'bonus')
+  .map((task) => task.id)
 
 describe('pendingCoreTask', () => {
   it('returns the first open core task', () => {
@@ -166,7 +168,10 @@ describe('buildTaskNudge', () => {
     const task = week3.tasks.find((t) => t.id === 'times-table')! // sourceMatches + outputContains
     const untouched = runTaskChecks(task.checks, 'for n in range(3):\n    print(n)\n')
     const stepped = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n')
-    const ran = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n', [undefined, true])
+    const ran = runTaskChecks(task.checks, 'for n in range(2, 12, 2):\n    print(n)\n', [
+      undefined,
+      true,
+    ])
 
     expect(buildTaskNudge(task, 1, untouched)).toContain('NOT DONE YET')
     const steppedNudge = buildTaskNudge(task, 1, stepped)
@@ -193,9 +198,12 @@ describe('escalationTier', () => {
     [0, true, false, 3],
     [9, false, true, 2],
     [0, true, true, 2],
-  ] as const)('stuckTurns=%s confused=%s homework=%s -> tier %s', (stuckTurns, confused, isHomework, expected) => {
-    expect(escalationTier(stuckTurns, confused, isHomework)).toBe(expected)
-  })
+  ] as const)(
+    'stuckTurns=%s confused=%s homework=%s -> tier %s',
+    (stuckTurns, confused, isHomework, expected) => {
+      expect(escalationTier(stuckTurns, confused, isHomework)).toBe(expected)
+    }
+  )
 
   it('never returns tier 3 for homework, however stuck', () => {
     expect(escalationTier(100, true, true)).toBe(2)
@@ -216,12 +224,18 @@ describe('detectConfusion', () => {
   })
 
   it('treats an exact repeat of the previous user message as confusion', () => {
-    expect(detectConfusion('help me replace the name and intro', 'help me replace the name and intro')).toBe(true)
-    expect(detectConfusion('Help me replace the name and intro!', 'help me replace the name and intro')).toBe(true)
+    expect(
+      detectConfusion('help me replace the name and intro', 'help me replace the name and intro')
+    ).toBe(true)
+    expect(
+      detectConfusion('Help me replace the name and intro!', 'help me replace the name and intro')
+    ).toBe(true)
   })
 
   it('is not fooled by a different message', () => {
-    expect(detectConfusion('help me add a button', 'help me replace the name and intro')).toBe(false)
+    expect(detectConfusion('help me add a button', 'help me replace the name and intro')).toBe(
+      false
+    )
   })
 
   it('does not treat "no" as confusion', () => {

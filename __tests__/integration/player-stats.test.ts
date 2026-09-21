@@ -7,15 +7,22 @@ import { makeProject, makeUser, resetDb } from '@/__tests__/helpers/db'
 beforeEach(resetDb)
 
 const pythonProject = (userId: string, done: string[]) =>
-  makeProject(userId, { lessonId: 101, lessonVersion: 3, files: { 'main.py': '' } }).then(async (p) => {
-    await db.insert(lessonProgress).values({ projectId: p.id, completedTaskIds: done })
-    return p
-  })
+  makeProject(userId, { lessonId: 101, lessonVersion: 3, files: { 'main.py': '' } }).then(
+    async (p) => {
+      await db.insert(lessonProgress).values({ projectId: p.id, completedTaskIds: done })
+      return p
+    }
+  )
 
 describe('getPlayerStats', () => {
   it('starts a new student at Rookie with nothing earned', async () => {
     const user = await makeUser()
-    expect(await getPlayerStats(user.id)).toMatchObject({ xp: 0, streak: 0, badges: [], level: { name: 'Rookie' } })
+    expect(await getPlayerStats(user.id)).toMatchObject({
+      xp: 0,
+      streak: 0,
+      badges: [],
+      level: { name: 'Rookie' },
+    })
   })
 
   it('adds up XP and badges from this student’s progress only', async () => {
@@ -32,7 +39,11 @@ describe('getPlayerStats', () => {
 
   it('ignores projects from the retired web course', async () => {
     const user = await makeUser()
-    const p = await makeProject(user.id, { lessonId: 1, lessonVersion: 2, files: { 'index.html': '' } })
+    const p = await makeProject(user.id, {
+      lessonId: 1,
+      lessonVersion: 2,
+      files: { 'index.html': '' },
+    })
     await db.insert(lessonProgress).values({ projectId: p.id, completedTaskIds: ['identity'] })
     expect((await getPlayerStats(user.id)).xp).toBe(0)
   })

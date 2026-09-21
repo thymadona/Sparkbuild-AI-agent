@@ -7,16 +7,16 @@ import { getSessionUser } from '@/lib/auth/session'
 export async function POST(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'students:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'students:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { email, full_name, parent_email, parent_telegram_chat_id, notes } =
-    await req.json() as {
-      email: string
-      full_name: string
-      parent_email?: string
-      parent_telegram_chat_id?: string
-      notes?: string
-    }
+  const { email, full_name, parent_email, parent_telegram_chat_id, notes } = (await req.json()) as {
+    email: string
+    full_name: string
+    parent_email?: string
+    parent_telegram_chat_id?: string
+    notes?: string
+  }
 
   if (!email || !full_name) {
     return NextResponse.json({ error: 'email and full_name are required' }, { status: 400 })

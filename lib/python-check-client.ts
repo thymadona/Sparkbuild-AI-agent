@@ -19,8 +19,13 @@ function ensureWorker() {
     worker = w
     ready = new Promise<void>((resolve, reject) => {
       const onMessage = ({ data }: MessageEvent) => {
-        if (data.type === 'ready') { w.removeEventListener('message', onMessage); resolve() }
-        else if (data.type === 'fatal') { w.removeEventListener('message', onMessage); reject(new PyUnavailable(data.text)) }
+        if (data.type === 'ready') {
+          w.removeEventListener('message', onMessage)
+          resolve()
+        } else if (data.type === 'fatal') {
+          w.removeEventListener('message', onMessage)
+          reject(new PyUnavailable(data.text))
+        }
       }
       w.addEventListener('message', onMessage)
       w.addEventListener('error', () => reject(new PyUnavailable('worker failed to start')))
@@ -45,7 +50,11 @@ async function send(message: Record<string, unknown>): Promise<Reply> {
   try {
     await ready
   } catch (e) {
-    if (worker === w) { w.terminate(); worker = null; ready = null }
+    if (worker === w) {
+      w.terminate()
+      worker = null
+      ready = null
+    }
     throw e
   }
   const id = ++seq
@@ -54,13 +63,19 @@ async function send(message: Record<string, unknown>): Promise<Reply> {
     const timer = setTimeout(() => {
       // An endless loop in the student's code: kill it and count the check as failed.
       w.terminate()
-      if (worker === w) { worker = null; ready = null }
+      if (worker === w) {
+        worker = null
+        ready = null
+      }
       resolve({ ok: false, stdout, events: [] })
     }, CHECK_TIMEOUT_MS)
     const onMessage = ({ data }: MessageEvent) => {
       if (data.type === 'out') stdout += data.text
-      else if (data.type === 'fatal') { clearTimeout(timer); w.removeEventListener('message', onMessage); reject(new PyUnavailable(data.text)) }
-      else if (data.type === 'done' && data.id === id) {
+      else if (data.type === 'fatal') {
+        clearTimeout(timer)
+        w.removeEventListener('message', onMessage)
+        reject(new PyUnavailable(data.text))
+      } else if (data.type === 'done' && data.id === id) {
         clearTimeout(timer)
         w.removeEventListener('message', onMessage)
         resolve({ ok: data.ok, value: data.value, stdout, events: data.events ?? [] })

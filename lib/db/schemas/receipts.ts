@@ -6,8 +6,12 @@ import { users } from './users'
 // immutable snapshot that must outlive the invoice or user that created it.
 export const receipts = pgTable('receipts', {
   id: uuid('id').defaultRandom().primaryKey(),
-  invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
-  userId: uuid('user_id').notNull().references(() => users.id),
+  invoiceId: uuid('invoice_id')
+    .notNull()
+    .references(() => invoices.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
   amountCents: integer('amount_cents').notNull(),
   description: text('description').notNull(),
   paidAt: timestamp('paid_at', { withTimezone: true, mode: 'string' }).notNull(),

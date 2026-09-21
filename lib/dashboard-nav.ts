@@ -60,9 +60,39 @@ export const STAFF_NAV: NavItem[] = [
   },
   // The global cross-class queue — teachers review homework scoped to their
   // own class from the Classes tab instead, matching existing behavior.
-  { href: '/staff/homework', label: 'Homework', icon: 'check', group: 'classes', visible: (p) => p.isAdmin },
-  { href: '/staff/students', label: 'Students', icon: 'people', group: 'people', visible: (p) => p.canManageStudents },
-  { href: '/staff/users', label: 'People & Roles', icon: 'shield', group: 'people', visible: (p) => p.canManageRoles },
-  { href: '/staff/finance', label: 'Billing', icon: 'card', group: 'billing', visible: (p) => p.canManageInvoices },
-  { href: '/staff/telegram', label: 'Telegram', icon: 'send', group: 'billing', visible: (p) => p.canManageTelegram },
+  {
+    href: '/staff/homework',
+    label: 'Homework',
+    icon: 'check',
+    group: 'classes',
+    visible: (p) => p.isAdmin,
+  },
+  {
+    href: '/staff/students',
+    label: 'Students',
+    icon: 'people',
+    group: 'people',
+    visible: (p) => p.canManageStudents,
+  },
+  {
+    href: '/staff/users',
+    label: 'People & Roles',
+    icon: 'shield',
+    group: 'people',
+    visible: (p) => p.canManageRoles,
+  },
+  {
+    href: '/staff/finance',
+    label: 'Billing',
+    icon: 'card',
+    group: 'billing',
+    visible: (p) => p.canManageInvoices,
+  },
+  {
+    href: '/staff/telegram',
+    label: 'Telegram',
+    icon: 'send',
+    group: 'billing',
+    visible: (p) => p.canManageTelegram,
+  },
 ]

@@ -8,13 +8,21 @@ import { GROUP_LABEL, STAFF_NAV, type NavIcon, type StaffPermissions } from '@/l
 const COLLAPSE_KEY = 'staff-sidebar-collapsed'
 
 function Icon({ name }: { name: NavIcon }) {
-  const common = { className: 'w-5 h-5 shrink-0', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, viewBox: '0 0 24 24' }
+  const common = {
+    className: 'w-5 h-5 shrink-0',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.75,
+    viewBox: '0 0 24 24',
+  }
   switch (name) {
     case 'grid':
       return (
         <svg {...common}>
-          <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
       )
     case 'people':
@@ -50,7 +58,8 @@ function Icon({ name }: { name: NavIcon }) {
     case 'send':
       return (
         <svg {...common}>
-          <path d="M22 2L11 13" /><path d="M22 2L15 22l-4-9-9-4 20-7z" />
+          <path d="M22 2L11 13" />
+          <path d="M22 2L15 22l-4-9-9-4 20-7z" />
         </svg>
       )
     case 'shield':
@@ -65,7 +74,13 @@ function Icon({ name }: { name: NavIcon }) {
 
 function ChevronIcon({ collapsed }: { collapsed: boolean }) {
   return (
-    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+    <svg
+      className="h-4 w-4 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      viewBox="0 0 24 24"
+    >
       {collapsed ? <path d="M9 6l6 6-6 6" /> : <path d="M15 6l-6 6 6 6" />}
     </svg>
   )
@@ -116,14 +131,24 @@ export default function DashboardShell({ email, roleLabel, permissions, children
           className={`mb-3 flex items-center gap-2.5 ${collapsed ? 'justify-center px-0' : 'px-4'}`}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary">
-            <svg className="h-4 w-4 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <svg
+              className="h-4 w-4 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           </span>
-          {!collapsed && <span className="truncate font-semibold text-sm text-foreground">Staff</span>}
+          {!collapsed && (
+            <span className="truncate font-semibold text-sm text-foreground">Staff</span>
+          )}
         </Link>
 
-        <nav className={`flex flex-1 flex-col gap-0.5 overflow-y-auto ${collapsed ? 'items-center' : 'px-2'}`}>
+        <nav
+          className={`flex flex-1 flex-col gap-0.5 overflow-y-auto ${collapsed ? 'items-center' : 'px-2'}`}
+        >
           {items.map((item, i) => {
             const prev = items[i - 1]
             const newGroup = prev && prev.group !== item.group
@@ -170,7 +195,9 @@ export default function DashboardShell({ email, roleLabel, permissions, children
         </button>
       </aside>
 
-      <div className={`${contentMargin} flex min-h-screen flex-col transition-[margin] duration-150`}>
+      <div
+        className={`${contentMargin} flex min-h-screen flex-col transition-[margin] duration-150`}
+      >
         <header className="sticky top-0 z-30 flex h-12 items-center justify-end gap-3 border-b border-border bg-card px-4">
           <span className="truncate text-xs text-muted-foreground max-w-[16rem]">
             {email} · {roleLabel}
@@ -180,8 +207,15 @@ export default function DashboardShell({ email, roleLabel, permissions, children
             title="Back to app"
             className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-              <path d="M3 12l9-9 9 9" /><path d="M5 10v10h14V10" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              viewBox="0 0 24 24"
+            >
+              <path d="M3 12l9-9 9 9" />
+              <path d="M5 10v10h14V10" />
             </svg>
           </a>
         </header>

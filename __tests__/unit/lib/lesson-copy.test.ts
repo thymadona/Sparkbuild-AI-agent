@@ -14,11 +14,30 @@ const MAX_WORDS = { chip: 5, success: 8, label: 6, hint: 10, brief: 8 }
 // Words a 9-year-old ESL reader should not have to decode to make progress.
 // Code identifiers are exempt: they are names on screen, not prose.
 const TOO_ADVANCED = [
-  'milestone', 'milestones', 'customize', 'customise', 'prototype', 'placeholder',
-  'gradient', 'variable', 'variables', 'duration', 'specific', 'realistic',
-  'memorable', 'challenge', 'celebration', 'energetic', 'description',
-  'collection', 'encouraging', 'instructions', 'statement', 'interaction',
-  'personalize', 'genuinely',
+  'milestone',
+  'milestones',
+  'customize',
+  'customise',
+  'prototype',
+  'placeholder',
+  'gradient',
+  'variable',
+  'variables',
+  'duration',
+  'specific',
+  'realistic',
+  'memorable',
+  'challenge',
+  'celebration',
+  'energetic',
+  'description',
+  'collection',
+  'encouraging',
+  'instructions',
+  'statement',
+  'interaction',
+  'personalize',
+  'genuinely',
 ]
 
 // Words the Python course teaches on purpose, so they are not "too advanced" there.
@@ -38,17 +57,20 @@ function prose(text: string) {
 
 type Entry = { where: string; kind: keyof typeof MAX_WORDS; text: string }
 
-const entriesFor = (lessons: Lesson[]): Entry[] => lessons.flatMap((lesson) => [
-  ...(lesson.homeworkBrief ? [{ where: `${lesson.id}`, kind: 'brief' as const, text: lesson.homeworkBrief }] : []),
-  ...lesson.tasks.flatMap((task) => [
-    { where: `${lesson.id}/${task.id}`, kind: 'chip' as const, text: task.chip },
-    { where: `${lesson.id}/${task.id}`, kind: 'success' as const, text: task.success },
-    ...(task.checks ?? []).flatMap((check) => [
-      { where: `${lesson.id}/${task.id}`, kind: 'label' as const, text: check.label },
-      { where: `${lesson.id}/${task.id}`, kind: 'hint' as const, text: check.hint },
+const entriesFor = (lessons: Lesson[]): Entry[] =>
+  lessons.flatMap((lesson) => [
+    ...(lesson.homeworkBrief
+      ? [{ where: `${lesson.id}`, kind: 'brief' as const, text: lesson.homeworkBrief }]
+      : []),
+    ...lesson.tasks.flatMap((task) => [
+      { where: `${lesson.id}/${task.id}`, kind: 'chip' as const, text: task.chip },
+      { where: `${lesson.id}/${task.id}`, kind: 'success' as const, text: task.success },
+      ...(task.checks ?? []).flatMap((check) => [
+        { where: `${lesson.id}/${task.id}`, kind: 'label' as const, text: check.label },
+        { where: `${lesson.id}/${task.id}`, kind: 'hint' as const, text: check.hint },
+      ]),
     ]),
-  ]),
-])
+  ])
 
 describe('Python course reading level', () => {
   const lessons = PY_LESSONS
@@ -71,8 +93,12 @@ describe('Python course reading level', () => {
   it('avoids vocabulary above the target reading level', () => {
     const found: string[] = []
     for (const entry of entries) {
-      for (const token of prose(entry.text).toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/)) {
-        if (TOO_ADVANCED.includes(token) && !allowed.includes(token)) found.push(`${entry.where} ${entry.kind}: "${token}" in "${entry.text}"`)
+      for (const token of prose(entry.text)
+        .toLowerCase()
+        .replace(/[^a-z\s]/g, '')
+        .split(/\s+/)) {
+        if (TOO_ADVANCED.includes(token) && !allowed.includes(token))
+          found.push(`${entry.where} ${entry.kind}: "${token}" in "${entry.text}"`)
       }
     }
     expect(found).toEqual([])

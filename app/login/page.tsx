@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar'
 import { getSessionUser } from '@/lib/auth/session'
 
 export default async function LoginPage(props: { searchParams: Promise<{ reason?: string }> }) {
-  const searchParams = await props.searchParams;
+  const searchParams = await props.searchParams
   const user = await getSessionUser()
   const isDeactivated = searchParams.reason === 'deactivated'
 

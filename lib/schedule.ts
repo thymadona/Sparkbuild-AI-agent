@@ -32,12 +32,21 @@ export function nextClassMeeting(slots: ClassSlot[], from: Date = new Date()): D
   let soonest: Date | null = null
 
   for (const slot of slots) {
-    if (!Number.isInteger(slot.day_of_week) || slot.day_of_week < 0 || slot.day_of_week > 6) continue
+    if (!Number.isInteger(slot.day_of_week) || slot.day_of_week < 0 || slot.day_of_week > 6)
+      continue
     const time = parseTime(slot.start_time)
     if (!time) continue
 
     const daysAhead = (slot.day_of_week - from.getDay() + 7) % 7
-    const candidate = new Date(from.getFullYear(), from.getMonth(), from.getDate() + daysAhead, time.hours, time.minutes, 0, 0)
+    const candidate = new Date(
+      from.getFullYear(),
+      from.getMonth(),
+      from.getDate() + daysAhead,
+      time.hours,
+      time.minutes,
+      0,
+      0
+    )
     // A slot earlier today has already happened; the next one is next week.
     if (candidate.getTime() <= from.getTime()) candidate.setTime(candidate.getTime() + 7 * DAY_MS)
 
@@ -48,7 +57,11 @@ export function nextClassMeeting(slots: ClassSlot[], from: Date = new Date()): D
 }
 
 function sameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
 }
 
 /** Short, kid-readable deadline. Null when the student has no class scheduled. */

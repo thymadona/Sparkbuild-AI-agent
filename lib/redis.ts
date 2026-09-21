@@ -28,7 +28,9 @@ const url = isTest
 const isUsable = typeof url === 'string' && /^rediss?:\/\//.test(url)
 
 if (url && !isUsable) {
-  console.error(`REDIS_URL is set but is not a redis:// or rediss:// URL — continuing without Redis`)
+  console.error(
+    `REDIS_URL is set but is not a redis:// or rediss:// URL — continuing without Redis`
+  )
 }
 
 function createClient(): Redis {

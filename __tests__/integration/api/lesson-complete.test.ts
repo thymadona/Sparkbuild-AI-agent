@@ -31,12 +31,22 @@ const makeReady = async (ownerId: string, code: string) => {
 }
 
 const post = (id: string, body: unknown) =>
-  POST(new Request('http://localhost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), {
-    params: Promise.resolve({ id }),
-  })
+  POST(
+    new Request('http://localhost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+    {
+      params: Promise.resolve({ id }),
+    }
+  )
 
 const progressOf = async (projectId: string) => {
-  const [row] = await db.select({ ids: lessonProgress.completedTaskIds }).from(lessonProgress).where(eq(lessonProgress.projectId, projectId))
+  const [row] = await db
+    .select({ ids: lessonProgress.completedTaskIds })
+    .from(lessonProgress)
+    .where(eq(lessonProgress.projectId, projectId))
   return row?.ids ?? []
 }
 
@@ -123,7 +133,10 @@ describe('POST /api/projects/[id]/lesson-progress/complete', () => {
     const again = await post(project.id, { taskId: TASK, runtimeVerdicts: RUNS })
 
     expect(again.status).toBe(200)
-    expect(await again.json()).toEqual({ completedTaskIds: ['first-words', TASK], alreadyDone: true })
+    expect(await again.json()).toEqual({
+      completedTaskIds: ['first-words', TASK],
+      alreadyDone: true,
+    })
     expect(await progressOf(project.id)).toEqual(['first-words', TASK])
   })
 

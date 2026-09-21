@@ -79,7 +79,10 @@ export async function POST(req: Request) {
   if (!(await isAdmin(user.id)) && !(await isTeacher(user.id))) {
     const enabledLessonIds = await getEnabledLessonIdsForUser(user.id)
     if (!enabledLessonIds.has(lessonId)) {
-      return NextResponse.json({ error: 'This lesson is not available for your class right now' }, { status: 403 })
+      return NextResponse.json(
+        { error: 'This lesson is not available for your class right now' },
+        { status: 403 }
+      )
     }
   }
 
@@ -126,7 +129,9 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const updates: Partial<typeof projectsTable.$inferInsert> = { updatedAt: new Date().toISOString() }
+  const updates: Partial<typeof projectsTable.$inferInsert> = {
+    updatedAt: new Date().toISOString(),
+  }
   if (title !== undefined) updates.title = title
   if (is_public !== undefined) updates.isPublic = is_public
   if (files !== undefined) updates.files = files as ProjectFiles

@@ -40,7 +40,9 @@ export default function ProfileDropdown({ email }: { email: string }) {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => { window.location.href = '/profile' }}
+          onClick={() => {
+            window.location.href = '/profile'
+          }}
           className="flex items-center gap-2.5 px-2 py-2 cursor-pointer"
         >
           <User className="size-3.5 text-muted-foreground" />

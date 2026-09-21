@@ -24,15 +24,13 @@ export default function SendInvoiceButton({
 
   async function send() {
     setLoading(true)
-    const receiptUrl = receiptId
-      ? `${window.location.origin}/receipt/${receiptId}`
-      : null
+    const receiptUrl = receiptId ? `${window.location.origin}/receipt/${receiptId}` : null
     const res = await fetch(`/api/admin/invoices/${invoiceId}/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ receiptUrl }),
     })
-    const data = await res.json() as { error?: string }
+    const data = (await res.json()) as { error?: string }
     if (res.ok) {
       setSent(true)
     } else {

@@ -63,7 +63,11 @@ export type RuntimeCheck =
     }
 
 export function isRuntimeCheck(check: TaskCheck): check is RuntimeCheck {
-  return check.kind === 'outputContains' || check.kind === 'callReturns' || check.kind === 'worldContains'
+  return (
+    check.kind === 'outputContains' ||
+    check.kind === 'callReturns' ||
+    check.kind === 'worldContains'
+  )
 }
 
 export interface TaskCheckResult {
@@ -93,7 +97,7 @@ function evaluate(check: TaskCheck, code: string, verdict: boolean | undefined):
 export function runTaskChecks(
   checks: TaskCheck[] | undefined,
   code: string,
-  runtime: RuntimeVerdicts = [],
+  runtime: RuntimeVerdicts = []
 ): TaskCheckResult[] {
   if (!checks?.length) return []
   return checks.map((check, i) => ({
@@ -114,7 +118,11 @@ export function firstUnmetCheck(results: TaskCheckResult[]) {
 // Every line the student actually needs to touch for a task: the anchor
 // comment plus every line a static check's pattern matches. A pattern that
 // matches nothing just contributes nothing — same fail-open spirit as evaluate().
-export function highlightLinesForTask(code: string, commentAnchor: string, checks?: TaskCheck[]): number[] {
+export function highlightLinesForTask(
+  code: string,
+  commentAnchor: string,
+  checks?: TaskCheck[]
+): number[] {
   const lines = code.split('\n')
   const found = new Set<number>()
 

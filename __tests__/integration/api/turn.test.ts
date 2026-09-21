@@ -6,9 +6,17 @@ const mockCheckRateLimit = jest.fn()
 const mockCreate = jest.fn()
 
 jest.mock('@/lib/auth/session', () => ({ getSessionUser: () => mockGetSessionUser() }))
-jest.mock('@/lib/ratelimit', () => ({ checkRateLimit: (...a: unknown[]) => mockCheckRateLimit(...a) }))
-jest.mock('@/lib/auth/permissions', () => ({ isAdmin: async () => false, isTeacher: async () => false }))
-jest.mock('@/lib/deepseek', () => ({ deepseek: { chat: { completions: { create: (...a: unknown[]) => mockCreate(...a) } } }, MODEL: 'm' }))
+jest.mock('@/lib/ratelimit', () => ({
+  checkRateLimit: (...a: unknown[]) => mockCheckRateLimit(...a),
+}))
+jest.mock('@/lib/auth/permissions', () => ({
+  isAdmin: async () => false,
+  isTeacher: async () => false,
+}))
+jest.mock('@/lib/deepseek', () => ({
+  deepseek: { chat: { completions: { create: (...a: unknown[]) => mockCreate(...a) } } },
+  MODEL: 'm',
+}))
 jest.mock('next/headers', () => ({ cookies: () => ({ getAll: () => [], set: jest.fn() }) }))
 
 import { eq } from 'drizzle-orm'
@@ -24,16 +32,29 @@ const modelSays = (text: string, calls: [string, object][] = []) =>
     async *[Symbol.asyncIterator]() {
       yield { choices: [{ delta: { content: text } }] }
       for (const [i, [name, args]] of calls.entries())
-        yield { choices: [{ delta: { tool_calls: [{ index: i, id: `c${i}`, function: { name, arguments: JSON.stringify(args) } }] } }] }
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { index: i, id: `c${i}`, function: { name, arguments: JSON.stringify(args) } },
+                ],
+              },
+            },
+          ],
+        }
     },
   })
 
 const post = (id: string, body: object) =>
-  POST(new Request('http://x', { method: 'POST', body: JSON.stringify(body) }), { params: Promise.resolve({ id }) })
+  POST(new Request('http://x', { method: 'POST', body: JSON.stringify(body) }), {
+    params: Promise.resolve({ id }),
+  })
 
 const drain = async (res: Response) => {
   const events: { type: string }[] = []
-  for (const line of (await res.text()).split('\n\n')) if (line.startsWith('data: ')) events.push(JSON.parse(line.slice(6)))
+  for (const line of (await res.text()).split('\n\n'))
+    if (line.startsWith('data: ')) events.push(JSON.parse(line.slice(6)))
   return events
 }
 
@@ -58,7 +79,10 @@ describe('POST /api/projects/[id]/turn', () => {
     expect(events.some((e) => e.type === 'board.op')).toBe(true)
     const [row] = await db.select().from(projects).where(eq(projects.id, project.id))
     expect((row.board as { pages: unknown[] }).pages).toHaveLength(1)
-    const rows = await db.select({ role: messages.role, content: messages.content }).from(messages).where(eq(messages.projectId, project.id))
+    const rows = await db
+      .select({ role: messages.role, content: messages.content })
+      .from(messages)
+      .where(eq(messages.projectId, project.id))
     expect(rows.map((r) => r.role).sort()).toEqual(['assistant', 'user'])
   })
 
@@ -86,12 +110,32 @@ describe('POST /api/projects/[id]/turn', () => {
     const user = await makeUser()
     mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: '' })
     const board = {
-      pages: [{ id: 'p1', title: 'One', nodeIds: ['c1'] }], activePageId: 'p1', focusId: null,
-      nodes: { c1: { id: 'c1', parentId: null, createdBy: 'tutor', type: 'code', language: 'python', source: 'print(1)', editable: true, highlightLines: [] } },
+      pages: [{ id: 'p1', title: 'One', nodeIds: ['c1'] }],
+      activePageId: 'p1',
+      focusId: null,
+      nodes: {
+        c1: {
+          id: 'c1',
+          parentId: null,
+          createdBy: 'tutor',
+          type: 'code',
+          language: 'python',
+          source: 'print(1)',
+          editable: true,
+          highlightLines: [],
+        },
+      },
     }
     const project = await makeProject(user.id, { board })
     modelSays('Nice.')
-    const run = { type: 'code_run_result', nodeId: 'c1', source: 'print("hi")', ok: true, stdout: 'hi\n', stderr: '' }
+    const run = {
+      type: 'code_run_result',
+      nodeId: 'c1',
+      source: 'print("hi")',
+      ok: true,
+      stdout: 'hi\n',
+      stderr: '',
+    }
     expect((await drain(await post(project.id, run))).at(-1)?.type).toBe('turn.end')
 
     const [row] = await db.select().from(projects).where(eq(projects.id, project.id))
@@ -128,7 +172,18 @@ describe('POST /api/projects/[id]/turn', () => {
       pages: [{ id: taskPageId(nameTag), title: nameTag.chip, nodeIds: ['c1'] }],
       activePageId: taskPageId(nameTag),
       focusId: null,
-      nodes: { c1: { id: 'c1', parentId: null, createdBy: 'student', type: 'code', language: 'python', source, editable: true, highlightLines: [] } },
+      nodes: {
+        c1: {
+          id: 'c1',
+          parentId: null,
+          createdBy: 'student',
+          type: 'code',
+          language: 'python',
+          source,
+          editable: true,
+          highlightLines: [],
+        },
+      },
     })
 
     const systemPrompt = () => mockCreate.mock.calls[0][0].messages[0].content as string
@@ -136,7 +191,12 @@ describe('POST /api/projects/[id]/turn', () => {
     const ask = async (source: string) => {
       const user = await makeUser()
       mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
-      const project = await makeProject(user.id, { lessonId: lesson.id, lessonVersion: 3, files: { 'main.py': source }, board: boardWith(source) })
+      const project = await makeProject(user.id, {
+        lessonId: lesson.id,
+        lessonVersion: 3,
+        files: { 'main.py': source },
+        board: boardWith(source),
+      })
       await setLessonProgress(project.id, [firstWords.id], new Date().toISOString())
       modelSays('ok')
       await drain(await post(project.id, { type: 'student_message', text: 'is it done?' }))

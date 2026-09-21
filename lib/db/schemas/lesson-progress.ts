@@ -10,9 +10,13 @@ import { projects } from './projects'
 export const lessonProgress = pgTable(
   'lesson_progress',
   {
-    projectId: uuid('project_id').primaryKey().references(() => projects.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .primaryKey()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     completedTaskIds: text('completed_task_ids').array().default([]).notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index('lesson_progress_updated_at_idx').on(t.updatedAt.desc())]
 )

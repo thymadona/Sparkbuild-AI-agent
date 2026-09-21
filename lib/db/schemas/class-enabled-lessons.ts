@@ -8,10 +8,14 @@ import { users } from './users'
 export const classEnabledLessons = pgTable(
   'class_enabled_lessons',
   {
-    classId: uuid('class_id').notNull().references(() => classes.id, { onDelete: 'cascade' }),
+    classId: uuid('class_id')
+      .notNull()
+      .references(() => classes.id, { onDelete: 'cascade' }),
     lessonId: smallint('lesson_id').notNull(),
     enabledBy: uuid('enabled_by').references(() => users.id, { onDelete: 'set null' }),
-    enabledAt: timestamp('enabled_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    enabledAt: timestamp('enabled_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.classId, t.lessonId] }),

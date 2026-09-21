@@ -129,8 +129,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     if (!cls) notFound()
 
     const memberIds = new Set(members.map((m) => m.user_id))
-    const teacherMemberIds = new Set(members.filter((m) => m.role === 'teacher').map((m) => m.user_id))
-    const studentMemberIds = new Set(members.filter((m) => m.role !== 'teacher').map((m) => m.user_id))
+    const teacherMemberIds = new Set(
+      members.filter((m) => m.role === 'teacher').map((m) => m.user_id)
+    )
+    const studentMemberIds = new Set(
+      members.filter((m) => m.role !== 'teacher').map((m) => m.user_id)
+    )
     const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
     const userMap = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? '']))
 
@@ -142,19 +146,23 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       else if (inv.status === 'unpaid') paymentMap[inv.user_id].unpaid++
     }
 
-    const students = Array.from(studentMemberIds).map((userId) => ({
-      userId,
-      name: profileMap[userId] ?? '',
-      email: userMap[userId] ?? userId.slice(0, 8),
-      paidCount: paymentMap[userId]?.paid ?? 0,
-      unpaidCount: paymentMap[userId]?.unpaid ?? 0,
-    })).sort((a, b) => a.name.localeCompare(b.name))
+    const students = Array.from(studentMemberIds)
+      .map((userId) => ({
+        userId,
+        name: profileMap[userId] ?? '',
+        email: userMap[userId] ?? userId.slice(0, 8),
+        paidCount: paymentMap[userId]?.paid ?? 0,
+        unpaidCount: paymentMap[userId]?.unpaid ?? 0,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
 
-    const teachers = Array.from(teacherMemberIds).map((userId) => ({
-      userId,
-      name: profileMap[userId] ?? '',
-      email: userMap[userId] ?? userId.slice(0, 8),
-    })).sort((a, b) => a.name.localeCompare(b.name))
+    const teachers = Array.from(teacherMemberIds)
+      .map((userId) => ({
+        userId,
+        name: profileMap[userId] ?? '',
+        email: userMap[userId] ?? userId.slice(0, 8),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
 
     // user_roles now holds a 'student' row for every non-staff account
     // (lib/auth/student-defaults.ts), so match on STAFF_ROLES rather than on
@@ -163,17 +171,25 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     // (e.g. a teacher's own test account), so keep staff out of the student
     // picker even if they have a profile.
     const staffIds = new Set(
-      roleRows.filter((r) => (STAFF_ROLES as readonly string[]).includes(r.name)).map((r) => r.user_id)
+      roleRows
+        .filter((r) => (STAFF_ROLES as readonly string[]).includes(r.name))
+        .map((r) => r.user_id)
     )
     const availableStudents = profiles
       .filter((p) => !memberIds.has(p.user_id) && !staffIds.has(p.user_id))
       .map((p) => ({ userId: p.user_id, name: p.full_name, email: userMap[p.user_id] ?? '' }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    const platformTeacherIds = new Set(roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id))
+    const platformTeacherIds = new Set(
+      roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id)
+    )
     const availableTeachers = Array.from(platformTeacherIds)
       .filter((userId) => !teacherMemberIds.has(userId))
-      .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
+      .map((userId) => ({
+        userId,
+        name: profileMap[userId] ?? '',
+        email: userMap[userId] ?? userId.slice(0, 8),
+      }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
     const enabledLessonIds = new Set(enabledLessons.map((d) => d.lesson_id))
@@ -187,7 +203,9 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     return (
       <div>
         <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/staff/classes" className="hover:text-foreground transition-colors">Classes</Link>
+          <Link href="/staff/classes" className="hover:text-foreground transition-colors">
+            Classes
+          </Link>
           <span>/</span>
           <span className="text-foreground">{cls.name}</span>
         </div>
@@ -273,7 +291,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
           completed_task_ids: lessonProgress.completedTaskIds,
         })
         .from(lessonProgress)
-        .where(inArray(lessonProgress.projectId, submissions.map((p) => p.id)))
+        .where(
+          inArray(
+            lessonProgress.projectId,
+            submissions.map((p) => p.id)
+          )
+        )
 
       for (const row of progress) progressById.set(row.project_id, row.completed_task_ids)
     }
@@ -305,7 +328,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     title: lesson.title,
     description: lesson.description,
     enabled: enabledLessonIds.includes(lesson.id),
-    students: students.map((s) => ({ userId: s.userId, name: s.name, email: s.email, tasks: blankTasks(lesson) })),
+    students: students.map((s) => ({
+      userId: s.userId,
+      name: s.name,
+      email: s.email,
+      tasks: blankTasks(lesson),
+    })),
   }))
 
   if (studentIds.length > 0) {
@@ -332,7 +360,12 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
           completed_task_ids: lessonProgress.completedTaskIds,
         })
         .from(lessonProgress)
-        .where(inArray(lessonProgress.projectId, projectRows.map((p) => p.id)))
+        .where(
+          inArray(
+            lessonProgress.projectId,
+            projectRows.map((p) => p.id)
+          )
+        )
 
       for (const row of progressRows) allProgressById.set(row.project_id, row.completed_task_ids)
     }
@@ -350,20 +383,26 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       enabled: enabledLessonIds.includes(lesson.id),
       students: students.map((s) => {
         const project = latestByStudentLesson.get(`${s.userId}:${lesson.id}`)
-        if (!project) return { userId: s.userId, name: s.name, email: s.email, tasks: blankTasks(lesson) }
+        if (!project)
+          return { userId: s.userId, name: s.name, email: s.email, tasks: blankTasks(lesson) }
         // The query filters on lesson_id IS NOT NULL, but the column is
         // nullable so the select type still admits null. Fall back to the
         // lesson being rendered rather than casting.
         const resolved =
           project.lesson_id == null
             ? lesson
-            : getLessonForProject(project.lesson_id, project.lesson_version) ?? lesson
+            : (getLessonForProject(project.lesson_id, project.lesson_version) ?? lesson)
         const doneIds = new Set(allProgressById.get(project.id) ?? [])
         return {
           userId: s.userId,
           name: s.name,
           email: s.email,
-          tasks: resolved.tasks.map((t) => ({ id: t.id, chip: t.chip, type: t.type, done: doneIds.has(t.id) })),
+          tasks: resolved.tasks.map((t) => ({
+            id: t.id,
+            chip: t.chip,
+            type: t.type,
+            done: doneIds.has(t.id),
+          })),
         }
       }),
     }))
@@ -372,7 +411,9 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   return (
     <div>
       <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/staff/classes" className="hover:text-foreground transition-colors">Classes</Link>
+        <Link href="/staff/classes" className="hover:text-foreground transition-colors">
+          Classes
+        </Link>
         <span>/</span>
         <span className="text-foreground">{cls.name}</span>
       </div>

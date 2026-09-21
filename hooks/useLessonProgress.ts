@@ -42,10 +42,23 @@ interface UseLessonProgressArgs {
  * panels. Both act on the same lesson and the same "done" set, so the state
  * has to live above either panel rather than be duplicated in each.
  */
-export function useLessonProgress({ lesson, projectId, code, initialCompletedTaskIds, initialSubmissionStatus = null, onHighlight, onPrompt, onComplete, runtime, beforeComplete }: UseLessonProgressArgs) {
+export function useLessonProgress({
+  lesson,
+  projectId,
+  code,
+  initialCompletedTaskIds,
+  initialSubmissionStatus = null,
+  onHighlight,
+  onPrompt,
+  onComplete,
+  runtime,
+  beforeComplete,
+}: UseLessonProgressArgs) {
   const tasks = lesson?.tasks ?? []
   const [done, setDone] = useState(() => new Set(initialCompletedTaskIds))
-  const [activeIndex, setActiveIndex] = useState(() => firstUnfinishedTaskIndex(tasks, new Set(initialCompletedTaskIds)))
+  const [activeIndex, setActiveIndex] = useState(() =>
+    firstUnfinishedTaskIndex(tasks, new Set(initialCompletedTaskIds))
+  )
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [submission, setSubmission] = useState<SubmissionStatus | null>(initialSubmissionStatus)
@@ -83,7 +96,10 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskId: task.id,
-          runtimeVerdicts: (() => { const r = runtime?.(); return r?.taskId === task.id ? r.verdicts : [] })(),
+          runtimeVerdicts: (() => {
+            const r = runtime?.()
+            return r?.taskId === task.id ? r.verdicts : []
+          })(),
         }),
       })
       // Not every failure arrives as JSON — a proxy error page, or a body-less
@@ -96,7 +112,9 @@ export function useLessonProgress({ lesson, projectId, code, initialCompletedTas
       setActiveIndex(firstUnfinishedTaskIndex(tasks, nextDone))
       if (!data.alreadyDone) onComplete?.(task, nextDone)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Your task was not saved. Please try again.')
+      setSaveError(
+        err instanceof Error ? err.message : 'Your task was not saved. Please try again.'
+      )
     } finally {
       setIsSaving(false)
     }

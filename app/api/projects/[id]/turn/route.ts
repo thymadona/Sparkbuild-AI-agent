@@ -32,7 +32,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!admin && !teacher) {
     const { allowed, hoursUntilReset } = await checkRateLimit(user.id)
     if (!allowed) {
-      return NextResponse.json({ error: `Hourly limit reached. Resets in ${hoursUntilReset} hour${hoursUntilReset === 1 ? '' : 's'}.` }, { status: 429 })
+      return NextResponse.json(
+        {
+          error: `Hourly limit reached. Resets in ${hoursUntilReset} hour${hoursUntilReset === 1 ? '' : 's'}.`,
+        },
+        { status: 429 }
+      )
     }
   }
 
@@ -41,8 +46,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!parsed.success) return NextResponse.json({ error: 'Invalid event' }, { status: 400 })
 
   const [project] = await db
-    
-    .select({ board: projects.board, files: projects.files, lessonId: projects.lessonId, lessonVersion: projects.lessonVersion })
+
+    .select({
+      board: projects.board,
+      files: projects.files,
+      lessonId: projects.lessonId,
+      lessonVersion: projects.lessonVersion,
+    })
     .from(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1)
@@ -62,10 +72,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   try {
     event = applyClientEvent(board, parsed.data)
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Invalid event' }, { status: 400 })
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'Invalid event' },
+      { status: 400 }
+    )
   }
   board = event.board
-  const lesson = project.lessonId != null ? getLessonForProject(project.lessonId, project.lessonVersion) : null
+  const lesson =
+    project.lessonId != null ? getLessonForProject(project.lessonId, project.lessonVersion) : null
   const files = (project.files ?? {}) as Record<string, string>
 
   // The lesson guard. Without it the tutor narrates the lesson on vibes: it
@@ -77,7 +91,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (lesson) {
     const progress = await cached(`lesson-progress:${id}`, 15, async () => {
       const [row] = await db
-        .select({ completed_task_ids: lessonProgress.completedTaskIds, updated_at: lessonProgress.updatedAt })
+        .select({
+          completed_task_ids: lessonProgress.completedTaskIds,
+          updated_at: lessonProgress.updatedAt,
+        })
         .from(lessonProgress)
         .where(eq(lessonProgress.projectId, id))
         .limit(1)
@@ -95,22 +112,34 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         reported?.taskId === openTask.id && Array.isArray(reported.verdicts)
           ? reported.verdicts.map((v) => (typeof v === 'boolean' ? v : undefined))
           : []
-      const results = runTaskChecks(openTask.checks, pageCode(board, taskPageId(openTask)) ?? '', verdicts)
+      const results = runTaskChecks(
+        openTask.checks,
+        pageCode(board, taskPageId(openTask)) ?? '',
+        verdicts
+      )
 
       // Turns spent on this task: messages since it became open. Same reading of
       // lesson_progress.updated_at as /api/generate, valid while the
       // lesson-progress PUT route stays the sole writer of that column.
       const since = progress?.updated_at ? Date.parse(progress.updated_at) : NaN
-      const onTask = Number.isNaN(since) ? history : history.filter((m) => Date.parse(String(m.createdAt)) >= since)
+      const onTask = Number.isNaN(since)
+        ? history
+        : history.filter((m) => Date.parse(String(m.createdAt)) >= since)
       const stuckTurns = onTask.filter((m) => m.role === 'assistant').length
       const prevUserMessage = [...onTask].reverse().find((m) => m.role === 'user')?.content
       const askedNow = parsed.data.type === 'student_message' ? parsed.data.text : ''
-      const tier = escalationTier(stuckTurns, detectConfusion(askedNow, prevUserMessage), openTask.type === 'homework')
+      const tier = escalationTier(
+        stuckTurns,
+        detectConfusion(askedNow, prevUserMessage),
+        openTask.type === 'homework'
+      )
       nudge = buildTaskNudge(openTask, tier, results)
     }
   }
 
-  const system = [TUTOR_PROMPT, lessonLayer(lesson, summarize(board), openTask), nudge].filter(Boolean).join('\n\n')
+  const system = [TUTOR_PROMPT, lessonLayer(lesson, summarize(board), openTask), nudge]
+    .filter(Boolean)
+    .join('\n\n')
   const userContent = event.content
 
   const llm: Llm = (msgs) =>
@@ -134,21 +163,40 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           emit: send,
           messages: [
             { role: 'system', content: system },
-            ...history.map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: m.content })),
+            ...history.map((m) => ({
+              role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
+              content: m.content,
+            })),
             { role: 'user', content: userContent },
           ],
         })
         // Ownership predicate repeated so the write can't outlive the check above.
         await db
           .update(projects)
-          .set({ board: result.board, files: withBoardCode(files, entryFileFor(lesson, files), result.board), updatedAt: new Date().toISOString() })
+          .set({
+            board: result.board,
+            files: withBoardCode(files, entryFileFor(lesson, files), result.board),
+            updatedAt: new Date().toISOString(),
+          })
           .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
         const rows = [
-          ...(event.saveText ? [{ projectId: id, userId: user.id, role: 'user' as const, content: event.saveText }] : []),
-          ...(result.text ? [{ projectId: id, userId: user.id, role: 'assistant' as const, content: result.text }] : []),
+          ...(event.saveText
+            ? [{ projectId: id, userId: user.id, role: 'user' as const, content: event.saveText }]
+            : []),
+          ...(result.text
+            ? [{ projectId: id, userId: user.id, role: 'assistant' as const, content: result.text }]
+            : []),
         ]
         if (rows.length) await db.insert(messages).values(rows)
-        await db.insert(prompts).values({ userId: user.id, projectId: id, content: userContent, context: { tutor: 'board', system } }).catch((e) => console.error('prompt log failed:', e))
+        await db
+          .insert(prompts)
+          .values({
+            userId: user.id,
+            projectId: id,
+            content: userContent,
+            context: { tutor: 'board', system },
+          })
+          .catch((e) => console.error('prompt log failed:', e))
       } catch (err) {
         console.error('tutor turn error:', err)
         send({ type: 'error', message: 'Spark had a problem. Try again.' })
@@ -157,5 +205,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     },
   })
 
-  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+  })
 }

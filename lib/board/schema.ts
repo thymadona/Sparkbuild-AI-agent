@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
-export const NodeId = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_]+$/)
+export const NodeId = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-zA-Z0-9_]+$/)
 
 const base = {
   id: NodeId,
@@ -14,7 +18,16 @@ export const TraceStep = z.object({
   line: z.number().int().positive(),
   stdout: z.string().max(500).default(''),
   callStack: z.array(z.string().max(60)).max(20),
-  vars: z.array(z.object({ name: z.string().max(60), type: z.string().max(40), repr: z.string().max(80), items: z.array(z.string().max(40)).max(12).optional() })).max(10),
+  vars: z
+    .array(
+      z.object({
+        name: z.string().max(60),
+        type: z.string().max(40),
+        repr: z.string().max(80),
+        items: z.array(z.string().max(40)).max(12).optional(),
+      })
+    )
+    .max(10),
 })
 
 export type TraceStep = z.infer<typeof TraceStep>

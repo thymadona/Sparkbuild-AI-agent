@@ -23,9 +23,7 @@ const MARK = `
 
 /** The mark on an optional rounded plate, as raw SVG markup. */
 export function logoSvg({ plate }: { plate?: string } = {}): string {
-  const background = plate
-    ? `<rect width="200" height="200" rx="44" fill="${plate}" />`
-    : ''
+  const background = plate ? `<rect width="200" height="200" rx="44" fill="${plate}" />` : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">${background}${MARK}</svg>`
 }
 

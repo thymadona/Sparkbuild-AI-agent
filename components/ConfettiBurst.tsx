@@ -62,14 +62,16 @@ export default function ConfettiBurst({ trigger, big = false }: ConfettiBurstPro
         <span
           key={particle.id}
           className="confetti-particle absolute top-0 block h-2.5 w-1.5 rounded-sm"
-          style={{
-            left: `${particle.left}%`,
-            backgroundColor: particle.color,
-            animationDelay: `${particle.delay}s`,
-            animationDuration: `${particle.duration}s`,
-            '--confetti-drift': `${particle.drift}px`,
-            '--confetti-rotate': `${particle.rotate}deg`,
-          } as React.CSSProperties}
+          style={
+            {
+              left: `${particle.left}%`,
+              backgroundColor: particle.color,
+              animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
+              '--confetti-drift': `${particle.drift}px`,
+              '--confetti-rotate': `${particle.rotate}deg`,
+            } as React.CSSProperties
+          }
         />
       ))}
       <style>{`

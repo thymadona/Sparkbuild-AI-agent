@@ -19,7 +19,11 @@ export interface TaskChecks {
  * rather than just rendering a button from it: passing every check is what
  * completes the task and opens the next page.
  */
-export function useTaskChecks(task: LessonTask | undefined, code: string, runtime: RuntimeChecks | null): TaskChecks {
+export function useTaskChecks(
+  task: LessonTask | undefined,
+  code: string,
+  runtime: RuntimeChecks | null
+): TaskChecks {
   // Checks need a DOM, so they cannot run during server rendering. Evaluating
   // them only after mount keeps the server and first client render identical —
   // otherwise the fail-open path reports every check as passed on the server
@@ -35,7 +39,7 @@ export function useTaskChecks(task: LessonTask | undefined, code: string, runtim
   const hasChecks = (task?.checks?.length ?? 0) > 0
   const results = useMemo(
     () => (mounted && task ? runTaskChecks(task.checks, code, runtimeVerdicts) : []),
-    [mounted, task, code, runtimeVerdicts],
+    [mounted, task, code, runtimeVerdicts]
   )
   const evaluated = hasChecks && results.length > 0
 

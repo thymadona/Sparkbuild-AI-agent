@@ -20,19 +20,22 @@ const scheduleColumns = {
 export async function POST(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { class_id, day_of_week, start_time, duration_min, label } =
-    await req.json() as {
-      class_id: string
-      day_of_week: number
-      start_time: string
-      duration_min?: number
-      label?: string
-    }
+  const { class_id, day_of_week, start_time, duration_min, label } = (await req.json()) as {
+    class_id: string
+    day_of_week: number
+    start_time: string
+    duration_min?: number
+    label?: string
+  }
 
   if (!class_id || day_of_week == null || !start_time) {
-    return NextResponse.json({ error: 'class_id, day_of_week, start_time are required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'class_id, day_of_week, start_time are required' },
+      { status: 400 }
+    )
   }
   if (!isUuid(class_id)) {
     return NextResponse.json({ error: 'class_id is not a valid id' }, { status: 400 })
@@ -62,14 +65,15 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
   if (!isUuid(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const body = await req.json() as Partial<{
+  const body = (await req.json()) as Partial<{
     day_of_week: number
     start_time: string
     duration_min: number
@@ -102,7 +106,8 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')

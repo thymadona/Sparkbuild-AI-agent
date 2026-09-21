@@ -7,18 +7,29 @@ export interface BoardState {
   focusId: string | null
 }
 
-export const emptyBoard = (): BoardState => ({ pages: [], activePageId: null, nodes: {}, focusId: null })
+export const emptyBoard = (): BoardState => ({
+  pages: [],
+  activePageId: null,
+  nodes: {},
+  focusId: null,
+})
 
 // Pure. Throws Error with a readable message on a bad op so the tutor loop can
 // hand it back to the model as a tool result.
-export function apply(state: BoardState, raw: unknown, actor: 'tutor' | 'client' = 'client'): BoardState {
+export function apply(
+  state: BoardState,
+  raw: unknown,
+  actor: 'tutor' | 'client' = 'client'
+): BoardState {
   const parsed = BoardOp.safeParse(raw)
-  if (!parsed.success) throw new Error(`Invalid op: ${parsed.error.issues[0]?.message ?? 'bad shape'}`)
+  if (!parsed.success)
+    throw new Error(`Invalid op: ${parsed.error.issues[0]?.message ?? 'bad shape'}`)
   const op = parsed.data
 
   switch (op.op) {
     case 'new_page': {
-      if (state.pages.some((p) => p.id === op.pageId)) throw new Error(`Page ${op.pageId} already exists`)
+      if (state.pages.some((p) => p.id === op.pageId))
+        throw new Error(`Page ${op.pageId} already exists`)
       return {
         ...state,
         pages: [...state.pages, { id: op.pageId, title: op.title, nodeIds: [] }],
@@ -32,11 +43,14 @@ export function apply(state: BoardState, raw: unknown, actor: 'tutor' | 'client'
       }
       if (state.nodes[node.id]) throw new Error(`Node ${node.id} already exists`)
       if (!state.pages.some((p) => p.id === op.pageId)) throw new Error(`Unknown page ${op.pageId}`)
-      if (node.parentId && !state.nodes[node.parentId]) throw new Error(`Unknown parent ${node.parentId}`)
+      if (node.parentId && !state.nodes[node.parentId])
+        throw new Error(`Unknown parent ${node.parentId}`)
       return {
         ...state,
         nodes: { ...state.nodes, [node.id]: node },
-        pages: state.pages.map((p) => (p.id === op.pageId ? { ...p, nodeIds: [...p.nodeIds, node.id] } : p)),
+        pages: state.pages.map((p) =>
+          p.id === op.pageId ? { ...p, nodeIds: [...p.nodeIds, node.id] } : p
+        ),
       }
     }
     case 'update': {
@@ -52,7 +66,7 @@ export function apply(state: BoardState, raw: unknown, actor: 'tutor' | 'client'
       if (!state.nodes[op.id]) throw new Error(`Unknown node ${op.id}`)
       const drop = new Set([op.id])
       // Children and runner output/trace/preview attached to a removed node go too.
-      for (let grew = true; grew; ) {
+      for (let grew = true; grew;) {
         grew = false
         for (const n of Object.values(state.nodes)) {
           const owner = n.parentId ?? ('forNodeId' in n ? n.forNodeId : null)
@@ -79,7 +93,16 @@ export function summarize(state: BoardState): string {
     .map((p) => {
       const rows = p.nodeIds.map((id) => {
         const n = state.nodes[id]
-        const text = 'text' in n ? n.text : 'markdown' in n ? n.markdown : 'source' in n ? n.source : 'prompt' in n ? n.prompt : ''
+        const text =
+          'text' in n
+            ? n.text
+            : 'markdown' in n
+              ? n.markdown
+              : 'source' in n
+                ? n.source
+                : 'prompt' in n
+                  ? n.prompt
+                  : ''
         return `  ${id} [${n.type}] ${text.slice(0, 40).replace(/\n/g, ' ')}`
       })
       return `page ${p.id}${p.id === state.activePageId ? ' (active)' : ''} "${p.title}"\n${rows.join('\n')}`
@@ -89,4 +112,5 @@ export function summarize(state: BoardState): string {
 
 // For useReducer in the board clients.
 export type BoardAction = { op: unknown; actor: 'tutor' | 'client' } | { reset: BoardState }
-export const boardReducer = (s: BoardState, a: BoardAction): BoardState => ('reset' in a ? a.reset : apply(s, a.op, a.actor))
+export const boardReducer = (s: BoardState, a: BoardAction): BoardState =>
+  'reset' in a ? a.reset : apply(s, a.op, a.actor)

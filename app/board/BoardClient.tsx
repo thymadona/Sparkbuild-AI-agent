@@ -42,8 +42,18 @@ export default function BoardClient() {
       }
       if (!dead) setMascot('celebrating')
     })().catch(console.error)
-    return () => { dead = true }
+    return () => {
+      dead = true
+    }
   }, [run])
 
-  return <BoardView board={board} captions={captions} live={live} mascot={mascot} onReplay={() => setRun((n) => n + 1)} />
+  return (
+    <BoardView
+      board={board}
+      captions={captions}
+      live={live}
+      mascot={mascot}
+      onReplay={() => setRun((n) => n + 1)}
+    />
+  )
 }

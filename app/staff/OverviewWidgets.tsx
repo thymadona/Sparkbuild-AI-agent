@@ -11,7 +11,10 @@ import type { SubmissionStatus } from '@/types'
 export function StatChip({ label, value }: { label: string; value: number }) {
   return (
     <span className="text-sm text-muted-foreground">
-      <strong className="font-semibold text-foreground tabular-nums">{value.toLocaleString()}</strong> {label}
+      <strong className="font-semibold text-foreground tabular-nums">
+        {value.toLocaleString()}
+      </strong>{' '}
+      {label}
     </span>
   )
 }
@@ -96,8 +99,12 @@ export function AttentionFeed({ items }: { items: AttentionItem[] }) {
           >
             <span className="text-sm text-foreground">{item.label}</span>
             <span className="flex items-center gap-2">
-              {item.detail && <span className="text-xs font-medium text-destructive">{item.detail}</span>}
-              <span className="text-sm font-semibold tabular-nums text-foreground">{item.count}</span>
+              {item.detail && (
+                <span className="text-xs font-medium text-destructive">{item.detail}</span>
+              )}
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {item.count}
+              </span>
             </span>
           </Link>
         ))}
@@ -126,16 +133,31 @@ export function Meter({ label, pct, count }: { label: string; pct: number; count
 
 // Plain magnitude comparison across classes — no fixed ceiling, so the bar is
 // scaled to the largest value in the set rather than to 100%.
-export function MagnitudeBar({ label, value, max, href }: { label: string; value: number; max: number; href: string }) {
+export function MagnitudeBar({
+  label,
+  value,
+  max,
+  href,
+}: {
+  label: string
+  value: number
+  max: number
+  href: string
+}) {
   const pct = max > 0 ? Math.max((value / max) * 100, value > 0 ? 4 : 0) : 0
   return (
     <Link href={href} className="block group">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="text-foreground group-hover:text-primary transition-colors">{label}</span>
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">{value.toLocaleString()}</span>
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">
+          {value.toLocaleString()}
+        </span>
       </div>
       <div className="mt-1.5 h-2.5 rounded-full bg-muted">
-        <div className="h-full rounded-full bg-success/80 group-hover:bg-success transition-colors" style={{ width: `${pct}%` }} />
+        <div
+          className="h-full rounded-full bg-success/80 group-hover:bg-success transition-colors"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </Link>
   )

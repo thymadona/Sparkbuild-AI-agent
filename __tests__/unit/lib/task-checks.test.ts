@@ -1,4 +1,9 @@
-import { allChecksPassed, firstUnmetCheck, highlightLinesForTask, runTaskChecks } from '@/lib/task-checks'
+import {
+  allChecksPassed,
+  firstUnmetCheck,
+  highlightLinesForTask,
+  runTaskChecks,
+} from '@/lib/task-checks'
 import type { TaskCheck } from '@/lib/task-checks'
 
 // Language-neutral behaviour of the check evaluator. Coverage of the real
@@ -6,7 +11,14 @@ import type { TaskCheck } from '@/lib/task-checks'
 // lives in py-lessons.test.ts, which runs real Pyodide.
 
 const program = 'name = "Sparky"\nprint(name)\n# TASK: greet\nprint("hi")\n'
-const match = (pattern: string, min = 1): TaskCheck => ({ kind: 'sourceMatches', pattern, min, flags: 'm', label: 'l', hint: 'h' })
+const match = (pattern: string, min = 1): TaskCheck => ({
+  kind: 'sourceMatches',
+  pattern,
+  min,
+  flags: 'm',
+  label: 'l',
+  hint: 'h',
+})
 
 describe('runTaskChecks', () => {
   it('returns no checks for a task that has none', () => {
@@ -49,11 +61,15 @@ describe('highlightLinesForTask', () => {
   })
 
   it('dedupes the anchor line against a check that matches it', () => {
-    expect(highlightLinesForTask(program, 'TASK: greet', [match('TASK'), match('^print')])).toEqual([2, 3, 4])
+    expect(highlightLinesForTask(program, 'TASK: greet', [match('TASK'), match('^print')])).toEqual(
+      [2, 3, 4]
+    )
   })
 
   it('fails open on a malformed pattern instead of throwing', () => {
-    expect(() => highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [match('([unclosed')])).not.toThrow()
+    expect(() =>
+      highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [match('([unclosed')])
+    ).not.toThrow()
     expect(highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [match('([unclosed')])).toEqual([1])
   })
 })

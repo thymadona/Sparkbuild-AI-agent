@@ -23,7 +23,13 @@ interface Props {
   stats?: PlayerStats
 }
 
-export default function LessonsClient({ lessons, userProjects, enabledLessonIds = [], userEmail = '', stats }: Props) {
+export default function LessonsClient({
+  lessons,
+  userProjects,
+  enabledLessonIds = [],
+  userEmail = '',
+  stats,
+}: Props) {
   const enabledSet = new Set(enabledLessonIds)
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<number | null>(null)
@@ -74,110 +80,138 @@ export default function LessonsClient({ lessons, userProjects, enabledLessonIds 
 
   return (
     <AppShell userEmail={userEmail} pageTitle="Roadmap">
-        <div className="flex flex-wrap items-start justify-between gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <div>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
+            Your Journey
+          </h1>
+          <p className="mt-2 text-lg text-fg-secondary">
+            Learn Python, then build your own projects. Each week is harder.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 text-fg-primary">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-tint-sage">
+            <Compass className="h-5 w-5" />
+          </span>
           <div>
-            <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
-              Your Journey
-            </h1>
-            <p className="mt-2 text-lg text-fg-secondary">Learn Python, then build your own projects. Each week is harder.</p>
-          </div>
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 text-fg-primary">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-tint-sage"><Compass className="h-5 w-5" /></span>
-            <div>
-              <p className="font-display text-lg font-extrabold leading-none">{progressPct}%</p>
-              <p className="mt-1 text-xs font-semibold text-fg-secondary">{lessonsStarted}/{total} started</p>
-            </div>
+            <p className="font-display text-lg font-extrabold leading-none">{progressPct}%</p>
+            <p className="mt-1 text-xs font-semibold text-fg-secondary">
+              {lessonsStarted}/{total} started
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Global progress bar */}
-        <div className="h-2.5 rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-700"
-            style={{ width: `${progressPct}%` }}
-          />
+      {/* Global progress bar */}
+      <div className="h-2.5 rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-700"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="mb-6 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
-        )}
-
-        <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
-          {/* Roadmap */}
-          <div className="relative">
-            <div className="absolute left-8 top-8 bottom-8 w-px bg-border" />
-            <div className="space-y-5">
-              {lessons.map((lesson, i) => {
-                const isStarted = projectByLessonId.has(lesson.id)
-                const isLocked = !isStarted && !enabledSet.has(lesson.id)
-                const stars = Math.min(3, Math.floor(i / 4) + 1) // weeks 1-4 easy, 5-8 medium, 9+ hard
-                return (
-                  <div key={lesson.id} className="flex gap-5 relative">
-                    {/* Node */}
-                    <div className={`relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border text-lg font-bold transition-colors ${
+      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
+        {/* Roadmap */}
+        <div className="relative">
+          <div className="absolute left-8 top-8 bottom-8 w-px bg-border" />
+          <div className="space-y-5">
+            {lessons.map((lesson, i) => {
+              const isStarted = projectByLessonId.has(lesson.id)
+              const isLocked = !isStarted && !enabledSet.has(lesson.id)
+              const stars = Math.min(3, Math.floor(i / 4) + 1) // weeks 1-4 easy, 5-8 medium, 9+ hard
+              return (
+                <div key={lesson.id} className="flex gap-5 relative">
+                  {/* Node */}
+                  <div
+                    className={`relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border text-lg font-bold transition-colors ${
                       isStarted
                         ? 'bg-tint-sage text-fg-primary'
                         : isLocked
-                        ? 'bg-card text-fg-muted'
-                        : 'bg-primary text-primary-foreground'
-                    }`}>
-                      {isStarted ? <Check className="h-6 w-6" /> : isLocked ? <Lock className="h-5 w-5" /> : String(i + 1)}
-                    </div>
-                    {/* Card */}
-                    <div className="flex-1 rounded-2xl border border-border bg-card p-5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className={`text-xs font-bold uppercase tracking-widest ${'text-fg-muted'}`}>Week {i + 1}</p>
-                          <h3 className={`font-display mt-1 text-lg font-bold ${'text-fg-primary'}`}>
-                            {lesson.title.split('—')[1]?.trim() ?? lesson.title}
-                          </h3>
-                          <p className={`mt-1.5 text-sm leading-relaxed ${'text-fg-secondary'}`}>{lesson.description}</p>
-                        </div>
-                        <div
-                          className="flex shrink-0 items-center gap-1.5"
-                          title={`Difficulty: ${DIFFICULTY_LABELS[stars]}`}
+                          ? 'bg-card text-fg-muted'
+                          : 'bg-primary text-primary-foreground'
+                    }`}
+                  >
+                    {isStarted ? (
+                      <Check className="h-6 w-6" />
+                    ) : isLocked ? (
+                      <Lock className="h-5 w-5" />
+                    ) : (
+                      String(i + 1)
+                    )}
+                  </div>
+                  {/* Card */}
+                  <div className="flex-1 rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p
+                          className={`text-xs font-bold uppercase tracking-widest ${'text-fg-muted'}`}
                         >
-                          <span className={`text-[10px] font-semibold uppercase tracking-wide ${'text-fg-muted'}`}>
-                            {DIFFICULTY_LABELS[stars]}
-                          </span>
-                          <span className="flex gap-0.5">
-                            {[1, 2, 3].map(n => (
-                              <span
-                                key={n}
-                                className={`h-1.5 w-1.5 rounded-full ${n <= stars ? 'bg-fg-muted' : 'bg-border'}`}
-                              />
-                            ))}
-                          </span>
-                        </div>
+                          Week {i + 1}
+                        </p>
+                        <h3 className={`font-display mt-1 text-lg font-bold ${'text-fg-primary'}`}>
+                          {lesson.title.split('—')[1]?.trim() ?? lesson.title}
+                        </h3>
+                        <p className={`mt-1.5 text-sm leading-relaxed ${'text-fg-secondary'}`}>
+                          {lesson.description}
+                        </p>
                       </div>
-                      <div className="mt-4 flex items-center gap-3">
-                        <span className={`text-xs ${'text-fg-muted'}`}>{lesson.tasks.length} tasks</span>
-                        {isLocked ? (
-                          <span className="ml-auto rounded-full bg-muted px-5 py-2 text-sm font-semibold text-fg-muted">
-                            Not open yet
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleStart(lesson)}
-                            disabled={loadingId !== null}
-                            className={`ml-auto ${isStarted ? 'btn-outline' : 'btn-primary'}`}
-                          >
-                            {loadingId === lesson.id ? 'Starting...' : isStarted ? 'Resume →' : 'Start'}
-                          </button>
-                        )}
+                      <div
+                        className="flex shrink-0 items-center gap-1.5"
+                        title={`Difficulty: ${DIFFICULTY_LABELS[stars]}`}
+                      >
+                        <span
+                          className={`text-[10px] font-semibold uppercase tracking-wide ${'text-fg-muted'}`}
+                        >
+                          {DIFFICULTY_LABELS[stars]}
+                        </span>
+                        <span className="flex gap-0.5">
+                          {[1, 2, 3].map((n) => (
+                            <span
+                              key={n}
+                              className={`h-1.5 w-1.5 rounded-full ${n <= stars ? 'bg-fg-muted' : 'bg-border'}`}
+                            />
+                          ))}
+                        </span>
                       </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-3">
+                      <span className={`text-xs ${'text-fg-muted'}`}>
+                        {lesson.tasks.length} tasks
+                      </span>
+                      {isLocked ? (
+                        <span className="ml-auto rounded-full bg-muted px-5 py-2 text-sm font-semibold text-fg-muted">
+                          Not open yet
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleStart(lesson)}
+                          disabled={loadingId !== null}
+                          className={`ml-auto ${isStarted ? 'btn-outline' : 'btn-primary'}`}
+                        >
+                          {loadingId === lesson.id
+                            ? 'Starting...'
+                            : isStarted
+                              ? 'Resume →'
+                              : 'Start'}
+                        </button>
+                      )}
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {stats && <PlayerCard stats={stats} />}
+                </div>
+              )
+            })}
           </div>
         </div>
+
+        {/* Sidebar */}
+        <div className="space-y-5">{stats && <PlayerCard stats={stats} />}</div>
+      </div>
     </AppShell>
   )
 }

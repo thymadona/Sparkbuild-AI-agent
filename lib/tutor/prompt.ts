@@ -23,7 +23,11 @@ const PAGE_RULE = `- If the board has no page, your first tool call must be boar
 
 const TASK_PAGE_RULE = `- The board has one page per lesson task, and the student's screen opens the next one by itself when their code passes the task's checks. You cannot make pages. Never tell the student a task is finished, never announce or start the next task, and never say a button is broken — when their code is right the next page simply appears. Work only on the task marked OPEN below; add your nodes to its page.`
 
-export function lessonLayer(lesson: Lesson | null, board: string, openTask?: LessonTask | null): string {
+export function lessonLayer(
+  lesson: Lesson | null,
+  board: string,
+  openTask?: LessonTask | null
+): string {
   return [
     lesson ? `LESSON: ${lesson.title}. ${lesson.description}\n${taskList(lesson, openTask)}` : '',
     `CURRENT BOARD:\n${board || (lesson ? '(the task page is opening; add what you teach to it)' : '(empty: start with board_new_page)')}`,
@@ -36,12 +40,15 @@ export function lessonLayer(lesson: Lesson | null, board: string, openTask?: Les
 // The tutor is told which task is open and which are behind it. Without this it
 // narrates its way through the lesson on vibes and contradicts the checks.
 function taskList(lesson: Lesson, openTask?: LessonTask | null): string {
-  if (openTask === undefined) return `Tasks, in order:\n${lesson.tasks.map((t) => `- ${t.chip}: ${t.prompt}`).join('\n')}`
+  if (openTask === undefined)
+    return `Tasks, in order:\n${lesson.tasks.map((t) => `- ${t.chip}: ${t.prompt}`).join('\n')}`
   const openIndex = openTask ? lesson.tasks.indexOf(openTask) : lesson.tasks.length
   const mark = (i: number) => (i < openIndex ? 'done' : i === openIndex ? 'OPEN' : 'not started')
   return [
     'Tasks, in order:',
     ...lesson.tasks.map((t, i) => `- [${mark(i)}] ${t.chip}: ${t.prompt}`),
-    openTask ? `The student is working on "${openTask.chip}" and nothing after it.` : 'Every task is done. Congratulate them.',
+    openTask
+      ? `The student is working on "${openTask.chip}" and nothing after it.`
+      : 'Every task is done. Congratulate them.',
   ].join('\n')
 }

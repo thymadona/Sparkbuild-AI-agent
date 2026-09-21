@@ -94,30 +94,103 @@
 
 /* Tutor board: new nodes rise in; a changed node gets a soft highlight. */
 @media (prefers-reduced-motion: no-preference) {
-  .board-rise { animation: board-rise 200ms ease-out both; }
-  .board-pulse { animation: board-pulse 1200ms ease-out 1; }
+  .board-rise {
+    animation: board-rise 200ms ease-out both;
+  }
+  .board-pulse {
+    animation: board-pulse 1200ms ease-out 1;
+  }
 }
 /* Spark the tutor: one animation per state (see app/board/Mascot.tsx). */
 @media (prefers-reduced-motion: no-preference) {
-  .spark { transform-box: fill-box; transform-origin: 50% 100%; }
-  .spark-idle { animation: spark-bob 2.4s ease-in-out infinite; }
-  .spark-listening { animation: spark-lean 1.6s ease-in-out infinite; }
-  .spark-thinking { animation: spark-bob 1.2s ease-in-out infinite; }
-  .spark-speaking { animation: spark-bob 0.5s ease-in-out infinite; }
-  .spark-celebrating { animation: spark-jump 0.5s ease-out infinite; }
-  .spark-puzzled { animation: spark-tilt 1.8s ease-in-out infinite; }
-  .spark-mouth { animation: spark-talk 0.3s steps(1) infinite; }
-  .spark-dots { animation: spark-blink 1s steps(1) infinite; }
-  .spark-twinkle { animation: spark-blink 0.4s steps(1) infinite; }
+  .spark {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+  }
+  .spark-idle {
+    animation: spark-bob 2.4s ease-in-out infinite;
+  }
+  .spark-listening {
+    animation: spark-lean 1.6s ease-in-out infinite;
+  }
+  .spark-thinking {
+    animation: spark-bob 1.2s ease-in-out infinite;
+  }
+  .spark-speaking {
+    animation: spark-bob 0.5s ease-in-out infinite;
+  }
+  .spark-celebrating {
+    animation: spark-jump 0.5s ease-out infinite;
+  }
+  .spark-puzzled {
+    animation: spark-tilt 1.8s ease-in-out infinite;
+  }
+  .spark-mouth {
+    animation: spark-talk 0.3s steps(1) infinite;
+  }
+  .spark-dots {
+    animation: spark-blink 1s steps(1) infinite;
+  }
+  .spark-twinkle {
+    animation: spark-blink 0.4s steps(1) infinite;
+  }
 }
-@keyframes spark-bob { 50% { transform: translateY(0.5px); } }
-@keyframes spark-lean { 50% { transform: rotate(3deg); } }
-@keyframes spark-tilt { 50% { transform: rotate(-4deg); } }
-@keyframes spark-jump { 50% { transform: translateY(-2px); } }
-@keyframes spark-talk { 50% { opacity: 0; } }
-@keyframes spark-blink { 50% { opacity: 0.2; } }
+@keyframes spark-bob {
+  50% {
+    transform: translateY(0.5px);
+  }
+}
+@keyframes spark-lean {
+  50% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes spark-tilt {
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes spark-jump {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes spark-talk {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes spark-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
 /* Visible keyboard focus on the parchment board; no confetti for reduced motion. */
-.board-root :is(button, input, summary, [tabindex]):not(.board-input):focus-visible { outline: 3px solid #b45309; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .confetti-particle { display: none; } }
-@keyframes board-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes board-pulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 4px rgb(245 158 11 / 0.45); } }
+.board-root :is(button, input, summary, [tabindex]):not(.board-input):focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-particle {
+    display: none;
+  }
+}
+@keyframes board-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes board-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    box-shadow: 0 0 0 4px rgb(245 158 11 / 0.45);
+  }
+}

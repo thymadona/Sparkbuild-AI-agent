@@ -39,7 +39,7 @@ export default function CreateInvoiceModal({
         due_date: form.due_date,
       }),
     })
-    const data = await res.json() as { error?: string }
+    const data = (await res.json()) as { error?: string }
     if (!res.ok) {
       setError(data.error ?? 'Failed to create invoice')
       setLoading(false)
@@ -53,10 +53,7 @@ export default function CreateInvoiceModal({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs text-primary hover:text-primary/80"
-      >
+      <button onClick={() => setOpen(true)} className="text-xs text-primary hover:text-primary/80">
         + Invoice
       </button>
 

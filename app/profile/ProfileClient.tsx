@@ -38,14 +38,21 @@ export default function ProfileClient({ email, initialName }: Props) {
   return (
     <AppShell userEmail={email} pageTitle="Profile">
       <section>
-        <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">Your profile</h1>
+        <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
+          Your profile
+        </h1>
         <p className="mt-2 text-lg text-fg-secondary">This is the name your teacher sees.</p>
       </section>
 
-      <form onSubmit={handleSave} className="flex max-w-md flex-col gap-4 rounded-2xl border border-border bg-card p-6">
+      <form
+        onSubmit={handleSave}
+        className="flex max-w-md flex-col gap-4 rounded-2xl border border-border bg-card p-6"
+      >
         <div>
           <label className="mb-1 block text-sm font-semibold text-fg-secondary">Email</label>
-          <div className="rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-fg-secondary">{email}</div>
+          <div className="rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-fg-secondary">
+            {email}
+          </div>
         </div>
 
         <div>
@@ -56,7 +63,10 @@ export default function ProfileClient({ email, initialName }: Props) {
             id="full_name"
             type="text"
             value={name}
-            onChange={(e) => { setName(e.target.value); setSaved(false) }}
+            onChange={(e) => {
+              setName(e.target.value)
+              setSaved(false)
+            }}
             placeholder="Your full name"
             className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-fg-primary placeholder:text-fg-muted focus:border-ring focus:outline-none"
           />

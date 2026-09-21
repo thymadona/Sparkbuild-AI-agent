@@ -8,7 +8,9 @@ export const prompts = pgTable(
   'prompts',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     projectId: uuid('project_id').references(() => projects.id),
     content: text('content').notNull(),
     // Snapshot of the turn's assembled grounding context (mode, the exact
@@ -20,7 +22,9 @@ export const prompts = pgTable(
     context: jsonb('context'),
     // notNull for the same reason as projects: the prompt log is ordered by
     // this column, and a NULL would sort unpredictably.
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     index('prompts_user_id_created_at_idx').on(t.userId, t.createdAt),

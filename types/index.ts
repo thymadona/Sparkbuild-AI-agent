@@ -83,7 +83,7 @@ export interface ClassSchedule {
   id: string
   class_id: string
   day_of_week: number // 0=Sun … 6=Sat
-  start_time: string  // HH:MM:SS
+  start_time: string // HH:MM:SS
   duration_min: number
   label: string | null
 }

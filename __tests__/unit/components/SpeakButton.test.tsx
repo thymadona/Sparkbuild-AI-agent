@@ -4,7 +4,13 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import SpeakButton from '@/components/SpeakButton'
 
-type Utterance = { text: string; lang: string; rate: number; onend?: () => void; onerror?: () => void }
+type Utterance = {
+  text: string
+  lang: string
+  rate: number
+  onend?: () => void
+  onerror?: () => void
+}
 
 function installSpeechSynthesis() {
   const spoken: Utterance[] = []
@@ -13,13 +19,18 @@ function installSpeechSynthesis() {
     text: string
     lang = ''
     rate = 1
-    constructor(text: string) { this.text = text }
+    constructor(text: string) {
+      this.text = text
+    }
   }
   Object.defineProperty(window, 'speechSynthesis', {
     configurable: true,
     value: { speak: (u: Utterance) => spoken.push(u), cancel },
   })
-  Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: FakeUtterance })
+  Object.defineProperty(window, 'SpeechSynthesisUtterance', {
+    configurable: true,
+    value: FakeUtterance,
+  })
   return { spoken, cancel }
 }
 
@@ -29,7 +40,9 @@ function removeSpeechSynthesis() {
 }
 
 describe('SpeakButton', () => {
-  afterEach(() => { removeSpeechSynthesis() })
+  afterEach(() => {
+    removeSpeechSynthesis()
+  })
 
   it('reads the text aloud, slowly, in English', () => {
     const { spoken } = installSpeechSynthesis()

@@ -8,7 +8,14 @@ import CreateInvoiceModal from '@/components/admin/CreateInvoiceModal'
 import CreateStudentModal from '@/components/admin/CreateStudentModal'
 import EditStudentModal from '@/components/admin/EditStudentModal'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { Class } from '@/types'
 
 type StudentRow = {
@@ -75,9 +82,13 @@ export default function StudentsClient({
               }`}
             >
               {f.label}
-              <span className={`rounded px-1.5 py-0.5 text-xs ${
-                filter === f.id ? 'bg-background text-foreground' : 'bg-muted text-muted-foreground'
-              }`}>
+              <span
+                className={`rounded px-1.5 py-0.5 text-xs ${
+                  filter === f.id
+                    ? 'bg-background text-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
                 {f.count}
               </span>
             </button>
@@ -118,19 +129,30 @@ export default function StudentsClient({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap items-center gap-1">
-                    {u.classes.length > 0
-                      ? u.classes.map((c) => <Badge key={c} variant="secondary">{c}</Badge>)
-                      : <span className="text-muted-foreground/70 text-xs">—</span>
-                    }
+                    {u.classes.length > 0 ? (
+                      u.classes.map((c) => (
+                        <Badge key={c} variant="secondary">
+                          {c}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground/70 text-xs">—</span>
+                    )}
                     {u.hasProfile && (
-                      <AddToClassModal userId={u.id} studentName={u.name || u.email} classes={classes} />
+                      <AddToClassModal
+                        userId={u.id}
+                        studentName={u.name || u.email}
+                        classes={classes}
+                      />
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
                   {u.payment ? (
                     <div className="flex gap-1.5">
-                      {u.payment.unpaid > 0 && <Badge variant="destructive">{u.payment.unpaid} unpaid</Badge>}
+                      {u.payment.unpaid > 0 && (
+                        <Badge variant="destructive">{u.payment.unpaid} unpaid</Badge>
+                      )}
                       {u.payment.paid > 0 && <Badge variant="success">{u.payment.paid} paid</Badge>}
                     </div>
                   ) : (
@@ -147,18 +169,24 @@ export default function StudentsClient({
                   )}
                 </TableCell>
                 <TableCell className="text-right text-xs text-muted-foreground">
-                  {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {new Date(u.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end items-center gap-2">
                     {u.hasProfile && (
-                      <EditStudentModal student={{
-                        userId: u.id,
-                        fullName: u.name,
-                        parentEmail: u.parentEmail,
-                        parentTelegramChatId: u.parentTelegramChatId,
-                        notes: u.notes,
-                      }} />
+                      <EditStudentModal
+                        student={{
+                          userId: u.id,
+                          fullName: u.name,
+                          parentEmail: u.parentEmail,
+                          parentTelegramChatId: u.parentTelegramChatId,
+                          notes: u.notes,
+                        }}
+                      />
                     )}
                     {u.hasProfile && (
                       <CreateInvoiceModal userId={u.id} studentName={u.name || u.email} />
@@ -175,8 +203,13 @@ export default function StudentsClient({
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground/70">
-                  {search || filter !== 'all' ? 'No students match your filter.' : 'No students yet.'}
+                <TableCell
+                  colSpan={6}
+                  className="py-10 text-center text-sm text-muted-foreground/70"
+                >
+                  {search || filter !== 'all'
+                    ? 'No students match your filter.'
+                    : 'No students yet.'}
                 </TableCell>
               </TableRow>
             )}
@@ -184,7 +217,9 @@ export default function StudentsClient({
         </Table>
       </div>
 
-      <p className="text-xs text-muted-foreground/70">{filtered.length} of {rows.length} students</p>
+      <p className="text-xs text-muted-foreground/70">
+        {filtered.length} of {rows.length} students
+      </p>
     </div>
   )
 }

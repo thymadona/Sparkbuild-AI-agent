@@ -12,7 +12,12 @@ interface Props {
   lessonsProgress: LessonProgressEntry[]
 }
 
-export default function TeacherClassClient({ classId, className, homeworkRows, lessonsProgress }: Props) {
+export default function TeacherClassClient({
+  classId,
+  className,
+  homeworkRows,
+  lessonsProgress,
+}: Props) {
   const waiting = homeworkRows.filter((row) => row.status === 'submitted')
 
   return (
@@ -29,7 +34,9 @@ export default function TeacherClassClient({ classId, className, homeworkRows, l
       <Tabs defaultValue="lessons">
         <TabsList>
           <TabsTrigger value="lessons">Lessons</TabsTrigger>
-          <TabsTrigger value="homework">Homework{waiting.length > 0 ? ` (${waiting.length})` : ''}</TabsTrigger>
+          <TabsTrigger value="homework">
+            Homework{waiting.length > 0 ? ` (${waiting.length})` : ''}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="lessons" className="mt-4">
           <LessonsPanel classId={classId} lessons={lessonsProgress} />

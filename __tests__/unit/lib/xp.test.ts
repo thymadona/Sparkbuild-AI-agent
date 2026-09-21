@@ -3,8 +3,11 @@ import { PY_LESSONS } from '@/lib/py-lessons'
 import { badgesFor, levelFor, streakFor, taskXp, todayISO, xpFor, LEVELS, XP_BOSS } from '@/lib/xp'
 
 const week1 = PY_LESSONS[0]
-const row = (completedTaskIds: string[], lessonId = week1.id, lessonVersion: number | null = CURRENT_LESSON_VERSION) =>
-  ({ lessonId, lessonVersion, completedTaskIds })
+const row = (
+  completedTaskIds: string[],
+  lessonId = week1.id,
+  lessonVersion: number | null = CURRENT_LESSON_VERSION
+) => ({ lessonId, lessonVersion, completedTaskIds })
 
 describe('xpFor', () => {
   it('pays by task type, with a bigger prize for the boss', () => {
@@ -22,7 +25,9 @@ describe('xpFor', () => {
   })
 
   it('ignores unknown tasks, unpinned projects and the retired web course', () => {
-    expect(xpFor([row(['nope']), row(['first-words'], week1.id, null), row(['identity'], 1, 2)])).toBe(0)
+    expect(
+      xpFor([row(['nope']), row(['first-words'], week1.id, null), row(['identity'], 1, 2)])
+    ).toBe(0)
   })
 })
 

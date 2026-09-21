@@ -8,9 +8,17 @@ const NAV = [
     href: '/admin',
     label: 'Dashboard',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
       </svg>
     ),
     exact: true,
@@ -19,7 +27,13 @@ const NAV = [
     href: '/admin/students',
     label: 'Students',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
@@ -30,7 +44,13 @@ const NAV = [
     href: '/admin/classes',
     label: 'Classes',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
         <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
         <path d="M6 12v5c3 3 9 3 12 0v-5" />
       </svg>
@@ -40,7 +60,13 @@ const NAV = [
     href: '/admin/homework',
     label: 'Homework',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
         <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
         <rect x="9" y="3" width="6" height="4" rx="1" />
         <path d="M9 14l2 2 4-4" />
@@ -51,7 +77,13 @@ const NAV = [
     href: '/admin/finance',
     label: 'Finance',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
         <rect x="2" y="5" width="20" height="14" rx="2" />
         <path d="M2 10h20" />
       </svg>
@@ -61,8 +93,15 @@ const NAV = [
     href: '/admin/telegram',
     label: 'Telegram',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <path d="M22 2L11 13" /><path d="M22 2L15 22l-4-9-9-4 20-7z" />
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
+        <path d="M22 2L11 13" />
+        <path d="M22 2L15 22l-4-9-9-4 20-7z" />
       </svg>
     ),
   },
@@ -70,7 +109,13 @@ const NAV = [
     href: '/admin/users',
     label: 'Users',
     icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        viewBox="0 0 24 24"
+      >
         <circle cx="12" cy="8" r="4" />
         <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
       </svg>
@@ -91,7 +136,13 @@ export default function AdminSidebar({ email }: { email: string }) {
       {/* Logo */}
       <div className="flex h-14 items-center gap-2.5 border-b border-border px-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-          <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <svg
+            className="h-4 w-4 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
           </svg>
         </div>
@@ -122,7 +173,10 @@ export default function AdminSidebar({ email }: { email: string }) {
       {/* Footer */}
       <div className="border-t border-border px-4 py-3">
         <p className="truncate text-xs text-fg-muted">{email}</p>
-        <a href="/dashboard" className="mt-1 block text-xs text-fg-muted hover:text-muted-foreground transition-colors">
+        <a
+          href="/dashboard"
+          className="mt-1 block text-xs text-fg-muted hover:text-muted-foreground transition-colors"
+        >
           Back to app
         </a>
       </div>

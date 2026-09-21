@@ -18,8 +18,8 @@ export default function NoClassClient({ email }: { email: string }) {
         <div className="mb-4 text-4xl">🎒</div>
         <h1 className="text-2xl font-bold">You&apos;re not in a class yet</h1>
         <p className="mt-2 text-fg-muted">
-          Ask your teacher or school admin to add {email} to a class. You&apos;ll get access
-          as soon as they do.
+          Ask your teacher or school admin to add {email} to a class. You&apos;ll get access as soon
+          as they do.
         </p>
         <button
           onClick={handleSignOut}

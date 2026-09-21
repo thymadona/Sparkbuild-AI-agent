@@ -45,7 +45,14 @@ describe('LessonDetailClient', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
     expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/py/w1.py')
-    expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects', expect.objectContaining({ method: 'POST' }))
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 101, starter: 'print("beep boop")' })
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/projects',
+      expect.objectContaining({ method: 'POST' })
+    )
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({
+      lessonId: 101,
+      starter: 'print("beep boop")',
+    })
   })
 })

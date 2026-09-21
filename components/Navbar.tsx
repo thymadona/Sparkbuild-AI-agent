@@ -5,9 +5,7 @@ import { usePathname } from 'next/navigation'
 import ProfileDropdown from './ProfileDropdown'
 import Logo from './Logo'
 
-const LINKS = [
-  { href: '/lessons', label: 'Lessons' },
-]
+const LINKS = [{ href: '/lessons', label: 'Lessons' }]
 
 interface NavbarProps {
   /** 'marketing' floats over a hero (fixed + blur); 'app' docks inline (sticky). */
@@ -36,7 +34,9 @@ export default function Navbar({
   return (
     <header
       className={`z-50 w-full backdrop-blur-md ${
-        variant === 'marketing' ? 'fixed top-0 border-b border-border bg-surface-900/90' : 'sticky top-0 rounded-t-3xl border-b border-border/60 bg-card/90'
+        variant === 'marketing'
+          ? 'fixed top-0 border-b border-border bg-surface-900/90'
+          : 'sticky top-0 rounded-t-3xl border-b border-border/60 bg-card/90'
       }`}
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
@@ -50,7 +50,9 @@ export default function Navbar({
           </span>
         </Link>
         {withSidebar && pageTitle && (
-          <span className="hidden font-display text-lg font-bold text-fg-primary lg:block">{pageTitle}</span>
+          <span className="hidden font-display text-lg font-bold text-fg-primary lg:block">
+            {pageTitle}
+          </span>
         )}
 
         <div className="flex items-center gap-4 text-sm">
@@ -71,10 +73,7 @@ export default function Navbar({
             )
           })}
           {variant === 'marketing' ? (
-            <Link
-              href={isLoggedIn ? '/dashboard' : '/login'}
-              className="btn-primary"
-            >
+            <Link href={isLoggedIn ? '/dashboard' : '/login'} className="btn-primary">
               {isLoggedIn ? 'Dashboard' : 'Sign in'}
             </Link>
           ) : (

@@ -24,7 +24,14 @@ import CreateInvoiceModal from '@/components/admin/CreateInvoiceModal'
 import AddToClassModal from '@/components/admin/AddToClassModal'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { Class } from '@/types'
 
 function formatAmount(cents: number) {
@@ -40,87 +47,80 @@ function formatTime(t: string) {
 }
 
 export default async function StudentDetailPage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const userId = params.id
 
   const caller = await getSessionUser()
   if (!caller || !(await hasPermission(caller.id, 'students:manage'))) redirect('/staff')
   if (!isUuid(userId)) notFound()
 
-  const [
-    accountRow,
-    profileRows,
-    memberships,
-    invoices,
-    allClasses,
-    promptCount,
-    projectCount,
-  ] = await Promise.all([
-    // Replaces the Supabase Auth admin user lookup. Sign-in provider comes from
-    // the linked OAuth account, and "last signed in" from the newest session
-    // row (Better Auth has no last_sign_in_at column of its own) — both
-    // backed by the sessions_user_id_idx / accounts_user_id_idx indexes.
-    db
-      .select({
-        id: usersTable.id,
-        email: usersTable.email,
-        created_at: usersTable.createdAt,
-        provider_id: accounts.providerId,
-      })
-      .from(usersTable)
-      .leftJoin(accounts, eq(accounts.userId, usersTable.id))
-      .where(eq(usersTable.id, userId))
-      .limit(1),
-    db
-      .select({
-        user_id: studentProfiles.userId,
-        full_name: studentProfiles.fullName,
-        parent_email: studentProfiles.parentEmail,
-        parent_telegram_chat_id: studentProfiles.parentTelegramChatId,
-        notes: studentProfiles.notes,
-        is_active: studentProfiles.isActive,
-      })
-      .from(studentProfiles)
-      .where(eq(studentProfiles.userId, userId))
-      .limit(1),
-    // Was PostgREST's embedded `classes(...)`, which nested the joined row and
-    // needed a cast plus an Array.isArray check at every read site.
-    db
-      .select({
-        class_id: classMembers.classId,
-        name: classesTable.name,
-        description: classesTable.description,
-      })
-      .from(classMembers)
-      .innerJoin(classesTable, eq(classesTable.id, classMembers.classId))
-      .where(eq(classMembers.userId, userId)),
-    // Same for the embedded `receipts(id)`: a left join gives the receipt id
-    // flat, and null when the invoice has not been paid.
-    db
-      .select({
-        id: invoicesTable.id,
-        amount_cents: invoicesTable.amountCents,
-        description: invoicesTable.description,
-        due_date: invoicesTable.dueDate,
-        status: invoicesTable.status,
-        receipt_id: receipts.id,
-      })
-      .from(invoicesTable)
-      .leftJoin(receipts, eq(receipts.invoiceId, invoicesTable.id))
-      .where(eq(invoicesTable.userId, userId))
-      .orderBy(desc(invoicesTable.createdAt)),
-    db
-      .select({
-        id: classesTable.id,
-        name: classesTable.name,
-        description: classesTable.description,
-        created_at: classesTable.createdAt,
-      })
-      .from(classesTable)
-      .orderBy(asc(classesTable.name)),
-    db.$count(prompts, eq(prompts.userId, userId)),
-    db.$count(projects, eq(projects.userId, userId)),
-  ])
+  const [accountRow, profileRows, memberships, invoices, allClasses, promptCount, projectCount] =
+    await Promise.all([
+      // Replaces the Supabase Auth admin user lookup. Sign-in provider comes from
+      // the linked OAuth account, and "last signed in" from the newest session
+      // row (Better Auth has no last_sign_in_at column of its own) — both
+      // backed by the sessions_user_id_idx / accounts_user_id_idx indexes.
+      db
+        .select({
+          id: usersTable.id,
+          email: usersTable.email,
+          created_at: usersTable.createdAt,
+          provider_id: accounts.providerId,
+        })
+        .from(usersTable)
+        .leftJoin(accounts, eq(accounts.userId, usersTable.id))
+        .where(eq(usersTable.id, userId))
+        .limit(1),
+      db
+        .select({
+          user_id: studentProfiles.userId,
+          full_name: studentProfiles.fullName,
+          parent_email: studentProfiles.parentEmail,
+          parent_telegram_chat_id: studentProfiles.parentTelegramChatId,
+          notes: studentProfiles.notes,
+          is_active: studentProfiles.isActive,
+        })
+        .from(studentProfiles)
+        .where(eq(studentProfiles.userId, userId))
+        .limit(1),
+      // Was PostgREST's embedded `classes(...)`, which nested the joined row and
+      // needed a cast plus an Array.isArray check at every read site.
+      db
+        .select({
+          class_id: classMembers.classId,
+          name: classesTable.name,
+          description: classesTable.description,
+        })
+        .from(classMembers)
+        .innerJoin(classesTable, eq(classesTable.id, classMembers.classId))
+        .where(eq(classMembers.userId, userId)),
+      // Same for the embedded `receipts(id)`: a left join gives the receipt id
+      // flat, and null when the invoice has not been paid.
+      db
+        .select({
+          id: invoicesTable.id,
+          amount_cents: invoicesTable.amountCents,
+          description: invoicesTable.description,
+          due_date: invoicesTable.dueDate,
+          status: invoicesTable.status,
+          receipt_id: receipts.id,
+        })
+        .from(invoicesTable)
+        .leftJoin(receipts, eq(receipts.invoiceId, invoicesTable.id))
+        .where(eq(invoicesTable.userId, userId))
+        .orderBy(desc(invoicesTable.createdAt)),
+      db
+        .select({
+          id: classesTable.id,
+          name: classesTable.name,
+          description: classesTable.description,
+          created_at: classesTable.createdAt,
+        })
+        .from(classesTable)
+        .orderBy(asc(classesTable.name)),
+      db.$count(prompts, eq(prompts.userId, userId)),
+      db.$count(projects, eq(projects.userId, userId)),
+    ])
 
   const user = accountRow[0]
   if (!user) notFound()
@@ -138,20 +138,24 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   // Fetch schedules for enrolled classes
   const classIds = memberships.map((m) => m.class_id)
 
-  const schedules = classIds.length > 0
-    ? await db
-        .select({
-          class_id: classSchedules.classId,
-          day_of_week: classSchedules.dayOfWeek,
-          start_time: classSchedules.startTime,
-          duration_min: classSchedules.durationMin,
-        })
-        .from(classSchedules)
-        .where(inArray(classSchedules.classId, classIds))
-        .orderBy(asc(classSchedules.dayOfWeek), asc(classSchedules.startTime))
-    : []
+  const schedules =
+    classIds.length > 0
+      ? await db
+          .select({
+            class_id: classSchedules.classId,
+            day_of_week: classSchedules.dayOfWeek,
+            start_time: classSchedules.startTime,
+            duration_min: classSchedules.durationMin,
+          })
+          .from(classSchedules)
+          .where(inArray(classSchedules.classId, classIds))
+          .orderBy(asc(classSchedules.dayOfWeek), asc(classSchedules.startTime))
+      : []
 
-  const schedulesByClass: Record<string, { day_of_week: number; start_time: string; duration_min: number }[]> = {}
+  const schedulesByClass: Record<
+    string,
+    { day_of_week: number; start_time: string; duration_min: number }[]
+  > = {}
   for (const s of schedules) {
     if (!schedulesByClass[s.class_id]) schedulesByClass[s.class_id] = []
     schedulesByClass[s.class_id].push(s)
@@ -167,14 +171,24 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   const enrolledIds = new Set(enrolledClasses.map((c) => c.id))
   const availableClasses = allClasses.filter((c) => !enrolledIds.has(c.id)) as Class[]
 
-  const totalPaid = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount_cents, 0)
-  const totalUnpaid = invoices.filter((i) => i.status === 'unpaid').reduce((s, i) => s + i.amount_cents, 0)
+  const totalPaid = invoices
+    .filter((i) => i.status === 'paid')
+    .reduce((s, i) => s + i.amount_cents, 0)
+  const totalUnpaid = invoices
+    .filter((i) => i.status === 'unpaid')
+    .reduce((s, i) => s + i.amount_cents, 0)
 
   const joinedDate = new Date(user.created_at).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
   const lastSign = lastSession
-    ? new Date(lastSession.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    ? new Date(lastSession.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
     : 'Never'
 
   const today = new Date().toISOString().split('T')[0]
@@ -183,7 +197,9 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
     <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/staff/students" className="hover:text-foreground transition-colors">Students</Link>
+        <Link href="/staff/students" className="hover:text-foreground transition-colors">
+          Students
+        </Link>
         <span>/</span>
         <span className="text-foreground">{profile?.full_name ?? user.email}</span>
       </div>
@@ -199,14 +215,19 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         {profile && (
           <div className="flex items-center gap-2">
             <DeactivateToggle userId={userId} initialActive={profile.is_active} />
-            <EditStudentModal student={{
-              userId,
-              fullName: profile.full_name,
-              parentEmail: profile.parent_email ?? '',
-              parentTelegramChatId: profile.parent_telegram_chat_id ?? '',
-              notes: profile.notes ?? '',
-            }} />
-            <CreateInvoiceModal userId={userId} studentName={profile.full_name || (user.email ?? '')} />
+            <EditStudentModal
+              student={{
+                userId,
+                fullName: profile.full_name,
+                parentEmail: profile.parent_email ?? '',
+                parentTelegramChatId: profile.parent_telegram_chat_id ?? '',
+                notes: profile.notes ?? '',
+              }}
+            />
+            <CreateInvoiceModal
+              userId={userId}
+              studentName={profile.full_name || (user.email ?? '')}
+            />
           </div>
         )}
       </div>
@@ -214,15 +235,23 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       {/* Profile info */}
       <Card>
         <CardContent>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Profile</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            Profile
+          </p>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <div>
               <span className="text-muted-foreground">Parent email</span>
-              <p className="text-foreground mt-0.5">{profile?.parent_email || <span className="text-muted-foreground/70">—</span>}</p>
+              <p className="text-foreground mt-0.5">
+                {profile?.parent_email || <span className="text-muted-foreground/70">—</span>}
+              </p>
             </div>
             <div>
               <span className="text-muted-foreground">Telegram chat ID</span>
-              <p className="text-foreground mt-0.5 font-mono text-xs">{profile?.parent_telegram_chat_id || <span className="text-muted-foreground/70">—</span>}</p>
+              <p className="text-foreground mt-0.5 font-mono text-xs">
+                {profile?.parent_telegram_chat_id || (
+                  <span className="text-muted-foreground/70">—</span>
+                )}
+              </p>
             </div>
             <div>
               <span className="text-muted-foreground">Joined</span>
@@ -236,7 +265,9 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
               <span className="text-muted-foreground">Status</span>
               <p className="mt-0.5">
                 {profile ? (
-                  <span className={`text-xs font-medium ${profile.is_active ? 'text-success' : 'text-destructive'}`}>
+                  <span
+                    className={`text-xs font-medium ${profile.is_active ? 'text-success' : 'text-destructive'}`}
+                  >
                     {profile.is_active ? 'Active' : 'Deactivated'}
                   </span>
                 ) : (
@@ -254,7 +285,9 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
           {profile?.notes && (
             <div className="mt-4">
               <span className="text-muted-foreground text-sm">Notes</span>
-              <p className="mt-1 text-sm text-foreground whitespace-pre-wrap rounded bg-muted px-3 py-2">{profile.notes}</p>
+              <p className="mt-1 text-sm text-foreground whitespace-pre-wrap rounded bg-muted px-3 py-2">
+                {profile.notes}
+              </p>
             </div>
           )}
         </CardContent>
@@ -263,15 +296,21 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       {/* Activity */}
       <Card>
         <CardContent>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Activity</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            Activity
+          </p>
           <div className="flex items-center gap-8 text-sm">
             <div>
               <span className="text-muted-foreground">AI requests</span>
-              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">{promptCount ?? 0}</p>
+              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">
+                {promptCount ?? 0}
+              </p>
             </div>
             <div>
               <span className="text-muted-foreground">Projects</span>
-              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">{projectCount ?? 0}</p>
+              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">
+                {projectCount ?? 0}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -281,7 +320,10 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       <div className="rounded-md border border-border">
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Classes <span className="text-muted-foreground/70 font-normal normal-case ml-1">({enrolledClasses.length})</span>
+            Classes{' '}
+            <span className="text-muted-foreground/70 font-normal normal-case ml-1">
+              ({enrolledClasses.length})
+            </span>
           </p>
           {profile && (
             <AddToClassModal
@@ -308,16 +350,21 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
                     <p className="text-xs text-muted-foreground mt-0.5">{cls.description}</p>
                   )}
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {cls.schedules.length > 0 ? cls.schedules.map((s, i) => (
-                      <Badge key={i} variant="secondary">
-                        {DAY[s.day_of_week]} {formatTime(s.start_time)} · {s.duration_min}min
-                      </Badge>
-                    )) : (
+                    {cls.schedules.length > 0 ? (
+                      cls.schedules.map((s, i) => (
+                        <Badge key={i} variant="secondary">
+                          {DAY[s.day_of_week]} {formatTime(s.start_time)} · {s.duration_min}min
+                        </Badge>
+                      ))
+                    ) : (
                       <span className="text-xs text-muted-foreground/70">No schedule</span>
                     )}
                   </div>
                 </div>
-                <Link href={`/staff/classes/${cls.id}`} className="text-xs text-muted-foreground/70 hover:text-foreground shrink-0">
+                <Link
+                  href={`/staff/classes/${cls.id}`}
+                  className="text-xs text-muted-foreground/70 hover:text-foreground shrink-0"
+                >
                   Details →
                 </Link>
               </div>
@@ -330,19 +377,25 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-destructive/10 ring-destructive/20">
           <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">Outstanding</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">
+              Outstanding
+            </div>
             <div className="text-2xl font-bold text-destructive">{formatAmount(totalUnpaid)}</div>
           </CardContent>
         </Card>
         <Card className="bg-success/10 ring-success/20">
           <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">Collected</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">
+              Collected
+            </div>
             <div className="text-2xl font-bold text-success">{formatAmount(totalPaid)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Invoices</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+              Invoices
+            </div>
             <div className="text-2xl font-bold text-foreground">{(invoices ?? []).length}</div>
           </CardContent>
         </Card>
@@ -351,9 +404,14 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       {/* Invoices table */}
       <div className="rounded-md border border-border overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invoices</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Invoices
+          </p>
           {profile && (
-            <CreateInvoiceModal userId={userId} studentName={profile.full_name || (user.email ?? '')} />
+            <CreateInvoiceModal
+              userId={userId}
+              studentName={profile.full_name || (user.email ?? '')}
+            />
           )}
         </div>
         {(invoices ?? []).length === 0 ? (
@@ -375,26 +433,52 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
                 const isOverdue = inv.status === 'unpaid' && inv.due_date < today
                 return (
                   <TableRow key={inv.id}>
-                    <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{inv.description}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-foreground">{formatAmount(inv.amount_cents)}</TableCell>
-                    <TableCell className={`text-right text-xs ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {new Date(inv.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <TableCell className="text-muted-foreground text-xs max-w-xs truncate">
+                      {inv.description}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-foreground">
+                      {formatAmount(inv.amount_cents)}
+                    </TableCell>
+                    <TableCell
+                      className={`text-right text-xs ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}
+                    >
+                      {new Date(inv.due_date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
                       {isOverdue && <span className="ml-1 text-destructive">overdue</span>}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'void' ? 'secondary' : 'destructive'}>
+                      <Badge
+                        variant={
+                          inv.status === 'paid'
+                            ? 'success'
+                            : inv.status === 'void'
+                              ? 'secondary'
+                              : 'destructive'
+                        }
+                      >
                         {inv.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <a href={`/invoice/${inv.id}`} target="_blank" rel="noopener noreferrer"
-                          className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70">
+                        <a
+                          href={`/invoice/${inv.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
+                        >
                           Invoice
                         </a>
                         {receiptId && (
-                          <a href={`/receipt/${receiptId}`} target="_blank" rel="noopener noreferrer"
-                            className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70">
+                          <a
+                            href={`/receipt/${receiptId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
+                          >
                             Receipt
                           </a>
                         )}

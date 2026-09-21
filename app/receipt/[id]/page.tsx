@@ -10,7 +10,7 @@ function formatAmount(cents: number): string {
 }
 
 export default async function ReceiptPage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   if (!isUuid(params.id)) redirect('/staff/finance')
 
   const [row] = await db
@@ -34,7 +34,9 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
   const profile = row.full_name === null ? null : row
 
   const paidDate = new Date(receipt.paid_at).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 
   return (
@@ -68,11 +70,11 @@ export default async function ReceiptPage(props: { params: Promise<{ id: string 
 
         {/* Billed to */}
         <div className="mb-8">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Billed to</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Billed to
+          </p>
           <p className="font-medium">{profile?.full_name ?? 'Student'}</p>
-          {profile?.parent_email && (
-            <p className="text-sm text-gray-500">{profile.parent_email}</p>
-          )}
+          {profile?.parent_email && <p className="text-sm text-gray-500">{profile.parent_email}</p>}
         </div>
 
         {/* Line item */}
