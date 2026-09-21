@@ -10,8 +10,11 @@ Student Code Builder: an AI-assisted Python platform for students aged 10–16. 
 course (catalog version 3; weeks 1–6 exist) where the LLM tutors on a shared board
 (`/board/[id]`, the only student workspace) and Python runs in the browser via Pyodide.
 Teachers/admins run classes, review homework and send invoices/receipts over Telegram from a
-back office (`/staff`). The HTML/CSS/JS course, srcdoc editor, free-form projects and public
-gallery were removed in September 2026 — do not reintroduce them.
+back office (`/staff`).
+
+**The platform is Python-only.** There is no HTML editor, web preview, free-form project or
+public gallery — do not add them. Anything that still references such things (see Known
+issues) is a dead remnant to delete or move toward the Python model, not a second track.
 
 ## Commands
 
