@@ -51,6 +51,7 @@ interface Props {
   completedTaskIds: string[]
   submission: SubmissionStatus | null
   classSlots: ClassSlot[]
+  isAdmin?: boolean
 }
 
 export default function LiveBoard({
@@ -63,6 +64,7 @@ export default function LiveBoard({
   completedTaskIds,
   submission,
   classSlots,
+  isAdmin = false,
 }: Props) {
   const [board, dispatch] = useReducer(boardReducer, initialBoard)
   const py = usePythonRunner()
@@ -362,6 +364,11 @@ export default function LiveBoard({
     if (task) openPageFor(task)
   }, [lesson, advancing, progress.activeIndex, openPageFor])
 
+  // Admins can review every page without finishing the tasks before it.
+  useEffect(() => {
+    if (isAdmin && lesson) for (const task of lesson.tasks) openPageFor(task)
+  }, [isAdmin, lesson, openPageFor])
+
   // Autosave: what the student typed survives a closed tab. Never while the tutor is
   // mid-turn (the server owns the board then); the effect re-runs when the turn ends.
   useEffect(() => {
@@ -514,13 +521,14 @@ export default function LiveBoard({
       if (progress.done.has(task.id)) return 'done'
       if (task.id === viewedTask?.id) return 'current'
       if (
-        isTaskLocked(lesson.tasks, index, progress.done) ||
-        !isTaskOpen(lesson, index, progress.done)
+        !isAdmin &&
+        (isTaskLocked(lesson.tasks, index, progress.done) ||
+          !isTaskOpen(lesson, index, progress.done))
       )
         return 'locked'
       return 'open'
     },
-    [lesson, progress.done, viewedTask]
+    [lesson, progress.done, viewedTask, isAdmin]
   )
 
   // A choice or bonus the student does not want must not wall off the homework
