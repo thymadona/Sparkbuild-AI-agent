@@ -1,9 +1,4 @@
-import {
-  allChecksPassed,
-  firstUnmetCheck,
-  highlightLinesForTask,
-  runTaskChecks,
-} from '@/lib/task-checks'
+import { allChecksPassed, firstUnmetCheck, runTaskChecks } from '@/lib/task-checks'
 import type { TaskCheck } from '@/lib/task-checks'
 
 // Language-neutral behaviour of the check evaluator. Coverage of the real
@@ -44,32 +39,5 @@ describe('runTaskChecks', () => {
 
   it('fails open on an invalid pattern instead of blocking the student', () => {
     expect(runTaskChecks([match('([unclosed')], program)[0].passed).toBe(true)
-  })
-})
-
-describe('highlightLinesForTask', () => {
-  it('returns only the anchor line when there are no checks', () => {
-    expect(highlightLinesForTask('a\nb\nTASK: x\nc', 'TASK: x')).toEqual([3])
-  })
-
-  it('returns nothing when the anchor is missing and no check resolves', () => {
-    expect(highlightLinesForTask('a\nb\nc', 'TASK: missing')).toEqual([])
-  })
-
-  it('finds every line a sourceMatches pattern matches, not just the first', () => {
-    expect(highlightLinesForTask('foo\nbar\nfoo', 'TASK: none', [match('foo')])).toEqual([1, 3])
-  })
-
-  it('dedupes the anchor line against a check that matches it', () => {
-    expect(highlightLinesForTask(program, 'TASK: greet', [match('TASK'), match('^print')])).toEqual(
-      [2, 3, 4]
-    )
-  })
-
-  it('fails open on a malformed pattern instead of throwing', () => {
-    expect(() =>
-      highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [match('([unclosed')])
-    ).not.toThrow()
-    expect(highlightLinesForTask('TASK: x\nfoo', 'TASK: x', [match('([unclosed')])).toEqual([1])
   })
 })

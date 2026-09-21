@@ -60,18 +60,26 @@ const r = (rects: Rect[], fill: string, key = fill) =>
     <rect key={`${key}${i}`} x={x} y={y} width={w} height={h} fill={fill} />
   ))
 
-export default function Mascot({ state }: { state: MascotState }) {
+export default function Mascot({
+  state,
+  className = 'size-16',
+  body = BODY,
+}: {
+  state: MascotState
+  className?: string
+  body?: string
+}) {
   const armsUp = state === 'celebrating'
   return (
     <svg
       viewBox="0 0 16 16"
       shapeRendering="crispEdges"
-      className="size-16 shrink-0"
+      className={`${className} shrink-0`}
       role="img"
       aria-label={`Spark is ${state}`}
     >
       <g className={`spark spark-${state}`}>
-        {r([armsUp ? [1, 3, 14, 2] : [1, 6, 14, 2]], BODY, 'arms')}
+        {r([armsUp ? [1, 3, 14, 2] : [1, 6, 14, 2]], body, 'arms')}
         {r(
           [
             [3, 3, 10, 6],
@@ -80,7 +88,7 @@ export default function Mascot({ state }: { state: MascotState }) {
             [9, 9, 1, 3],
             [11, 9, 1, 3],
           ],
-          BODY,
+          body,
           'body'
         )}
         {r(EYES[state], INK, 'eye')}

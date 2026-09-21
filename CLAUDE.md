@@ -10,8 +10,11 @@ Student Code Builder: an AI-assisted Python platform for students aged 10–16. 
 course (catalog version 3; weeks 1–6 exist) where the LLM tutors on a shared board
 (`/board/[id]`, the only student workspace) and Python runs in the browser via Pyodide.
 Teachers/admins run classes, review homework and send invoices/receipts over Telegram from a
-back office (`/staff`). The HTML/CSS/JS course, srcdoc editor, free-form projects and public
-gallery were removed in September 2026 — do not reintroduce them.
+back office (`/staff`).
+
+**The platform is Python-only.** There is no HTML editor, web preview, free-form project or
+public gallery — do not add them. Anything that still references such things (see Known
+issues) is a dead remnant to delete or move toward the Python model, not a second track.
 
 ## Commands
 
@@ -50,17 +53,26 @@ Each rule's rationale is in the skill named in parentheses.
 - Renaming a property on `users`/`sessions`/`accounts`/`verifications` breaks sign-in at runtime
   with no compile error. (`auth-flow`)
 - The model is `deepseek-v4-flash` in `lib/deepseek.ts` — no provider/model change without
-  approval. The tutor edits the board through tools; it never returns files. (`ai-tutor`)
-- Python runs only in the browser. Runtime check verdicts are client-reported and the server
-  applies them **only** to runtime checks; static checks are re-run on stored code. Only
-  `POST …/lesson-progress/complete` may add a task id. (`lesson-progress`)
+  approval. The tutor edits the board through tools; it never returns files. Concept steps
+  (`choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) are graded on the client with no LLM
+  call; run `bun --env-file=.env run scripts/tutor-eval.ts` after any prompt change (not in
+  CI). (`ai-tutor`)
+- Python runs only in the browser, so stdout is browser-reported. **The tutor decides a task
+  is done; the server records it.** The client never completes a task: the tutor calls the
+  `task_complete` tool, the turn route guards it (open `pendingCoreTask`, editor open —
+  `awaitingEditor` withholds the tool —, backed by a real run, static checks re-pass on
+  stored code via `verifyTask`) and `recordTaskDone` (`lib/task-progress.ts`) is the **only**
+  writer that grows `lesson_progress`. `PUT …/lesson-progress` may only shrink. (`lesson-progress`)
 - Never edit lesson catalog v3 in place once students have progress; bump
-  `CURRENT_LESSON_VERSION`. Renaming a `# TASK: <id>` anchor silently breaks highlighting.
-  Student copy has word budgets enforced by tests. (`lesson-authoring`)
+  `CURRENT_LESSON_VERSION` (adding `steps` to a task is additive and needs no bump). Starters
+  are TS strings in `lib/lessons/templates.ts`, never files under `public/`; renaming a
+  `# TASK: <id>` anchor there silently breaks the block view. Student copy has word budgets
+  enforced by tests. (`lesson-authoring`)
 - Schema changes: edit `lib/db/schemas/<table>.ts` → `bun run db:generate` → hand-add what the
   DSL can't express (`--custom`) → `bun run db:migrate` → update `types/index.ts` by hand. A
   new table needs an `export *` in `lib/db/schema.ts` and an `enable row level security` line.
-  `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. (`database`)
+  `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. Latest
+  migration: `0010` (`task_progress`, the audit row behind every completed task). (`database`)
 - Next 16: `params` is a `Promise` — await it. `.tsx` tests start with
   `/** @jest-environment jsdom */`. Read `node_modules/next/dist/docs/` before assuming an API.
 

@@ -1,12 +1,12 @@
 import type { Lesson } from './lessons'
+import { templateFor } from './lessons/templates'
 
-// Fetches a lesson's starter file plus any extra files (e.g. bugzap.py) from
-// public/templates. Client-only: the templates are static assets.
-export async function fetchLessonFiles(lesson: Lesson) {
-  const get = async (file: string) => (await fetch(`/templates/${file}`)).text()
-  const starter = await get(lesson.templateFile)
-  const extraFiles: Record<string, string> = {}
+// The files a new project for this lesson holds: the starter plus any extra
+// files (e.g. bugzap.py). Built on the server from the catalog, never from
+// anything the caller sends.
+export function lessonFiles(lesson: Lesson): Record<string, string> {
+  const files: Record<string, string> = { [lesson.starterFile]: templateFor(lesson.templateFile) }
   for (const [name, file] of Object.entries(lesson.extraFiles ?? {}))
-    extraFiles[name] = await get(file)
-  return { starter, extraFiles }
+    files[name] = templateFor(file)
+  return files
 }

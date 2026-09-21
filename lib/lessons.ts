@@ -9,13 +9,60 @@ export type LessonTaskType = 'core' | 'choice' | 'bonus' | 'homework'
 // course (3) exists now; older versions resolve to no lesson.
 export const CURRENT_LESSON_VERSION = 3
 
+// Scripted concept steps a task page shows before its code editor opens
+// (app/board/LiveBoard.tsx reveals them one at a time). Graded on the client with
+// no LLM call: a wrong answer twice still moves on, so a step never dead-ends a child.
+export type LessonStep =
+  | {
+      kind: 'choose'
+      prompt: string
+      code?: string
+      options: string[]
+      answer: number
+      explain: string
+    }
+  // A tiny live preview: the student fills `template`'s {} (tap a chip or type) and Sparky says it.
+  | { kind: 'try'; prompt: string; template: string; chips?: string[]; need: number }
+  // Explain first: one frame per idea, a line of code and what Sparky says about it.
+  // `hl` is the part of `code` to light up; `speak` is what Sparky says aloud (absent: he just listens).
+  | {
+      kind: 'learn'
+      prompt: string
+      frames: { code: string; note: string; hl?: string; speak?: string }[]
+    }
+  // Tap the lines into order (`lines` is the right order), then Sparky says them.
+  | { kind: 'order'; prompt: string; lines: string[] }
+  // Tap the broken line (`bugLine` counts from 0 in `code`).
+  | { kind: 'bug'; prompt: string; code: string; bugLine: number; explain: string }
+  // A live scene (lib/board/scenes): tap blocks into a program, Run, reach the goal.
+  // `solution` indexes `palette`; a test checks that it really wins.
+  | {
+      kind: 'stage'
+      scene: 'room' | 'grid' | 'boxes' | 'machine'
+      prompt: string
+      config?: Record<string, unknown>
+      goal: Record<string, unknown>
+      palette: { label: string; ops: string[] }[]
+      solution: number[]
+    }
+  // Tap a code piece, then what it does.
+  | { kind: 'match'; prompt: string; pairs: { left: string; right: string }[] }
+
 export interface LessonTask {
   id: string
   type: LessonTaskType
   chip: string
   success: string
   prompt: string
-  commentAnchor: string
+  // Tasks that share one starter file find their block by this `# TASK: <id>`
+  // comment. A task with its own `starter` has no anchor: it is its own program.
+  commentAnchor?: string
+  // This task's own program, seeded into its code node when its page opens. The
+  // checks then judge that program alone, never the code of a neighbouring task.
+  starter?: string
+  // Start from the final code of this earlier task (`starter` is appended), for
+  // tasks that build on what the student made, like the boss and the homework.
+  from?: string
   // How the student works it out: 🔮 predict, ✏️ change, 🛠 make, 🐞 bugzap,
   // 💬 direct the AI, 📝 explain. Only shown as an icon.
   kind?: 'predict' | 'change' | 'make' | 'bugzap' | 'direct' | 'explain'
@@ -24,13 +71,22 @@ export interface LessonTask {
   // When present, the student cannot mark the task done until the file shows
   // the change. Tasks without checks stay self-reported.
   checks?: TaskCheck[]
+  // Concept steps before the editor. Absent: the page opens straight on the editor.
+  steps?: LessonStep[]
+  // What to do in the editor, said once above it when the steps end. Without it
+  // the editor would appear with no word about what to change.
+  go?: string
+  // A second, separate program for the same task, shown under the first once
+  // check `after` (an index into `checks`) passes. It is its own file with its
+  // own code block, Run button and output, so the two run independently.
+  then?: { file: string; source: string; go: string; after: number }
 }
 
 export interface Lesson {
   id: number
   title: string
   description: string
-  // Starter program, relative to public/templates.
+  // Key of the starter program in lib/lessons/templates.ts.
   templateFile: string
   // File the student edits and runs (main.py).
   starterFile: string

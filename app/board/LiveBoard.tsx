@@ -4,26 +4,25 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { boardReducer, type BoardState } from '@/lib/board/reducer'
 import { runOps, traceOps } from '@/lib/board/run'
 import { usePythonRunner } from '@/hooks/usePythonRunner'
+import { boardCode, boardFiles, fileOf, pageCode, withBoardCode } from '@/lib/board/code'
 import {
-  boardCode,
-  boardFiles,
-  fileOf,
-  pageCode,
-  pageCodeNodeId,
-  withBoardCode,
-} from '@/lib/board/code'
-import {
+  awaitingEditor,
   isTaskOpen,
+  nextStepIndex,
+  cheer,
+  stepAction,
+  stepNode,
+  stepNodeId,
   taskCodeNodeId,
   taskFile,
   taskForPageId,
   taskIndexForPageId,
   taskPageId,
+  taskStarter,
 } from '@/lib/board/tasks'
 import { firstUnfinishedTaskIndex, useLessonProgress } from '@/hooks/useLessonProgress'
 import { useRuntimeChecks } from '@/hooks/useRuntimeChecks'
 import { useTaskChecks } from '@/hooks/useTaskChecks'
-import { useAutoComplete } from '@/hooks/useAutoComplete'
 import { isTaskLocked } from '@/lib/task-guard'
 import ConfettiBurst from '@/components/ConfettiBurst'
 import type { Lesson, LessonTask } from '@/lib/lessons'
@@ -31,10 +30,13 @@ import type { ClassSlot } from '@/lib/schedule'
 import type { SubmissionStatus } from '@/types'
 import BoardView, { type PageStatus } from './BoardView'
 import TaskHeader from './TaskHeader'
+import ProgressBar from './ProgressBar'
+import { taskXp } from '@/lib/xp'
 import HomeworkFooter from './HomeworkFooter'
 import type { MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
 import { useTutor } from './useTutor'
+import { speak, speechSupported, stopSpeaking } from '@/lib/speech'
 
 // Long enough to read as a celebration, short enough not to feel like a wait.
 const CONFETTI_MS = 1400
@@ -79,18 +81,51 @@ export default function LiveBoard({
     },
     [trace]
   )
-  // The server cannot run Python, so it is told what the browser's checks found.
-  const runtimeRef = useRef<{ taskId: string; verdicts: (boolean | undefined)[] } | null>(null)
-  const extraBody = useCallback(() => ({ runtimeChecks: runtimeRef.current }), [])
-  const { captions, live, mascot, busy, send } = useTutor(
+  // The tutor decides a task is done and the server records it; this only
+  // takes the recorded list and moves on.
+  const onTaskDone = useCallback(
+    (_taskId: string, ids: string[]) => progressRef.current.applyDone(ids),
+    []
+  )
+  const { captions, live, mascot, busy, send, say } = useTutor(
     projectId,
     dispatch,
     lastCaption ? [lastCaption] : [],
     onTrace,
-    extraBody
+    undefined,
+    onTaskDone
   )
   const sendRef = useRef(send)
   sendRef.current = send
+  // Sparky's voice: reads each new caption (the instruction of a box that just opened, or feedback)
+  // aloud. Off until the student turns it on; the choice is a per-browser convenience.
+  const [canSpeak, setCanSpeak] = useState(false)
+  const [voice, setVoice] = useState(false)
+  useEffect(() => {
+    setCanSpeak(speechSupported())
+    try {
+      setVoice(localStorage.getItem('spark-voice') === '1')
+    } catch {
+      /* private window: stays off */
+    }
+    return () => stopSpeaking()
+  }, [])
+  const toggleVoice = useCallback(() => {
+    setVoice((on) => {
+      try {
+        localStorage.setItem('spark-voice', on ? '0' : '1')
+      } catch {
+        /* not remembered */
+      }
+      if (on) stopSpeaking()
+      return !on
+    })
+  }, [])
+  const spoken = useRef(captions.length) // captions already on screen at load are not read out
+  useEffect(() => {
+    if (captions.length > spoken.current && voice) speak(captions[captions.length - 1])
+    spoken.current = captions.length
+  }, [captions, voice])
   const [runningId, setRunningId] = useState<string | null>(null)
   const [confetti, setConfetti] = useState<{ key: string; big: boolean }>({ key: '', big: false })
   // True between a task completing and its successor's page opening, so the
@@ -98,7 +133,6 @@ export default function LiveBoard({
   const [advancing, setAdvancing] = useState(false)
   const [viewedPageId, setViewedPageId] = useState<string | null>(initialBoard.activePageId)
   const onViewPage = useCallback((id: string) => setViewedPageId(id), [])
-  const viewedRef = useRef(viewedPageId)
 
   // Everything the server decides — whether a task is finished, what the tutor
   // is told — is read from the persisted board, so it has to be written before
@@ -127,16 +161,25 @@ export default function LiveBoard({
   // boardCode spans the whole board and would hand an open task the code of a
   // later one the moment another page appeared.
   const currentPageId = viewedPageId ?? board.activePageId
-  viewedRef.current = currentPageId
   const viewedTask = taskForPageId(lesson, currentPageId)
-  const code = pageCode(board, currentPageId) ?? boardCode(board) ?? ''
+  // A task with steps has no editor until they are done. Its code is then empty,
+  // never boardCode (the previous task's program): the checks would judge, and
+  // auto-complete on, code the student did not write for this task.
+  const waiting = awaitingEditor(board, viewedTask, currentPageId)
+  const code = waiting ? '' : (pageCode(board, currentPageId) ?? boardCode(board) ?? '')
 
+  // A task with its own starter is judged on its own program, not on whichever
+  // page's code happens to be newest in the entry file.
+  const ownEntry = viewedTask?.starter !== undefined && !waiting
   const checkFiles = useMemo(
-    () => ({ ...files, ...boardFiles(board, entry) }),
-    [files, board, entry]
+    () => ({ ...files, ...boardFiles(board, entry), ...(ownEntry ? { [entry]: code } : {}) }),
+    [files, board, entry, ownEntry, code]
   )
-  const runtimeChecks = useRuntimeChecks(viewedTask ?? undefined, checkFiles, entry)
-  runtimeRef.current = runtimeChecks
+  const runtimeChecks = useRuntimeChecks(
+    waiting ? undefined : (viewedTask ?? undefined),
+    checkFiles,
+    entry
+  )
   const checks = useTaskChecks(viewedTask ?? undefined, code, runtimeChecks)
 
   const progress = useLessonProgress({
@@ -145,14 +188,6 @@ export default function LiveBoard({
     code,
     initialCompletedTaskIds: completedTaskIds,
     initialSubmissionStatus: submission,
-    onHighlight: (lines) => {
-      const id = pageCodeNodeId(boardRef.current, viewedRef.current)
-      if (id)
-        dispatch({ op: { op: 'update', id, patch: { highlightLines: lines } }, actor: 'client' })
-    },
-    onPrompt: () => {},
-    runtime: () => runtimeRef.current,
-    beforeComplete: () => saveBoard(boardRef.current),
     onComplete: (task, done) => {
       setConfetti({
         key: `${task.id}:${Date.now()}`,
@@ -173,22 +208,58 @@ export default function LiveBoard({
   // page as an advance) would both read a boardRef that has not committed yet,
   // and the second new_page throws out of the reducer.
   const opened = useRef(new Set(initialBoard.pages.map((p) => p.id)))
-  const openPageFor = useCallback(
+  const carry = useRef<Record<string, string>>({}) // program handed over while a task's steps are still showing
+  const addStep = useCallback(
+    (task: LessonTask, i: number) => {
+      const node = stepNode(task, i)
+      // Same double-run trap as `opened`: apply() throws on a duplicate id.
+      if (!node || opened.current.has(node.id) || boardRef.current.nodes[node.id]) return
+      opened.current.add(node.id)
+      dispatch({ op: { op: 'add', pageId: taskPageId(task), node }, actor: 'client' })
+      // The box's instruction, from Sparky as well as in the box, so a child who reads slowly can listen instead.
+      if ('prompt' in node)
+        say(`${i > 0 ? `${cheer(i)} Now: ` : ''}${node.prompt} ${stepAction(node)}`.trim())
+    },
+    [say]
+  )
+  const addEditor = useCallback(
     (task: LessonTask, prevSource?: string) => {
       const b = boardRef.current
-      const pageId = taskPageId(task)
-      if (opened.current.has(pageId) || b.pages.some((p) => p.id === pageId)) return
-      opened.current.add(pageId)
-      dispatch({ op: { op: 'new_page', pageId, title: task.chip }, actor: 'client' })
       const nodeId = taskCodeNodeId(task)
-      if (b.nodes[nodeId]) return
+      if (opened.current.has(nodeId) || b.nodes[nodeId]) return
+      opened.current.add(nodeId)
+      // Say what to do before the editor appears. Scripted, so it costs no tutor turn.
+      const goId = `go_${nodeId}`
+      if (task.go && !opened.current.has(goId) && !b.nodes[goId]) {
+        opened.current.add(goId)
+        dispatch({
+          op: {
+            op: 'add',
+            pageId: taskPageId(task),
+            node: {
+              id: goId,
+              parentId: null,
+              createdBy: 'system',
+              type: 'text',
+              markdown: `**${task.go}**`,
+            },
+          },
+          actor: 'client',
+        })
+      }
       const file = taskFile(task, entry)
+      // A task with its own starter is its own program; the rest share the carried file.
+      const own = file === entry ? taskStarter(b, task) : null
       const source =
-        (file === entry ? (prevSource ?? boardCode(b) ?? files[entry]) : files[file]) ?? ''
+        own ??
+        (file === entry
+          ? (prevSource ?? carry.current[task.id] ?? boardCode(b) ?? files[entry])
+          : files[file]) ??
+        ''
       dispatch({
         op: {
           op: 'add',
-          pageId,
+          pageId: taskPageId(task),
           node: {
             id: nodeId,
             parentId: null,
@@ -196,9 +267,9 @@ export default function LiveBoard({
             type: 'code',
             language: 'python',
             file: file === entry ? undefined : file,
+            anchor: own === null ? task.commentAnchor : undefined,
             source,
             editable: true,
-            highlightLines: [],
           },
         },
         actor: 'client',
@@ -206,6 +277,48 @@ export default function LiveBoard({
     },
     [entry, files]
   )
+  const openPageFor = useCallback(
+    (task: LessonTask, prevSource?: string) => {
+      const b = boardRef.current
+      const pageId = taskPageId(task)
+      if (opened.current.has(pageId) || b.pages.some((p) => p.id === pageId)) return
+      opened.current.add(pageId)
+      dispatch({ op: { op: 'new_page', pageId, title: task.chip }, actor: 'client' })
+      if (task.steps?.length) {
+        // Concept first: the editor opens after the last step (the effect below).
+        if (prevSource !== undefined) carry.current[task.id] = prevSource
+        addStep(task, 0)
+      } else {
+        addEditor(task, prevSource)
+      }
+    },
+    [addStep, addEditor]
+  )
+
+  // Reveal a task's steps one at a time as the student answers, then its editor.
+  // Runs off the board, so a reload mid-steps resumes exactly where they were.
+  useEffect(() => {
+    const task = viewedTask
+    if (!task?.steps?.length || !board.pages.some((p) => p.id === taskPageId(task))) return
+    if (board.nodes[taskCodeNodeId(task)]) return
+    const next = nextStepIndex(board, task)
+    if (next !== null) {
+      addStep(task, next)
+      return
+    }
+    const last = stepNodeId(task, task.steps.length - 1)
+    const lastNode = board.nodes[last]
+    if (
+      lastNode &&
+      'answered' in lastNode &&
+      lastNode.answered &&
+      !opened.current.has(taskCodeNodeId(task))
+    ) {
+      addEditor(task)
+      // The greeting above still says "answer the question", which is no longer true.
+      say(`${cheer(task.steps.length)} The editor is open. Type your change, then press Run.`)
+    }
+  }, [board, viewedTask, addStep, addEditor, say])
 
   // A finished task hands its program to the next one, then Spark introduces it.
   const advanceTo = useCallback(
@@ -277,16 +390,55 @@ export default function LiveBoard({
     void saveBoard(boardRef.current).then(() => send({ type: 'session_start' }))
   }, [initialBoard.pages.length, lesson, board.pages.length, send, saveBoard])
 
-  const viewedIndex = lesson && viewedTask ? lesson.tasks.indexOf(viewedTask) : -1
-  useAutoComplete({
-    enabled: lesson != null && viewedIndex >= 0,
-    taskId: viewedTask?.id,
-    done: viewedTask ? progress.done.has(viewedTask.id) : false,
-    saving: progress.isSaving,
-    checks,
-    code,
-    complete: () => void progressRef.current.markDone(viewedIndex),
-  })
+  // A task's second program appears under its first once the check it waits on
+  // passes: its own code block, so its own Run and output.
+  const revealed = useRef(new Set<string>())
+  useEffect(() => {
+    const task = viewedTask
+    const then = task?.then
+    if (!task || !then || waiting) return
+    const codeId = `${taskCodeNodeId(task)}_2`
+    if (revealed.current.has(codeId) || board.nodes[codeId] || !checks.results[then.after]?.passed)
+      return
+    // Typing must never open the next block: only a Run of this exact code does.
+    const first = board.nodes[taskCodeNodeId(task)]
+    const ran = board.nodes[`out_${taskCodeNodeId(task)}`]
+    if (first?.type !== 'code' || ran?.type !== 'output' || ran.ran !== first.source) return
+    revealed.current.add(codeId)
+    const pageId = taskPageId(task)
+    dispatch({
+      op: {
+        op: 'add',
+        pageId,
+        node: {
+          id: `go_${codeId}`,
+          parentId: null,
+          createdBy: 'system',
+          type: 'text',
+          markdown: `**${then.go}**`,
+        },
+      },
+      actor: 'client',
+    })
+    dispatch({
+      op: {
+        op: 'add',
+        pageId,
+        node: {
+          id: codeId,
+          parentId: null,
+          createdBy: 'student',
+          type: 'code',
+          language: 'python',
+          file: then.file,
+          source: then.source,
+          editable: true,
+        },
+      },
+      actor: 'client',
+    })
+    dispatch({ op: { op: 'focus', id: `go_${codeId}` }, actor: 'client' })
+  }, [viewedTask, waiting, board, checks.results])
 
   // A run has finished when the worker goes back to idle (or is restarted after a timeout).
   const prev = useRef(py.status)
@@ -319,8 +471,12 @@ export default function LiveBoard({
     for (const op of runOps(b, id, result)) dispatch({ op, actor: 'client' })
     setRunningId(null)
     setMood(result.ok ? 'celebrating' : 'puzzled')
-    void send({ type: 'code_run_result', nodeId: id, ...result })
-  }, [py.status, send])
+    // The server reads the board from the database: a block revealed a moment ago
+    // must be there before it is told a run happened in it.
+    void saveBoard(boardRef.current).then(() =>
+      send({ type: 'code_run_result', nodeId: id, ...result })
+    )
+  }, [py.status, send, saveBoard])
 
   const codeActions: CodeActions = {
     ready: py.status === 'idle' || py.status === 'running' || py.status === 'waiting',
@@ -339,6 +495,14 @@ export default function LiveBoard({
     sendInput: py.sendInput,
     setCursor: (id, cursor) =>
       dispatch({ op: { op: 'update', id, patch: { cursor } }, actor: 'client' }),
+    patch: (id, patch) => dispatch({ op: { op: 'update', id, patch }, actor: 'client' }),
+    // The board reducer has not run yet when a step calls this in the same click, so wait a beat:
+    // the tutor reads the misses and picks from the saved board.
+    feedback: (event) => {
+      setTimeout(() => {
+        void saveBoard(boardRef.current).then(() => send(event))
+      }, 120)
+    },
   }
 
   const statusOf = useCallback(
@@ -383,8 +547,9 @@ export default function LiveBoard({
       return (
         <TaskHeader
           task={task}
-          results={showing ? checks.results : []}
-          evaluated={showing ? checks.evaluated : true}
+          results={showing && !waiting ? checks.results : []}
+          evaluated={showing && !waiting ? checks.evaluated : true}
+          waiting={showing && waiting}
           done={progress.done.has(task.id)}
           busy={busy}
           error={showing ? progress.saveError : null}
@@ -398,7 +563,7 @@ export default function LiveBoard({
         />
       )
     },
-    [lesson, viewedTask, progress.done, progress.saveError, checks, busy, skip]
+    [lesson, viewedTask, waiting, progress.done, progress.saveError, checks, busy, skip]
   )
 
   const footer = useCallback(
@@ -444,8 +609,22 @@ export default function LiveBoard({
         busy={busy}
         header={lesson ? header : undefined}
         footer={lesson ? footer : undefined}
+        progress={
+          lesson ? (
+            <ProgressBar
+              done={progress.done.size}
+              total={lesson.tasks.length}
+              xp={lesson.tasks.reduce(
+                (sum, t) => sum + (progress.done.has(t.id) ? taskXp(t) : 0),
+                0
+              )}
+            />
+          ) : undefined
+        }
         statusOf={lesson ? statusOf : undefined}
         onViewPage={onViewPage}
+        voice={canSpeak ? voice : undefined}
+        onVoice={toggleVoice}
         onSend={(text) => void send({ type: 'student_message', text })}
       />
     </>

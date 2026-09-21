@@ -14,7 +14,10 @@ export function useTutor(
   // Extra fields posted alongside the event, read fresh at send time. The
   // student's browser owns the Python interpreter, so its check verdicts ride
   // along here — the server cannot compute them.
-  extra: () => Record<string, unknown> = () => ({})
+  extra: () => Record<string, unknown> = () => ({}),
+  // The tutor recorded a task as done. Called once the stream has ended, so the
+  // client's next-page save cannot be overwritten by the server's end-of-turn write.
+  onTaskComplete: (taskId: string, done: string[]) => void = () => {}
 ) {
   const [captions, setCaptions] = useState<string[]>(firstCaption)
   const [live, setLive] = useState('')
@@ -36,6 +39,10 @@ export function useTutor(
       inFlight.current = true
       setBusy(true)
       let said = ''
+      // Feedback on a wrong pick is a bonus on top of the hint already on screen: if the turn fails
+      // (hourly limit, network), say nothing rather than a scary caption.
+      const quiet = event.type === 'step_answer' || event.type === 'stage_result'
+      let completed: { taskId: string; done: string[] } | null = null
       const traces: string[] = [] // run after the turn, once the interpreter and the board are settled
       try {
         const res = await fetch(`/api/projects/${projectId}/turn`, {
@@ -66,12 +73,16 @@ export function useTutor(
               setLive(said)
             } else if (e.type === 'board.op') dispatch({ op: e.op, actor: 'tutor' })
             else if (e.type === 'trace.request') traces.push(e.nodeId)
+            else if (e.type === 'task.complete')
+              completed = { taskId: e.taskId, done: e.completedTaskIds }
             else if (e.type === 'agent.state') setMascot(e.state === 'idle' ? 'idle' : e.state)
             else if (e.type === 'error') throw new Error(e.message)
           }
         }
       } catch (err) {
-        said = said || (err instanceof Error ? err.message : 'Spark had a problem. Try again.')
+        said =
+          said ||
+          (quiet ? '' : err instanceof Error ? err.message : 'Spark had a problem. Try again.')
       } finally {
         if (said) setCaptions((c) => [...c, said])
         setLive('')
@@ -79,6 +90,10 @@ export function useTutor(
         setBusy(false)
         inFlight.current = false
         traces.forEach(onTrace)
+        if (completed) {
+          const c = completed as { taskId: string; done: string[] }
+          onTaskComplete(c.taskId, c.done)
+        }
         const next = queued.current
         if (next) {
           queued.current = null
@@ -86,9 +101,12 @@ export function useTutor(
         }
       }
     },
-    [projectId, dispatch, onTrace, extra]
+    [projectId, dispatch, onTrace, extra, onTaskComplete]
   )
   selfRef.current = send
 
-  return { captions, live, mascot, busy, send }
+  // A scripted line from the board itself (no tutor turn), e.g. when the editor opens.
+  const say = useCallback((text: string) => setCaptions((c) => [...c, text]), [])
+
+  return { captions, live, mascot, busy, send, say }
 }

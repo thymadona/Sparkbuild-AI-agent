@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { fetchLessonFiles } from '@/lib/lesson-files'
 import type { Lesson } from '@/lib/lessons'
 
 interface Props {
@@ -22,15 +21,11 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
 
     setLoading(true)
     try {
-      const { starter, extraFiles } = await fetchLessonFiles(lesson)
-
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: lesson.title,
-          starter,
-          extraFiles,
           lessonId: lesson.id,
         }),
       })

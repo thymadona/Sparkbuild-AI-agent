@@ -37,7 +37,6 @@ export const fixture: Step[] = [
           language: 'python',
           source: 'print("hello")',
           editable: true,
-          highlightLines: [1],
           caption: 'Your first program',
         },
       },
@@ -53,6 +52,7 @@ export const fixture: Step[] = [
           prompt: 'What appears on screen?',
           options: ['print', 'hello', '"hello"'],
           answered: false,
+          attempts: 0,
         },
       },
     ],
@@ -121,7 +121,6 @@ export const fixture: Step[] = [
           language: 'python',
           source: 'name = "Mia"\nprint(name)',
           editable: true,
-          highlightLines: [1],
         },
       },
       {
@@ -141,9 +140,6 @@ export const fixture: Step[] = [
   },
   {
     caption: 'Now line 2 reads the box. Try changing Mia to your name!',
-    ops: [
-      { op: 'update', id: 'c2', patch: { highlightLines: [2] } },
-      { op: 'focus', id: 'c2' },
-    ],
+    ops: [{ op: 'focus', id: 'c2' }],
   },
 ]

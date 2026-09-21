@@ -1,5 +1,6 @@
 import { apply, emptyBoard } from '@/lib/board/reducer'
 import {
+  blockOf,
   boardCode,
   boardFiles,
   boardFromFiles,
@@ -22,7 +23,6 @@ const withCode = (b: ReturnType<typeof emptyBoard>, id: string, source: string) 
       language: 'python',
       source,
       editable: true,
-      highlightLines: [],
     },
   })
 }
@@ -67,7 +67,6 @@ describe('board code', () => {
         language: 'python',
         source: 'print(1)',
         editable: true,
-        highlightLines: [],
       },
     })
     const second = apply(withFirst, { op: 'new_page', pageId: 't_two', title: 'Two' })
@@ -82,7 +81,6 @@ describe('board code', () => {
         language: 'python',
         source: 'print(2)',
         editable: true,
-        highlightLines: [],
       },
     })
 
@@ -105,7 +103,6 @@ describe('board code', () => {
         language: 'python',
         source: 'print(1)',
         editable: true,
-        highlightLines: [],
       },
     })
     const board = apply(main, {
@@ -120,7 +117,6 @@ describe('board code', () => {
         file: 'bugzap.py',
         source: 'fixed',
         editable: true,
-        highlightLines: [],
       },
     })
 
@@ -135,5 +131,94 @@ describe('board code', () => {
     expect(SavedBoard.safeParse(boardFromFiles('x')).success).toBe(true)
     const bad = { ...boardFromFiles('x'), nodes: { main: { id: 'main', type: 'nope' } } }
     expect(SavedBoard.safeParse(bad).success).toBe(false)
+  })
+})
+
+describe('blockOf (the part of the file a task shows)', () => {
+  // The shape every shared-file lesson still has (and week-1 boards made before tasks owned their program).
+  const file = [
+    '# WEEK 1: Wake the Robot',
+    '# Sparky is asleep. Press Run and watch: Sparky says every line you print.',
+    '',
+    '# TASK: first-words',
+    '# Change the words inside the quotes.',
+    'print("beep boop")',
+    '',
+    '# TASK: intro-3',
+    '# BIG ONE: tell Sparky about you in 3 lines.',
+    '',
+    '# TASK: name-tag',
+    '# Save your name in a variable. Then greet yourself with it.',
+    '',
+    '',
+    '# TASK: hw-add-fact',
+    '# HOMEWORK: add 2 more facts about you.',
+    '',
+  ].join('\n')
+
+  it('shows only the lines under the task comment', () => {
+    const b = blockOf(file, 'TASK: first-words')
+    expect(b.block).toBe('# Change the words inside the quotes.\nprint("beep boop")\n')
+    expect(b.block).not.toContain('TASK')
+    expect(b.offset).toBe(4)
+  })
+
+  it('puts an edit back without touching the rest of the file', () => {
+    const b = blockOf(file, 'TASK: first-words')
+    const edited = b.compose(
+      '# Change the words inside the quotes.\nprint("hello")\nprint("again")'
+    )
+    expect(edited.split('\n').slice(0, 3).join('\n')).toBe(file.split('\n').slice(0, 3).join('\n'))
+    expect(edited).toContain('# TASK: name-tag')
+    expect(edited).toContain('print("again")')
+    expect(edited.endsWith(file.slice(file.indexOf('# TASK: name-tag')))).toBe(true)
+  })
+
+  it('round-trips, so the editor never sees its own edit as an outside change', () => {
+    const b = blockOf(file, 'TASK: name-tag')
+    for (const typed of [b.block, `${b.block}\nname = "Ada"\n`, '', 'x']) {
+      const full = b.compose(typed)
+      expect(blockOf(full, 'TASK: name-tag').block).toBe(typed)
+    }
+  })
+
+  it('leaves an untouched empty block alone', () => {
+    const src = '# TASK: a\n# TASK: b\nprint(1)'
+    const b = blockOf(src, 'TASK: a')
+    expect(b.block).toBe('')
+    expect(b.compose('')).toBe(src)
+    expect(b.compose('x')).toBe('# TASK: a\nx\n# TASK: b\nprint(1)')
+  })
+
+  it('shows the last task up to the end of the file', () => {
+    expect(blockOf(file, 'TASK: hw-add-fact').block).toContain('HOMEWORK')
+  })
+
+  it('falls back to the whole file when there is no anchor, or the comment is gone', () => {
+    expect(blockOf(file).block).toBe(file)
+    expect(blockOf(file, 'TASK: nope').block).toBe(file)
+    expect(blockOf(file, 'TASK: nope').compose('x')).toBe('x')
+  })
+
+  it("never mistakes a task's second program for the main one", () => {
+    let b = apply(emptyBoard(), { op: 'new_page', pageId: 'p1', title: 'One' })
+    const node = (id: string, source: string, file?: string) => ({
+      id,
+      parentId: null,
+      createdBy: 'student',
+      type: 'code',
+      language: 'python',
+      source,
+      editable: true,
+      ...(file ? { file } : {}),
+    })
+    b = apply(b, { op: 'add', pageId: 'p1', node: node('a', 'print("main")') })
+    b = apply(b, { op: 'add', pageId: 'p1', node: node('b', 'print("side")', 'line2.py') })
+    expect(pageCode(b, 'p1')).toBe('print("main")')
+    expect(boardCode(b)).toBe('print("main")')
+    expect(boardFiles(b, 'main.py')).toEqual({
+      'main.py': 'print("main")',
+      'line2.py': 'print("side")',
+    })
   })
 })

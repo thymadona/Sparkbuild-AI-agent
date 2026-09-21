@@ -1,6 +1,4 @@
 import { notFound, redirect } from 'next/navigation'
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classMembers, classSchedules, lessonProgress, messages, projects } from '@/lib/db/schema'
@@ -10,6 +8,7 @@ import { emptyBoard, type BoardState } from '@/lib/board/reducer'
 import { getLessonForProject } from '@/lib/lessons'
 import { entryFileFor } from '@/lib/starter-file'
 import { boardFromFiles } from '@/lib/board/code'
+import { lessonFiles } from '@/lib/lesson-files'
 import type { ClassSlot } from '@/lib/schedule'
 import type { SubmissionStatus } from '@/types'
 import LiveBoard from '../LiveBoard'
@@ -52,11 +51,7 @@ export default async function LiveBoardPage({ params }: Props) {
   let board = project.board as BoardState | null
   // Work done before the board existed: keep it, if it differs from the untouched starter.
   if (!board && lesson && files[entry]) {
-    const starter = await readFile(
-      path.join(process.cwd(), 'public/templates', lesson.templateFile),
-      'utf8'
-    ).catch(() => null)
-    if (files[entry] !== starter) board = boardFromFiles(files[entry])
+    if (files[entry] !== lessonFiles(lesson)[entry]) board = boardFromFiles(files[entry])
   }
   board ??= emptyBoard()
 

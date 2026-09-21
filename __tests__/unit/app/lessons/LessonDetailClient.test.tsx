@@ -36,23 +36,23 @@ describe('LessonDetailClient', () => {
   })
 
   it('creates a project for a first-time lesson', async () => {
-    ;(global.fetch as jest.Mock)
-      .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print("beep boop")') })
-      .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ id: 'new-project' }) })
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ id: 'new-project' }),
+    })
 
     render(<LessonDetailClient lesson={lesson} existingProjectId={null} />)
     fireEvent.click(screen.getByRole('button', { name: 'Start lesson' }))
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
-    expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/py/w1.py')
-    expect(global.fetch).toHaveBeenNthCalledWith(
-      2,
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    expect(global.fetch).toHaveBeenCalledWith(
       '/api/projects',
       expect.objectContaining({ method: 'POST' })
     )
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({
-      lessonId: 101,
-      starter: 'print("beep boop")',
-    })
+    // The server seeds the starter; the browser sends only which lesson.
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
+    expect(body).toMatchObject({ lessonId: 101 })
+    expect(body).not.toHaveProperty('starter')
   })
 })
