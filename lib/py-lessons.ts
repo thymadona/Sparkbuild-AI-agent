@@ -285,6 +285,28 @@ export const PY_LESSONS: Lesson[] = [
         ],
         false,
         [
+          learn('Sparky reads top to bottom.', [
+            { code: 'print("Hi")', note: 'One print. One line.', hl: 'print', speak: 'Hi' },
+            {
+              code: 'print("Hi")\nprint("Bye")',
+              note: 'Sparky goes top to bottom.',
+              hl: 'print("Bye")',
+              speak: 'Hi',
+            },
+            {
+              code: 'print("Hi")\nprint("I am Sparky")\nprint("Bye")',
+              note: 'Last line comes last.',
+              hl: 'print("Bye")',
+              speak: 'Bye',
+            },
+          ]),
+          choose(
+            'Which does Sparky say first?',
+            ['Hi', 'Bye', 'Both at once'],
+            1,
+            'Top line first. Sparky says Bye.',
+            'print("Bye")\nprint("Hi")'
+          ),
           stage(
             'room',
             'Make Sparky say Hi, I am Sparky, Bye.',
@@ -297,6 +319,13 @@ export const PY_LESSONS: Lesson[] = [
             ],
             [1, 2, 0]
           ),
+          bug(
+            'Tap the line Sparky skips.',
+            'print("Hi")\n"I am Sparky"\nprint("Bye")',
+            1,
+            'Without print, Sparky stays quiet.'
+          ),
+          tryIt('Say 3 things about you. Click Say it.', 3),
           choose(
             'Sparky must say 3 lines. How many prints?',
             ['One print', 'Three prints', 'Zero prints'],
