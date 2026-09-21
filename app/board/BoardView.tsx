@@ -161,12 +161,12 @@ export default function BoardView({
           })}
         </nav>
 
-        <main className="relative min-w-0 flex-1 overflow-hidden rounded-3xl bg-[#fffdf8] shadow-md">
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl bg-[#fffdf8] shadow-md">
           {progress}
           <div
             ref={paperRef}
             onScroll={onScroll}
-            className="h-full overflow-y-auto px-6 md:px-12 py-8 pb-32"
+            className="min-h-0 flex-1 overflow-y-auto px-6 md:px-12 py-8 pb-32"
           >
             <div className="mx-auto max-w-2xl">
               {page && header?.(page.id)}
