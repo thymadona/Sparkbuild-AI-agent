@@ -45,8 +45,9 @@ LEVELS = [Rookie 0, Coder 100, Scripter 250, Debugger 450, Agent 750, Director 1
 ## Streak
 
 - `recordActivity(userId)` — `INSERT INTO activity_days (user_id, day) VALUES (?, todayISO()) ON CONFLICT DO NOTHING`.
-  **Only caller: `POST /api/projects/[id]/lesson-progress/complete`**, after a successful
-  verification (errors swallowed, logged). Resetting progress (PUT) records nothing; merely
+  **Only caller: `recordTaskDone` (`lib/task-progress.ts`)**, once the tutor's `task_complete`
+  has passed the turn route's guard and the write committed (errors swallowed, logged; a repeat
+  of an already-done task records nothing). Resetting progress (PUT) records nothing; merely
   opening the board records nothing.
 - `todayISO(now)` — `Intl.DateTimeFormat('en-CA', { timeZone: process.env.APP_TIMEZONE || 'UTC' })`.
   Set `APP_TIMEZONE` (e.g. `Asia/Phnom_Penh`) or the day boundary is UTC midnight.
@@ -63,4 +64,4 @@ LEVELS = [Rookie 0, Coder 100, Scripter 250, Debugger 450, Agent 750, Director 1
 
 - `__tests__/unit/lib/xp.test.ts` — `xpFor`, `badgesFor`, `levelFor`, `streakFor` across month/year boundaries, `todayISO` with `APP_TIMEZONE=Asia/Phnom_Penh`.
 - `__tests__/integration/player-stats.test.ts` — Rookie baseline, XP/badges scoped to the student, retired-course rows ignored, streak read from `activity_days`.
-- `__tests__/integration/api/lesson-complete.test.ts` — one activity day on success, none on refusal.
+- `__tests__/integration/api/task-complete.test.ts` — one activity day on success, none on refusal.
