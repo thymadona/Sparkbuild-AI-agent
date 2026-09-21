@@ -1,4 +1,4 @@
-import type { Lesson, LessonTask } from './lessons'
+import type { Lesson, LessonStep, LessonTask } from './lessons'
 import type { TaskCheck } from './task-checks'
 
 // Version 3: the Python course. Ids start at 101: class_enabled_lessons still
@@ -96,7 +96,12 @@ function task(
   success: string,
   prompt: string,
   checks: TaskCheck[],
-  boss = false
+  boss = false,
+  steps?: LessonStep[],
+  go?: string,
+  then?: LessonTask['then'],
+  // Week 1 onward: the task is its own program (no `# TASK:` block in a shared file).
+  own?: { starter: string; from?: string }
 ): LessonTask {
   return {
     id,
@@ -105,11 +110,69 @@ function task(
     chip,
     success,
     prompt,
-    commentAnchor: `TASK: ${id}`,
+    ...(own ? own : { commentAnchor: `TASK: ${id}` }),
     checks,
     ...(boss ? { boss } : {}),
+    ...(steps ? { steps } : {}),
+    ...(go ? { go } : {}),
+    ...(then ? { then } : {}),
   }
 }
+
+const choose = (
+  prompt: string,
+  options: string[],
+  answer: number,
+  explain: string,
+  code?: string
+): LessonStep => ({
+  kind: 'choose',
+  prompt,
+  options,
+  answer,
+  explain,
+  ...(code ? { code } : {}),
+})
+const learn = (
+  prompt: string,
+  frames: Extract<LessonStep, { kind: 'learn' }>['frames']
+): LessonStep => ({ kind: 'learn', prompt, frames })
+const stage = (
+  scene: 'room' | 'grid' | 'boxes' | 'machine',
+  prompt: string,
+  config: Record<string, unknown>,
+  goal: Record<string, unknown>,
+  palette: [string, ...string[]][],
+  solution: number[]
+): LessonStep => ({
+  kind: 'stage',
+  scene,
+  prompt,
+  config,
+  goal,
+  palette: palette.map(([label, ...ops]) => ({ label, ops })),
+  solution,
+})
+const pairUp = (prompt: string, pairs: [string, string][]): LessonStep => ({
+  kind: 'match',
+  prompt,
+  pairs: pairs.map(([left, right]) => ({ left, right })),
+})
+const order = (prompt: string, lines: string[]): LessonStep => ({ kind: 'order', prompt, lines })
+const bug = (prompt: string, code: string, bugLine: number, explain: string): LessonStep => ({
+  kind: 'bug',
+  prompt,
+  code,
+  bugLine,
+  explain,
+})
+const tryIt = (prompt: string, need: number, chips?: string[]): LessonStep => ({
+  kind: 'try',
+  prompt,
+  template: 'print("{}")',
+  need,
+  ...(chips ? { chips } : {}),
+})
 
 export const PY_LESSONS: Lesson[] = [
   {
@@ -139,7 +202,114 @@ export const PY_LESSONS: Lesson[] = [
             '^(?!beep boop\\s*$)\\S.*$',
             { flags: 'm' }
           ),
-        ]
+          // Line 2 is the second line Sparky says, and it must not still be the starter's.
+          output(
+            'Line 2 says new words',
+            'Change the words on line 2.',
+            '^.+\\n(?!bye bye\\s*$)\\S',
+            { flags: 'm', file: 'line2.py' }
+          ),
+        ],
+        false,
+        [
+          // Experience, then induction, prediction, a small try, transfer. The editor comes last.
+          learn('Meet print. Watch Sparky.', [
+            { code: 'print', note: 'print makes Sparky speak.', hl: 'print' },
+            { code: 'print("hello")', note: 'Words go inside quotes.', hl: '"hello"' },
+            {
+              code: 'print("hello")',
+              note: 'Sparky says only the words.',
+              hl: 'hello',
+              speak: 'hello',
+            },
+          ]),
+          tryIt('Click 2 lines. Watch Sparky.', 2, ['beep boop', 'hello', 'I am Sparky']),
+          pairUp('Match each piece to its job.', [
+            ['print', 'Sparky speaks'],
+            ['"hi"', 'The words'],
+            ['# note', 'Sparky skips it'],
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['Hi Ada', 'print Hi Ada', '"Hi Ada"'],
+            0,
+            'The quotes are not spoken. Only Hi Ada.',
+            'print("Hi Ada")'
+          ),
+          order('Hi first, Bye last. Tap the lines.', [
+            'print("Hi")',
+            'print("I am Sparky")',
+            'print("Bye")',
+          ]),
+          bug(
+            'Tap the broken line.',
+            'print("Hi")\nprint(wow)\nprint("Bye")',
+            1,
+            'wow needs quotes.'
+          ),
+          tryIt('Now you. Type your words. Click Say it.', 1),
+        ],
+        'Your turn! Change the words inside the quotes. Then press ▶ Run.',
+        {
+          file: 'line2.py',
+          source: 'print("Hi Sparky")\nprint("bye bye")\n',
+          go: 'Nice! Here are 2 lines. Change line 2.',
+          after: 0,
+        },
+        { starter: '# Change the words inside the quotes.\nprint("beep boop")\n' }
+      ),
+      // The wall: three lines about you means typing print three times. Its own
+      // program, so the count is 3, not 3 plus whatever first-words left behind.
+      task(
+        'intro-3',
+        'core',
+        'make',
+        'Tell Sparky about you',
+        'Sparky says 3 lines about you.',
+        'Help me print three lines about me.',
+        [
+          match(
+            'You print 3 lines',
+            'Add three print lines about you.',
+            PRINT_LINE,
+            'print("Hi")',
+            3
+          ),
+          // Three lines, no two the same: the same print pasted three times does not count.
+          output(
+            'Sparky says 3 different lines',
+            'Make each line say something new.',
+            '^(.+)\\n(?!\\1$)(.+)\\n(?!\\1$|\\2$).+',
+            { flags: 'm' }
+          ),
+        ],
+        false,
+        [
+          stage(
+            'room',
+            'Make Sparky say Hi, I am Sparky, Bye.',
+            {},
+            { says: ['Hi', 'I am Sparky', 'Bye'] },
+            [
+              ['print("Bye")', 'say:Bye'],
+              ['print("Hi")', 'say:Hi'],
+              ['print("I am Sparky")', 'say:I am Sparky'],
+            ],
+            [1, 2, 0]
+          ),
+          choose(
+            'Sparky must say 3 lines. How many prints?',
+            ['One print', 'Three prints', 'Zero prints'],
+            1,
+            'One print makes one line.'
+          ),
+        ],
+        'Now write 3 print lines about you.',
+        undefined,
+        {
+          starter:
+            '# Tell Sparky about you in 3 lines.\n# Line 1: Hi my name is ...\n# Line 2: I like ...\n# Line 3: Nice to meet you ...\n',
+        }
       ),
       task(
         'name-tag',
@@ -162,7 +332,26 @@ export const PY_LESSONS: Lesson[] = [
             'print(f"Hi {name}")'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Fill the boxes: name Ada, age 11.',
+            { boxes: [{ name: 'name' }, { name: 'age' }] },
+            { values: { name: 'Ada', age: 11 } },
+            [
+              ['name = "Ada"', 'set:name=Ada'],
+              ['age = 10', 'set:age=10'],
+              ['age = age + 1', 'add:age:1'],
+              ['name = "Bo"', 'set:name=Bo'],
+            ],
+            [0, 1, 2]
+          ),
+        ],
+        'Now save your own name.',
+        undefined,
+        { starter: '# Save your name in a variable. Then greet yourself with it.\n' }
       ),
       task(
         'shout',
@@ -179,7 +368,12 @@ export const PY_LESSONS: Lesson[] = [
             'print(name.upper())'
           ),
           output('Sparky shouts', 'Sparky must say capital letters.', '[A-Z]{2,}', { flags: '' }),
-        ]
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'name-tag', starter: '# Make Sparky say something LOUD.\n' }
       ),
       task(
         'boot-up',
@@ -206,7 +400,15 @@ export const PY_LESSONS: Lesson[] = [
           ),
           runs,
         ],
-        true
+        true,
+        undefined,
+        undefined,
+        undefined,
+        {
+          from: 'name-tag',
+          starter:
+            "# BOSS: build Sparky's boot-up screen.\n# Save 4 facts about you in variables.\n# Print 4 lines with f-strings. Add 2 notes at the end of a line.\n",
+        }
       ),
       task(
         'paint',
@@ -229,7 +431,15 @@ export const PY_LESSONS: Lesson[] = [
             'sparky.color("pink")'
           ),
           world('Sparky changes color', 'Press Run and watch Sparky.', '^color:'),
-        ]
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        {
+          starter:
+            '# SIDE QUEST: paint Sparky. Start with: import sparky\n# Then use sparky.color and a color name.\n',
+        }
       ),
       task(
         'story',
@@ -245,7 +455,12 @@ export const PY_LESSONS: Lesson[] = [
             `${PRINT_LINE}\\s*(?:"""|''')`,
             'print("""Hi\nthere""")'
           ),
-        ]
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { starter: '# BONUS: tell a long story with three quotes.\n' }
       ),
       task(
         'hw-add-fact',
@@ -270,7 +485,12 @@ export const PY_LESSONS: Lesson[] = [
             'print(f"Hi {name}")',
             6
           ),
-        ]
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'boot-up', starter: '# HOMEWORK: add 2 more facts about you.\n' }
       ),
       task(
         'hw-bug-quote',
@@ -518,7 +738,32 @@ export const PY_LESSONS: Lesson[] = [
             flags: 'm',
             inputs: IN,
           }),
-        ]
+        ],
+        false,
+        [
+          stage(
+            'grid',
+            'Get both gems. Try repeat!',
+            {
+              w: 4,
+              h: 2,
+              start: { x: 0, y: 0, dir: 'E' },
+              gems: [
+                [3, 0],
+                [3, 1],
+              ],
+            },
+            {},
+            [
+              ['move', 'move'],
+              ['turn right', 'right'],
+              ['turn left', 'left'],
+              ['repeat 3: move', 'move', 'move', 'move'],
+            ],
+            [3, 1, 0]
+          ),
+        ],
+        'Now guess what the loop prints.'
       ),
       task(
         'times-table',
@@ -582,7 +827,23 @@ export const PY_LESSONS: Lesson[] = [
             'for i in range(times):'
           ),
           runs3,
-        ]
+        ],
+        false,
+        [
+          stage(
+            'machine',
+            'Machine: turn 4 into 9.',
+            { input: 4 },
+            { out: 9 },
+            [
+              ['double', 'double'],
+              ['add 1', 'add:1'],
+              ['add 2', 'add:2'],
+            ],
+            [0, 1]
+          ),
+        ],
+        'Now ask for a number in code.'
       ),
       task(
         'guess-number',

@@ -22,8 +22,6 @@ function setup(initialCompletedTaskIds: string[]) {
       projectId: 'project-1',
       code: '',
       initialCompletedTaskIds,
-      onHighlight: () => {},
-      onPrompt: () => {},
     })
   )
 }

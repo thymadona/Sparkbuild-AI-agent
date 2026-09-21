@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import type OpenAI from 'openai'
-import { BoardNode, NodeId } from './schema'
+import { BoardNode, CLIENT_ONLY_TYPES, NodeId } from './schema'
 
-// The tutor may only create these; output/trace/preview belong to the client.
+// The tutor may only create these; CLIENT_ONLY_TYPES belong to the client.
 const TutorNode = BoardNode.options.filter(
-  (o) => !['output', 'trace', 'preview'].includes(o.shape.type.value)
+  (o) => !(CLIENT_ONLY_TYPES as readonly string[]).includes(o.shape.type.value)
 )
 
 // createdBy/parentId are filled in by the server, so the model never sees them.
@@ -29,7 +29,7 @@ export const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   ),
   fn(
     'board_update',
-    'Change fields of an existing node, e.g. source or highlightLines.',
+    'Change fields of an existing node, e.g. source.',
     z.object({ id: NodeId, patch: z.record(z.string(), z.unknown()) })
   ),
   fn('board_remove', 'Remove a node the lesson is done with.', z.object({ id: NodeId })),
@@ -44,14 +44,29 @@ export const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     'Start a new page for a new idea.',
     z.object({ pageId: z.string(), title: z.string().max(40) })
   ),
+  fn(
+    'task_complete',
+    'Record that the student finished the OPEN lesson task. Call it only when the evidence shows every requirement is met. The server may refuse.',
+    z.object({ taskId: z.string(), reason: z.string().max(200) })
+  ),
 ]
 
 // In a lesson, pages are task pages: the client opens one per task as the
 // student completes the previous one (lib/board/tasks.ts). Letting the tutor
 // call board_new_page there would create a page with no task bound to it, so
 // the tool is withheld. Free-form boards keep it.
-export const toolsFor = (inLesson: boolean): OpenAI.Chat.ChatCompletionTool[] =>
-  inLesson ? TOOLS.filter((t) => t.function.name !== 'board_new_page') : TOOLS
+// task_complete exists only while a task is open and its editor is showing.
+export const toolsFor = (
+  inLesson: boolean,
+  canComplete = false
+): OpenAI.Chat.ChatCompletionTool[] =>
+  inLesson
+    ? TOOLS.filter(
+        (t) =>
+          t.function.name !== 'board_new_page' &&
+          (canComplete || t.function.name !== 'task_complete')
+      )
+    : TOOLS.filter((t) => t.function.name !== 'task_complete')
 
 // Tool call -> BoardOp (validated by the reducer).
 export function toOp(name: string, args: Record<string, unknown>): unknown {

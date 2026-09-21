@@ -2,7 +2,6 @@
 
 import PlayerCard from '@/components/PlayerCard'
 import type { PlayerStats } from '@/lib/xp'
-import { fetchLessonFiles } from '@/lib/lesson-files'
 import type { Lesson } from '@/lib/lessons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -54,15 +53,11 @@ export default function LessonsClient({
     setLoadingId(lesson.id)
     setError(null)
     try {
-      const { starter, extraFiles } = await fetchLessonFiles(lesson)
-
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: lesson.title,
-          starter,
-          extraFiles,
           lessonId: lesson.id,
         }),
       })

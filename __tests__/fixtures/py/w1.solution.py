@@ -1,6 +1,12 @@
 # TASK: first-words
 print("Hello! I am Sparky.")
 
+
+# TASK: intro-3
+print("Hi my name is Ada")
+print("I like chess")
+print("Nice to meet you")
+
 # TASK: name-tag
 name = "Ada"
 print(f"Hi {name}")

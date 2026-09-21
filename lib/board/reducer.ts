@@ -1,4 +1,4 @@
-import { BoardNode, BoardOp, CLIENT_ONLY_TYPES } from './schema'
+import { BoardNode, BoardOp, CLIENT_ONLY_TYPES, STUDENT_STEP_FIELDS } from './schema'
 
 export interface BoardState {
   pages: { id: string; title: string; nodeIds: string[] }[]
@@ -58,6 +58,9 @@ export function apply(
       if (!old) throw new Error(`Unknown node ${op.id}`)
       // id, type and createdBy are identity; a patch may not rewrite them.
       const { id: _id, type: _type, createdBy: _by, ...patch } = op.patch
+      if (actor === 'tutor' && STUDENT_STEP_FIELDS.some((f) => f in patch)) {
+        throw new Error(`The tutor cannot change ${STUDENT_STEP_FIELDS.join(', ')}`)
+      }
       const next = BoardNode.safeParse({ ...old, ...patch })
       if (!next.success) throw new Error(`Bad patch for ${op.id}: ${next.error.issues[0]?.message}`)
       return { ...state, nodes: { ...state.nodes, [op.id]: next.data } }
@@ -88,9 +91,14 @@ export function apply(
 }
 
 // What the tutor sees after each tool call, so it never invents ids.
-export function summarize(state: BoardState): string {
+// `focusPageId`: the page the student is on. It is listed in full (a program in
+// a code node is shown whole); other pages shrink to one line, so the tutor
+// cannot mistake an earlier task's board for the one in front of the student.
+export function summarize(state: BoardState, focusPageId?: string): string {
   return state.pages
     .map((p) => {
+      if (focusPageId && p.id !== focusPageId)
+        return `page ${p.id} "${p.title}" (${p.nodeIds.length} nodes, not on screen)`
       const rows = p.nodeIds.map((id) => {
         const n = state.nodes[id]
         const text =
@@ -103,7 +111,8 @@ export function summarize(state: BoardState): string {
                 : 'prompt' in n
                   ? n.prompt
                   : ''
-        return `  ${id} [${n.type}] ${text.slice(0, 40).replace(/\n/g, ' ')}`
+        const cap = focusPageId && n.type === 'code' ? 400 : 40
+        return `  ${id} [${n.type}] ${text.slice(0, cap).replace(/\n/g, focusPageId ? ' ⏎ ' : ' ')}`
       })
       return `page ${p.id}${p.id === state.activePageId ? ' (active)' : ''} "${p.title}"\n${rows.join('\n')}`
     })

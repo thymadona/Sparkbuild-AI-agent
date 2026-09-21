@@ -23,6 +23,7 @@ export type TurnEvent =
   | { type: 'board.op'; op: unknown }
   | { type: 'agent.state'; state: 'thinking' | 'speaking' | 'idle' }
   | { type: 'trace.request'; nodeId: string }
+  | { type: 'task.complete'; taskId: string; completedTaskIds: string[] }
   | { type: 'turn.end' }
 
 const MAX_RETRIES = 2
@@ -35,6 +36,9 @@ export async function runTurn(opts: {
   messages: OpenAI.Chat.ChatCompletionMessageParam[]
   board: BoardState
   emit: (e: TurnEvent) => void
+  // Judges and records a task_complete call. Returns the new done list, or
+  // throws with the reason it was refused (which goes back to the model).
+  onTaskComplete?: (args: { taskId: string; reason: string }) => Promise<string[]>
 }): Promise<{ board: BoardState; text: string }> {
   const { llm, emit } = opts
   let board = opts.board
@@ -74,6 +78,15 @@ export async function runTurn(opts: {
             throw new Error(`${args.nodeId} is not a Python code node`)
           emit({ type: 'trace.request', nodeId: n.id })
           content = 'ok: the trace node will appear after this turn. Do not add one yourself.'
+        } else if (c.name === 'task_complete') {
+          if (!opts.onTaskComplete) throw new Error('no task can be completed now')
+          const ids = await opts.onTaskComplete({
+            taskId: String(args.taskId),
+            reason: String(args.reason ?? ''),
+          })
+          emit({ type: 'task.complete', taskId: String(args.taskId), completedTaskIds: ids })
+          content =
+            "ok: recorded. The student's screen opens the next task by itself. Do not announce it."
         } else {
           const op = toOp(c.name, args)
           board = apply(board, op, 'tutor')

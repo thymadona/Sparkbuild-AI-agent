@@ -17,7 +17,6 @@ const codeNode = (language = 'python') => ({
     language,
     source: 'x = 1',
     editable: true,
-    highlightLines: [],
   },
 })
 const boardWithCode = (): BoardState =>

@@ -122,7 +122,6 @@ describe('POST /api/projects/[id]/turn', () => {
           language: 'python',
           source: 'print(1)',
           editable: true,
-          highlightLines: [],
         },
       },
     }
@@ -166,6 +165,7 @@ describe('POST /api/projects/[id]/turn', () => {
     const lesson = LESSONS[0] // Week #1 — Wake the Robot
     const nameTag = lesson.tasks.find((t) => t.id === 'name-tag')!
     const firstWords = lesson.tasks.find((t) => t.id === 'first-words')!
+    const intro = lesson.tasks.find((t) => t.id === 'intro-3')!
 
     // A board holding one task page whose code node has `source`.
     const boardWith = (source: string) => ({
@@ -181,7 +181,6 @@ describe('POST /api/projects/[id]/turn', () => {
           language: 'python',
           source,
           editable: true,
-          highlightLines: [],
         },
       },
     })
@@ -197,32 +196,34 @@ describe('POST /api/projects/[id]/turn', () => {
         files: { 'main.py': source },
         board: boardWith(source),
       })
-      await setLessonProgress(project.id, [firstWords.id], new Date().toISOString())
+      await setLessonProgress(project.id, [firstWords.id, 'intro-3'], new Date().toISOString())
       modelSays('ok')
       await drain(await post(project.id, { type: 'student_message', text: 'is it done?' }))
       return systemPrompt()
     }
 
-    it('tells the tutor which requirement the student has not met yet', async () => {
+    it('gives the tutor the rubric and the real evidence, and lets it judge', async () => {
       // Exactly the reported code: the variable is there, the f-string is not.
       const prompt = await ask('name = "Moral"\nprint(name)')
 
       expect(prompt).toContain('"Save your name"')
-      expect(prompt).toContain('You made a name variable: DONE')
-      expect(prompt).toContain('You greet with an f-string: NOT DONE YET')
-      expect(prompt).toContain('Do not say the whole task is done')
-    })
-
-    it('marks a requirement DONE once the student actually meets it', async () => {
-      const prompt = await ask('name = "Moral"\nprint(f"Hi {name}")')
-      expect(prompt).toContain('You greet with an f-string: DONE')
+      expect(prompt).toContain('- You greet with an f-string')
+      expect(prompt).toContain('EVIDENCE')
+      expect(prompt).toContain('name = "Moral"')
+      expect(prompt).toContain('YOU decide when this task is finished')
     })
 
     it('names the open task and marks the finished one done', async () => {
       const prompt = await ask('name = "Moral"\nprint(name)')
       expect(prompt).toContain(`[done] ${firstWords.chip}`)
+      expect(prompt).toContain(`[done] ${intro.chip}`)
       expect(prompt).toContain(`[OPEN] ${nameTag.chip}`)
       expect(prompt).toContain('never announce or start the next task')
+      expect(
+        mockCreate.mock.calls[0][0].tools.map(
+          (t: { function: { name: string } }) => t.function.name
+        )
+      ).toContain('task_complete')
     })
 
     it('withholds board_new_page in a lesson, since pages belong to tasks', async () => {
@@ -240,7 +241,8 @@ describe('POST /api/projects/[id]/turn', () => {
 
       const tools = mockCreate.mock.calls[0][0].tools as { function: { name: string } }[]
       expect(tools.map((t) => t.function.name)).toContain('board_new_page')
-      expect(systemPrompt()).not.toContain('NOT DONE YET')
+      expect(systemPrompt()).not.toContain('EVIDENCE')
+      expect(tools.map((t) => t.function.name)).not.toContain('task_complete')
     })
   })
 })

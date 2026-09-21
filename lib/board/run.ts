@@ -15,7 +15,12 @@ export function runOps(board: BoardState, nodeId: string, r: RunResult): BoardOp
   const code = board.nodes[nodeId]
   if (code?.type !== 'code') throw new Error(`Unknown code node ${nodeId}`)
   const outId = `out_${nodeId}`
-  const output = { stdout: r.stdout.slice(0, 4000), stderr: r.stderr.slice(0, 4000), ok: r.ok }
+  const output = {
+    stdout: r.stdout.slice(0, 4000),
+    stderr: r.stderr.slice(0, 4000),
+    ok: r.ok,
+    ran: r.source.slice(0, 4000),
+  }
   const pageId = board.pages.find((p) => p.nodeIds.includes(nodeId))?.id
   return [
     { op: 'update', id: nodeId, patch: { source: r.source.slice(0, 4000) } },
