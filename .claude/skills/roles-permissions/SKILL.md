@@ -85,7 +85,7 @@ carry `grantedBy: user.id`.
 
 - `/staff/*` is the live back office. `app/staff/layout.tsx`: session → `/login`;
   `getStaffContext(user.id, NAV_PERMISSION_KEYS)`; not admin and not teacher of any class →
-  `/dashboard`. Each page re-checks its own key (`students:manage`, `roles:manage`,
+  `/lessons`. Each page re-checks its own key (`students:manage`, `roles:manage`,
   `invoices:manage`, `telegram:manage`; `/staff/homework` is `isAdmin` only — teachers review
   from `/staff/classes/[id]`; `/staff/classes/[id]` falls back to `isTeacherOfClass`).
   Nav visibility is not an access boundary.

@@ -51,6 +51,8 @@ interface Props {
   completedTaskIds: string[]
   submission: SubmissionStatus | null
   classSlots: ClassSlot[]
+  /** XP earned outside this lesson, so the strip shows the running course total. */
+  baseXp: number
 }
 
 export default function LiveBoard({
@@ -63,6 +65,7 @@ export default function LiveBoard({
   completedTaskIds,
   submission,
   classSlots,
+  baseXp,
 }: Props) {
   const [board, dispatch] = useReducer(boardReducer, initialBoard)
   const py = usePythonRunner()
@@ -627,7 +630,7 @@ export default function LiveBoard({
               total={lesson.tasks.length}
               xp={lesson.tasks.reduce(
                 (sum, t) => sum + (progress.done.has(t.id) ? taskXp(t) : 0),
-                0
+                baseXp
               )}
             />
           ) : undefined

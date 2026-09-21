@@ -6,9 +6,10 @@ import AppShell from '@/components/AppShell'
 interface Props {
   email: string
   initialName: string
+  xp: number
 }
 
-export default function ProfileClient({ email, initialName }: Props) {
+export default function ProfileClient({ email, initialName, xp }: Props) {
   const [name, setName] = useState(initialName)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -36,7 +37,7 @@ export default function ProfileClient({ email, initialName }: Props) {
   }
 
   return (
-    <AppShell userEmail={email} pageTitle="Profile">
+    <AppShell userEmail={email} xp={xp}>
       <section>
         <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
           Your profile

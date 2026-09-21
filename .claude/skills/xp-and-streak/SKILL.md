@@ -15,7 +15,7 @@ the streak needs a table.
 | `lib/xp.ts`                                    | `XP_PER_TASK`, `XP_BOSS`, `LEVELS`, `taskXp(task)`, `xpFor(rows)`, `badgesFor(rows)`, `levelFor(xp)`, `streakFor(days, today)`, `todayISO(now?)`, types `ProgressRow`, `PlayerStats`. Pure. |
 | `lib/player-stats.ts`                          | `getPlayerStats(userId) → PlayerStats` (fail-open to zeros), `recordActivity(userId)`.                                                                                                      |
 | `lib/db/schemas/activity-days.ts`              | `activity_days (user_id uuid FK cascade, day date)` PK `(user_id, day)`.                                                                                                                    |
-| `components/PlayerCard.tsx`                    | Level name, XP bar, streak pill, badges. Rendered by `app/lessons/page.tsx` (`LessonsClient` sidebar) and `app/dashboard/page.tsx`.                                                         |
+| `components/PlayerCard.tsx`                    | Level name, XP bar, streak pill, badges. Rendered by `app/lessons/page.tsx` (`LessonsClient` sidebar).                                                                                      |
 | `app/board/TaskHeader.tsx`, `lib/lesson-ui.ts` | `+N XP` per task via `taskXp`; labels `TASK_LABELS` (Core mission / Make it yours / Bonus challenge / Homework; boss → 🏆 Boss fight).                                                      |
 
 ## Values

@@ -1,7 +1,7 @@
 import { decideGuard, type GuardInput } from '@/lib/auth/guard'
 
 const BASE: GuardInput = {
-  pathname: '/dashboard',
+  pathname: '/lessons',
   user: { id: 'user-1', email: 'student@example.com' },
   isDeactivated: false,
   isAdmin: false,
@@ -10,7 +10,7 @@ const BASE: GuardInput = {
 }
 
 describe('decideGuard — unauthenticated', () => {
-  it.each(['/dashboard', '/board/1', '/profile', '/admin', '/teacher', '/staff'])(
+  it.each(['/lessons', '/board/1', '/profile', '/admin', '/teacher', '/staff'])(
     'redirects to /login for %s',
     (pathname) => {
       expect(decideGuard({ ...BASE, pathname, user: null })).toEqual({ redirect: '/login' })
@@ -24,7 +24,7 @@ describe('decideGuard — unauthenticated', () => {
 
 describe('decideGuard — deactivated student', () => {
   it('redirects to /login?reason=deactivated on a protected path', () => {
-    expect(decideGuard({ ...BASE, pathname: '/dashboard', isDeactivated: true })).toEqual({
+    expect(decideGuard({ ...BASE, pathname: '/lessons', isDeactivated: true })).toEqual({
       redirect: '/login',
       params: { reason: 'deactivated' },
     })
@@ -39,7 +39,7 @@ describe('decideGuard — deactivated student', () => {
 
 describe('decideGuard — needs class assignment', () => {
   it('redirects to /no-class on a protected path', () => {
-    expect(decideGuard({ ...BASE, pathname: '/dashboard', needsClassAssignment: true })).toEqual({
+    expect(decideGuard({ ...BASE, pathname: '/lessons', needsClassAssignment: true })).toEqual({
       redirect: '/no-class',
     })
   })
@@ -51,7 +51,7 @@ describe('decideGuard — needs class assignment', () => {
   })
 
   it('allows through when already assigned to a class', () => {
-    expect(decideGuard({ ...BASE, pathname: '/dashboard', needsClassAssignment: false })).toBeNull()
+    expect(decideGuard({ ...BASE, pathname: '/lessons', needsClassAssignment: false })).toBeNull()
   })
 
   it('does not gate /admin or /teacher — those paths are never isProtected', () => {
@@ -64,7 +64,7 @@ describe('decideGuard — needs class assignment', () => {
     expect(
       decideGuard({
         ...BASE,
-        pathname: '/dashboard',
+        pathname: '/lessons',
         isDeactivated: true,
         needsClassAssignment: true,
       })
@@ -75,7 +75,7 @@ describe('decideGuard — needs class assignment', () => {
 describe('decideGuard — /admin', () => {
   it('redirects to /dashboard when not admin', () => {
     expect(decideGuard({ ...BASE, pathname: '/admin', isAdmin: false })).toEqual({
-      redirect: '/dashboard',
+      redirect: '/lessons',
     })
   })
 
@@ -87,7 +87,7 @@ describe('decideGuard — /admin', () => {
 describe('decideGuard — /teacher', () => {
   it('redirects to /dashboard when hasTeacherAccess is false', () => {
     expect(decideGuard({ ...BASE, pathname: '/teacher', hasTeacherAccess: false })).toEqual({
-      redirect: '/dashboard',
+      redirect: '/lessons',
     })
   })
 
@@ -99,7 +99,7 @@ describe('decideGuard — /teacher', () => {
     expect(
       decideGuard({ ...BASE, pathname: '/teacher', isAdmin: true, hasTeacherAccess: false })
     ).toEqual({
-      redirect: '/dashboard',
+      redirect: '/lessons',
     })
   })
 })
@@ -107,7 +107,7 @@ describe('decideGuard — /teacher', () => {
 describe('decideGuard — /staff (unified admin+teacher dashboard)', () => {
   it('redirects to /dashboard when hasTeacherAccess is false', () => {
     expect(decideGuard({ ...BASE, pathname: '/staff', hasTeacherAccess: false })).toEqual({
-      redirect: '/dashboard',
+      redirect: '/lessons',
     })
   })
 
@@ -125,7 +125,7 @@ describe('decideGuard — /staff (unified admin+teacher dashboard)', () => {
     expect(
       decideGuard({ ...BASE, pathname: '/staff', isAdmin: true, hasTeacherAccess: false })
     ).toEqual({
-      redirect: '/dashboard',
+      redirect: '/lessons',
     })
   })
 })

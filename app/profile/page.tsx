@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { eq } from 'drizzle-orm'
 import ProfileClient from './ProfileClient'
 import { getSessionUser } from '@/lib/auth/session'
+import { getPlayerStats } from '@/lib/player-stats'
 import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 
@@ -19,5 +20,7 @@ export default async function ProfilePage() {
     .where(eq(studentProfiles.userId, user.id))
     .limit(1)
 
-  return <ProfileClient email={user.email} initialName={profile?.full_name || user.name} />
+  const { xp } = await getPlayerStats(user.id)
+
+  return <ProfileClient email={user.email} initialName={profile?.full_name || user.name} xp={xp} />
 }

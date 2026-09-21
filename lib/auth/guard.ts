@@ -37,7 +37,7 @@ export interface GuardResult {
 export function decideGuard(input: GuardInput): GuardResult | null {
   const { pathname, user } = input
   const isProtected =
-    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/lessons') ||
     pathname.startsWith('/board') ||
     pathname.startsWith('/profile')
   const isAdminPath = pathname.startsWith('/admin')
@@ -52,7 +52,7 @@ export function decideGuard(input: GuardInput): GuardResult | null {
   }
   if (!user) return null
 
-  // Deactivation check — only gates /dashboard, /board, /profile, matching
+  // Deactivation check — only gates /lessons, /board, /profile, matching
   // the pre-existing middleware precedence (staff accounts typically have
   // no student_profiles row, so this never fires for them regardless of path).
   if (isProtected && input.isDeactivated) {
@@ -68,15 +68,15 @@ export function decideGuard(input: GuardInput): GuardResult | null {
   }
 
   if (isAdminPath && !input.isAdmin) {
-    return { redirect: '/dashboard' }
+    return { redirect: '/lessons' }
   }
 
   if (isTeacherPath && !input.hasTeacherAccess) {
-    return { redirect: '/dashboard' }
+    return { redirect: '/lessons' }
   }
 
   if (isStaffPath && !input.hasTeacherAccess) {
-    return { redirect: '/dashboard' }
+    return { redirect: '/lessons' }
   }
 
   return null

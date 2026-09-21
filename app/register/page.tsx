@@ -5,7 +5,7 @@ import { getSessionUser } from '@/lib/auth/session'
 
 export default async function RegisterPage() {
   const user = await getSessionUser()
-  if (user) redirect('/dashboard')
+  if (user) redirect('/lessons')
 
   return (
     <div className="min-h-screen bg-surface-900 font-body">

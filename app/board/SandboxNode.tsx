@@ -59,7 +59,7 @@ export default function SandboxNode({ node, code }: { node: Sandbox; code?: Code
             maxLength={40}
             aria-label="Words for Sparky"
             placeholder="words"
-            className="min-h-11 min-w-0 flex-1 bg-transparent text-amber-300 outline-none placeholder:text-[#f3e9d8]/40"
+            className="board-input min-h-11 min-w-0 flex-1 bg-transparent text-amber-300 outline-none placeholder:text-[#f3e9d8]/40"
           />
           <span aria-hidden="true">{after}</span>
         </label>

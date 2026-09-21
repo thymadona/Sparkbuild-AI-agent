@@ -32,7 +32,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     isTeacherOfAnyClass: ctx.teacherClassIds.length > 0,
   }
 
-  if (!ctx.isAdmin && !permissions.isTeacherOfAnyClass) redirect('/dashboard')
+  if (!ctx.isAdmin && !permissions.isTeacherOfAnyClass) redirect('/lessons')
 
   return (
     <DashboardShell

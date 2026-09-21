@@ -8,7 +8,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 
   if (!(await isAdmin(user.id))) {
     const classIds = await getTeacherClassIds(user.id)
-    if (classIds.length === 0) redirect('/dashboard')
+    if (classIds.length === 0) redirect('/lessons')
   }
 
   return (

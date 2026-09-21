@@ -211,7 +211,7 @@ export default function BoardView({
             )}
           >
             {!minimized && (
-              <div className="pointer-events-auto w-[20rem] max-w-full break-words rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
+              <div className="pointer-events-auto w-[18.5rem] max-w-full break-words rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
                 {showEarlier &&
                   captions.slice(0, -1).map((c, i) => (
                     <p key={i} className="mb-2 text-sm text-[#faf6ee]/75">
