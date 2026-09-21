@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { classMembers, classSchedules, lessonProgress, messages, projects } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { getSessionUser } from '@/lib/auth/session'
+import { isAdmin } from '@/lib/auth/permissions'
 import { emptyBoard, type BoardState } from '@/lib/board/reducer'
 import { getLessonForProject } from '@/lib/lessons'
 import { entryFileFor } from '@/lib/starter-file'
@@ -93,6 +94,7 @@ export default async function LiveBoardPage({ params }: Props) {
       completedTaskIds={completed}
       submission={project.submission as SubmissionStatus | null}
       classSlots={classSlots}
+      isAdmin={await isAdmin(user.id)}
     />
   )
 }
