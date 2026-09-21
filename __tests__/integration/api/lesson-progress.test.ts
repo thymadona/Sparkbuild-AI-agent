@@ -38,8 +38,9 @@ describe('lesson progress API', () => {
   // 0000_baseline.sql.)
   it('uses a cascading project foreign key so progress is removed with its project', () => {
     const schema = require('fs').readFileSync('lib/db/schemas/lesson-progress.ts', 'utf8')
+    // Whitespace-tolerant: Prettier may break this chain across lines.
     expect(schema).toMatch(
-      /projectId: uuid\('project_id'\)\.primaryKey\(\)\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
+      /projectId: uuid\('project_id'\)\s*\.primaryKey\(\)\s*\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
     )
   })
 

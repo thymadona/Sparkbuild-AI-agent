@@ -6,7 +6,7 @@ import { projects } from './projects'
 // bump `projects.lesson_version` and add a catalog instead.
 //
 // __tests__/integration/api/lesson-progress.test.ts regexes this file's text
-// for the cascading FK below; keep that column on one line.
+// for the cascading FK below; keep that chain's call order and options as-is.
 export const lessonProgress = pgTable(
   'lesson_progress',
   {
