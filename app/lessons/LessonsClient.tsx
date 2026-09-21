@@ -16,7 +16,7 @@ const DIFFICULTY_LABELS: Record<number, string> = { 1: 'Easy', 2: 'Medium', 3: '
 
 interface Props {
   lessons: Lesson[]
-  userProjects: { id: string; lesson_id: number | null; updated_at: string }[]
+  userProjects: { id: string; lesson_id: number | null; updated_at: string; done?: number }[]
   enabledLessonIds?: number[]
   userEmail?: string
   stats?: PlayerStats
@@ -41,7 +41,18 @@ export default function LessonsClient({
       projectByLessonId.set(project.lesson_id, project.id)
     }
   }
+  const doneByLessonId = new Map<number, number>()
+  for (const project of userProjects) {
+    if (project.lesson_id !== null)
+      doneByLessonId.set(
+        project.lesson_id,
+        Math.max(doneByLessonId.get(project.lesson_id) ?? 0, project.done ?? 0)
+      )
+  }
+  const doneOf = (l: Lesson) => Math.min(doneByLessonId.get(l.id) ?? 0, l.tasks.length)
   const lessonsStarted = lessons.filter((l) => projectByLessonId.has(l.id)).length
+  const tasksTotal = lessons.reduce((n, l) => n + l.tasks.length, 0)
+  const tasksDone = lessons.reduce((n, l) => n + doneOf(l), 0)
 
   async function handleStart(lesson: Lesson) {
     const existingProjectId = projectByLessonId.get(lesson.id)
@@ -71,7 +82,7 @@ export default function LessonsClient({
   }
 
   const total = lessons.length
-  const progressPct = Math.round((lessonsStarted / total) * 100)
+  const progressPct = Math.round((tasksDone / tasksTotal) * 100)
 
   return (
     <AppShell userEmail={userEmail} pageTitle="Roadmap">
@@ -91,7 +102,7 @@ export default function LessonsClient({
           <div>
             <p className="font-display text-lg font-extrabold leading-none">{progressPct}%</p>
             <p className="mt-1 text-xs font-semibold text-fg-secondary">
-              {lessonsStarted}/{total} started
+              {tasksDone}/{tasksTotal} tasks done
             </p>
           </div>
         </div>
@@ -118,6 +129,7 @@ export default function LessonsClient({
           <div className="space-y-5">
             {lessons.map((lesson, i) => {
               const isStarted = projectByLessonId.has(lesson.id)
+              const isDone = doneOf(lesson) === lesson.tasks.length
               const isLocked = !isStarted && !enabledSet.has(lesson.id)
               const stars = Math.min(3, Math.floor(i / 4) + 1) // weeks 1-4 easy, 5-8 medium, 9+ hard
               return (
@@ -132,7 +144,7 @@ export default function LessonsClient({
                           : 'bg-primary text-primary-foreground'
                     }`}
                   >
-                    {isStarted ? (
+                    {isDone ? (
                       <Check className="h-6 w-6" />
                     ) : isLocked ? (
                       <Lock className="h-5 w-5" />
@@ -154,6 +166,9 @@ export default function LessonsClient({
                         </h3>
                         <p className={`mt-1.5 text-sm leading-relaxed ${'text-fg-secondary'}`}>
                           {lesson.description}
+                        </p>
+                        <p className="mt-2 text-xs font-semibold text-fg-secondary">
+                          {doneOf(lesson)} of {lesson.tasks.length} done
                         </p>
                       </div>
                       <div

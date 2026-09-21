@@ -74,6 +74,8 @@ const stepWords = (step: NonNullable<Lesson['tasks'][number]['steps']>[number]):
       return step.frames.flatMap((f) => [f.note, ...(f.speak ? [f.speak] : [])])
     case 'order':
       return []
+    case 'walk':
+      return step.frames.flatMap((f) => (f.note ? [f.note] : []))
     case 'bug':
       return [step.explain]
     case 'match':
@@ -169,7 +171,7 @@ describe('Python course reading level', () => {
       .reduce((sum, entry) => sum + words(entry.text), 0)
     expect(total).toBeLessThan(budget)
     expect(steps).toBeLessThan(
-      60 * lessons.length + 100 * lessons.filter((l) => l.tasks.some((t) => t.steps)).length
+      60 * lessons.length + 220 * lessons.filter((l) => l.tasks.some((t) => t.steps)).length
     )
   })
 })

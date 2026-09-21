@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { and, desc, eq, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { projects } from '@/lib/db/schema'
+import { lessonProgress, projects } from '@/lib/db/schema'
 import { LESSONS } from '@/lib/lessons'
 import { getPlayerStats } from '@/lib/player-stats'
 import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
@@ -22,8 +22,10 @@ export default async function LessonsPage() {
         id: projects.id,
         lesson_id: projects.lessonId,
         updated_at: projects.updatedAt,
+        done: lessonProgress.completedTaskIds,
       })
       .from(projects)
+      .leftJoin(lessonProgress, eq(lessonProgress.projectId, projects.id))
       .where(and(eq(projects.userId, user.id), isNotNull(projects.lessonId)))
       .orderBy(desc(projects.updatedAt)),
     getEnabledLessonIdsForUser(user.id),
@@ -41,7 +43,7 @@ export default async function LessonsPage() {
   return (
     <LessonsClient
       lessons={LESSONS}
-      userProjects={userProjects}
+      userProjects={userProjects.map((p) => ({ ...p, done: p.done?.length ?? 0 }))}
       enabledLessonIds={enabledIds}
       userEmail={user.email ?? ''}
       stats={stats}

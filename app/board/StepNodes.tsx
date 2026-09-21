@@ -5,6 +5,8 @@ import type { BoardNode } from '@/lib/board/schema'
 import { cn } from '@/lib/utils'
 import Mascot, { type MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
+import { TraceView } from './TraceView'
+import NextButton from './NextButton'
 
 type Of<T extends BoardNode['type']> = Extract<BoardNode, { type: T }>
 
@@ -150,13 +152,13 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
   const [play, setPlay] = useState<{
     seq: number[]
     ok: boolean
-    final: boolean
     attempts: number
   } | null>(null)
   const [at, setAt] = useState(0)
   const deck = node.lines.map((_, i) => i).reverse() // never the answer; stable across a reload
   const full = node.arranged.length === node.lines.length
-  const locked = node.answered || !code || !!play
+  const revealed = !node.answered && node.attempts >= 2 // two misses: show the order, wait for Next
+  const locked = node.answered || revealed || !code || !!play
   const place = (i: number) => {
     setMiss(false)
     code?.patch(node.id, { arranged: [...node.arranged, i] })
@@ -171,7 +173,7 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
     const attempts = node.attempts + 1
     setMiss(false)
     setAt(0)
-    setPlay({ seq: node.arranged, ok, final: ok || attempts >= 2, attempts })
+    setPlay({ seq: node.arranged, ok, attempts })
   }
   // Play the lines one by one, then settle the step. The patch waits so the next box opens after Sparky is done.
   useEffect(() => {
@@ -188,12 +190,14 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
             picked: play.seq.map((i) => node.lines[i]).join(' → '),
             attempts: play.attempts,
           })
-        if (play.final)
+        if (play.ok)
           code.patch(node.id, {
             attempts: play.attempts,
             answered: true,
             arranged: node.lines.map((_, i) => i),
           })
+        else if (play.attempts >= 2)
+          code.patch(node.id, { attempts: play.attempts, arranged: node.lines.map((_, i) => i) })
         else {
           setMiss(true)
           code.patch(node.id, { attempts: play.attempts, arranged: [] })
@@ -220,7 +224,7 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
                 disabled={locked}
                 onClick={() => remove(i)}
                 aria-label={`${pos + 1}. ${node.lines[i]}`}
-                className={cn(tile, node.answered ? good : idle)}
+                className={cn(tile, node.answered || revealed ? good : idle)}
               >
                 {pos + 1}. {node.lines[i]}
               </button>
@@ -231,7 +235,7 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
               </span>
             )}
           </div>
-          {!node.answered && (
+          {!node.answered && !revealed && (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Lines">
               {deck
                 .filter((i) => !node.arranged.includes(i))
@@ -250,7 +254,8 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
                 ))}
             </div>
           )}
-          {!node.answered && (
+          {revealed && <NextButton onClick={() => code?.patch(node.id, { answered: true })} />}
+          {!node.answered && !revealed && (
             <button
               disabled={locked || !full}
               onClick={say}
@@ -259,9 +264,14 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
               ▶ Say it
             </button>
           )}
+          {!node.answered && !revealed && !full && (
+            <p className="text-xs text-[#5c4f3d]">Use all {node.lines.length} lines first.</p>
+          )}
           <p aria-live="polite" className="min-h-6 text-sm">
             {node.answered ? (
               <span className="text-teal-800">Sparky said them in order!</span>
+            ) : revealed ? (
+              <span className="text-[#5c4f3d]">Here is the order.</span>
             ) : miss ? (
               <span className="text-red-800">Not quite. Try again.</span>
             ) : null}
@@ -279,14 +289,44 @@ export function OrderNode({ node, code }: { node: Of<'order'>; code?: CodeAction
   )
 }
 
-// Tap the line with the mistake. Two misses reveal it.
+// Tap the line with the mistake. Two misses reveal it; Next moves on.
+// Step through a short program: the same stepper as a trace, fed by authored frames. Done on the last frame.
+export function WalkNode({ node, code }: { node: Of<'walk'>; code?: CodeActions }) {
+  const last = node.frames.length - 1
+  const at = Math.min(node.cursor, last)
+  const steps = node.frames.map((f) => ({
+    line: f.line,
+    stdout: f.out ?? '',
+    callStack: f.stack ?? [],
+    vars: Object.entries(f.vars).map(([name, v]) =>
+      Array.isArray(v) ? { name, type: 'list', repr: '', items: v } : { name, type: '', repr: v }
+    ),
+  }))
+  const go = (n: number) => {
+    const to = Math.min(Math.max(n, 0), last)
+    code?.patch(node.id, to === last ? { cursor: to, answered: true } : { cursor: to })
+  }
+  return (
+    <div className={card}>
+      <p className="font-semibold">{node.prompt}</p>
+      <TraceView source={node.code} steps={steps} at={at} go={go} note={node.frames[at].note} />
+      <p aria-live="polite" className="min-h-6 text-sm text-[#5c4f3d]">
+        {node.answered
+          ? 'You walked through it ✓'
+          : `Reach the last step (${at + 1} of ${last + 1}).`}
+      </p>
+    </div>
+  )
+}
+
 export function BugNode({ node, code }: { node: Of<'bug'>; code?: CodeActions }) {
   const lines = node.code.split('\n')
   const picked = node.picked ?? null
+  const revealed = !node.answered && node.attempts >= 2 // two misses: show the line, wait for Next
   const pick = (i: number) => {
-    if (!code || node.answered) return
+    if (!code || node.answered || revealed) return
     const attempts = node.attempts + 1
-    code.patch(node.id, { picked: i, attempts, answered: i === node.bugLine || attempts >= 2 })
+    code.patch(node.id, { picked: i, attempts, answered: i === node.bugLine })
     if (i !== node.bugLine)
       code.feedback?.({
         type: 'step_answer',
@@ -303,17 +343,17 @@ export function BugNode({ node, code }: { node: Of<'bug'>; code?: CodeActions })
         {lines.map((l, i) => {
           const isBug = i === node.bugLine
           const shown =
-            node.answered && isBug
+            (node.answered || revealed) && isBug
               ? picked === i
                 ? 'good'
                 : 'bad'
-              : picked === i && !node.answered
+              : picked === i && !node.answered && !revealed
                 ? 'bad'
                 : null
           return (
             <button
               key={i}
-              disabled={!code || node.answered}
+              disabled={!code || node.answered || revealed}
               onClick={() => pick(i)}
               className={cn(
                 'block min-h-11 w-full rounded-md px-3 text-left font-mono text-sm focus-visible:outline-2',
@@ -325,14 +365,16 @@ export function BugNode({ node, code }: { node: Of<'bug'>; code?: CodeActions })
               )}
             >
               {shown === 'good' && <span aria-hidden="true">✓ </span>}
-              {shown === 'bad' && node.answered && <span aria-hidden="true">🐞 </span>}
+              {shown === 'bad' && (node.answered || revealed) && (
+                <span aria-hidden="true">🐞 </span>
+              )}
               {l}
             </button>
           )
         })}
       </div>
       <p role="status" className="min-h-6 text-sm">
-        {node.answered ? (
+        {node.answered || revealed ? (
           <span className={picked === node.bugLine ? 'text-teal-800' : 'text-[#5c4f3d]'}>
             {picked === node.bugLine ? 'Found it! ' : 'Here it is: '}
             {node.explain}
@@ -341,6 +383,7 @@ export function BugNode({ node, code }: { node: Of<'bug'>; code?: CodeActions })
           <span className="text-red-800">Not that one. Try again.</span>
         ) : null}
       </p>
+      {revealed && <NextButton onClick={() => code?.patch(node.id, { answered: true })} />}
     </div>
   )
 }

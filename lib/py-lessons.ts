@@ -1,4 +1,4 @@
-import type { Lesson, LessonStep, LessonTask } from './lessons'
+import type { Lesson, LessonStep, LessonTask, WalkFrame } from './lessons'
 import type { TaskCheck } from './task-checks'
 
 // Version 3: the Python course. Ids start at 101: class_enabled_lessons still
@@ -137,6 +137,12 @@ const learn = (
   prompt: string,
   frames: Extract<LessonStep, { kind: 'learn' }>['frames']
 ): LessonStep => ({ kind: 'learn', prompt, frames })
+const walk = (prompt: string, code: string, frames: WalkFrame[]): LessonStep => ({
+  kind: 'walk',
+  prompt,
+  code,
+  frames,
+})
 const stage = (
   scene: 'room' | 'grid' | 'boxes' | 'machine',
   prompt: string,
@@ -224,7 +230,7 @@ export const PY_LESSONS: Lesson[] = [
             },
           ]),
           tryIt('Click 2 lines. Watch Sparky.', 2, ['beep boop', 'hello', 'I am Sparky']),
-          pairUp('Match each piece to its job.', [
+          pairUp('Tap a piece. Tap what it does.', [
             ['print', 'Sparky speaks'],
             ['hi', 'The words'],
             ['" "', 'Around the words'],
@@ -364,19 +370,41 @@ export const PY_LESSONS: Lesson[] = [
         ],
         false,
         [
+          // Do it, name it, predict, spot the error, sequence. The editor comes last.
           stage(
             'boxes',
-            'Fill the boxes: name Ada, age 11.',
-            { boxes: [{ name: 'name' }, { name: 'age' }] },
-            { values: { name: 'Ada', age: 11 } },
+            'Put Bo in the name box.',
+            { boxes: [{ name: 'name' }] },
+            { values: { name: 'Bo' } },
             [
               ['name = "Ada"', 'set:name=Ada'],
-              ['age = 10', 'set:age=10'],
-              ['age = age + 1', 'add:age:1'],
               ['name = "Bo"', 'set:name=Bo'],
             ],
-            [0, 1, 2]
+            [0, 1]
           ),
+          learn('Put the box in words.', [
+            { code: 'print(f"Hi {name}")', note: 'f lets words hold boxes.', hl: 'f' },
+            {
+              code: 'print(f"Hi {name}")',
+              note: '{ } opens the box.',
+              hl: '{name}',
+              speak: 'Hi Ada',
+            },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['Hi Bo', 'Hi name', 'Hi {name}'],
+            0,
+            '{name} opens the box. Sparky says Hi Bo.',
+            'name = "Bo"\nprint(f"Hi {name}")'
+          ),
+          bug(
+            'Tap the broken line.',
+            'name = "Ada"\nprint("Hi {name}")',
+            1,
+            'Add f before the quote.'
+          ),
+          order('Box first. Then use it.', ['name = "Ada"', 'print(f"Hi {name}")']),
         ],
         'Now save your own name.',
         undefined,
@@ -399,8 +427,37 @@ export const PY_LESSONS: Lesson[] = [
           output('Sparky shouts', 'Sparky must say capital letters.', '[A-Z]{2,}', { flags: '' }),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'machine',
+            'Make hello into HELLO!',
+            { input: 'hello' },
+            { out: 'HELLO!' },
+            [
+              ['.upper()', 'upper'],
+              ['.lower()', 'lower'],
+              ['+ "!"', 'exclaim'],
+              ['* 2', 'double'],
+            ],
+            [0, 2]
+          ),
+          learn('A word can do tricks.', [
+            { code: 'name = "Ada"', note: 'A box holds a word.', hl: 'name' },
+            {
+              code: 'print(name.upper())',
+              note: 'The dot asks for a trick.',
+              hl: '.upper()',
+              speak: 'ADA',
+            },
+          ]),
+          pairUp('Tap a trick. Tap what it does.', [
+            ['.upper()', 'CAPITAL LETTERS'],
+            ['.lower()', 'small letters'],
+            ['* 3', 'Say it 3 times'],
+          ]),
+          bug('Tap the broken line.', 'name = "Ada"\nprint(name.upper)', 1, 'Add ( ) after upper.'),
+        ],
+        'Make Sparky shout your name.',
         undefined,
         { from: 'name-tag', starter: '# Make Sparky say something LOUD.\n' }
       ),
@@ -430,8 +487,30 @@ export const PY_LESSONS: Lesson[] = [
           runs,
         ],
         true,
-        undefined,
-        undefined,
+        [
+          learn('Notes are for you.', [
+            { code: 'age = 10  # my age', note: 'A # note is for people.', hl: '# my age' },
+            {
+              code: 'print("Hi")  # Bye',
+              note: 'Sparky skips the note.',
+              hl: '# Bye',
+              speak: 'Hi',
+            },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['Hi', 'Bye', 'Hi Bye'],
+            0,
+            'Sparky skips the note. Only Hi.',
+            'print("Hi")  # Bye'
+          ),
+          order('Boxes first. Then say them.', [
+            'name = "Ada"',
+            'age = 10',
+            'print(f"{name} is {age}")',
+          ]),
+        ],
+        'Build your boot-up screen. 4 facts, 4 lines, 2 notes.',
         undefined,
         {
           from: 'name-tag',
@@ -462,8 +541,26 @@ export const PY_LESSONS: Lesson[] = [
           world('Sparky changes color', 'Press Run and watch Sparky.', '^color:'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          learn('Sparky has tools.', [
+            { code: 'import sparky', note: 'This brings in Sparky’s tools.', hl: 'import' },
+            { code: 'sparky.color("pink")', note: 'Now Sparky can change color.', hl: 'color' },
+          ]),
+          stage(
+            'room',
+            'Make Sparky pink.',
+            {},
+            { color: 'pink' },
+            [
+              ['sparky.color("blue")', 'color:blue'],
+              ['sparky.color("pink")', 'color:pink'],
+              ['sparky.color("green")', 'color:green'],
+            ],
+            [1]
+          ),
+          order('Tools first. Then use them.', ['import sparky', 'sparky.color("pink")']),
+        ],
+        'Paint Sparky your favorite color.',
         undefined,
         {
           starter:
@@ -486,8 +583,24 @@ export const PY_LESSONS: Lesson[] = [
           ),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          learn('Many lines, one print.', [
+            { code: 'print("Hi")', note: 'One print. One line.', hl: 'print', speak: 'Hi' },
+            {
+              code: 'print("Hi")\nprint("there")',
+              note: 'Two lines need two prints.',
+              hl: 'print("there")',
+              speak: 'there',
+            },
+            {
+              code: 'print("""Hi\nthere""")',
+              note: 'Three quotes hold many lines.',
+              hl: '"""',
+            },
+          ]),
+          bug('Tap the broken line.', 'print("""Hi\nthere")', 1, 'Close with three quotes.'),
+        ],
+        'Tell a story on many lines.',
         undefined,
         { starter: '# BONUS: tell a long story with three quotes.\n' }
       ),
@@ -570,7 +683,35 @@ export const PY_LESSONS: Lesson[] = [
             `${PRINT_LINE}.*(?://|%)`,
             'print(coins % price)'
           ),
-        ]
+        ],
+        false,
+        [
+          stage(
+            'machine',
+            'Turn 5 into 11. Tap the blocks.',
+            { input: 5 },
+            { out: 11 },
+            [
+              ['double', 'double'],
+              ['add 1', 'add:1'],
+              ['add 2', 'add:2'],
+            ],
+            [0, 1]
+          ),
+          learn('Watch Sparky do math.', [
+            { code: 'print(5 * 3)', note: '* is times. Sparky says 15.', hl: '*', speak: '15' },
+            { code: 'print(17 // 5)', note: '// is how many fit.', hl: '//', speak: '3' },
+            { code: 'print(17 % 5)', note: '% is what is left: 2.', hl: '%', speak: '2' },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['2', '3.33', '14'],
+            0,
+            '% is what is left. 20 has three 6s. 2 is left.',
+            'print(20 % 6)'
+          ),
+        ],
+        'Change the numbers. Try * // %.'
       ),
       task(
         'true-false',
@@ -591,7 +732,27 @@ export const PY_LESSONS: Lesson[] = [
           output('Sparky says False', 'Ask a question with answer False.', '^False$', {
             flags: 'm',
           }),
-        ]
+        ],
+        false,
+        [
+          learn('A question has two answers.', [
+            {
+              code: 'print(50 > 12)',
+              note: 'Is 50 bigger? Sparky says True.',
+              hl: '>',
+              speak: 'True',
+            },
+            { code: 'print(5 == 9)', note: 'Are they the same? False.', hl: '==', speak: 'False' },
+          ]),
+          pairUp('Tap a piece. Tap what it asks.', [
+            ['>', 'bigger than'],
+            ['<', 'smaller than'],
+            ['==', 'the same as'],
+            ['!=', 'not the same'],
+          ]),
+          bug('Tap the broken line.', 'coins = 50\nprint(coins = 12)', 1, 'Use ==, not =.'),
+        ],
+        'Write 2 guesses. Ask 2 questions.'
       ),
       task(
         'door-lock',
@@ -615,7 +776,34 @@ export const PY_LESSONS: Lesson[] = [
           ),
           world('The door moves', 'Use a door tool inside your rule.', '^door:'),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('A rule asks a question first.', [
+            { code: 'if guess == secret:', note: 'Right code? Then do this.', hl: 'if' },
+            {
+              code: '    sparky.open_door()',
+              note: 'The space means: inside the rule.',
+              hl: '    ',
+            },
+            { code: 'else:', note: 'Any other code? Do this.', hl: 'else' },
+            { code: '    sparky.close_door()', note: 'Only one door happens.' },
+          ]),
+          order('Build the rule. Tap the lines.', [
+            'if guess == secret:',
+            '    sparky.open_door()',
+            'else:',
+            '    sparky.close_door()',
+          ]),
+          choose(
+            'Which door does Sparky use?',
+            ['open', 'closed', 'open and closed'],
+            1,
+            '5 is not 9. So else runs.',
+            'secret = 9\nguess = 5\nif guess == secret:\n    print("open")\nelse:\n    print("closed")'
+          ),
+        ],
+        'Change guess. Test both doors.'
       ),
       task(
         'three-doors',
@@ -632,7 +820,29 @@ export const PY_LESSONS: Lesson[] = [
             'elif guess > 1000:'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('Add a door in the middle.', [
+            { code: 'if guess == secret:', note: 'First question.', hl: 'if' },
+            { code: 'elif guess > 1000:', note: 'Another question. Middle door.', hl: 'elif' },
+            { code: 'else:', note: 'Nothing fits? Do this.', hl: 'else' },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['big', 'huge', 'big and huge'],
+            0,
+            'First yes wins.',
+            'guess = 2000\nif guess > 100:\n    print("big")\nelif guess > 1000:\n    print("huge")'
+          ),
+          bug(
+            'Tap the broken line.',
+            'if guess == 1:\n    print("open")\nelse:\n    print("closed")\nelif guess > 5:\n    print("warm")',
+            4,
+            'elif goes before else.'
+          ),
+        ],
+        'Add a warm door with elif.'
       ),
       task(
         'vault-guard',
@@ -663,7 +873,21 @@ export const PY_LESSONS: Lesson[] = [
           ),
           runs,
         ],
-        true
+        true,
+        [
+          pairUp('Tap a tool. Tap when to use it.', [
+            ['sparky.open_door()', 'Right code'],
+            ['sparky.close_door()', 'Close guess'],
+            ['sparky.alarm()', 'Way off'],
+          ]),
+          bug(
+            'Tap the broken line.',
+            'if guess > 0:\n    sparky.alarm()\nelif guess == secret:\n    sparky.open_door()\nelse:\n    sparky.close_door()',
+            0,
+            'This rule wins for every code.'
+          ),
+        ],
+        'Build 3 doors. Alarm last.'
       ),
       task(
         'and-or',
@@ -679,7 +903,26 @@ export const PY_LESSONS: Lesson[] = [
             '^\\s*(?:el)?if\\s.*\\b(?:and|or)\\b.*:',
             'if guess > 0 and guess < 9999:'
           ),
-        ]
+        ],
+        false,
+        [
+          learn('Join two questions.', [
+            { code: 'guess > 0 and guess < 9999', note: 'and: both must be True.', hl: 'and' },
+            { code: 'guess < 0 or guess > 9999', note: 'or: one True is enough.', hl: 'or' },
+          ]),
+          pairUp('Tap a word. Tap what it needs.', [
+            ['and', 'Both are True'],
+            ['or', 'One is enough'],
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['True', 'False', '5'],
+            1,
+            'and needs both. 5 > 9 is False.',
+            'print(5 > 1 and 5 > 9)'
+          ),
+        ],
+        'Join two questions in one if.'
       ),
       task(
         'even-odd',
@@ -703,7 +946,35 @@ export const PY_LESSONS: Lesson[] = [
             1,
             'mi'
           ),
-        ]
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Take pairs of coins. Leave 1.',
+            { boxes: [{ name: 'coins', value: 7 }] },
+            { values: { coins: 1 } },
+            [
+              ['take a pair', 'add:coins:-2'],
+              ['add 1', 'add:coins:1'],
+            ],
+            [0, 0, 0]
+          ),
+          choose(
+            'What will Sparky say?',
+            ['0', '5', '1'],
+            0,
+            '10 makes 5 pairs. Nothing is left.',
+            'print(10 % 2)'
+          ),
+          order('Build the rule. Tap the lines.', [
+            'if coins % 2 == 0:',
+            '    print("even")',
+            'else:',
+            '    print("odd")',
+          ]),
+        ],
+        'Change coins. Even or odd?'
       ),
       task(
         'hw-discount',
@@ -791,6 +1062,15 @@ export const PY_LESSONS: Lesson[] = [
             ],
             [3, 1, 0]
           ),
+          walk('Step through the loop.', 'for i in range(3):\n    print(i)', [
+            { line: 1, vars: {}, note: 'Start: no i yet.' },
+            { line: 2, vars: { i: '0' }, note: 'i is 0. Now print.' },
+            { line: 1, vars: { i: '0' }, out: '0', note: 'Printed 0. Back to for.' },
+            { line: 2, vars: { i: '1' }, out: '0', note: 'i is 1.' },
+            { line: 1, vars: { i: '1' }, out: '0\n1', note: 'Printed 1.' },
+            { line: 2, vars: { i: '2' }, out: '0\n1', note: 'i is 2.' },
+            { line: 1, vars: { i: '2' }, out: '0\n1\n2', note: 'Printed 2. The loop ends.' },
+          ]),
         ],
         'Now guess what the loop prints.'
       ),
@@ -1008,7 +1288,36 @@ export const PY_LESSONS: Lesson[] = [
           output('Sparky shows torch', 'Print the last item. Try backpack[-1].', '^torch$', {
             flags: 'm',
           }),
-        ]
+        ],
+        false,
+        [
+          learn('A list has numbered slots.', [
+            { code: 'backpack = ["sword", "map", "torch"]', note: 'A list holds many items.' },
+            { code: 'backpack[0]', note: 'Slot 0 is first: sword.', hl: '0', speak: 'sword' },
+            { code: 'backpack[-1]', note: '-1 is last: torch.', hl: '-1', speak: 'torch' },
+          ]),
+          walk('Step through the list.', 'bag = ["sword", "map", "torch"]\nprint(bag[1])', [
+            { line: 1, vars: {}, note: 'Make the list first.' },
+            {
+              line: 2,
+              vars: { bag: ["'sword'", "'map'", "'torch'"] },
+              note: 'bag[1] is slot 1: map.',
+            },
+          ]),
+          pairUp('Tap a piece. Tap what it gets.', [
+            ['[0]', 'First item'],
+            ['[-1]', 'Last item'],
+            ['len()', 'How many'],
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['sword', 'map', 'torch'],
+            1,
+            'Slots start at 0. Slot 1 is map.',
+            'backpack = ["sword", "map", "torch"]\nprint(backpack[1])'
+          ),
+        ],
+        'Print the last item too.'
       ),
       task(
         'loot-loop',
@@ -1031,7 +1340,26 @@ export const PY_LESSONS: Lesson[] = [
             '    print(item)'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('A loop visits every item.', [
+            { code: 'for item in backpack:', note: 'One item at a time.', hl: 'item' },
+            { code: '    print(item)', note: 'Runs for each item.', hl: 'print' },
+          ]),
+          pairUp('Tap a word. Tap its job.', [
+            ['for', 'Repeat'],
+            ['item', 'One thing'],
+            ['backpack', 'The whole list'],
+          ]),
+          bug(
+            'Tap the broken line.',
+            'for item in backpack:\n    print(items)',
+            1,
+            'Use the same name: item.'
+          ),
+        ],
+        'Print every item with a loop.'
       ),
       task(
         'grab-drop',
@@ -1060,7 +1388,28 @@ export const PY_LESSONS: Lesson[] = [
             'if "map" in backpack:'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('Change your backpack.', [
+            { code: 'backpack.append("potion")', note: 'Added to the end.', hl: 'append' },
+            { code: 'backpack.remove("map")', note: 'The map is gone.', hl: 'remove' },
+            { code: '"map" in backpack', note: 'Sparky says True or False.', hl: 'in' },
+          ]),
+          order('Ask first. Then drop.', [
+            'if "map" in backpack:',
+            '    backpack.remove("map")',
+            'print(backpack)',
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['True', 'map', '1'],
+            0,
+            'in asks a question. The answer is True.',
+            'backpack = ["sword", "map"]\nprint("map" in backpack)'
+          ),
+        ],
+        'Grab a potion. Drop the map. Ask first.'
       ),
       task(
         'item-stats',
@@ -1077,7 +1426,44 @@ export const PY_LESSONS: Lesson[] = [
             'for name, power in stats.items():'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Make the sword 7. Make the shield 5.',
+            {
+              boxes: [
+                { name: 'sword', value: 5 },
+                { name: 'shield', value: 3 },
+                { name: 'bow', value: 4 },
+              ],
+            },
+            { values: { sword: 7, shield: 5 } },
+            [
+              ['sword = 7', 'set:sword=7'],
+              ['shield = 5', 'set:shield=5'],
+              ['bow = 1', 'set:bow=1'],
+            ],
+            [0, 1]
+          ),
+          learn('A dict pairs a name with a value.', [
+            { code: 'stats = {"sword": 5}', note: 'Name, then power.' },
+            { code: 'stats["sword"]', note: 'Ask by name: 5.', hl: '"sword"', speak: '5' },
+            {
+              code: 'for name, power in stats.items():',
+              note: 'Name and power together.',
+              hl: 'items',
+            },
+          ]),
+          bug(
+            'Tap the broken line.',
+            'stats = {"sword": 5}\nprint(stats[0])',
+            1,
+            'Use the name: stats["sword"]'
+          ),
+        ],
+        'Make a dict. Loop with .items().'
       ),
       task(
         'loot-report',
@@ -1102,7 +1488,23 @@ export const PY_LESSONS: Lesson[] = [
             2
           ),
         ],
-        true
+        true,
+        [
+          choose(
+            'What will Sparky say?',
+            ['5', '3', '2'],
+            0,
+            'total keeps adding. 2 + 3 is 5.',
+            'total = 0\nfor n in [2, 3]:\n    total = total + n\nprint(total)'
+          ),
+          bug(
+            'Tap the broken line.',
+            'for name, power in loot.items():\n    total = 0\n    total = total + power\nprint(total)',
+            1,
+            'Start total before the loop.'
+          ),
+        ],
+        'Print total power, best item, and count.'
       ),
       task(
         'sort-loot',
@@ -1118,7 +1520,22 @@ export const PY_LESSONS: Lesson[] = [
             '^[^#\\n]*\\bsorted\\(|^\\s*\\w+\\.sort\\(',
             'print(sorted(backpack))'
           ),
-        ]
+        ],
+        false,
+        [
+          learn('Put loot in ABC order.', [
+            { code: 'sorted(backpack)', note: 'ABC order. A new list.', hl: 'sorted' },
+            { code: 'backpack', note: 'The backpack stays the same.' },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ["['map', 'axe']", "['axe', 'map']"],
+            0,
+            'sorted makes a new list. backpack stays.',
+            'backpack = ["map", "axe"]\nsorted(backpack)\nprint(backpack)'
+          ),
+        ],
+        'Print your loot in ABC order.'
       ),
       task(
         'trade',
@@ -1135,7 +1552,21 @@ export const PY_LESSONS: Lesson[] = [
             'traded = backpack.pop()'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('Trade the last item.', [
+            { code: 'traded = backpack.pop()', note: 'The last item leaves.', hl: 'pop' },
+            { code: 'print(traded)', note: 'traded holds it. Sparky says it.', hl: 'traded' },
+          ]),
+          bug(
+            'Tap the broken line.',
+            'traded = backpack.pop\nprint(traded)',
+            0,
+            'Add ( ) after pop.'
+          ),
+        ],
+        'Trade the last item. Print it.'
       ),
       task(
         'hw-shopping',
@@ -1220,7 +1651,34 @@ export const PY_LESSONS: Lesson[] = [
             'cast()'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          stage(
+            'machine',
+            'Turn hi into HI! Tap the blocks.',
+            { input: 'hi' },
+            { out: 'HI!' },
+            [
+              ['upper', 'upper'],
+              ['exclaim', 'exclaim'],
+              ['lower', 'lower'],
+            ],
+            [0, 1]
+          ),
+          learn('A spell waits until you cast it.', [
+            { code: 'def cast():', note: 'Write the spell. Nothing runs yet.', hl: 'def' },
+            { code: '    print("Boom!")', note: 'Indent means inside the spell.' },
+            { code: 'cast()', note: 'Cast it. Now Sparky speaks.', speak: 'Boom!' },
+          ]),
+          walk('Step through the spell.', 'def cast():\n    print("Boom!")\ncast()', [
+            { line: 1, vars: {}, stack: ['<module>'], note: 'def only saves the spell.' },
+            { line: 3, vars: {}, stack: ['<module>'], note: 'cast() runs it.' },
+            { line: 2, vars: {}, stack: ['<module>', 'cast'], note: 'Now the spell prints.' },
+          ]),
+          order('Write first. Cast last.', ['def cast():', '    print("Boom!")', 'cast()']),
+        ],
+        'Write a spell. Then cast it.'
       ),
       task(
         'target-spell',
@@ -1243,7 +1701,27 @@ export const PY_LESSONS: Lesson[] = [
             'zap("Ghost")'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('A spell can have a target.', [
+            { code: 'def zap(target):', note: 'target is an empty slot.', hl: 'target' },
+            { code: '    print(f"Zap {target}")', note: 'The slot is used here.' },
+            { code: 'zap("Ghost")', note: 'Ghost goes in the slot.', hl: '"Ghost"' },
+          ]),
+          pairUp('Tap a piece. Tap its job.', [
+            ['zap', 'Spell name'],
+            ['target', 'Empty slot'],
+            ['"Ghost"', 'What goes in'],
+          ]),
+          bug(
+            'Tap the broken line.',
+            'def zap(target):\n    print(f"Zap {target}")\nzap()',
+            2,
+            'Give it a target: zap("Ghost").'
+          ),
+        ],
+        'Give your spell a target.'
       ),
       task(
         'damage',
@@ -1260,7 +1738,34 @@ export const PY_LESSONS: Lesson[] = [
             '    return power * 2'
           ),
           calls('damage(5) gives 10', 'Return power * 2.', 'damage(5) == 10'),
-        ]
+        ],
+        false,
+        [
+          stage(
+            'machine',
+            'Turn 3 into 10. Tap the blocks.',
+            { input: 3 },
+            { out: 10 },
+            [
+              ['add 2', 'add:2'],
+              ['double', 'double'],
+              ['add 1', 'add:1'],
+            ],
+            [0, 1]
+          ),
+          learn('A spell can give a number back.', [
+            { code: '    return power * 2', note: 'return sends the answer back.', hl: 'return' },
+            { code: 'damage(5)', note: 'Gives back 10.', speak: '10' },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['8', '4', '2'],
+            0,
+            'damage(4) gives back 4 * 2. That is 8.',
+            'def damage(power):\n    return power * 2\nprint(damage(4))'
+          ),
+        ],
+        'Make damage return a number.'
       ),
       task(
         'dice',
@@ -1283,7 +1788,26 @@ export const PY_LESSONS: Lesson[] = [
             'roll = random.randint(1, 6)'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('Get a dice tool.', [
+            { code: 'import random', note: 'Get the dice tool.', hl: 'import' },
+            { code: 'random.randint(1, 6)', note: 'A number from 1 to 6.', hl: 'randint' },
+          ]),
+          pairUp('Tap a piece. Tap its job.', [
+            ['import', 'Get a tool'],
+            ['randint', 'Pick a number'],
+            ['(1, 6)', 'Lowest and highest'],
+          ]),
+          bug(
+            'Tap the broken line.',
+            'roll = random.randint(1, 6)\nprint(roll)',
+            0,
+            'Add import random first.'
+          ),
+        ],
+        'Roll the dice. Print it.'
       ),
       task(
         'battle-round',
@@ -1312,7 +1836,22 @@ export const PY_LESSONS: Lesson[] = [
             { flags: 'i' }
           ),
         ],
-        true
+        true,
+        [
+          order('Build the fight. Tap the lines.', [
+            'monster_hp = 9',
+            'while monster_hp > 0:',
+            '    monster_hp = monster_hp - damage(3)',
+            'print("Defeated!")',
+          ]),
+          bug(
+            'Tap the broken line.',
+            'monster_hp = 9\nwhile monster_hp > 0:\n    damage(3)',
+            2,
+            'Save the result in monster_hp.'
+          ),
+        ],
+        'Hit the monster until HP is 0.'
       ),
       task(
         'heal',
@@ -1324,7 +1863,22 @@ export const PY_LESSONS: Lesson[] = [
         [
           calls('heal(5, 3) gives 8', 'Return hp + amount.', 'heal(5, 3) == 8'),
           calls('heal(10, 5) gives 15', 'Use both parameters.', 'heal(10, 5) == 15'),
-        ]
+        ],
+        false,
+        [
+          learn('A spell can have two slots.', [
+            { code: 'def heal(hp, amount):', note: 'Two slots. Order matters.', hl: 'hp, amount' },
+            { code: 'heal(5, 3)', note: 'hp is 5. amount is 3.' },
+          ]),
+          choose(
+            'What will Sparky say?',
+            ['15', '10', '5'],
+            0,
+            'hp is 10. amount is 5. 10 + 5 is 15.',
+            'def heal(hp, amount):\n    return hp + amount\nprint(heal(10, 5))'
+          ),
+        ],
+        'Write heal. It adds to HP.'
       ),
       task(
         'crit',
@@ -1347,7 +1901,25 @@ export const PY_LESSONS: Lesson[] = [
             '    if chance > 8:'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('A spell can roll dice.', [
+            {
+              code: 'chance = random.randint(1, 10)',
+              note: 'A lucky roll: 1 to 10.',
+              hl: 'randint',
+            },
+            { code: 'if chance > 8:', note: '9 or 10 is a crit.', hl: 'if' },
+          ]),
+          order('Build the spell. Tap the lines.', [
+            'def hit():',
+            '    chance = random.randint(1, 10)',
+            '    if chance > 8:',
+            '        return 10',
+          ]),
+        ],
+        'Add a lucky crit to your spell.'
       ),
       task(
         'hw-shield',
@@ -1425,7 +1997,30 @@ export const PY_LESSONS: Lesson[] = [
             'Read the last line of the red text.',
             '"battery" in str(battery_report()).lower()'
           ),
-        ]
+        ],
+        false,
+        [
+          learn('Red text tells you what broke.', [
+            { code: 'File "main.py", line 3', note: 'Where it broke: line 3.' },
+            {
+              code: "NameError: name 'battery' is not defined",
+              note: 'What: battery was never made.',
+              hl: 'battery',
+            },
+          ]),
+          pairUp('Tap an error. Tap its meaning.', [
+            ['NameError', 'Name not made yet'],
+            ['TypeError', 'Wrong kind of value'],
+            ['IndexError', 'Slot does not exist'],
+          ]),
+          bug(
+            'Tap the broken line.',
+            'def battery_report():\n    return "Battery: " + str(battery)',
+            1,
+            'battery is not made yet.'
+          ),
+        ],
+        'Read the red text. Fix the crash.'
       ),
       task(
         'three-bugs',
@@ -1441,7 +2036,24 @@ export const PY_LESSONS: Lesson[] = [
             'Check where the loop starts. Check the end.',
             'total_power() == 15'
           ),
-        ]
+        ],
+        false,
+        [
+          bug(
+            'Tap the broken line.',
+            'robots = ["Sparky", "Bolt", "Gizmo"]\nprint(len(robots) + 1)',
+            1,
+            'Too big. Remove + 1.'
+          ),
+          choose(
+            'What will Sparky say?',
+            ['1 2', '1 2 3', '0 1 2'],
+            0,
+            'range(1, 3) stops before 3.',
+            'for i in range(1, 3):\n    print(i)'
+          ),
+        ],
+        'Robots say 3. Power says 15.'
       ),
       task(
         'detective',
@@ -1450,7 +2062,30 @@ export const PY_LESSONS: Lesson[] = [
         'Output detective',
         'You guessed, then compared.',
         'Help me guess the output.',
-        [guess()]
+        [guess()],
+        false,
+        [
+          stage(
+            'boxes',
+            'Run the lines. Tap them in order.',
+            { boxes: [{ name: 'x', value: 3 }, { name: 'y' }] },
+            { values: { x: 7, y: 6 } },
+            [
+              ['y = x * 2', 'set:y=6'],
+              ['x = y + 1', 'set:x=7'],
+              ['x = 4', 'set:x=4'],
+            ],
+            [0, 1]
+          ),
+          choose(
+            'What will Sparky say?',
+            ['2', '5', '7'],
+            0,
+            'b copied 2. Later a changes. b stays.',
+            'a = 2\nb = a\na = 5\nprint(b)'
+          ),
+        ],
+        'Guess first. Then compare.'
       ),
       task(
         'catch-ai',
@@ -1466,7 +2101,21 @@ export const PY_LESSONS: Lesson[] = [
             'average(4, 8) == 6'
           ),
           calls('average(10, 20) gives 15', 'Test another pair.', 'average(10, 20) == 15'),
-        ]
+        ],
+        false,
+        [
+          learn('Test code. Do not just trust it.', [
+            { code: '4 + 8 / 2', note: '/ goes first: 4 + 4.', hl: '/' },
+            { code: '(4 + 8) / 2', note: 'Brackets first: 12 / 2.', hl: '(4 + 8)' },
+          ]),
+          bug(
+            'Tap the broken line.',
+            'def average(a, b):\n    return a + b / 2',
+            1,
+            'Use brackets around a + b.'
+          ),
+        ],
+        'Test average. Fix it.'
       ),
       task(
         'factory-rescue',
@@ -1493,7 +2142,22 @@ export const PY_LESSONS: Lesson[] = [
           ),
           calls('count_robots says 3', 'Count every robot.', 'count_robots(crew) == 3'),
         ],
-        true
+        true,
+        [
+          order('Tap the steps in order.', [
+            'Read the error',
+            'Guess why',
+            'Test with print',
+            'Fix. Run again.',
+          ]),
+          bug(
+            'Tap the broken line.',
+            'def double(n):\n    print(n * 2)\nprint(double(4) + 1)',
+            1,
+            'print shows it. Use return.'
+          ),
+        ],
+        'Fix every bug. Run the tests.'
       ),
       task(
         'shrink',
@@ -1511,7 +2175,22 @@ export const PY_LESSONS: Lesson[] = [
             1,
             'mi'
           ),
-        ]
+        ],
+        false,
+        [
+          learn('A loop replaces many lines.', [
+            { code: 'print("Beep 1")', note: 'Three lines. One job.' },
+            { code: 'for i in range(1, 4):', note: 'Runs 3 times.', hl: 'range' },
+          ]),
+          choose(
+            'How many beeps?',
+            ['3', '4', '1'],
+            0,
+            'range(1, 4) gives 1, 2, 3.',
+            'for i in range(1, 4):\n    print("Beep")'
+          ),
+        ],
+        'Make 3 beeps with one loop.'
       ),
       task(
         'plant-bug',

@@ -117,7 +117,7 @@ describe('concept steps', () => {
     }
     expect(awaitingEditor(boardWith([editor]), first, page)).toBe(false)
     // A task without steps (or a page saved before steps existed) is never "waiting".
-    const plain = lesson.tasks.find((t) => t.id === 'shout')!
+    const plain = lesson.tasks.find((t) => !t.steps?.length)!
     expect(awaitingEditor(boardWith([]), plain, taskPageId(plain))).toBe(false)
   })
 })

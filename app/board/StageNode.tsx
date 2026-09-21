@@ -7,6 +7,7 @@ import type { BoxesConfig, BoxesState } from '@/lib/board/scenes/boxes'
 import type { GridConfig, GridState } from '@/lib/board/scenes/grid'
 import type { MachineConfig, MachineState } from '@/lib/board/scenes/machine'
 import type { RoomState } from '@/lib/board/scenes/room'
+import NextButton from './NextButton'
 import { cn } from '@/lib/utils'
 import type { CodeActions } from './Nodes'
 import BoxesView from './scenes/BoxesView'
@@ -50,14 +51,15 @@ export default function StageNode({ node, code }: { node: Stage; code?: CodeActi
     () => runProgram(scene, node.config, palette, node.program),
     [scene, node.config, palette, node.program]
   )
+  const revealed = !node.answered && node.attempts >= MAX_MISSES // then show a working program, wait for Next
   const won = node.answered && sceneWon(scene, states.at(-1), node.goal)
   const shown =
     playing !== null
       ? states[Math.min(playing, states.length - 1)]
-      : node.answered
+      : node.answered || revealed
         ? states.at(-1)
         : states[0]
-  const locked = !code || node.answered || playing !== null
+  const locked = !code || node.answered || revealed || playing !== null
 
   // Play the run one op at a time, then judge the last state.
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function StageNode({ node, code }: { node: Stage; code?: CodeActi
       })
       code.patch(
         node.id,
-        attempts >= MAX_MISSES ? { attempts, answered: true, program: node.solution } : { attempts }
+        attempts >= MAX_MISSES ? { attempts, program: node.solution } : { attempts }
       )
     }, FRAME_MS)
     return () => clearTimeout(t)
@@ -128,7 +130,7 @@ export default function StageNode({ node, code }: { node: Stage; code?: CodeActi
           </li>
         ))}
       </ol>
-      {!node.answered && (
+      {!node.answered && !revealed && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Blocks">
           {palette.map((b, i) => (
             <button
@@ -144,7 +146,8 @@ export default function StageNode({ node, code }: { node: Stage; code?: CodeActi
           ))}
         </div>
       )}
-      {!node.answered && (
+      {revealed && <NextButton onClick={() => code?.patch(node.id, { answered: true })} />}
+      {!node.answered && !revealed && (
         <div className="flex flex-wrap items-center gap-2">
           <button
             disabled={locked || node.program.length === 0}
@@ -174,6 +177,8 @@ export default function StageNode({ node, code }: { node: Stage; code?: CodeActi
                 ? 'Here is one way to do it.'
                 : 'Nice try!'}
           </span>
+        ) : revealed ? (
+          <span className="text-[#5c4f3d]">Here is one way to do it.</span>
         ) : missed ? (
           <span className="text-red-800">Not yet. Watch what happened. Try again.</span>
         ) : null}

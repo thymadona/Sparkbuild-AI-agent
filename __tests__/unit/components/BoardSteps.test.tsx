@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import QuizNode from '@/app/board/QuizNode'
 import SandboxNode from '@/app/board/SandboxNode'
 import StageNode from '@/app/board/StageNode'
-import { BugNode, LearnNode, MatchNode, OrderNode } from '@/app/board/StepNodes'
+import { BugNode, LearnNode, MatchNode, OrderNode, WalkNode } from '@/app/board/StepNodes'
 import type { CodeActions } from '@/app/board/Nodes'
 import type { BoardNode } from '@/lib/board/schema'
 
@@ -67,12 +67,14 @@ describe('quiz step', () => {
     expect(screen.getByText('yes').closest('button')).not.toBeDisabled()
   })
 
-  it('moves on after a second miss and shows the answer', () => {
+  it('shows the answer after a second miss and waits for Next', () => {
     view()
     fireEvent.click(screen.getByText('no'))
     fireEvent.click(screen.getByText('nope'))
     expect(screen.getByRole('status').textContent).toContain('Because yes.')
     expect(screen.getByText('yes').closest('button')).toBeDisabled()
+    fireEvent.click(screen.getByText('Next ▸'))
+    expect(screen.queryByText('Next ▸')).toBeNull()
   })
 
   it('resolves on a right answer', () => {
@@ -206,7 +208,7 @@ describe('order step', () => {
     expect(screen.getByText('Sparky said them in order!')).toBeTruthy()
   })
 
-  it('lets a wrong order retry once, then shows the answer', () => {
+  it('lets a wrong order retry once, then shows the answer and waits for Next', () => {
     view()
     for (let round = 0; round < 2; round++) {
       tap('print("Bye")')
@@ -215,6 +217,9 @@ describe('order step', () => {
       play(3000)
       if (round === 0) expect(screen.getByText('Not quite. Try again.')).toBeTruthy()
     }
+    expect(screen.getByText('Here is the order.')).toBeTruthy()
+    expect(screen.queryByText('Sparky said them in order!')).toBeNull()
+    fireEvent.click(screen.getByText('Next ▸'))
     expect(screen.getByText('Sparky said them in order!')).toBeTruthy()
   })
 })
@@ -246,6 +251,8 @@ describe('bug step', () => {
     expect(screen.getByRole('status').textContent).toBe('Not that one. Try again.')
     fireEvent.click(screen.getByText('print("a")'))
     expect(screen.getByRole('status').textContent).toContain('Here it is: Quotes.')
+    fireEvent.click(screen.getByText('Next ▸'))
+    expect(screen.queryByText('Next ▸')).toBeNull()
   })
 })
 
@@ -432,5 +439,23 @@ describe('stage step', () => {
     expect(
       within(screen.getByRole('list', { name: 'Your program' })).getAllByRole('button')
     ).toHaveLength(2)
+  })
+})
+
+describe('walk step', () => {
+  const frames = [
+    { line: 1, vars: {}, note: 'start' },
+    { line: 2, vars: { i: '0' }, note: 'i is 0' },
+  ]
+  it('steps to the last frame, then resolves', () => {
+    wrap(
+      at({ type: 'walk', prompt: 'Walk', code: 'a\nb', frames, cursor: 0 }),
+      ({ node, code }) => <WalkNode node={node} code={code} />
+    )
+    expect(screen.getByText('start')).toBeTruthy()
+    expect(screen.queryByText(/walked through/)).toBeNull()
+    fireEvent.click(screen.getByLabelText('Next step'))
+    expect(screen.getByText('i is 0')).toBeTruthy()
+    expect(screen.getByText(/walked through/)).toBeTruthy()
   })
 })
