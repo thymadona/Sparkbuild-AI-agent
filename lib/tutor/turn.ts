@@ -92,13 +92,11 @@ export async function runTurn(opts: {
       {
         role: 'assistant',
         content: text || null,
-        tool_calls: calls
-          .filter(Boolean)
-          .map((c) => ({
-            id: c.id,
-            type: 'function' as const,
-            function: { name: c.name, arguments: c.args },
-          })),
+        tool_calls: calls.filter(Boolean).map((c) => ({
+          id: c.id,
+          type: 'function' as const,
+          function: { name: c.name, arguments: c.args },
+        })),
       },
       ...results
     )
