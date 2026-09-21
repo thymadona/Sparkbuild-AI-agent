@@ -46,7 +46,7 @@ export default function LessonsClient({
     if (project.lesson_id !== null)
       doneByLessonId.set(
         project.lesson_id,
-        Math.max(doneByLessonId.get(project.lesson_id) ?? 0, (project.done ?? 0))
+        Math.max(doneByLessonId.get(project.lesson_id) ?? 0, project.done ?? 0)
       )
   }
   const doneOf = (l: Lesson) => Math.min(doneByLessonId.get(l.id) ?? 0, l.tasks.length)
