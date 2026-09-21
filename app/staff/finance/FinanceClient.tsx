@@ -7,7 +7,14 @@ import EditInvoiceModal from '@/components/admin/EditInvoiceModal'
 import DeleteInvoiceButton from '@/components/admin/DeleteInvoiceButton'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type InvoiceRow = {
   id: string
@@ -50,7 +57,8 @@ export default function FinanceClient({
       if (search) {
         const name = profileMap[inv.user_id]?.full_name?.toLowerCase() ?? ''
         const desc = inv.description.toLowerCase()
-        if (!name.includes(search.toLowerCase()) && !desc.includes(search.toLowerCase())) return false
+        if (!name.includes(search.toLowerCase()) && !desc.includes(search.toLowerCase()))
+          return false
       }
       return true
     })
@@ -58,8 +66,12 @@ export default function FinanceClient({
 
   const unpaidCount = invoices.filter((i) => i.status === 'unpaid').length
   const paidCount = invoices.filter((i) => i.status === 'paid').length
-  const totalOutstanding = invoices.filter((i) => i.status === 'unpaid').reduce((s, i) => s + i.amount_cents, 0)
-  const totalCollected = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount_cents, 0)
+  const totalOutstanding = invoices
+    .filter((i) => i.status === 'unpaid')
+    .reduce((s, i) => s + i.amount_cents, 0)
+  const totalCollected = invoices
+    .filter((i) => i.status === 'paid')
+    .reduce((s, i) => s + i.amount_cents, 0)
 
   const FILTERS: { id: Filter; label: string; count: number }[] = [
     { id: 'all', label: 'All', count: invoices.length },
@@ -76,21 +88,33 @@ export default function FinanceClient({
       <div className="grid grid-cols-3 gap-4">
         <Card className="bg-destructive/10 ring-destructive/20">
           <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">Outstanding</div>
-            <div className="text-2xl font-bold text-destructive">{formatAmount(totalOutstanding)}</div>
-            <div className="text-xs text-destructive/70 mt-1">{unpaidCount} unpaid invoice{unpaidCount !== 1 ? 's' : ''}</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">
+              Outstanding
+            </div>
+            <div className="text-2xl font-bold text-destructive">
+              {formatAmount(totalOutstanding)}
+            </div>
+            <div className="text-xs text-destructive/70 mt-1">
+              {unpaidCount} unpaid invoice{unpaidCount !== 1 ? 's' : ''}
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-success/10 ring-success/20">
           <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">Collected</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">
+              Collected
+            </div>
             <div className="text-2xl font-bold text-success">{formatAmount(totalCollected)}</div>
-            <div className="text-xs text-success/70 mt-1">{paidCount} paid invoice{paidCount !== 1 ? 's' : ''}</div>
+            <div className="text-xs text-success/70 mt-1">
+              {paidCount} paid invoice{paidCount !== 1 ? 's' : ''}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">Total</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+              Total
+            </div>
             <div className="text-2xl font-bold text-foreground">{invoices.length}</div>
             <div className="text-xs text-muted-foreground/70 mt-1">all invoices</div>
           </CardContent>
@@ -105,11 +129,15 @@ export default function FinanceClient({
               key={f.id}
               onClick={() => setFilter(f.id)}
               className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                filter === f.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                filter === f.id
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {f.label}
-              <span className={`rounded px-1.5 py-0.5 ${filter === f.id ? 'bg-background text-foreground' : 'bg-muted text-muted-foreground'}`}>
+              <span
+                className={`rounded px-1.5 py-0.5 ${filter === f.id ? 'bg-background text-foreground' : 'bg-muted text-muted-foreground'}`}
+              >
                 {f.count}
               </span>
             </button>
@@ -144,18 +172,36 @@ export default function FinanceClient({
               return (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium text-foreground">
-                    {profile?.full_name ?? <span className="text-muted-foreground/70 italic">Unknown</span>}
+                    {profile?.full_name ?? (
+                      <span className="text-muted-foreground/70 italic">Unknown</span>
+                    )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{inv.description}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs max-w-xs truncate">
+                    {inv.description}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums font-semibold text-foreground">
                     {formatAmount(inv.amount_cents)}
                   </TableCell>
-                  <TableCell className={`text-right text-xs ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                    {new Date(inv.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  <TableCell
+                    className={`text-right text-xs ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}
+                  >
+                    {new Date(inv.due_date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
                     {isOverdue && <span className="ml-1 text-destructive">overdue</span>}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'void' ? 'secondary' : 'destructive'}>
+                    <Badge
+                      variant={
+                        inv.status === 'paid'
+                          ? 'success'
+                          : inv.status === 'void'
+                            ? 'secondary'
+                            : 'destructive'
+                      }
+                    >
                       {inv.status}
                     </Badge>
                   </TableCell>
@@ -186,16 +232,15 @@ export default function FinanceClient({
                         hasTelegramId={!!profile?.parent_telegram_chat_id}
                       />
                       {inv.sent_at && (
-                        <span className="text-xs text-muted-foreground/70" title={`Sent ${new Date(inv.sent_at).toLocaleString()}`}>
+                        <span
+                          className="text-xs text-muted-foreground/70"
+                          title={`Sent ${new Date(inv.sent_at).toLocaleString()}`}
+                        >
                           ✓ sent
                         </span>
                       )}
-                      {inv.status !== 'paid' && (
-                        <EditInvoiceModal invoice={inv} />
-                      )}
-                      {inv.status !== 'paid' && (
-                        <DeleteInvoiceButton invoiceId={inv.id} />
-                      )}
+                      {inv.status !== 'paid' && <EditInvoiceModal invoice={inv} />}
+                      {inv.status !== 'paid' && <DeleteInvoiceButton invoiceId={inv.id} />}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -203,8 +248,13 @@ export default function FinanceClient({
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground/70">
-                  {search || filter !== 'all' ? 'No invoices match your filter.' : 'No invoices yet.'}
+                <TableCell
+                  colSpan={6}
+                  className="py-10 text-center text-sm text-muted-foreground/70"
+                >
+                  {search || filter !== 'all'
+                    ? 'No invoices match your filter.'
+                    : 'No invoices yet.'}
                 </TableCell>
               </TableRow>
             )}
@@ -212,7 +262,9 @@ export default function FinanceClient({
         </Table>
       </div>
 
-      <p className="text-xs text-muted-foreground/70">{filtered.length} of {invoices.length} invoices</p>
+      <p className="text-xs text-muted-foreground/70">
+        {filtered.length} of {invoices.length} invoices
+      </p>
     </div>
   )
 }

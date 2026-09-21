@@ -12,7 +12,6 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/lessons',
 }))
 
-
 const lesson: Lesson = {
   id: 101,
   title: 'Week #1 — Wake the Robot',
@@ -55,8 +54,15 @@ describe('LessonsClient', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
     expect(global.fetch).toHaveBeenNthCalledWith(1, '/templates/py/w1.py')
-    expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/projects', expect.objectContaining({ method: 'POST' }))
-    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({ lessonId: 101, starter: 'print("beep boop")' })
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/projects',
+      expect.objectContaining({ method: 'POST' })
+    )
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body)).toMatchObject({
+      lessonId: 101,
+      starter: 'print("beep boop")',
+    })
   })
 
   it('shows a locked state instead of Start when the class has not turned the lesson on', () => {
@@ -70,7 +76,9 @@ describe('LessonsClient', () => {
     render(
       <LessonsClient
         lessons={[lesson]}
-        userProjects={[{ id: 'in-progress', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z' }]}
+        userProjects={[
+          { id: 'in-progress', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z' },
+        ]}
         enabledLessonIds={[]}
       />
     )
@@ -78,7 +86,7 @@ describe('LessonsClient', () => {
     expect(screen.getByRole('button', { name: 'Resume →' })).toBeInTheDocument()
   })
 
-  it('seeds a lesson\'s extra files next to the starter', async () => {
+  it("seeds a lesson's extra files next to the starter", async () => {
     ;(global.fetch as jest.Mock)
       .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print(1)') })
       .mockResolvedValueOnce({ text: jest.fn().mockResolvedValue('print("oops)') })

@@ -99,7 +99,10 @@ const config: Config = {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       fontSize: {
-        'display-xl': ['4.5rem', { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '800' }],
+        'display-xl': [
+          '4.5rem',
+          { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '800' },
+        ],
         'headline-lg': ['3rem', { lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '800' }],
         'headline-lg-mobile': ['2.25rem', { lineHeight: '1.2', fontWeight: '800' }],
         'headline-md': ['2rem', { lineHeight: '1.3', fontWeight: '700' }],

@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default async function LessonPage(props: Props) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
 
   if (!user) {

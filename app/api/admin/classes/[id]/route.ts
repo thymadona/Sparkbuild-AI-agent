@@ -7,13 +7,14 @@ import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const body = await req.json() as Partial<{ name: string; description: string }>
+  const body = (await req.json()) as Partial<{ name: string; description: string }>
 
   // Fields are copied across one at a time rather than passing the parsed body
   // to .set() wholesale: the body is caller-controlled, and handing it straight
@@ -36,10 +37,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 }
 
 export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'classes:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'classes:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {

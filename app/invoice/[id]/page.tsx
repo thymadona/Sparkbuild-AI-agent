@@ -10,7 +10,7 @@ function formatAmount(cents: number): string {
 }
 
 export default async function InvoicePage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   if (!isUuid(params.id)) redirect('/staff/finance')
 
   // The invoice and the name it is billed to, in one left join: a student with
@@ -37,11 +37,15 @@ export default async function InvoicePage(props: { params: Promise<{ id: string 
   const profile = row.full_name === null ? null : row
 
   const dueDate = new Date(invoice.due_date).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 
   const invoiceDate = new Date(invoice.created_at).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 
   return (
@@ -74,24 +78,26 @@ export default async function InvoicePage(props: { params: Promise<{ id: string 
 
         {/* Status */}
         <div className="mb-6">
-          <span className={`inline-block rounded px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${
-            invoice.status === 'paid'
-              ? 'bg-green-100 text-green-700'
-              : invoice.status === 'void'
-              ? 'bg-gray-100 text-gray-500'
-              : 'bg-red-100 text-red-700'
-          }`}>
+          <span
+            className={`inline-block rounded px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${
+              invoice.status === 'paid'
+                ? 'bg-green-100 text-green-700'
+                : invoice.status === 'void'
+                  ? 'bg-gray-100 text-gray-500'
+                  : 'bg-red-100 text-red-700'
+            }`}
+          >
             {invoice.status}
           </span>
         </div>
 
         {/* Billed to */}
         <div className="mb-8">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">Billed to</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Billed to
+          </p>
           <p className="font-medium">{profile?.full_name ?? 'Student'}</p>
-          {profile?.parent_email && (
-            <p className="text-sm text-gray-500">{profile.parent_email}</p>
-          )}
+          {profile?.parent_email && <p className="text-sm text-gray-500">{profile.parent_email}</p>}
         </div>
 
         {/* Line item */}

@@ -7,13 +7,15 @@ import { getSessionUser } from '@/lib/auth/session'
 export async function GET() {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'telegram:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'telegram:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!token) return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not configured' }, { status: 500 })
+  if (!token)
+    return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not configured' }, { status: 500 })
 
   const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=50`)
-  const data = await res.json() as { ok: boolean; result?: unknown[] }
+  const data = (await res.json()) as { ok: boolean; result?: unknown[] }
 
   if (!data.ok) return NextResponse.json({ error: 'Telegram API error' }, { status: 500 })
 
@@ -24,7 +26,7 @@ export async function GET() {
       chat?: { id: number }
     }
   }
-  const chats = (data.result as TgUpdate[] ?? [])
+  const chats = ((data.result as TgUpdate[]) ?? [])
     .filter((u) => u.message?.chat?.id)
     .map((u) => ({
       chat_id: String(u.message!.chat!.id),

@@ -49,13 +49,20 @@ function SlotRow({
 
   if (editing) {
     return (
-      <form onSubmit={save} className="flex flex-wrap items-center gap-2 rounded bg-muted px-3 py-2">
+      <form
+        onSubmit={save}
+        className="flex flex-wrap items-center gap-2 rounded bg-muted px-3 py-2"
+      >
         <select
           value={form.day_of_week}
           onChange={(e) => set('day_of_week', Number(e.target.value))}
           className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
         >
-          {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
+          {DAYS.map((d, i) => (
+            <option key={d} value={i}>
+              {d}
+            </option>
+          ))}
         </select>
         <input
           type="time"
@@ -78,10 +85,18 @@ function SlotRow({
           className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
           placeholder="Label (opt)"
         />
-        <button type="submit" disabled={saving} className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
           {saving ? '…' : 'Save'}
         </button>
-        <button type="button" onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
           Cancel
         </button>
       </form>
@@ -98,10 +113,16 @@ function SlotRow({
         {slot.label && <span className="text-muted-foreground">· {slot.label}</span>}
       </div>
       <div className="flex items-center gap-1.5">
-        <button onClick={() => setEditing(true)} className="rounded bg-muted px-2 py-0.5 text-xs text-foreground hover:bg-muted/70 transition-colors">
+        <button
+          onClick={() => setEditing(true)}
+          className="rounded bg-muted px-2 py-0.5 text-xs text-foreground hover:bg-muted/70 transition-colors"
+        >
           Edit
         </button>
-        <button onClick={() => onDelete(slot.id)} className="rounded px-2 py-0.5 text-xs text-muted-foreground/70 hover:text-destructive transition-colors">
+        <button
+          onClick={() => onDelete(slot.id)}
+          className="rounded px-2 py-0.5 text-xs text-muted-foreground/70 hover:text-destructive transition-colors"
+        >
           ✕
         </button>
       </div>
@@ -113,7 +134,12 @@ function SlotRow({
 function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void> }) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<SlotForm>({ day_of_week: 1, start_time: '09:00', duration_min: 60, label: '' })
+  const [form, setForm] = useState<SlotForm>({
+    day_of_week: 1,
+    start_time: '09:00',
+    duration_min: 60,
+    label: '',
+  })
 
   function set<K extends keyof SlotForm>(key: K, val: SlotForm[K]) {
     setForm((f) => ({ ...f, [key]: val }))
@@ -130,20 +156,30 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="mt-1 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors">
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-1 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+      >
         <span className="text-lg leading-none">+</span> Add time slot
       </button>
     )
   }
 
   return (
-    <form onSubmit={save} className="mt-1 flex flex-wrap items-center gap-2 rounded border border-dashed border-input px-3 py-2.5">
+    <form
+      onSubmit={save}
+      className="mt-1 flex flex-wrap items-center gap-2 rounded border border-dashed border-input px-3 py-2.5"
+    >
       <select
         value={form.day_of_week}
         onChange={(e) => set('day_of_week', Number(e.target.value))}
         className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
       >
-        {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
+        {DAYS.map((d, i) => (
+          <option key={d} value={i}>
+            {d}
+          </option>
+        ))}
       </select>
       <input
         type="time"
@@ -166,10 +202,18 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
         className="rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
         placeholder="Label (opt)"
       />
-      <button type="submit" disabled={saving} className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
         {saving ? '…' : 'Add'}
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="text-xs text-muted-foreground hover:text-foreground"
+      >
         Cancel
       </button>
     </form>
@@ -177,11 +221,21 @@ function AddSlotRow({ onAdd }: { onAdd: (form: SlotForm) => void | Promise<void>
 }
 
 // ── Assigned person row with a remove button ────────────────────────────
-function PersonRow({ person, removing, onRemove }: { person: PersonOption; removing: boolean; onRemove: () => void }) {
+function PersonRow({
+  person,
+  removing,
+  onRemove,
+}: {
+  person: PersonOption
+  removing: boolean
+  onRemove: () => void
+}) {
   return (
     <div className="flex items-center justify-between gap-3 rounded bg-muted px-3 py-2 text-sm">
       <div>
-        <div className="font-medium text-foreground">{person.name || <span className="italic text-muted-foreground">No name</span>}</div>
+        <div className="font-medium text-foreground">
+          {person.name || <span className="italic text-muted-foreground">No name</span>}
+        </div>
         <div className="text-xs text-muted-foreground">{person.email}</div>
       </div>
       <button
@@ -217,7 +271,10 @@ function AddPersonRow({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+      <button
+        onClick={() => setOpen(true)}
+        className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+      >
         + {label}
       </button>
     )
@@ -237,16 +294,24 @@ function AddPersonRow({
         </div>
         <div className="max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="px-3 py-4 text-center text-xs text-muted-foreground/70">{pool.length === 0 ? emptyLabel : 'No matches.'}</p>
+            <p className="px-3 py-4 text-center text-xs text-muted-foreground/70">
+              {pool.length === 0 ? emptyLabel : 'No matches.'}
+            </p>
           ) : (
             filtered.map((p) => (
               <button
                 key={p.userId}
-                onClick={() => { onAdd(p); setOpen(false); setSearch('') }}
+                onClick={() => {
+                  onAdd(p)
+                  setOpen(false)
+                  setSearch('')
+                }}
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-muted transition-colors"
               >
                 <div>
-                  <div className="text-sm font-medium text-foreground">{p.name || <span className="italic text-muted-foreground">No name</span>}</div>
+                  <div className="text-sm font-medium text-foreground">
+                    {p.name || <span className="italic text-muted-foreground">No name</span>}
+                  </div>
                   <div className="text-xs text-muted-foreground">{p.email}</div>
                 </div>
               </button>
@@ -254,12 +319,24 @@ function AddPersonRow({
           )}
         </div>
         <div className="border-t border-border p-2">
-          <button onClick={() => { setOpen(false); setSearch('') }} className="w-full text-xs text-muted-foreground hover:text-foreground py-1">
+          <button
+            onClick={() => {
+              setOpen(false)
+              setSearch('')
+            }}
+            className="w-full text-xs text-muted-foreground hover:text-foreground py-1"
+          >
             Close
           </button>
         </div>
       </div>
-      <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setSearch('') }} />
+      <div
+        className="fixed inset-0 z-10"
+        onClick={() => {
+          setOpen(false)
+          setSearch('')
+        }}
+      />
     </div>
   )
 }
@@ -291,7 +368,7 @@ export default function ClassFormModal(props: Props) {
 
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(isEdit ? props.initialName : '')
-  const [description, setDescription] = useState(isEdit ? props.initialDescription ?? '' : '')
+  const [description, setDescription] = useState(isEdit ? (props.initialDescription ?? '') : '')
   const [schedules, setSchedules] = useState<ClassSchedule[]>(isEdit ? props.initialSchedules : [])
   const [teachers, setTeachers] = useState<PersonOption[]>(isEdit ? props.initialTeachers : [])
   const [students, setStudents] = useState<PersonOption[]>(isEdit ? props.initialStudents : [])
@@ -358,7 +435,10 @@ export default function ClassFormModal(props: Props) {
     })
   }
 
-  async function removeMember(userId: string, listSetter: React.Dispatch<React.SetStateAction<PersonOption[]>>) {
+  async function removeMember(
+    userId: string,
+    listSetter: React.Dispatch<React.SetStateAction<PersonOption[]>>
+  ) {
     setRemovingId(userId)
     listSetter((list) => list.filter((p) => p.userId !== userId))
     if (classId) {
@@ -374,10 +454,13 @@ export default function ClassFormModal(props: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ class_id: classId, ...form }),
       })
-      const data = await res.json() as ClassSchedule
+      const data = (await res.json()) as ClassSchedule
       if (res.ok) setSchedules((s) => [...s, data])
     } else {
-      setSchedules((s) => [...s, { id: `draft:${s.length}:${Date.now()}`, class_id: '', ...form, label: form.label || null }])
+      setSchedules((s) => [
+        ...s,
+        { id: `draft:${s.length}:${Date.now()}`, class_id: '', ...form, label: form.label || null },
+      ])
     }
   }
 
@@ -389,7 +472,9 @@ export default function ClassFormModal(props: Props) {
   }
 
   async function saveSlot(id: string, form: SlotForm) {
-    setSchedules((list) => list.map((s) => (s.id === id ? { ...s, ...form, label: form.label || null } : s)))
+    setSchedules((list) =>
+      list.map((s) => (s.id === id ? { ...s, ...form, label: form.label || null } : s))
+    )
     if (classId && !id.startsWith('draft:')) {
       await fetch(`/api/admin/schedules?id=${id}`, {
         method: 'PATCH',
@@ -409,7 +494,7 @@ export default function ClassFormModal(props: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
     })
-    const data = await res.json() as { id?: string; error?: string }
+    const data = (await res.json()) as { id?: string; error?: string }
     if (!res.ok || !data.id) {
       setCreating(false)
       setError(data.error ?? 'Failed to create class')
@@ -453,17 +538,17 @@ export default function ClassFormModal(props: Props) {
     router.push(`/staff/classes/${newClassId}`)
   }
 
-  const trigger = isEdit
-    ? (props.trigger ?? (
-        <button className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors">
-          Edit class
-        </button>
-      ))
-    : (
-        <button className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          + New Class
-        </button>
-      )
+  const trigger = isEdit ? (
+    (props.trigger ?? (
+      <button className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors">
+        Edit class
+      </button>
+    ))
+  ) : (
+    <button className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+      + New Class
+    </button>
+  )
 
   return (
     <>
@@ -473,14 +558,21 @@ export default function ClassFormModal(props: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-md bg-card border border-border p-6 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">{isEdit ? 'Edit Class' : 'New Class'}</h2>
-              <button onClick={close} className="text-muted-foreground hover:text-foreground text-sm">
+              <h2 className="text-lg font-semibold text-foreground">
+                {isEdit ? 'Edit Class' : 'New Class'}
+              </h2>
+              <button
+                onClick={close}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
                 Close
               </button>
             </div>
 
             {error && (
-              <p className="rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+              <p className="rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
             )}
 
             {/* Name + description */}
@@ -515,15 +607,29 @@ export default function ClassFormModal(props: Props) {
             {/* Teachers */}
             <div className="rounded-md border border-border bg-muted/40">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">Teacher ({teachers.length})</h3>
-                <AddPersonRow pool={teacherPool} label="Add Teacher" emptyLabel="No platform teachers available — grant the teacher role from People & Roles first." onAdd={addTeacher} />
+                <h3 className="text-sm font-semibold text-muted-foreground">
+                  Teacher ({teachers.length})
+                </h3>
+                <AddPersonRow
+                  pool={teacherPool}
+                  label="Add Teacher"
+                  emptyLabel="No platform teachers available — grant the teacher role from People & Roles first."
+                  onAdd={addTeacher}
+                />
               </div>
               <div className="p-3 space-y-2">
                 {teachers.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground/70 py-3">No teacher assigned yet.</p>
+                  <p className="text-center text-sm text-muted-foreground/70 py-3">
+                    No teacher assigned yet.
+                  </p>
                 ) : (
                   teachers.map((t) => (
-                    <PersonRow key={t.userId} person={t} removing={removingId === t.userId} onRemove={() => removeMember(t.userId, setTeachers)} />
+                    <PersonRow
+                      key={t.userId}
+                      person={t}
+                      removing={removingId === t.userId}
+                      onRemove={() => removeMember(t.userId, setTeachers)}
+                    />
                   ))
                 )}
               </div>
@@ -536,7 +642,9 @@ export default function ClassFormModal(props: Props) {
                 {schedules.map((s) => (
                   <SlotRow key={s.id} slot={s} onDelete={deleteSlot} onSave={saveSlot} />
                 ))}
-                {schedules.length === 0 && <p className="text-sm text-muted-foreground/70">No time slots yet.</p>}
+                {schedules.length === 0 && (
+                  <p className="text-sm text-muted-foreground/70">No time slots yet.</p>
+                )}
               </div>
               <AddSlotRow onAdd={addSlot} />
             </div>
@@ -544,15 +652,29 @@ export default function ClassFormModal(props: Props) {
             {/* Students */}
             <div className="rounded-md border border-border bg-muted/40">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">Students ({students.length})</h3>
-                <AddPersonRow pool={studentPool} label="Add Student" emptyLabel="All students are enrolled." onAdd={addStudent} />
+                <h3 className="text-sm font-semibold text-muted-foreground">
+                  Students ({students.length})
+                </h3>
+                <AddPersonRow
+                  pool={studentPool}
+                  label="Add Student"
+                  emptyLabel="All students are enrolled."
+                  onAdd={addStudent}
+                />
               </div>
               <div className="p-3 space-y-2">
                 {students.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground/70 py-3">No students enrolled yet.</p>
+                  <p className="text-center text-sm text-muted-foreground/70 py-3">
+                    No students enrolled yet.
+                  </p>
                 ) : (
                   students.map((s) => (
-                    <PersonRow key={s.userId} person={s} removing={removingId === s.userId} onRemove={() => removeMember(s.userId, setStudents)} />
+                    <PersonRow
+                      key={s.userId}
+                      person={s}
+                      removing={removingId === s.userId}
+                      onRemove={() => removeMember(s.userId, setStudents)}
+                    />
                   ))
                 )}
               </div>
@@ -560,12 +682,18 @@ export default function ClassFormModal(props: Props) {
 
             <div className="flex justify-end gap-2 border-t border-border pt-4">
               {isEdit ? (
-                <button onClick={close} className="rounded bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/70">
+                <button
+                  onClick={close}
+                  className="rounded bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/70"
+                >
                   Done
                 </button>
               ) : (
                 <>
-                  <button onClick={close} className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
+                  <button
+                    onClick={close}
+                    className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+                  >
                     Cancel
                   </button>
                   <button

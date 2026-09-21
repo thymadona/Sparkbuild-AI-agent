@@ -1,5 +1,12 @@
 import { LESSONS } from '@/lib/lessons'
-import { isTaskOpen, taskCodeNodeId, taskFile, taskForPageId, taskIndexForPageId, taskPageId } from '@/lib/board/tasks'
+import {
+  isTaskOpen,
+  taskCodeNodeId,
+  taskFile,
+  taskForPageId,
+  taskIndexForPageId,
+  taskPageId,
+} from '@/lib/board/tasks'
 import { NodeId } from '@/lib/board/schema'
 
 const lesson = LESSONS[0]
@@ -23,9 +30,10 @@ describe('board task pages', () => {
 
   it('makes a legal node id from every task id in the catalog', () => {
     // Task ids contain hyphens; NodeId does not allow them.
-    for (const l of LESSONS) for (const task of l.tasks) {
-      expect(NodeId.safeParse(taskCodeNodeId(task)).success).toBe(true)
-    }
+    for (const l of LESSONS)
+      for (const task of l.tasks) {
+        expect(NodeId.safeParse(taskCodeNodeId(task)).success).toBe(true)
+      }
     expect(taskCodeNodeId(lesson.tasks.find((t) => t.id === 'name-tag')!)).toBe('code_name_tag')
   })
 

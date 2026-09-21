@@ -35,7 +35,7 @@ export default function CreateStudentModal() {
         notes: form.notes.trim() || undefined,
       }),
     })
-    const data = await res.json() as { error?: string }
+    const data = (await res.json()) as { error?: string }
     if (!res.ok) {
       setError(data.error ?? 'Failed to create student')
       setLoading(false)
@@ -98,7 +98,9 @@ export default function CreateStudentModal() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Parent Telegram chat_id</label>
+                <label className="mb-1 block text-xs text-muted-foreground">
+                  Parent Telegram chat_id
+                </label>
                 <input
                   value={form.parent_telegram_chat_id}
                   onChange={(e) => set('parent_telegram_chat_id', e.target.value)}
@@ -106,7 +108,8 @@ export default function CreateStudentModal() {
                   placeholder="123456789"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Parent must send /start to your bot first. Check Telegram Updates below to find their chat_id.
+                  Parent must send /start to your bot first. Check Telegram Updates below to find
+                  their chat_id.
                 </p>
               </div>
               <div>

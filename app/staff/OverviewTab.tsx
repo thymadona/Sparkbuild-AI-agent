@@ -3,12 +3,14 @@ import { getSchoolOverviewStats } from './overview-stats'
 import { AttentionFeed, HeroMetric, StatChip } from './OverviewWidgets'
 
 const INPUT_COST_PER_M = 0.15
-const OUTPUT_COST_PER_M = 0.60
+const OUTPUT_COST_PER_M = 0.6
 const AVG_INPUT_TOKENS = 2000
 const AVG_OUTPUT_TOKENS = 3000
 
 function estimateCost(count: number): string {
-  const d = count * ((AVG_INPUT_TOKENS * INPUT_COST_PER_M + AVG_OUTPUT_TOKENS * OUTPUT_COST_PER_M) / 1_000_000)
+  const d =
+    count *
+    ((AVG_INPUT_TOKENS * INPUT_COST_PER_M + AVG_OUTPUT_TOKENS * OUTPUT_COST_PER_M) / 1_000_000)
   return d < 0.01 ? '<$0.01' : `$${d.toFixed(2)}`
 }
 

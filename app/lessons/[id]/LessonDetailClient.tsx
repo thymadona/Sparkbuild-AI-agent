@@ -50,7 +50,13 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
           onClick={() => router.push('/lessons')}
           className="mb-8 flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg-primary transition-colors"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           All lessons
@@ -60,14 +66,18 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
         <p className="text-fg-secondary text-sm mb-8">{lesson.description}</p>
 
         <div className="mb-8">
-          <h2 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">Tasks</h2>
+          <h2 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-3">
+            Tasks
+          </h2>
           <ol className="space-y-3">
             {lesson.tasks.map((task, i) => (
               <li key={task.id} className="flex gap-3 items-start">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-surface-700 text-fg-muted text-xs flex items-center justify-center font-medium">
                   {i + 1}
                 </span>
-                <span className="text-sm text-fg-secondary pt-0.5">{task.chip.replace(/^Task \d+ — /, '')}</span>
+                <span className="text-sm text-fg-secondary pt-0.5">
+                  {task.chip.replace(/^Task \d+ — /, '')}
+                </span>
               </li>
             ))}
           </ol>

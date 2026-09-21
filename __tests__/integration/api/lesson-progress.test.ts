@@ -38,8 +38,9 @@ describe('lesson progress API', () => {
   // 0000_baseline.sql.)
   it('uses a cascading project foreign key so progress is removed with its project', () => {
     const schema = require('fs').readFileSync('lib/db/schemas/lesson-progress.ts', 'utf8')
+    // Whitespace-tolerant: Prettier may break this chain across lines.
     expect(schema).toMatch(
-      /projectId: uuid\('project_id'\)\.primaryKey\(\)\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
+      /projectId: uuid\('project_id'\)\s*\.primaryKey\(\)\s*\.references\(\(\) => projects\.id, \{ onDelete: 'cascade' \}\)/
     )
   })
 
@@ -102,7 +103,10 @@ describe('lesson progress API', () => {
     await setLessonProgress(project.id, ['first-words', 'name-tag'], new Date().toISOString())
     mockGetSessionUser.mockResolvedValue(owner)
 
-    const shrunk = await PUT(request({ completedTaskIds: ['first-words', 'first-words'] }), props(project.id))
+    const shrunk = await PUT(
+      request({ completedTaskIds: ['first-words', 'first-words'] }),
+      props(project.id)
+    )
     expect(shrunk.status).toBe(200)
     expect(await shrunk.json()).toEqual({ completedTaskIds: ['first-words'] })
 
@@ -145,6 +149,8 @@ describe('lesson progress API', () => {
     mockGetSessionUser.mockResolvedValue(owner)
 
     await PUT(request({ completedTaskIds: [] }), props(project.id))
-    expect(await db.select().from(activityDays).where(eq(activityDays.userId, owner.id))).toHaveLength(0)
+    expect(
+      await db.select().from(activityDays).where(eq(activityDays.userId, owner.id))
+    ).toHaveLength(0)
   })
 })

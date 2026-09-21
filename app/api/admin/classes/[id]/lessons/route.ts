@@ -18,14 +18,18 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const allowed = (await hasPermission(user.id, 'classes:manage')) || (await isTeacherOfClass(user.id, params.id))
+  const allowed =
+    (await hasPermission(user.id, 'classes:manage')) || (await isTeacherOfClass(user.id, params.id))
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = (await req.json().catch(() => ({}))) as { lessonId?: number; enabled?: boolean }
   const { lessonId, enabled } = body
 
   if (typeof lessonId !== 'number' || !LESSONS.some((l) => l.id === lessonId)) {
-    return NextResponse.json({ error: 'lessonId must match a lesson in the catalog' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'lessonId must match a lesson in the catalog' },
+      { status: 400 }
+    )
   }
   if (typeof enabled !== 'boolean') {
     return NextResponse.json({ error: 'enabled must be a boolean' }, { status: 400 })

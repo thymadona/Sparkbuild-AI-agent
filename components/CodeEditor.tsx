@@ -11,7 +11,9 @@ import type { ViewUpdate } from '@codemirror/view'
 interface CodeEditorProps {
   code: string
   onSave: (code: string) => void
-  onSelectionChange?: (selection: { text: string; startLine: number; endLine: number } | null) => void
+  onSelectionChange?: (
+    selection: { text: string; startLine: number; endLine: number } | null
+  ) => void
   highlightLines?: number[] | null
   // Bumped every time the parent asks to point at a line, so asking twice for
   // the same line scrolls there again.
@@ -91,16 +93,30 @@ const highlightTheme = EditorView.baseTheme({
 // oneDark's syntax colours on the espresso surface used by the /board code block.
 const parchmentDark = [
   oneDark,
-  EditorView.theme({
-    '&': { backgroundColor: '#2b2118' },
-    '.cm-gutters': { backgroundColor: '#2b2118', borderRight: 'none' },
-    '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'rgba(250, 246, 238, 0.06)' },
-    '.cm-content': { paddingTop: '12px' },
-    '.cm-content, .cm-scroller': { fontFamily: '"JetBrains Mono", ui-monospace, monospace' },
-  }, { dark: true }),
+  EditorView.theme(
+    {
+      '&': { backgroundColor: '#2b2118' },
+      '.cm-gutters': { backgroundColor: '#2b2118', borderRight: 'none' },
+      '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'rgba(250, 246, 238, 0.06)' },
+      '.cm-content': { paddingTop: '12px' },
+      '.cm-content, .cm-scroller': { fontFamily: '"JetBrains Mono", ui-monospace, monospace' },
+    },
+    { dark: true }
+  ),
 ]
 
-export default function CodeEditor({ code, onSave, onSelectionChange, highlightLines, highlightNonce, onChange, saveState, onViewReady, wrap, hideToolbar }: CodeEditorProps) {
+export default function CodeEditor({
+  code,
+  onSave,
+  onSelectionChange,
+  highlightLines,
+  highlightNonce,
+  onChange,
+  saveState,
+  onViewReady,
+  wrap,
+  hideToolbar,
+}: CodeEditorProps) {
   const [draft, setDraft] = useState(code)
   const viewRef = useRef<EditorView | null>(null)
   const [viewReady, setViewReady] = useState(false)
@@ -157,7 +173,10 @@ export default function CodeEditor({ code, onSave, onSelectionChange, highlightL
     })
     const pulseClass = (highlightNonce ?? 0) % 2 === 0 ? 'cm-lesson-pulse-a' : 'cm-lesson-pulse-b'
     view.dispatch({
-      effects: [addHighlight.of({ ranges, pulseClass }), EditorView.scrollIntoView(ranges[0].from, { y: 'center' })],
+      effects: [
+        addHighlight.of({ ranges, pulseClass }),
+        EditorView.scrollIntoView(ranges[0].from, { y: 'center' }),
+      ],
     })
     // The highlight stays until the student moves to another task. A three
     // second flash is not long enough for a child who reads slowly.
@@ -197,7 +216,12 @@ export default function CodeEditor({ code, onSave, onSelectionChange, highlightL
   ]
 
   const autosaving = Boolean(onChange)
-  const statusLabel = saveState === 'saving' ? 'Saving…' : saveState === 'dirty' ? 'Saving in a moment…' : 'All changes saved'
+  const statusLabel =
+    saveState === 'saving'
+      ? 'Saving…'
+      : saveState === 'dirty'
+        ? 'Saving in a moment…'
+        : 'All changes saved'
 
   return (
     <div
@@ -209,24 +233,26 @@ export default function CodeEditor({ code, onSave, onSelectionChange, highlightL
         }
       }}
     >
-      {!hideToolbar && <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
-        {autosaving ? (
-          <span
-            className={`text-xs ${saveState === 'saved' ? 'text-fg-muted' : 'text-fg-secondary'}`}
-            aria-live="polite"
-          >
-            {statusLabel}
-          </span>
-        ) : (
-          <button
-            onClick={flush}
-            disabled={draft === code}
-            className="text-xs rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Save
-          </button>
-        )}
-      </div>}
+      {!hideToolbar && (
+        <div className="flex items-center justify-end gap-3 border-b border-surface-600 bg-surface-800 px-3 py-1.5">
+          {autosaving ? (
+            <span
+              className={`text-xs ${saveState === 'saved' ? 'text-fg-muted' : 'text-fg-secondary'}`}
+              aria-live="polite"
+            >
+              {statusLabel}
+            </span>
+          ) : (
+            <button
+              onClick={flush}
+              disabled={draft === code}
+              className="text-xs rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Save
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex-1 overflow-auto">
         <CodeMirror
           value={draft}

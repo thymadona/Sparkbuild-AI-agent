@@ -6,7 +6,14 @@ import { getTeacherClassIds } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS } from '@/lib/lessons'
 import type { SubmissionStatus } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
-import { AttentionFeed, HeroMetric, MagnitudeBar, Meter, StatChip, StatusBar } from './OverviewWidgets'
+import {
+  AttentionFeed,
+  HeroMetric,
+  MagnitudeBar,
+  Meter,
+  StatChip,
+  StatusBar,
+} from './OverviewWidgets'
 
 const WEEK_MS = 7 * 86_400_000
 
@@ -44,12 +51,17 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
   for (const m of studentMembers) classStudentIds.get(m.class_id)?.add(m.user_id)
   const studentIds = Array.from(new Set(studentMembers.map((m) => m.user_id)))
 
-  const statusCounts: Record<SubmissionStatus, number> = { submitted: 0, approved: 0, needs_work: 0 }
+  const statusCounts: Record<SubmissionStatus, number> = {
+    submitted: 0,
+    approved: 0,
+    needs_work: 0,
+  }
   let lessonsCompleted = 0
   let tasksCompleted = 0
   let activeThisWeek = 0
   const weeklyTotals = new Map<number, { done: number; possible: number }>()
-  for (const lesson of LESSONS) weeklyTotals.set(lesson.id, { done: 0, possible: studentIds.length * lesson.tasks.length })
+  for (const lesson of LESSONS)
+    weeklyTotals.set(lesson.id, { done: 0, possible: studentIds.length * lesson.tasks.length })
   const classTasksCompleted = new Map<string, number>(classIds.map((id) => [id, 0]))
 
   // 7-day trend of distinct active students per day, oldest first — bucketed
@@ -72,10 +84,7 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
         })
         .from(projectsTable)
         .where(
-          and(
-            isNotNull(projectsTable.submissionStatus),
-            inArray(projectsTable.userId, studentIds)
-          )
+          and(isNotNull(projectsTable.submissionStatus), inArray(projectsTable.userId, studentIds))
         ),
       db
         .select({
@@ -86,9 +95,7 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
           updated_at: projectsTable.updatedAt,
         })
         .from(projectsTable)
-        .where(
-          and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId))
-        )
+        .where(and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId)))
         .orderBy(desc(projectsTable.updatedAt)),
     ])
 
@@ -110,9 +117,7 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
         })
         .from(lessonProgress)
         .innerJoin(projectsTable, eq(projectsTable.id, lessonProgress.projectId))
-        .where(
-          and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId))
-        )
+        .where(and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId)))
 
       for (const row of progressRows) {
         progressById.set(row.project_id, {
@@ -153,7 +158,8 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
       if (weekTotal) weekTotal.done += done
 
       for (const [classId, ids] of classStudentIds) {
-        if (ids.has(project.user_id)) classTasksCompleted.set(classId, (classTasksCompleted.get(classId) ?? 0) + done)
+        if (ids.has(project.user_id))
+          classTasksCompleted.set(classId, (classTasksCompleted.get(classId) ?? 0) + done)
       }
     }
     activeThisWeek = activeUserIds.size
@@ -184,10 +190,20 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <HeroMetric label="Active students this week" value={activeThisWeek.toLocaleString()} trend={activeTrend} />
+          <HeroMetric
+            label="Active students this week"
+            value={activeThisWeek.toLocaleString()}
+            trend={activeTrend}
+          />
         </div>
         <AttentionFeed
-          items={[{ href: '/staff/classes', label: 'Homework awaiting review', count: statusCounts.submitted }]}
+          items={[
+            {
+              href: '/staff/classes',
+              label: 'Homework awaiting review',
+              count: statusCounts.submitted,
+            },
+          ]}
         />
       </div>
 
@@ -203,7 +219,10 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
           <CardContent>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-muted-foreground">Homework</h2>
-              <Link href="/staff/classes" className="text-xs text-primary hover:underline transition-colors">
+              <Link
+                href="/staff/classes"
+                className="text-xs text-primary hover:underline transition-colors"
+              >
                 Review →
               </Link>
             </div>
@@ -214,15 +233,21 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
         <Card>
           <CardContent>
             <div className="flex items-baseline justify-between mb-3">
-              <h2 className="text-sm font-semibold text-muted-foreground">Progress across your students</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground">
+                Progress across your students
+              </h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="text-2xl font-bold text-foreground">{lessonsCompleted.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-foreground">
+                  {lessonsCompleted.toLocaleString()}
+                </div>
                 <div className="text-muted-foreground text-xs mt-1">Lessons completed</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-foreground">{tasksCompleted.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-foreground">
+                  {tasksCompleted.toLocaleString()}
+                </div>
                 <div className="text-muted-foreground text-xs mt-1">Tasks completed</div>
               </div>
             </div>
@@ -235,7 +260,12 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">Weekly progress</h2>
           <div className="space-y-3.5">
             {weeklyProgress.map((w) => (
-              <Meter key={w.lessonId} label={w.title} pct={w.pct} count={`${w.done}/${w.possible} tasks`} />
+              <Meter
+                key={w.lessonId}
+                label={w.title}
+                pct={w.pct}
+                count={`${w.done}/${w.possible} tasks`}
+              />
             ))}
           </div>
         </CardContent>

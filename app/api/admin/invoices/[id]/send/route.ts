@@ -11,13 +11,15 @@ function formatAmount(cents: number): string {
 }
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'invoices:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!token) return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not configured' }, { status: 500 })
+  if (!token)
+    return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not configured' }, { status: 500 })
 
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
 
@@ -56,7 +58,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const invoice = row
   const profile = row
   if (!profile.parent_telegram_chat_id) {
-    return NextResponse.json({ error: 'Parent Telegram chat_id not set for this student' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Parent Telegram chat_id not set for this student' },
+      { status: 400 }
+    )
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
@@ -75,12 +80,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   }
 
   const dueDate = new Date(invoice.due_date).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 
-  const statusLine = invoice.status === 'paid'
-    ? `✅ *Status:* PAID`
-    : `⏳ *Status:* Unpaid — due ${dueDate}`
+  const statusLine =
+    invoice.status === 'paid' ? `✅ *Status:* PAID` : `⏳ *Status:* Unpaid — due ${dueDate}`
 
   const message = [
     `📋 *Invoice for ${profile.full_name}*`,
@@ -90,7 +96,9 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     statusLine,
     `\n📄 [View Invoice](${invoiceUrl})`,
     receiptUrl ? `🧾 [View Receipt](${receiptUrl})` : '',
-  ].filter(Boolean).join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
@@ -102,9 +110,12 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     }),
   })
 
-  const tgData = await tgRes.json() as { ok: boolean; description?: string }
+  const tgData = (await tgRes.json()) as { ok: boolean; description?: string }
   if (!tgData.ok) {
-    return NextResponse.json({ error: tgData.description ?? 'Telegram send failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: tgData.description ?? 'Telegram send failed' },
+      { status: 500 }
+    )
   }
 
   // Record sent_at. The message is already delivered at this point, so a

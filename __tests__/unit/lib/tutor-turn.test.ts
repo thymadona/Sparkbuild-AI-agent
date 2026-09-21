@@ -8,8 +8,22 @@ const reply = (text: string, calls: [string, object][] = []): AsyncIterable<Chun
     if (text) yield { choices: [{ delta: { content: text } }] }
     for (const [i, [name, args]] of calls.entries()) {
       const json = JSON.stringify(args)
-      yield { choices: [{ delta: { tool_calls: [{ index: i, id: `c${i}`, function: { name, arguments: json.slice(0, 5) } }] } }] }
-      yield { choices: [{ delta: { tool_calls: [{ index: i, function: { arguments: json.slice(5) } }] } }] }
+      yield {
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                { index: i, id: `c${i}`, function: { name, arguments: json.slice(0, 5) } },
+              ],
+            },
+          },
+        ],
+      }
+      yield {
+        choices: [
+          { delta: { tool_calls: [{ index: i, function: { arguments: json.slice(5) } }] } },
+        ],
+      }
     }
   },
 })
@@ -32,10 +46,17 @@ const heading = { id: 'h1', type: 'heading', text: 'Hello' }
 describe('runTurn', () => {
   it('streams captions and applies valid tool calls', async () => {
     const { out, events } = await run([
-      reply('Hi!', [['board_new_page', { pageId: 'p1', title: 'One' }], ['board_add', { pageId: 'p1', node: heading }]]),
+      reply('Hi!', [
+        ['board_new_page', { pageId: 'p1', title: 'One' }],
+        ['board_add', { pageId: 'p1', node: heading }],
+      ]),
     ])
     expect(out.text).toBe('Hi!')
-    expect(out.board.nodes.h1).toMatchObject({ type: 'heading', createdBy: 'tutor', parentId: null })
+    expect(out.board.nodes.h1).toMatchObject({
+      type: 'heading',
+      createdBy: 'tutor',
+      parentId: null,
+    })
     expect(events.filter((e) => e.type === 'board.op')).toHaveLength(2)
     expect(events.at(-1)).toEqual({ type: 'turn.end' })
   })
@@ -50,7 +71,15 @@ describe('runTurn', () => {
   })
 
   it('refuses tutor-made output nodes and stops after two retries without crashing', async () => {
-    const bad = reply('', [['board_add', { pageId: 'p1', node: { id: 'o1', type: 'output', forNodeId: 'c1', stdout: '', stderr: '', ok: true } }]])
+    const bad = reply('', [
+      [
+        'board_add',
+        {
+          pageId: 'p1',
+          node: { id: 'o1', type: 'output', forNodeId: 'c1', stdout: '', stderr: '', ok: true },
+        },
+      ],
+    ])
     const { out, calls } = await run([bad, bad, bad, bad])
     expect(calls).toBe(3)
     expect(out.board.nodes).toEqual({})
@@ -59,7 +88,17 @@ describe('runTurn', () => {
   it('survives unparseable arguments', async () => {
     const broken: AsyncIterable<Chunk> = {
       async *[Symbol.asyncIterator]() {
-        yield { choices: [{ delta: { tool_calls: [{ index: 0, id: 'x', function: { name: 'board_add', arguments: '{"pageId":' } }] } }] }
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { index: 0, id: 'x', function: { name: 'board_add', arguments: '{"pageId":' } },
+                ],
+              },
+            },
+          ],
+        }
       },
     }
     const { out } = await run([broken, reply('ok')])

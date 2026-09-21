@@ -58,7 +58,12 @@ export default async function HomeworkPage() {
         completed_task_ids: lessonProgress.completedTaskIds,
       })
       .from(lessonProgress)
-      .where(inArray(lessonProgress.projectId, submissions.map((project) => project.id)))
+      .where(
+        inArray(
+          lessonProgress.projectId,
+          submissions.map((project) => project.id)
+        )
+      )
 
     for (const row of progress) progressById.set(row.project_id, row.completed_task_ids)
   }
@@ -87,7 +92,9 @@ export default async function HomeworkPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">Homework</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Review submissions across every class</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Review submissions across every class
+        </p>
       </div>
       <HomeworkClient rows={rows} />
     </div>

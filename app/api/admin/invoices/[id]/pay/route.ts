@@ -7,10 +7,11 @@ import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 
 export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'invoices:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
 
   const paidAt = new Date().toISOString()
@@ -64,10 +65,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
         })
         .returning({ id: receipts.id })
 
-      await tx
-        .update(invoices)
-        .set({ status: 'paid', paidAt })
-        .where(eq(invoices.id, params.id))
+      await tx.update(invoices).set({ status: 'paid', paidAt }).where(eq(invoices.id, params.id))
 
       return { receipt_id: receipt.id, receipt_number: receiptNumber } as const
     })

@@ -18,7 +18,7 @@ interface Props {
  * homework submitted unless every homework task is recorded complete.
  */
 export async function POST(_req: Request, props: Props) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isUuid(params.id)) {

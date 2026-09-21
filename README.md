@@ -2,187 +2,166 @@
 
 **Build the future, one line at a time.**
 
-SparkBuild is an AI-assisted coding platform for students aged 10–16. Over a 6-week guided track, students build real, shippable projects — personal profile pages, interactive games, data-driven tools — by prompting an LLM that nudges instead of solving, so what ships is actually theirs. Teachers run classes, review homework, and communicate with parents; admins manage invoices and receipts over Telegram — all through one back office.
+SparkBuild is an AI-assisted Python platform for students aged 10–16. Students work through a
+weekly course on a shared board with **Spark**, an AI tutor that talks in short captions,
+draws on the board and nudges instead of solving — so what they write is actually theirs.
+Python runs in the browser. Every task is verified by code, homework is gated and reviewed by a
+teacher, and progress earns XP, levels, badges and a daily streak. Teachers and admins run
+classes, review homework and deliver invoices and receipts to parents over Telegram from one
+back office.
 
-## Screenshots
-
-| Landing page | Guided lesson workspace |
-| --- | --- |
-| ![SparkBuild landing page — "Build the future, one line at a time" hero with an AI-assisted code preview](docs/screenshots/landing.png) | ![Week 1 lesson: task checklist, live HTML preview, and the AI tutor chat guiding color choices](docs/screenshots/editor.png) |
-
-The landing page introduces the pitch and curriculum. The workspace pairs a step-by-step task checklist with a live preview and an AI tutor that asks guiding questions ("Your colors live on line 8 — ready to put them in?") rather than handing over the answer.
+![SparkBuild landing page](docs/screenshots/landing.png)
 
 ## Features
 
-**Student Editor** — prompt-driven workspace where students type what they want to build and see a live HTML preview in a sandboxed iframe. Two modes: *ask* (the AI tutors) and *build* (the AI generates code). Build mode is server-gated behind task completion.
+- **Tutor board** — one page per task; Spark speaks in captions and edits the board with tools
+  (code nodes, quizzes, variable diagrams, step-by-step traces). Code runs in a Pyodide worker.
+- **Verified lessons and homework** — each task carries checks that run against the student's
+  live code in the browser and are re-verified on the server; a task completes itself when the
+  checks pass. Homework unlocks after the core tasks and goes to a teacher for review.
+- **Game layer** — XP per task, seven levels, a badge per lesson boss, and a streak.
+- **Staff back office** — students, classes with weekly schedules, per-class lesson unlocking,
+  homework review with mandatory feedback, invoices/receipts sent over Telegram, role management.
 
-**Guided Lessons** — 6 weekly lessons with structured tasks, bonus/mood-boost challenges, automated code checks, and homework. Task verification is code-aware (checks run against the student's live file), so progress can't be self-reported past the system. Copy is capped to an 8–13-year-old ESL reading level.
+## Tech stack
 
-**AI Tutor Chat** — a persistent, context-aware chat panel that answers questions about the student's own code (variable names, line numbers, next steps) without writing it for them in ask mode.
+| Layer              | Technology                                            |
+| ------------------ | ----------------------------------------------------- |
+| Framework          | Next.js 16 (App Router) + React 19, TypeScript        |
+| Styling            | Tailwind CSS 3, shadcn/ui (`base-nova`)               |
+| Editor             | CodeMirror 6 (Python)                                 |
+| Auth               | Better Auth with Google sign-in                       |
+| Database           | Postgres 17 via Drizzle ORM + node-postgres           |
+| Cache / rate limit | Redis via ioredis (optional)                          |
+| AI                 | DeepSeek `deepseek-v4-flash` through the `openai` SDK |
+| Python runtime     | Pyodide 0.27 in a Web Worker (browser only)           |
+| Messaging          | Telegram Bot API                                      |
+| Testing / lint     | Jest 30 + Testing Library, ESLint 9 (flat config)     |
 
-**Admin Back Office** — manage students, classes with weekly schedules, invoices/receipts delivered over Telegram, homework review with mandatory feedback, and per-student build-mode control.
-
-## Tech Stack
-
-| Layer | Technology |
-| --- | --- |
-| Framework | Next.js 16 (App Router) + React 19 |
-| Language | TypeScript |
-| Styling | Tailwind CSS 3 |
-| UI Components | shadcn/ui (base-nova style) |
-| Editor | CodeMirror 6 |
-| Auth & Database | Supabase (Auth + Postgres + RLS) |
-| AI | DeepSeek v4-flash via OpenAI SDK |
-| Testing | Jest 30 + Testing Library |
-| Linting | ESLint 9 (flat config) |
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-- Node.js 20+
-- [bun](https://bun.sh)
-- A Supabase project
+- [bun](https://bun.sh) (the repo ships `bun.lock`)
+- Postgres 17 (any Postgres works; 17 matches production)
+- Redis — optional; without it there is no caching or rate limiting
+- A Google OAuth client (Google Cloud Console → APIs & Services → Credentials)
 - A DeepSeek API key
 
-### Installation
+### Install
 
 ```bash
 git clone https://github.com/thymadona/Sparkbuild-AI-agent.git
 cd Sparkbuild-AI-agent
 bun install
+cp .env.local.example .env.local   # then fill in the values below
 ```
 
-### Environment Variables
+### Environment variables
 
-Copy the example file and fill in your values:
+`.env.local.example` documents every variable in detail; summary:
+
+| Variable                                   | Purpose                                                                                                  |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                             | The app's only database connection; also the target of `db:migrate` / `db:studio`                        |
+| `TEST_DATABASE_URL`                        | Separate **local** database for Jest — must differ from `DATABASE_URL`                                   |
+| `BETTER_AUTH_SECRET`                       | `openssl rand -base64 32`                                                                                |
+| `BETTER_AUTH_URL`                          | The app's own origin; the Google redirect URI is `<BETTER_AUTH_URL>/api/auth/callback/google`            |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth client                                                                                      |
+| `SUPERADMIN_EMAIL`, `SUPERADMIN_NAME`      | Used once by `bun run db:seed:admin` to create the first admin                                           |
+| `DEEPSEEK_API_KEY`                         | DeepSeek API                                                                                             |
+| `TELEGRAM_BOT_TOKEN`                       | Invoice / receipt delivery                                                                               |
+| `NEXT_PUBLIC_SITE_URL`                     | Public site URL                                                                                          |
+| `REDIS_URL`                                | Optional. `redis://` locally, `rediss://` in production (Upstash: the Redis-protocol endpoint, not REST) |
+| `TEST_REDIS_URL`                           | Used when `NODE_ENV=test`; defaults to `redis://127.0.0.1:6379/15`                                       |
+| `APP_TIMEZONE`                             | Optional IANA zone for the streak's day boundary; default UTC                                            |
+
+### Database
 
 ```bash
-cp .env.local.example .env.local
+createdb spark_build && bun run db:migrate          # apply the full migration history
+createdb spark_build_test && bun run db:migrate:test # test database (Jest also does this)
+bun run db:seed:admin                                # first admin, claimed by Google sign-in on that email
 ```
 
-| Variable | Scope | Description |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Client + Server | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + Server | Supabase anon/public key |
-| `NEXT_PUBLIC_SITE_URL` | Client + Server | Your deployment URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Supabase service role key (bypasses RLS) |
-| `DATABASE_URL` | Server only | Postgres pooler URL for Drizzle (bypasses RLS like the service role) |
-| `DEEPSEEK_API_KEY` | Server only | DeepSeek API key |
-| `TELEGRAM_BOT_TOKEN` | Server only | Telegram bot token for invoice delivery |
-| `UPSTASH_REDIS_REST_URL` | Server only | Backs rate limiting and read caching |
-| `UPSTASH_REDIS_REST_TOKEN` | Server only | Backs rate limiting and read caching |
+Schema lives in `lib/db/schemas/*.ts`; migrations in `drizzle/`. To change it: edit the table
+file, `bun run db:generate`, `bun run db:migrate`. See `drizzle/README.md`.
 
-### Database Setup
-
-Schema is Drizzle-native (`lib/db/schemas/*.ts` → `./drizzle`). Apply the full migration history against `DATABASE_URL`:
+### Run
 
 ```bash
-bun run db:migrate
-```
-
-To change the schema afterward: edit the table's file in `lib/db/schemas/` (and re-export a new table from `lib/db/schema.ts`), run `bun run db:generate` to derive DDL, then `bun run db:migrate` again. See `drizzle/README.md`.
-
-### Development
-
-```bash
-bun run dev
-```
-
-The app starts at `http://localhost:3000`. Authenticated users are redirected to `/dashboard`; unauthenticated users land on `/login`.
-
-### Production Build
-
-```bash
-bun run build
-bun run start
-```
-
-## Project Structure
-
-```
-app/
-├── api/              Route handlers (generate, projects, admin, settings)
-├── editor/[id]/      Student workspace (server page + EditorLayout client)
-├── lessons/          Lesson catalog and individual lesson pages
-├── admin/            Back office (students, classes, finance, homework, telegram)
-├── dashboard/        Student project list
-├── explore/          Public project gallery
-├── share/[id]/       Public share page (no auth required)
-├── invoice/[id]/     Invoice view (link-based access)
-├── receipt/[id]/     Receipt view (link-based access)
-├── auth/callback/    OAuth callback
-└── login/, register/, about/, profile/
-
-components/
-├── ui/               shadcn primitives (Button, DropdownMenu)
-├── admin/            Admin modals and action buttons
-├── Editor.tsx        Main editor orchestration
-├── CodeEditor.tsx    CodeMirror wrapper
-├── Preview.tsx       Sandboxed iframe preview
-├── Navigator.tsx     Lesson task panel
-└── ...
-
-lib/
-├── supabase-server.ts   Server client (anon + cookies) & admin client (service role)
-├── supabase-browser.ts  Browser client (anon)
-├── gemini.ts            DeepSeek client + system prompts
-├── lessons.ts           Lesson catalog with task definitions
-├── task-checks.ts       Automated task verification logic
-├── task-guard.ts        Build-mode gating (pendingCoreTask)
-├── parse-multi-file.ts  LLM response delimiter parser
-├── combine.ts           HTML/CSS/JS inliner for preview
-├── ratelimit.ts         Per-user prompt rate limiting
-├── schedule.ts          Class scheduling utilities
-└── utils.ts             cn() and shared helpers
-
-types/index.ts           Shared TypeScript interfaces
-lib/db/schemas/          Drizzle schema — one table per file (authoring entry point)
-lib/db/schema.ts         Barrel re-exporting lib/db/schemas/*; what drizzle-kit and the client import
-drizzle/                 Schema of record (applied SQL migrations)
-public/templates/        Lesson starter HTML files
-__tests__/               Unit and integration tests
-middleware.ts            Session refresh, route guards, admin gate
+bun run dev      # http://localhost:3000
+bun run build && bun run start
 ```
 
 ## Scripts
 
-| Command | Description |
-| --- | --- |
-| `bun run dev` | Start development server (Turbopack) |
-| `bun run build` | Production build |
-| `bun run start` | Serve production build |
-| `bun run test` | Run all Jest tests |
-| `bun run lint` | Run ESLint |
-| `bun run db:generate` | Derive migration DDL from `lib/db/schemas/*.ts` into `./drizzle` |
-| `bun run db:migrate` | Apply pending `./drizzle` migrations to `DATABASE_URL` |
-| `bun run db:studio` | Open Drizzle Studio against the live DB |
+| Command                                  | Description                                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `bun run dev`                            | Development server (Turbopack)                                                                       |
+| `bun run build` / `bun run start`        | Production build / serve                                                                             |
+| `bun run test`                           | All Jest tests (real Postgres; sets `NODE_OPTIONS=--experimental-vm-modules` for the Pyodide suites) |
+| `bun run lint`                           | ESLint                                                                                               |
+| `bun run format` / `format:check`        | Prettier write / check (the check runs in CI)                                                        |
+| `bun run db:generate`                    | Derive migration DDL from `lib/db/schemas/*.ts` into `drizzle/`                                      |
+| `bun run db:migrate` / `db:migrate:test` | Apply `drizzle/` to `DATABASE_URL` / `TEST_DATABASE_URL`                                             |
+| `bun run db:studio`                      | Drizzle Studio                                                                                       |
+| `bun run db:seed:admin`                  | Seed the superadmin                                                                                  |
 
-Run a single test file:
+`test:unit` and `test:integration` are currently broken (no Jest `projects` defined) — use
+`bun run test` or a path filter. One file:
 
 ```bash
-bunx jest __tests__/unit/lib/ratelimit.test.ts
+NODE_OPTIONS=--experimental-vm-modules bunx jest __tests__/unit/lib/xp.test.ts
 ```
 
-## Architecture Notes
+## Project structure
 
-- **Auth**: Supabase Auth with OAuth. Middleware refreshes sessions and guards `/dashboard`, `/editor`, `/profile`, and `/admin` routes.
-- **Admin access**: Role-based via `public.user_roles` / `public.role_permissions`, checked per-route with `hasPermission()`. Each admin API route re-verifies authorization independently — middleware only guards page navigation.
-- **LLM pipeline**: `POST /api/generate` streams responses from DeepSeek. Build-mode responses use a `--- FILE: name ---` / `--- DONE ---` delimiter format parsed by `lib/parse-multi-file.ts`.
-- **Preview**: Pure `srcdoc` iframe with `sandbox="allow-scripts allow-forms"`. No external sandbox runtime. A console interceptor script is injected for error reporting.
-- **Autosave**: The editor writes to `/api/projects` after 1200ms of idle time. No manual save button for lesson projects.
-- **Rate limiting**: 50 prompts per hour per user via Upstash Redis (sliding window). Fails open on Redis errors. Admins and teachers bypass.
-- **Lesson versioning**: Parallel catalogs, not migrations. Old projects keep their task IDs intact.
+```
+app/
+├── board/[id]/       Student workspace: server page + LiveBoard client (the tutor board)
+├── lessons/          Lesson roadmap and detail pages
+├── dashboard/        Student home
+├── staff/            Back office (overview, classes, students, homework, finance, telegram, users)
+├── admin/, teacher/  Redirect shells into /staff
+├── invoice/[id]/, receipt/[id]/   Link-based views sent to parents
+├── login/, register/, no-class/, profile/, about/
+└── api/
+    ├── auth/[...all]/            Better Auth (incl. the Google callback)
+    ├── projects/                 Project CRUD, autosave, lesson progress, submit, tutor turn
+    ├── admin/                    Classes, students, homework review, invoices, schedules, telegram, roles
+    └── profile/
+components/           Reusable UI (ui/ primitives, admin/, dashboard/, CodeEditor, PlayerCard…)
+hooks/                Python runner, task checks, auto-complete, lesson progress
+lib/
+├── auth/             Better Auth config, session, permissions, route-guard logic
+├── board/            Board schema, tools, reducer, code projection, task pages
+├── tutor/            System prompt, client events, the turn loop
+├── db/               Drizzle client, schemas/ (one table per file), uuid guard
+├── lessons.ts, py-lessons.ts, task-checks.ts, task-verify.ts, task-guard.ts
+├── xp.ts, player-stats.ts, lesson-availability.ts, ratelimit.ts, cache.ts, redis.ts
+└── deepseek.ts, sparky-events.ts, python-checks.ts, schedule.ts, utils.ts
+public/
+├── py-worker.js, py-runtime.py    Pyodide worker and the `sparky` runtime module
+└── templates/py/                  Lesson starter files (w1.py, w1-bugzap.py, …)
+drizzle/              Migrations (schema of record) and snapshots
+proxy.ts              Route guard (Next 16 Proxy)
+types/index.ts        Shared row types
+__tests__/            unit/ and integration/ (mirrors the source), fixtures/, helpers/
+```
 
 ## Testing
 
-Tests live in `__tests__/unit/` and `__tests__/integration/`, mirroring the source tree. Component tests that need a DOM require a jsdom docblock:
+Tests hit a real Postgres (`TEST_DATABASE_URL`) that Jest migrates before the run and
+truncates between tests; only external services (DeepSeek, Telegram) are mocked. The default
+environment is Node — component tests start with `/** @jest-environment jsdom */`. Some suites
+load real Pyodide under Node, which is why `bun run test` sets `--experimental-vm-modules`.
 
-```ts
-/** @jest-environment jsdom */
-```
+## Working on the code with Claude Code
 
-The default test environment is Node.
+`CLAUDE.md` holds the rules; `.claude/skills/` holds one skill per subsystem (database, auth,
+roles, tutor, lesson progress, lesson authoring, XP/streak, architecture) that Claude loads on
+demand.
 
 ## License
 

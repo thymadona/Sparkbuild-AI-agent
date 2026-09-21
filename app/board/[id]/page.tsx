@@ -25,7 +25,13 @@ export default async function LiveBoardPage({ params }: Props) {
   if (!isUuid(id)) notFound()
 
   const [project] = await db
-    .select({ board: projects.board, files: projects.files, lessonId: projects.lessonId, lessonVersion: projects.lessonVersion, submission: projects.submissionStatus })
+    .select({
+      board: projects.board,
+      files: projects.files,
+      lessonId: projects.lessonId,
+      lessonVersion: projects.lessonVersion,
+      submission: projects.submissionStatus,
+    })
     .from(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
     .limit(1)
@@ -38,14 +44,18 @@ export default async function LiveBoardPage({ params }: Props) {
     .orderBy(desc(messages.createdAt))
     .limit(1)
 
-  const lesson = project.lessonId != null ? getLessonForProject(project.lessonId, project.lessonVersion) : null
+  const lesson =
+    project.lessonId != null ? getLessonForProject(project.lessonId, project.lessonVersion) : null
   const files = (project.files ?? {}) as Record<string, string>
   const entry = entryFileFor(lesson, files)
 
   let board = project.board as BoardState | null
   // Work done before the board existed: keep it, if it differs from the untouched starter.
   if (!board && lesson && files[entry]) {
-    const starter = await readFile(path.join(process.cwd(), 'public/templates', lesson.templateFile), 'utf8').catch(() => null)
+    const starter = await readFile(
+      path.join(process.cwd(), 'public/templates', lesson.templateFile),
+      'utf8'
+    ).catch(() => null)
     if (files[entry] !== starter) board = boardFromFiles(files[entry])
   }
   board ??= emptyBoard()
@@ -54,15 +64,27 @@ export default async function LiveBoardPage({ params }: Props) {
   let classSlots: ClassSlot[] = []
   if (lesson) {
     const [[progress], memberships] = await Promise.all([
-      db.select({ ids: lessonProgress.completedTaskIds }).from(lessonProgress).where(eq(lessonProgress.projectId, id)).limit(1),
-      db.select({ classId: classMembers.classId }).from(classMembers).where(eq(classMembers.userId, user.id)),
+      db
+        .select({ ids: lessonProgress.completedTaskIds })
+        .from(lessonProgress)
+        .where(eq(lessonProgress.projectId, id))
+        .limit(1),
+      db
+        .select({ classId: classMembers.classId })
+        .from(classMembers)
+        .where(eq(classMembers.userId, user.id)),
     ])
     completed = progress?.ids ?? []
     if (memberships.length)
       classSlots = await db
         .select({ day_of_week: classSchedules.dayOfWeek, start_time: classSchedules.startTime })
         .from(classSchedules)
-        .where(inArray(classSchedules.classId, memberships.map((m) => m.classId)))
+        .where(
+          inArray(
+            classSchedules.classId,
+            memberships.map((m) => m.classId)
+          )
+        )
   }
 
   return (

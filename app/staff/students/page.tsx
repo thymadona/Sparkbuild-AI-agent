@@ -87,28 +87,32 @@ export default async function StudentsPage() {
     else if (inv.status === 'unpaid') paymentMap[inv.user_id].unpaid++
   }
 
-  const rows = users.map((u) => ({
-    id: u.id,
-    email: u.email || u.id,
-    name: profileMap[u.id]?.full_name || u.name || '',
-    isActive: profileMap[u.id]?.is_active ?? true,
-    hasProfile: !!profileMap[u.id],
-    parentEmail: profileMap[u.id]?.parent_email ?? '',
-    parentTelegramChatId: profileMap[u.id]?.parent_telegram_chat_id ?? '',
-    notes: profileMap[u.id]?.notes ?? '',
-    classes: classMap[u.id] ?? [],
-    payment: paymentMap[u.id] ?? null,
-    // users.createdAt is a Date, not an ISO string: the Better Auth tables
-    // keep Drizzle's default `mode: 'date'` because the library reads and
-    // writes real Date objects, unlike the application tables.
-    createdAt: u.created_at.toISOString(),
-  })).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  const rows = users
+    .map((u) => ({
+      id: u.id,
+      email: u.email || u.id,
+      name: profileMap[u.id]?.full_name || u.name || '',
+      isActive: profileMap[u.id]?.is_active ?? true,
+      hasProfile: !!profileMap[u.id],
+      parentEmail: profileMap[u.id]?.parent_email ?? '',
+      parentTelegramChatId: profileMap[u.id]?.parent_telegram_chat_id ?? '',
+      notes: profileMap[u.id]?.notes ?? '',
+      classes: classMap[u.id] ?? [],
+      payment: paymentMap[u.id] ?? null,
+      // users.createdAt is a Date, not an ISO string: the Better Auth tables
+      // keep Drizzle's default `mode: 'date'` because the library reads and
+      // writes real Date objects, unlike the application tables.
+      createdAt: u.created_at.toISOString(),
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">Students</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage accounts, classes, and invoices</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage accounts, classes, and invoices
+        </p>
       </div>
       <StudentsClient rows={rows} classes={(classes ?? []) as Class[]} />
     </div>

@@ -2,7 +2,12 @@ import { redirect } from 'next/navigation'
 import { eq } from 'drizzle-orm'
 import { getSessionUser } from '@/lib/auth/session'
 import { db } from '@/lib/db/client'
-import { roles, studentProfiles, userRoles as userRolesTable, users as usersTable } from '@/lib/db/schema'
+import {
+  roles,
+  studentProfiles,
+  userRoles as userRolesTable,
+  users as usersTable,
+} from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
 import UsersClient from './UsersClient'
 
@@ -45,7 +50,10 @@ export default async function UsersPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">Users</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Grant or revoke admin/teacher access. The student role is assigned automatically on sign-in.</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Grant or revoke admin/teacher access. The student role is assigned automatically on
+          sign-in.
+        </p>
       </div>
       <UsersClient users={rows} />
     </div>

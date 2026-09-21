@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   ci:
-    name: lint · typecheck · test
+    name: lint · format · typecheck · test
     runs-on: ubuntu-latest
 
     services:
@@ -82,6 +82,11 @@ jobs:
       # in app/layout.tsx, and warnings do not fail eslint.
       - name: Lint
         run: bun run lint
+
+      # Blocking: --check exits 1 on any file Prettier would rewrite. Fix
+      # locally with `bun run format` and commit the result before merging.
+      - name: Format check
+        run: bun run format:check
 
       # Kept even though Vercel's build also typechecks: this reports in seconds
       # on the PR itself, rather than only inside a deployment log.

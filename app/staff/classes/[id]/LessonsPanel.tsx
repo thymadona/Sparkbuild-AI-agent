@@ -73,7 +73,9 @@ export default function LessonsPanel({ classId, lessons }: Props) {
   return (
     <div className="rounded-md border border-border bg-card">
       <div className="border-b border-border px-5 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lessons</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Lessons
+        </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {showProgress
             ? 'Turn a week on when the class is ready for it, and click a week to see how every student is doing on it — including their homework.'
@@ -131,7 +133,9 @@ export default function LessonsPanel({ classId, lessons }: Props) {
                       return (
                         <div key={s.userId} className="rounded border border-border bg-card p-3">
                           <div className="flex items-center justify-between gap-4">
-                            <span className="text-sm font-medium text-foreground">{s.name || s.email}</span>
+                            <span className="text-sm font-medium text-foreground">
+                              {s.name || s.email}
+                            </span>
                             <span className="shrink-0 text-xs text-muted-foreground">
                               {doneCount}/{s.tasks.length} tasks
                             </span>
@@ -145,7 +149,11 @@ export default function LessonsPanel({ classId, lessons }: Props) {
                                   disabled
                                   className="h-3.5 w-3.5 shrink-0 rounded border-input bg-background accent-success"
                                 />
-                                <span className={t.done ? 'text-foreground' : 'text-muted-foreground'}>{t.chip}</span>
+                                <span
+                                  className={t.done ? 'text-foreground' : 'text-muted-foreground'}
+                                >
+                                  {t.chip}
+                                </span>
                                 {t.type !== 'core' && (
                                   <span
                                     className={`shrink-0 rounded px-1 py-0.5 text-[10px] leading-none ${

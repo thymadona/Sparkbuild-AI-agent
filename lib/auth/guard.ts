@@ -37,7 +37,9 @@ export interface GuardResult {
 export function decideGuard(input: GuardInput): GuardResult | null {
   const { pathname, user } = input
   const isProtected =
-    pathname.startsWith('/dashboard') || pathname.startsWith('/board') || pathname.startsWith('/profile')
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/board') ||
+    pathname.startsWith('/profile')
   const isAdminPath = pathname.startsWith('/admin')
   const isTeacherPath = pathname.startsWith('/teacher')
   // The unified admin+teacher dashboard. Gated identically to /teacher —

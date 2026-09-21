@@ -17,7 +17,10 @@ const GATED_TYPES: LessonTask['type'][] = ['core', 'homework']
  * runtime checks only run in the student's browser, and progress is
  * server-side truth.
  */
-export function pendingCoreTask(lesson: Lesson | null, completedTaskIds: string[]): LessonTask | null {
+export function pendingCoreTask(
+  lesson: Lesson | null,
+  completedTaskIds: string[]
+): LessonTask | null {
   if (!lesson) return null
   const done = new Set(completedTaskIds)
   return lesson.tasks.find((task) => GATED_TYPES.includes(task.type) && !done.has(task.id)) ?? null
@@ -31,7 +34,11 @@ export type EscalationTier = 1 | 2 | 3
  * repeat. Homework caps at tier 2 — tier 3 hands over the target text, which
  * is exactly what the homework gate exists to withhold.
  */
-export function escalationTier(stuckTurns: number, confused: boolean, isHomework: boolean): EscalationTier {
+export function escalationTier(
+  stuckTurns: number,
+  confused: boolean,
+  isHomework: boolean
+): EscalationTier {
   if (isHomework) return stuckTurns >= 2 || confused ? 2 : 1
   if (confused || stuckTurns >= 4) return 3
   if (stuckTurns >= 2) return 2
@@ -60,7 +67,12 @@ const CONFUSION_PHRASES = new Set([
   'it doesnt work',
 ])
 
-const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim()
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 
 /**
  * A student saying "how?" or re-sending the same message verbatim is stuck,
@@ -102,9 +114,15 @@ function describeCheckStatus(check: TaskCheck, result: TaskCheckResult | undefin
   return `- ${check.label}: ${result?.passed ? 'DONE' : 'NOT DONE YET'}.`
 }
 
-export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1, results: TaskCheckResult[] = []): string {
+export function buildTaskNudge(
+  task: LessonTask,
+  tier: EscalationTier = 1,
+  results: TaskCheckResult[] = []
+): string {
   const isHomework = task.type === 'homework'
-  const checklist = (task.checks ?? []).map((check, i) => describeCheckStatus(check, results[i])).join('\n')
+  const checklist = (task.checks ?? [])
+    .map((check, i) => describeCheckStatus(check, results[i]))
+    .join('\n')
   return [
     `THIS STUDENT IS WORKING ON ${isHomework ? 'HOMEWORK' : 'A LESSON TASK'}: "${task.chip}".`,
     `Goal: ${task.success}`,

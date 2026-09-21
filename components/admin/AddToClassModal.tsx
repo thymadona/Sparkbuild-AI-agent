@@ -29,7 +29,7 @@ export default function AddToClassModal({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId }),
     })
-    const data = await res.json() as { error?: string }
+    const data = (await res.json()) as { error?: string }
     if (!res.ok) {
       setError(data.error ?? 'Failed to add to class')
       setLoading(false)
@@ -42,10 +42,7 @@ export default function AddToClassModal({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs text-primary hover:text-primary/80"
-      >
+      <button onClick={() => setOpen(true)} className="text-xs text-primary hover:text-primary/80">
         + Class
       </button>
 
@@ -69,7 +66,9 @@ export default function AddToClassModal({
               >
                 <option value="">Select a class…</option>
                 {classes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
               <div className="flex justify-end gap-2">

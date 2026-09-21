@@ -6,10 +6,25 @@ import { nodeTrace } from '@/__tests__/helpers/pyodide'
 
 jest.setTimeout(60_000)
 
-const codeNode = (language = 'python') =>
-  ({ op: 'add', pageId: 'p1', node: { id: 'c1', parentId: null, createdBy: 'tutor', type: 'code', language, source: 'x = 1', editable: true, highlightLines: [] } })
+const codeNode = (language = 'python') => ({
+  op: 'add',
+  pageId: 'p1',
+  node: {
+    id: 'c1',
+    parentId: null,
+    createdBy: 'tutor',
+    type: 'code',
+    language,
+    source: 'x = 1',
+    editable: true,
+    highlightLines: [],
+  },
+})
 const boardWithCode = (): BoardState =>
-  [{ op: 'new_page', pageId: 'p1', title: 'One' }, codeNode()].reduce((b, op) => apply(b, op), emptyBoard())
+  [{ op: 'new_page', pageId: 'p1', title: 'One' }, codeNode()].reduce(
+    (b, op) => apply(b, op),
+    emptyBoard()
+  )
 
 describe('_trace (real Pyodide)', () => {
   it('records each line with the variables as they were before it ran', async () => {
@@ -24,8 +39,13 @@ describe('_trace (real Pyodide)', () => {
   })
 
   it('gives lists as items, shows the call stack, and captures stdout so far', async () => {
-    const steps = await nodeTrace('def hi(a):\n    print(a)\n    return a\nxs = [1, 2, 3]\nhi(xs[0])\nprint("done")')
-    expect(steps.find((s) => s.vars.some((v) => v.name === 'xs'))!.vars.find((v) => v.name === 'xs')?.items).toEqual(['1', '2', '3'])
+    const steps = await nodeTrace(
+      'def hi(a):\n    print(a)\n    return a\nxs = [1, 2, 3]\nhi(xs[0])\nprint("done")'
+    )
+    expect(
+      steps.find((s) => s.vars.some((v) => v.name === 'xs'))!.vars.find((v) => v.name === 'xs')
+        ?.items
+    ).toEqual(['1', '2', '3'])
     expect(steps.find((s) => s.line === 3)!.callStack).toEqual(['<module>', 'hi'])
     expect(steps.find((s) => s.line === 3)!.stdout).toBe('1\n')
     expect(steps.at(-1)!.stdout).toBe('1\n')
@@ -42,30 +62,71 @@ describe('trace_result event', () => {
   const steps = [{ line: 1, stdout: '', callStack: ['<module>'], vars: [] }]
 
   it('adds a trace node, then replaces its steps on the next one', () => {
-    const first = applyClientEvent(boardWithCode(), { type: 'trace_result', nodeId: 'c1', source: 'x = 2', steps })
-    expect(first.board.nodes.trace_c1).toMatchObject({ type: 'trace', forNodeId: 'c1', cursor: 0, createdBy: 'system' })
+    const first = applyClientEvent(boardWithCode(), {
+      type: 'trace_result',
+      nodeId: 'c1',
+      source: 'x = 2',
+      steps,
+    })
+    expect(first.board.nodes.trace_c1).toMatchObject({
+      type: 'trace',
+      forNodeId: 'c1',
+      cursor: 0,
+      createdBy: 'system',
+    })
     expect(first.board.nodes.c1).toMatchObject({ source: 'x = 2' })
     expect(first.content).toContain('trace_ready')
-    const again = applyClientEvent({ ...first.board, nodes: { ...first.board.nodes, trace_c1: { ...(first.board.nodes.trace_c1 as object), cursor: 3 } as never } }, { type: 'trace_result', nodeId: 'c1', source: 'x = 2', steps: [] })
+    const again = applyClientEvent(
+      {
+        ...first.board,
+        nodes: {
+          ...first.board.nodes,
+          trace_c1: { ...(first.board.nodes.trace_c1 as object), cursor: 3 } as never,
+        },
+      },
+      { type: 'trace_result', nodeId: 'c1', source: 'x = 2', steps: [] }
+    )
     expect(again.board.nodes.trace_c1).toMatchObject({ steps: [], cursor: 0 })
     expect(Object.keys(again.board.nodes).filter((k) => k.startsWith('trace_'))).toHaveLength(1)
   })
 
   it('rejects a trace for an unknown node', () => {
-    expect(() => applyClientEvent(boardWithCode(), { type: 'trace_result', nodeId: 'nope', source: '', steps })).toThrow(/Unknown code node/)
+    expect(() =>
+      applyClientEvent(boardWithCode(), { type: 'trace_result', nodeId: 'nope', source: '', steps })
+    ).toThrow(/Unknown code node/)
   })
 })
 
 describe('request_trace tool', () => {
   const call = (name: string, args: object): AsyncIterable<Chunk> => ({
     async *[Symbol.asyncIterator]() {
-      yield { choices: [{ delta: { tool_calls: [{ index: 0, id: 'c0', function: { name, arguments: JSON.stringify(args) } }] } }] }
+      yield {
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                { index: 0, id: 'c0', function: { name, arguments: JSON.stringify(args) } },
+              ],
+            },
+          },
+        ],
+      }
     },
   })
   const run = async (board: BoardState, nodeId: string) => {
     const events: TurnEvent[] = []
-    const replies = [call('request_trace', { nodeId }), (async function* () { yield { choices: [{ delta: { content: 'ok' } }] } })()]
-    await runTurn({ board, messages: [], emit: (e) => events.push(e), llm: async () => replies.shift() as never })
+    const replies = [
+      call('request_trace', { nodeId }),
+      (async function* () {
+        yield { choices: [{ delta: { content: 'ok' } }] }
+      })(),
+    ]
+    await runTurn({
+      board,
+      messages: [],
+      emit: (e) => events.push(e),
+      llm: async () => replies.shift() as never,
+    })
     return events
   }
 
@@ -75,6 +136,11 @@ describe('request_trace tool', () => {
 
   it('refuses unknown nodes without a request, and the board refuses non-Python code nodes outright', async () => {
     expect((await run(boardWithCode(), 'zzz')).some((e) => e.type === 'trace.request')).toBe(false)
-    expect(() => apply(apply(emptyBoard(), { op: 'new_page', pageId: 'p1', title: 'One' }), codeNode('javascript'))).toThrow(/python/)
+    expect(() =>
+      apply(
+        apply(emptyBoard(), { op: 'new_page', pageId: 'p1', title: 'One' }),
+        codeNode('javascript')
+      )
+    ).toThrow(/python/)
   })
 })

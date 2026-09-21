@@ -30,12 +30,13 @@ async function getLessonProject(projectId: string, userId: string) {
 }
 
 export async function GET(_req: Request, props: Props) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const lessonProject = await getLessonProject(params.id, user.id)
-  if (!lessonProject) return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
+  if (!lessonProject)
+    return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
 
   try {
     const [row] = await db
@@ -52,23 +53,30 @@ export async function GET(_req: Request, props: Props) {
 }
 
 export async function PUT(req: Request, props: Props) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const lessonProject = await getLessonProject(params.id, user.id)
-  if (!lessonProject) return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
+  if (!lessonProject)
+    return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
 
   const body = await req.json().catch(() => ({}))
   const completedTaskIds = body.completedTaskIds
   if (!Array.isArray(completedTaskIds) || !completedTaskIds.every((id) => typeof id === 'string')) {
-    return NextResponse.json({ error: 'completedTaskIds must be an array of strings' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'completedTaskIds must be an array of strings' },
+      { status: 400 }
+    )
   }
 
   const validTaskIds = new Set(lessonProject.lesson.tasks.map((task) => task.id))
   const uniqueTaskIds = Array.from(new Set(completedTaskIds))
   if (!uniqueTaskIds.every((id) => validTaskIds.has(id))) {
-    return NextResponse.json({ error: 'completedTaskIds contains an invalid task' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'completedTaskIds contains an invalid task' },
+      { status: 400 }
+    )
   }
 
   // This route may only ever shrink the set — it is how progress is reset.
@@ -91,7 +99,10 @@ export async function PUT(req: Request, props: Props) {
   const already = new Set(current)
   const added = uniqueTaskIds.filter((id) => !already.has(id))
   if (added.length) {
-    return NextResponse.json({ error: 'Use the complete endpoint to finish a task' }, { status: 409 })
+    return NextResponse.json(
+      { error: 'Use the complete endpoint to finish a task' },
+      { status: 409 }
+    )
   }
 
   let saved: string[]

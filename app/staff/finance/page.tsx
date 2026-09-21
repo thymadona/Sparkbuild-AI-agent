@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation'
 import { desc } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { invoices as invoicesTable, receipts as receiptsTable, studentProfiles } from '@/lib/db/schema'
+import {
+  invoices as invoicesTable,
+  receipts as receiptsTable,
+  studentProfiles,
+} from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
 import FinanceClient from './FinanceClient'
 import { getSessionUser } from '@/lib/auth/session'
@@ -32,9 +36,7 @@ export default async function FinancePage() {
         parent_telegram_chat_id: studentProfiles.parentTelegramChatId,
       })
       .from(studentProfiles),
-    db
-      .select({ invoice_id: receiptsTable.invoiceId, id: receiptsTable.id })
-      .from(receiptsTable),
+    db.select({ invoice_id: receiptsTable.invoiceId, id: receiptsTable.id }).from(receiptsTable),
   ])
 
   const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p]))

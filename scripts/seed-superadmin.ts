@@ -35,12 +35,20 @@ export async function seedSuperadmin(): Promise<void> {
     throw new Error(`SUPERADMIN_EMAIL does not look like an email address: ${email}`)
   }
 
-  const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'admin')).limit(1)
+  const [adminRole] = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.name, 'admin'))
+    .limit(1)
   if (!adminRole) {
     throw new Error('The "admin" role is missing — run `bun run db:migrate` first.')
   }
 
-  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1)
 
   let userId: string
   if (existing) {

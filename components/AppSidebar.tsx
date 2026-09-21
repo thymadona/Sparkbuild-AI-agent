@@ -18,9 +18,14 @@ export default function AppSidebar({ userEmail }: { userEmail: string }) {
 
   return (
     <aside className="hidden lg:flex w-60 shrink-0 flex-col gap-2 px-2 py-3">
-      <Link href="/dashboard" className="mb-4 flex items-center justify-start gap-2 px-3 font-display text-xl font-extrabold text-fg-primary">
+      <Link
+        href="/dashboard"
+        className="mb-4 flex items-center justify-start gap-2 px-3 font-display text-xl font-extrabold text-fg-primary"
+      >
         <Logo className="h-9 w-9" />
-        <span><span className="text-spark">Spark</span>Build</span>
+        <span>
+          <span className="text-spark">Spark</span>Build
+        </span>
       </Link>
 
       <nav className="flex flex-1 flex-col gap-2">

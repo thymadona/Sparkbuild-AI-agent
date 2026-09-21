@@ -54,7 +54,7 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
       }),
     })
 
-    const data = await res.json() as { error?: string }
+    const data = (await res.json()) as { error?: string }
     if (!res.ok) {
       setError(data.error ?? 'Failed to update')
       setLoading(false)
@@ -81,8 +81,17 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
           <div className="w-full max-w-md rounded-md border border-border bg-card p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground">Edit Student</h2>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
@@ -96,7 +105,9 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
 
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Full name</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Full name
+                </label>
                 <input
                   required
                   value={form.full_name}
@@ -106,7 +117,9 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Parent email</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Parent email
+                </label>
                 <input
                   type="email"
                   value={form.parent_email}
@@ -117,7 +130,9 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Parent Telegram chat ID</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Parent Telegram chat ID
+                </label>
                 <input
                   value={form.parent_telegram_chat_id}
                   onChange={(e) => set('parent_telegram_chat_id', e.target.value)}
@@ -127,7 +142,9 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Notes
+                </label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}

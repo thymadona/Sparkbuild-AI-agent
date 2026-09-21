@@ -103,5 +103,7 @@ export function streakFor(days: string[], today: string): number {
 // UTC midnight-plus-offset would otherwise land on the wrong day.
 // ponytail: one timezone for everyone, per-user zones if classes span regions.
 export function todayISO(now = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: process.env.APP_TIMEZONE || 'UTC' }).format(now)
+  return new Intl.DateTimeFormat('en-CA', { timeZone: process.env.APP_TIMEZONE || 'UTC' }).format(
+    now
+  )
 }

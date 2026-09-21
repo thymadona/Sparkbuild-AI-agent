@@ -3,9 +3,20 @@ import { apply, summarize, type BoardState } from '@/lib/board/reducer'
 import { toOp } from '@/lib/board/tools'
 
 export interface Chunk {
-  choices: { delta: { content?: string | null; tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[] } }[]
+  choices: {
+    delta: {
+      content?: string | null
+      tool_calls?: {
+        index: number
+        id?: string
+        function?: { name?: string; arguments?: string }
+      }[]
+    }
+  }[]
 }
-export type Llm = (messages: OpenAI.Chat.ChatCompletionMessageParam[]) => Promise<AsyncIterable<Chunk>>
+export type Llm = (
+  messages: OpenAI.Chat.ChatCompletionMessageParam[]
+) => Promise<AsyncIterable<Chunk>>
 
 export type TurnEvent =
   | { type: 'caption.delta'; text: string }
@@ -59,7 +70,8 @@ export async function runTurn(opts: {
         if (c.name === 'request_trace') {
           // The browser owns the interpreter; it runs the trace after this turn and reports back.
           const n = board.nodes[args.nodeId]
-          if (n?.type !== 'code' || n.language !== 'python') throw new Error(`${args.nodeId} is not a Python code node`)
+          if (n?.type !== 'code' || n.language !== 'python')
+            throw new Error(`${args.nodeId} is not a Python code node`)
           emit({ type: 'trace.request', nodeId: n.id })
           content = 'ok: the trace node will appear after this turn. Do not add one yourself.'
         } else {
@@ -80,9 +92,13 @@ export async function runTurn(opts: {
       {
         role: 'assistant',
         content: text || null,
-        tool_calls: calls.filter(Boolean).map((c) => ({ id: c.id, type: 'function' as const, function: { name: c.name, arguments: c.args } })),
+        tool_calls: calls.filter(Boolean).map((c) => ({
+          id: c.id,
+          type: 'function' as const,
+          function: { name: c.name, arguments: c.args },
+        })),
       },
-      ...results,
+      ...results
     )
   }
 

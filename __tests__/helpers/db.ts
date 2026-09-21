@@ -1,6 +1,16 @@
 import { eq, sql } from 'drizzle-orm'
 import { db, rowsOf } from '@/lib/db/client'
-import { classMembers, classes, lessonProgress, messages, projects, roles, studentProfiles, userRoles, users } from '@/lib/db/schema'
+import {
+  classMembers,
+  classes,
+  lessonProgress,
+  messages,
+  projects,
+  roles,
+  studentProfiles,
+  userRoles,
+  users,
+} from '@/lib/db/schema'
 
 // Reference data created by drizzle/0001_functions_sequence_seed.sql. The
 // authorization functions join through these, so truncating them would make
@@ -14,10 +24,12 @@ const SEEDED = ['roles', 'permissions', 'role_permissions', '__drizzle_migration
  * the catalog rather than hand-maintained.
  */
 export async function resetDb(): Promise<void> {
-  const rows = rowsOf<{ table_name: string }>(await db.execute(sql`
+  const rows = rowsOf<{ table_name: string }>(
+    await db.execute(sql`
     select table_name from information_schema.tables
     where table_schema = 'public' and table_type = 'BASE TABLE'
-  `))
+  `)
+  )
 
   const targets = rows.map((r) => r.table_name).filter((t) => !SEEDED.includes(t))
   if (targets.length === 0) return
@@ -48,7 +60,11 @@ export async function makeUser(overrides: Partial<typeof users.$inferInsert> = {
 
 /** Grants a seeded platform role to a user. */
 export async function grantRole(userId: string, roleName: 'admin' | 'teacher' | 'student') {
-  const [role] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, roleName)).limit(1)
+  const [role] = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.name, roleName))
+    .limit(1)
   if (!role) throw new Error(`role "${roleName}" is missing — is drizzle/0001 applied?`)
   await db.insert(userRoles).values({ userId, roleId: role.id }).onConflictDoNothing()
 }
@@ -63,13 +79,13 @@ export async function makeClass(overrides: Partial<typeof classes.$inferInsert> 
 
 /** Adds a user to a class as a student or teacher. */
 export async function addClassMember(classId: string, userId: string, role: 'student' | 'teacher') {
-  await db
-    .insert(classMembers)
-    .values({ classId, userId, role })
-    .onConflictDoNothing()
+  await db.insert(classMembers).values({ classId, userId, role }).onConflictDoNothing()
 }
 
-export async function makeStudentProfile(userId: string, overrides: Partial<typeof studentProfiles.$inferInsert> = {}) {
+export async function makeStudentProfile(
+  userId: string,
+  overrides: Partial<typeof studentProfiles.$inferInsert> = {}
+) {
   const [row] = await db
     .insert(studentProfiles)
     .values({ userId, fullName: 'Test Student', ...overrides })
@@ -80,7 +96,11 @@ export async function makeStudentProfile(userId: string, overrides: Partial<type
 /** Upserts a project's lesson_progress row with an explicit `updatedAt` —
  *  the escalation counter in /api/generate reads this timestamp as "when the
  *  current task became open", so tests need it deterministic, not defaultNow(). */
-export async function setLessonProgress(projectId: string, completedTaskIds: string[], updatedAt: string) {
+export async function setLessonProgress(
+  projectId: string,
+  completedTaskIds: string[],
+  updatedAt: string
+) {
   await db
     .insert(lessonProgress)
     .values({ projectId, completedTaskIds, updatedAt })

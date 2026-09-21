@@ -3,7 +3,14 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type ClassRow = {
   id: string
@@ -46,7 +53,9 @@ export default function TeacherClassesClient({ classes }: { classes: ClassRow[] 
                 <TableCell>
                   <div className="font-medium text-foreground">{cls.name}</div>
                   {cls.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{cls.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
+                      {cls.description}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums font-medium text-foreground">
@@ -71,7 +80,10 @@ export default function TeacherClassesClient({ classes }: { classes: ClassRow[] 
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground/70">
+                <TableCell
+                  colSpan={4}
+                  className="py-10 text-center text-sm text-muted-foreground/70"
+                >
                   {search ? 'No classes match your search.' : 'No classes assigned yet.'}
                 </TableCell>
               </TableRow>

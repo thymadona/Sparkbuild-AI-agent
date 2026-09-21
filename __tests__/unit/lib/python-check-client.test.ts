@@ -5,13 +5,29 @@ let bootFails = false
 class FakeWorker {
   listeners: ((e: MessageEvent) => void)[] = []
   terminated = false
-  addEventListener(_: string, fn: (e: MessageEvent) => void) { this.listeners.push(fn) }
-  removeEventListener(_: string, fn: (e: MessageEvent) => void) { this.listeners = this.listeners.filter((l) => l !== fn) }
-  emit(data: unknown) { for (const l of [...this.listeners]) l({ data } as MessageEvent) }
-  terminate() { this.terminated = true }
+  addEventListener(_: string, fn: (e: MessageEvent) => void) {
+    this.listeners.push(fn)
+  }
+  removeEventListener(_: string, fn: (e: MessageEvent) => void) {
+    this.listeners = this.listeners.filter((l) => l !== fn)
+  }
+  emit(data: unknown) {
+    for (const l of [...this.listeners]) l({ data } as MessageEvent)
+  }
+  terminate() {
+    this.terminated = true
+  }
   postMessage(msg: { type: string; id?: number }) {
-    if (msg.type === 'init') setTimeout(() => this.emit(bootFails ? { type: 'fatal', text: 'no network' } : { type: 'ready' }), bootMs)
-    else setTimeout(() => { this.emit({ type: 'out', text: 'hi\n' }); this.emit({ type: 'done', id: msg.id, ok: true }) }, 0)
+    if (msg.type === 'init')
+      setTimeout(
+        () => this.emit(bootFails ? { type: 'fatal', text: 'no network' } : { type: 'ready' }),
+        bootMs
+      )
+    else
+      setTimeout(() => {
+        this.emit({ type: 'out', text: 'hi\n' })
+        this.emit({ type: 'done', id: msg.id, ok: true })
+      }, 0)
   }
 }
 
@@ -22,7 +38,8 @@ beforeEach(() => {
 })
 afterEach(() => jest.useRealTimers())
 
-const load = () => require('@/lib/python-check-client') as typeof import('@/lib/python-check-client')
+const load = () =>
+  require('@/lib/python-check-client') as typeof import('@/lib/python-check-client')
 
 describe('workerExec', () => {
   it('does not count a slow Pyodide download against the run timeout', async () => {

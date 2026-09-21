@@ -19,7 +19,7 @@ export interface RuntimeChecks {
 export function useRuntimeChecks(
   task: LessonTask | undefined,
   files: Record<string, string>,
-  entry: string,
+  entry: string
 ): RuntimeChecks | null {
   const [result, setResult] = useState<RuntimeChecks | null>(null)
   const hasRuntime = !!task?.checks?.some(isRuntimeCheck)
@@ -28,10 +28,15 @@ export function useRuntimeChecks(
     if (!task || !hasRuntime) return
     let cancelled = false
     const timer = setTimeout(async () => {
-      const verdicts = await runPythonChecks(task.checks ?? [], files, entry, workerExec).catch(() => null)
+      const verdicts = await runPythonChecks(task.checks ?? [], files, entry, workerExec).catch(
+        () => null
+      )
       if (!cancelled && verdicts) setResult({ taskId: task.id, verdicts })
     }, DEBOUNCE_MS)
-    return () => { cancelled = true; clearTimeout(timer) }
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [task, hasRuntime, files, entry])
 
   return task && result?.taskId === task.id ? result : null

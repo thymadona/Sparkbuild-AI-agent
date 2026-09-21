@@ -6,13 +6,17 @@ import { projects } from './projects'
 // bump `projects.lesson_version` and add a catalog instead.
 //
 // __tests__/integration/api/lesson-progress.test.ts regexes this file's text
-// for the cascading FK below; keep that column on one line.
+// for the cascading FK below; keep that chain's call order and options as-is.
 export const lessonProgress = pgTable(
   'lesson_progress',
   {
-    projectId: uuid('project_id').primaryKey().references(() => projects.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .primaryKey()
+      .references(() => projects.id, { onDelete: 'cascade' }),
     completedTaskIds: text('completed_task_ids').array().default([]).notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index('lesson_progress_updated_at_idx').on(t.updatedAt.desc())]
 )

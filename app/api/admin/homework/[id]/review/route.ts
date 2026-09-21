@@ -23,7 +23,7 @@ const REVIEWABLE: SubmissionStatus[] = ['approved', 'needs_work']
  * class-ownership check below (after the project is fetched).
  */
 export async function POST(req: Request, props: Props) {
-  const params = await props.params;
+  const params = await props.params
   const user = await getSessionUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -33,7 +33,10 @@ export async function POST(req: Request, props: Props) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = (await req.json().catch(() => ({}))) as { status?: SubmissionStatus; feedback?: string }
+  const body = (await req.json().catch(() => ({}))) as {
+    status?: SubmissionStatus
+    feedback?: string
+  }
   const status = body.status
   const feedback = (body.feedback ?? '').trim()
 
@@ -42,7 +45,10 @@ export async function POST(req: Request, props: Props) {
   }
   // Sending a student back to their code without saying why is not feedback.
   if (status === 'needs_work' && !feedback) {
-    return NextResponse.json({ error: 'Feedback is required when asking for more work' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Feedback is required when asking for more work' },
+      { status: 400 }
+    )
   }
 
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Project not found' }, { status: 404 })

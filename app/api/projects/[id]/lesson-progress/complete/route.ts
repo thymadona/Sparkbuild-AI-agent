@@ -31,7 +31,8 @@ export async function POST(req: Request, props: Props) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const lessonProject = await getLessonProject(params.id, user.id)
-  if (!lessonProject) return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
+  if (!lessonProject)
+    return NextResponse.json({ error: 'Lesson project not found' }, { status: 404 })
   const { project, lesson } = lessonProject
 
   const body = await req.json().catch(() => ({}))
@@ -56,7 +57,8 @@ export async function POST(req: Request, props: Props) {
   // Already done: say so rather than rewriting the row, so a retry after a
   // dropped response is harmless.
   const done = new Set(completed)
-  if (done.has(task.id)) return NextResponse.json({ completedTaskIds: completed, alreadyDone: true })
+  if (done.has(task.id))
+    return NextResponse.json({ completedTaskIds: completed, alreadyDone: true })
 
   // Order is part of the lesson: a student cannot reach past an open task, and
   // homework stays shut until the lesson itself is finished.
@@ -67,13 +69,23 @@ export async function POST(req: Request, props: Props) {
   const files = (project.files ?? {}) as Record<string, string>
   const entry = entryFileFor(lesson, files)
   const reported = Array.isArray(body.runtimeVerdicts)
-    ? (body.runtimeVerdicts.map((v: unknown) => (typeof v === 'boolean' ? v : undefined)) as RuntimeVerdicts)
+    ? (body.runtimeVerdicts.map((v: unknown) =>
+        typeof v === 'boolean' ? v : undefined
+      ) as RuntimeVerdicts)
     : []
-  const verdict = verifyTask(task, taskCode(project.board as BoardState | null, files, entry, task), reported)
+  const verdict = verifyTask(
+    task,
+    taskCode(project.board as BoardState | null, files, entry, task),
+    reported
+  )
   if (!verdict.passed) {
     return NextResponse.json(
-      { error: verdict.failed?.hint ?? 'This task is not finished yet', check: verdict.failed?.label ?? null, results: verdict.results },
-      { status: 409 },
+      {
+        error: verdict.failed?.hint ?? 'This task is not finished yet',
+        check: verdict.failed?.label ?? null,
+        results: verdict.results,
+      },
+      { status: 409 }
     )
   }
 

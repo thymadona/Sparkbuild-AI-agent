@@ -3,7 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { SubmissionStatus } from '@/types'
 
 const STATUS_LABEL: Record<SubmissionStatus, string> = {
@@ -90,7 +97,9 @@ export default function HomeworkReviewTable({ rows }: { rows: HomeworkReviewRow[
               <TableRow key={row.projectId} className="align-top">
                 <TableCell>
                   <div className="text-foreground">{row.studentName || row.studentEmail}</div>
-                  {row.studentName && <div className="text-xs text-muted-foreground">{row.studentEmail}</div>}
+                  {row.studentName && (
+                    <div className="text-xs text-muted-foreground">{row.studentEmail}</div>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{row.lessonTitle}</TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">
@@ -126,7 +135,10 @@ export default function HomeworkReviewTable({ rows }: { rows: HomeworkReviewRow[
 
                     {openId === row.projectId && (
                       <div className="w-72 rounded-md border border-border bg-popover p-3">
-                        <label htmlFor={`feedback-${row.projectId}`} className="block text-xs text-muted-foreground">
+                        <label
+                          htmlFor={`feedback-${row.projectId}`}
+                          className="block text-xs text-muted-foreground"
+                        >
                           Note for the student
                         </label>
                         <textarea

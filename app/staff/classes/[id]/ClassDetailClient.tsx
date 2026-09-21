@@ -6,7 +6,14 @@ import type { ClassSchedule } from '@/types'
 import ClassFormModal, { type PersonOption } from '@/components/admin/ClassFormModal'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type Student = PersonOption & { paidCount: number; unpaidCount: number }
 
@@ -41,7 +48,12 @@ export default function ClassDetailClient({
   const [deleting, setDeleting] = useState(false)
 
   async function deleteClass() {
-    if (!confirm(`Delete "${className}"? This removes its schedule and unenrolls all students. This cannot be undone.`)) return
+    if (
+      !confirm(
+        `Delete "${className}"? This removes its schedule and unenrolls all students. This cannot be undone.`
+      )
+    )
+      return
     setDeleting(true)
     const res = await fetch(`/api/admin/classes/${classId}`, { method: 'DELETE' })
     if (res.ok) {
@@ -114,8 +126,13 @@ export default function ClassDetailClient({
           <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Weekly Schedule</h3>
           <div className="space-y-2">
             {schedules.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded bg-muted px-3 py-2.5 text-sm">
-                <span className="w-10 font-medium text-foreground">{DAYS_SHORT[s.day_of_week]}</span>
+              <div
+                key={s.id}
+                className="flex items-center gap-3 rounded bg-muted px-3 py-2.5 text-sm"
+              >
+                <span className="w-10 font-medium text-foreground">
+                  {DAYS_SHORT[s.day_of_week]}
+                </span>
                 <span className="text-foreground">{formatTime(s.start_time)}</span>
                 <span className="text-muted-foreground/70">·</span>
                 <span className="text-muted-foreground">{s.duration_min} min</span>
@@ -123,7 +140,9 @@ export default function ClassDetailClient({
               </div>
             ))}
             {schedules.length === 0 && (
-              <p className="text-sm text-muted-foreground/70">No time slots yet — use Edit class to add one.</p>
+              <p className="text-sm text-muted-foreground/70">
+                No time slots yet — use Edit class to add one.
+              </p>
             )}
           </div>
         </CardContent>
@@ -132,11 +151,14 @@ export default function ClassDetailClient({
       {/* Teachers */}
       <div className="rounded-md border border-border overflow-hidden">
         <div className="border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-muted-foreground">Teachers ({teachers.length})</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground">
+            Teachers ({teachers.length})
+          </h3>
         </div>
         {teachers.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground/70">
-            No teacher assigned to this class yet — students in this class won&apos;t appear in anyone&apos;s classes tab until one is.
+            No teacher assigned to this class yet — students in this class won&apos;t appear in
+            anyone&apos;s classes tab until one is.
           </p>
         ) : (
           <Table>
@@ -163,10 +185,14 @@ export default function ClassDetailClient({
       {/* Students */}
       <div className="rounded-md border border-border overflow-hidden">
         <div className="border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-muted-foreground">Students ({students.length})</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground">
+            Students ({students.length})
+          </h3>
         </div>
         {students.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground/70">No students enrolled yet.</p>
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground/70">
+            No students enrolled yet.
+          </p>
         ) : (
           <Table>
             <TableHeader>
@@ -185,7 +211,9 @@ export default function ClassDetailClient({
                   <TableCell className="text-xs text-muted-foreground">{s.email}</TableCell>
                   <TableCell>
                     <div className="flex gap-1.5">
-                      {s.unpaidCount > 0 && <Badge variant="destructive">{s.unpaidCount} unpaid</Badge>}
+                      {s.unpaidCount > 0 && (
+                        <Badge variant="destructive">{s.unpaidCount} unpaid</Badge>
+                      )}
                       {s.paidCount > 0 && <Badge variant="success">{s.paidCount} paid</Badge>}
                       {s.paidCount === 0 && s.unpaidCount === 0 && (
                         <span className="text-xs text-muted-foreground/70">—</span>

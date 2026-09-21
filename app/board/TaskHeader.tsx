@@ -32,7 +32,16 @@ interface Props {
  * makes the checklist the only thing telling a student why they have not moved
  * on yet, so it is never hidden.
  */
-export default function TaskHeader({ task, results, evaluated, done, onStuck, onSkip, error, busy }: Props) {
+export default function TaskHeader({
+  task,
+  results,
+  evaluated,
+  done,
+  onStuck,
+  onSkip,
+  error,
+  busy,
+}: Props) {
   const [canAskForHelp, setCanAskForHelp] = useState(false)
   const [asked, setAsked] = useState(false)
 
@@ -72,8 +81,12 @@ export default function TaskHeader({ task, results, evaluated, done, onStuck, on
                 ✓
               </span>
               <span className="min-w-0">
-                <span className={r.passed ? 'text-[#7a6a52] line-through' : 'text-[#2b2118]'}>{r.label}</span>
-                {!r.passed && r.hint && <span className="block text-sm text-[#7a6a52]">{r.hint}</span>}
+                <span className={r.passed ? 'text-[#7a6a52] line-through' : 'text-[#2b2118]'}>
+                  {r.label}
+                </span>
+                {!r.passed && r.hint && (
+                  <span className="block text-sm text-[#7a6a52]">{r.hint}</span>
+                )}
               </span>
             </li>
           ))}
@@ -89,7 +102,10 @@ export default function TaskHeader({ task, results, evaluated, done, onStuck, on
       <div className="mt-4 flex flex-wrap gap-2">
         {canAskForHelp && !done && (
           <button
-            onClick={() => { setAsked(true); onStuck() }}
+            onClick={() => {
+              setAsked(true)
+              onStuck()
+            }}
             disabled={busy || asked}
             className="min-h-11 rounded-xl border-2 border-[#2b2118] px-4 text-sm font-bold text-[#2b2118] transition-colors hover:bg-[#e4d3b3] disabled:opacity-50"
           >
@@ -97,7 +113,10 @@ export default function TaskHeader({ task, results, evaluated, done, onStuck, on
           </button>
         )}
         {onSkip && !done && (
-          <button onClick={onSkip} className="min-h-11 rounded-xl px-4 text-sm font-semibold text-[#7a6a52] underline transition-colors hover:text-[#2b2118]">
+          <button
+            onClick={onSkip}
+            className="min-h-11 rounded-xl px-4 text-sm font-semibold text-[#7a6a52] underline transition-colors hover:text-[#2b2118]"
+          >
             Skip this one
           </button>
         )}

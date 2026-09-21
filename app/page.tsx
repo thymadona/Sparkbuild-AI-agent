@@ -15,19 +15,22 @@ const FEATURES = [
     icon: MessageSquareCode,
     chipClass: 'bg-teal-400',
     title: 'A tutor, not an answer key',
-    description: 'The AI sits beside your code and nudges — one line, one question at a time. It guides, it doesn\'t solve.',
+    description:
+      "The AI sits beside your code and nudges — one line, one question at a time. It guides, it doesn't solve.",
   },
   {
     icon: CheckCircle2,
     chipClass: 'bg-secondary',
     title: 'Tasks unlock as you learn',
-    description: 'Each lesson checks your actual code before it lets you mark a task done — no boxes ticked for work you didn\'t do.',
+    description:
+      "Each lesson checks your actual code before it lets you mark a task done — no boxes ticked for work you didn't do.",
   },
   {
     icon: Trophy,
     chipClass: 'bg-amber-300',
     title: 'Earn XP, beat the boss',
-    description: 'Every task earns XP. Beat the week\'s boss task to win its badge, and keep your streak alive by showing up.',
+    description:
+      "Every task earns XP. Beat the week's boss task to win its badge, and keep your streak alive by showing up.",
   },
 ] as const
 
@@ -63,7 +66,8 @@ export default async function Home() {
                 at a time.
               </h1>
               <p className="mt-6 max-w-md text-body-lg text-fg-secondary">
-                Real Python, one week at a time. An AI tutor that nudges instead of solving, so what runs is actually yours.
+                Real Python, one week at a time. An AI tutor that nudges instead of solving, so what
+                runs is actually yours.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
@@ -118,7 +122,9 @@ export default async function Home() {
                   key={title}
                   className="flex h-full flex-col rounded-xl border-2 border-surface-600 bg-surface-900 p-6 shadow-hard-lg"
                 >
-                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-full border-2 border-surface-600 ${chipClass}`}>
+                  <div
+                    className={`mb-5 flex h-12 w-12 items-center justify-center rounded-full border-2 border-surface-600 ${chipClass}`}
+                  >
                     <Icon className={`h-6 w-6 ${ON_CHIP}`} />
                   </div>
                   <h3 className="font-display text-lg font-bold text-fg-primary">{title}</h3>
@@ -152,7 +158,9 @@ export default async function Home() {
                   <span className="font-display text-3xl font-extrabold text-brand-500/30">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <h3 className="mt-3 font-display text-lg font-bold text-fg-primary">{lesson.title}</h3>
+                  <h3 className="mt-3 font-display text-lg font-bold text-fg-primary">
+                    {lesson.title}
+                  </h3>
                   <p className="mt-2 text-sm text-fg-secondary">{lesson.description}</p>
                 </div>
               ))}
@@ -164,7 +172,10 @@ export default async function Home() {
         <section className="relative overflow-hidden border-y-2 border-surface-600 bg-brand-500 px-6 py-24 text-center text-white">
           <div
             className="pointer-events-none absolute inset-0 opacity-20"
-            style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}
+            style={{
+              backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+              backgroundSize: '24px 24px',
+            }}
           />
           <div className="relative mx-auto max-w-2xl">
             <h2 className="font-display text-headline-lg-mobile sm:text-headline-lg lg:text-display-xl">

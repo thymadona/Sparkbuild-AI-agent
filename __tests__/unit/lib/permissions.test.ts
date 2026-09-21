@@ -101,11 +101,15 @@ describe('requirePermission', () => {
 
   it('rejects with ForbiddenError when the permission is denied', async () => {
     const user = await makeUser()
-    await expect(requirePermission(user.id, 'classes:manage')).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(requirePermission(user.id, 'classes:manage')).rejects.toBeInstanceOf(
+      ForbiddenError
+    )
   })
 
   it('rejects with ForbiddenError (fail closed) when the query throws', async () => {
-    await expect(requirePermission('not-a-uuid', 'classes:manage')).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(requirePermission('not-a-uuid', 'classes:manage')).rejects.toBeInstanceOf(
+      ForbiddenError
+    )
   })
 })
 
@@ -144,7 +148,9 @@ describe('getUserRoles', () => {
     const user = await makeUser()
     await grantRole(user.id, 'admin')
     await grantRole(user.id, 'teacher')
-    await expect(getUserRoles(user.id)).resolves.toEqual(expect.arrayContaining(['admin', 'teacher']))
+    await expect(getUserRoles(user.id)).resolves.toEqual(
+      expect.arrayContaining(['admin', 'teacher'])
+    )
   })
 
   it('returns an empty list for a user with no roles', async () => {

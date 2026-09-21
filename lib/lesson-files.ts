@@ -6,6 +6,7 @@ export async function fetchLessonFiles(lesson: Lesson) {
   const get = async (file: string) => (await fetch(`/templates/${file}`)).text()
   const starter = await get(lesson.templateFile)
   const extraFiles: Record<string, string> = {}
-  for (const [name, file] of Object.entries(lesson.extraFiles ?? {})) extraFiles[name] = await get(file)
+  for (const [name, file] of Object.entries(lesson.extraFiles ?? {}))
+    extraFiles[name] = await get(file)
   return { starter, extraFiles }
 }

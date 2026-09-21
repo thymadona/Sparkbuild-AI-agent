@@ -3,7 +3,14 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 type UserRow = { id: string; email: string; fullName: string; roles: string[] }
 
@@ -22,7 +29,9 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
   const filtered = useMemo(() => {
     if (!search) return users
     const q = search.toLowerCase()
-    return users.filter((u) => u.email.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q))
+    return users.filter(
+      (u) => u.email.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q)
+    )
   }, [users, search])
 
   async function toggleRole(userId: string, role: string, hasRole: boolean) {
@@ -55,7 +64,9 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
       />
 
       {error && (
-        <div className="rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
+        <div className="rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
       )}
 
       <div className="rounded-md border border-border overflow-hidden">
@@ -92,14 +103,21 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
                         </button>
                       )
                     })}
-                    {u.roles.includes('student') && <Badge variant="outline" title="Assigned automatically on sign-in">student</Badge>}
+                    {u.roles.includes('student') && (
+                      <Badge variant="outline" title="Assigned automatically on sign-in">
+                        student
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={2} className="py-10 text-center text-sm text-muted-foreground/70">
+                <TableCell
+                  colSpan={2}
+                  className="py-10 text-center text-sm text-muted-foreground/70"
+                >
                   No users match your search.
                 </TableCell>
               </TableRow>

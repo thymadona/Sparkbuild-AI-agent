@@ -23,7 +23,8 @@ const invoiceColumns = {
 export async function GET(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'invoices:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId')
@@ -45,18 +46,21 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!(await hasPermission(user.id, 'invoices:manage'))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await hasPermission(user.id, 'invoices:manage')))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { user_id, amount_cents, description, due_date } =
-    await req.json() as {
-      user_id: string
-      amount_cents: number
-      description: string
-      due_date: string
-    }
+  const { user_id, amount_cents, description, due_date } = (await req.json()) as {
+    user_id: string
+    amount_cents: number
+    description: string
+    due_date: string
+  }
 
   if (!user_id || !amount_cents || !description || !due_date) {
-    return NextResponse.json({ error: 'user_id, amount_cents, description, due_date are required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'user_id, amount_cents, description, due_date are required' },
+      { status: 400 }
+    )
   }
   if (!isUuid(user_id)) {
     return NextResponse.json({ error: 'user_id is not a valid id' }, { status: 400 })

@@ -6,14 +6,18 @@ export const invoices = pgTable(
   'invoices',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     amountCents: integer('amount_cents').notNull(),
     description: text('description').notNull(),
     dueDate: date('due_date', { mode: 'string' }).notNull(),
     status: text('status').default('unpaid').notNull(),
     sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
     paidAt: timestamp('paid_at', { withTimezone: true, mode: 'string' }),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     check('invoices_amount_cents_check', sql`${t.amountCents} > 0`),

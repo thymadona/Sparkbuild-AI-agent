@@ -77,14 +77,23 @@ export default async function ClassesPage() {
       membersByClass[m.class_id].push(m.user_id)
     }
 
-    const schedulesByClass: Record<string, { day_of_week: number; start_time: string; duration_min: number }[]> = {}
+    const schedulesByClass: Record<
+      string,
+      { day_of_week: number; start_time: string; duration_min: number }[]
+    > = {}
     for (const s of schedules) {
       if (!schedulesByClass[s.class_id]) schedulesByClass[s.class_id] = []
-      schedulesByClass[s.class_id].push({ day_of_week: s.day_of_week, start_time: s.start_time, duration_min: s.duration_min })
+      schedulesByClass[s.class_id].push({
+        day_of_week: s.day_of_week,
+        start_time: s.start_time,
+        duration_min: s.duration_min,
+      })
     }
 
     const paidUsers = new Set(invoiceRows.filter((i) => i.status === 'paid').map((i) => i.user_id))
-    const unpaidUsers = new Set(invoiceRows.filter((i) => i.status === 'unpaid').map((i) => i.user_id))
+    const unpaidUsers = new Set(
+      invoiceRows.filter((i) => i.status === 'unpaid').map((i) => i.user_id)
+    )
 
     const rows = classes.map((cls) => {
       const userIds = membersByClass[cls.id] ?? []
@@ -102,7 +111,9 @@ export default async function ClassesPage() {
 
     const userMap = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? '']))
     const profileMap = Object.fromEntries(profiles.map((p) => [p.user_id, p.full_name]))
-    const platformTeacherIds = new Set(roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id))
+    const platformTeacherIds = new Set(
+      roleRows.filter((r) => r.name === 'teacher').map((r) => r.user_id)
+    )
     // user_roles now holds a 'student' row for every non-staff account
     // (lib/auth/student-defaults.ts), so match on STAFF_ROLES rather than on
     // "has any role row" — the latter would empty this picker entirely. An
@@ -110,10 +121,16 @@ export default async function ClassesPage() {
     // (e.g. a teacher's own test account), so keep staff out of the student
     // picker even if they have a profile.
     const staffIds = new Set(
-      roleRows.filter((r) => (STAFF_ROLES as readonly string[]).includes(r.name)).map((r) => r.user_id)
+      roleRows
+        .filter((r) => (STAFF_ROLES as readonly string[]).includes(r.name))
+        .map((r) => r.user_id)
     )
     const allTeachers = Array.from(platformTeacherIds)
-      .map((userId) => ({ userId, name: profileMap[userId] ?? '', email: userMap[userId] ?? userId.slice(0, 8) }))
+      .map((userId) => ({
+        userId,
+        name: profileMap[userId] ?? '',
+        email: userMap[userId] ?? userId.slice(0, 8),
+      }))
       .sort((a, b) => a.name.localeCompare(b.name))
     const allStudents = profiles
       .filter((p) => !staffIds.has(p.user_id))
@@ -124,7 +141,9 @@ export default async function ClassesPage() {
       <div>
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-foreground">Classes</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Filter by day, view schedules, and open class details</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Filter by day, view schedules, and open class details
+          </p>
         </div>
         <ClassesClient classes={rows} allTeachers={allTeachers} allStudents={allStudents} />
       </div>
@@ -182,7 +201,9 @@ export default async function ClassesPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">Your classes</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Rosters and homework review, scoped to classes you teach.</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Rosters and homework review, scoped to classes you teach.
+        </p>
       </div>
       <TeacherClassesClient classes={rows} />
     </div>

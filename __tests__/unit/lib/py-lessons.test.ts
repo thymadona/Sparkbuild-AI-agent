@@ -11,18 +11,25 @@ jest.setTimeout(120_000)
 const read = (...parts: string[]) => fs.readFileSync(path.join(process.cwd(), ...parts), 'utf8')
 const template = (file: string) => read('public/templates', file)
 // Reference solutions live outside public/ so students cannot fetch them.
-const solution = (file: string) => read('__tests__/fixtures/py', file.replace('py/', '').replace(/\.py$/, '.solution.py'))
+const solution = (file: string) =>
+  read('__tests__/fixtures/py', file.replace('py/', '').replace(/\.py$/, '.solution.py'))
 
 // The files a new project holds for a lesson, and the fully solved version.
 function filesFor(lesson: (typeof PY_LESSONS)[number], solved: boolean) {
   const get = solved ? solution : template
   return {
     [lesson.starterFile!]: get(lesson.templateFile),
-    ...Object.fromEntries(Object.entries(lesson.extraFiles ?? {}).map(([name, file]) => [name, get(file)])),
+    ...Object.fromEntries(
+      Object.entries(lesson.extraFiles ?? {}).map(([name, file]) => [name, get(file)])
+    ),
   }
 }
 
-async function results(lesson: (typeof PY_LESSONS)[number], files: Record<string, string>, taskId: string) {
+async function results(
+  lesson: (typeof PY_LESSONS)[number],
+  files: Record<string, string>,
+  taskId: string
+) {
   const task = lesson.tasks.find((t) => t.id === taskId)!
   const entry = lesson.starterFile!
   const verdicts = await runPythonChecks(task.checks!, files, entry, nodeExec)
@@ -83,7 +90,8 @@ describe.each(PY_LESSONS.map((l) => [l.title, l] as const))('%s: real Python', (
     const files = filesFor(lesson, true)
     const failing: string[] = []
     for (const t of lesson.tasks) {
-      for (const r of await results(lesson, files, t.id)) if (!r.passed) failing.push(`${t.id}: ${r.label}`)
+      for (const r of await results(lesson, files, t.id))
+        if (!r.passed) failing.push(`${t.id}: ${r.label}`)
     }
     expect(failing).toEqual([])
   })

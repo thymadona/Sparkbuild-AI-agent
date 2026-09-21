@@ -6,7 +6,9 @@ import { users } from './users'
 export const activityDays = pgTable(
   'activity_days',
   {
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     day: date('day', { mode: 'string' }).notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.day] })]

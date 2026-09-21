@@ -24,7 +24,9 @@ export default function PythonRunner({ files, entry, scene }: Props) {
   const [inputsText, setInputsText] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [output, status])
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [output, status])
 
   const busy = status === 'running' || status === 'waiting'
 
@@ -32,7 +34,10 @@ export default function PythonRunner({ files, entry, scene }: Props) {
     <div className="flex h-full flex-col bg-surface-900 font-mono text-sm">
       <div className="flex items-center gap-2 border-b border-surface-600 px-3 py-2 shrink-0">
         {busy ? (
-          <button onClick={stop} className="rounded-md border-2 border-red-500 px-3 py-1 text-xs font-bold text-red-500">
+          <button
+            onClick={stop}
+            className="rounded-md border-2 border-red-500 px-3 py-1 text-xs font-bold text-red-500"
+          >
             ■ Stop
           </button>
         ) : (
@@ -41,7 +46,11 @@ export default function PythonRunner({ files, entry, scene }: Props) {
             disabled={status === 'loading' || status === 'failed'}
             className="rounded-md border-2 border-brand-500 bg-brand-500 px-3 py-1 text-xs font-bold text-white disabled:opacity-50"
           >
-            {status === 'loading' ? 'Loading Python…' : status === 'failed' ? 'Python unavailable' : '▶ Run'}
+            {status === 'loading'
+              ? 'Loading Python…'
+              : status === 'failed'
+                ? 'Python unavailable'
+                : '▶ Run'}
           </button>
         )}
         <span className="text-xs text-fg-muted">{entry}</span>
@@ -63,11 +72,19 @@ export default function PythonRunner({ files, entry, scene }: Props) {
         {output.length === 0 && status !== 'loading' && !busy && (
           <span className="text-fg-muted">Press Run to see what your code does.</span>
         )}
-        {output.map((c, i) => <span key={i} className={KIND_CLASS[c.kind]}>{c.kind === 'note' ? `\n${c.text}\n` : c.text}</span>)}
+        {output.map((c, i) => (
+          <span key={i} className={KIND_CLASS[c.kind]}>
+            {c.kind === 'note' ? `\n${c.text}\n` : c.text}
+          </span>
+        ))}
         {status === 'waiting' && (
           <form
             className="inline"
-            onSubmit={(e) => { e.preventDefault(); sendInput(answer); setAnswer('') }}
+            onSubmit={(e) => {
+              e.preventDefault()
+              sendInput(answer)
+              setAnswer('')
+            }}
           >
             <input
               autoFocus
