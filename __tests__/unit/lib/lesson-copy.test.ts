@@ -14,7 +14,6 @@ const MAX_WORDS = {
   success: 8,
   label: 6,
   hint: 10,
-  brief: 8,
   question: 10,
   option: 6,
   explain: 12,
@@ -91,9 +90,6 @@ type Entry = { where: string; kind: keyof typeof MAX_WORDS; text: string }
 
 const entriesFor = (lessons: Lesson[]): Entry[] =>
   lessons.flatMap((lesson) => [
-    ...(lesson.homeworkBrief
-      ? [{ where: `${lesson.id}`, kind: 'brief' as const, text: lesson.homeworkBrief }]
-      : []),
     ...lesson.tasks.flatMap((task) => [
       { where: `${lesson.id}/${task.id}`, kind: 'chip' as const, text: task.chip },
       { where: `${lesson.id}/${task.id}`, kind: 'success' as const, text: task.success },

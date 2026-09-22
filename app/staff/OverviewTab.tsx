@@ -19,11 +19,9 @@ export default async function OverviewTab() {
     totalClasses,
     activeStudentCount,
     teacherCount,
-    needsReview,
     unpaidCount,
     overdueCount,
     lessonsStartedThisWeek,
-    submittedThisWeek,
     promptsToday,
     totalPrompts,
     promptsByDay,
@@ -42,7 +40,6 @@ export default async function OverviewTab() {
         </div>
         <AttentionFeed
           items={[
-            { href: '/staff/homework', label: 'Homework awaiting review', count: needsReview },
             {
               href: '/staff/finance',
               label: 'Unpaid invoices',
@@ -59,7 +56,6 @@ export default async function OverviewTab() {
           <StatChip label="active students" value={activeStudentCount} />
           <StatChip label="teachers" value={teacherCount} />
           <StatChip label="lessons started this week" value={lessonsStartedThisWeek} />
-          <StatChip label="homework submitted this week" value={submittedThisWeek} />
         </CardContent>
       </Card>
     </div>

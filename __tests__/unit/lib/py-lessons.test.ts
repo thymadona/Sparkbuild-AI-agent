@@ -159,7 +159,7 @@ describe('python catalog', () => {
     expect(lesson.tasks.filter((t) => t.boss)).toHaveLength(1)
     expect(lesson.tasks.find((t) => t.boss)!.type).toBe('core')
     expect(lesson.badge).toBeTruthy()
-    expect(lesson.tasks.filter((t) => t.type === 'homework').length).toBeGreaterThanOrEqual(2)
+    expect(lesson.tasks.filter((t) => t.type === 'bonus').length).toBeGreaterThanOrEqual(2)
     expect(lesson.tasks.some((t) => t.kind === 'bugzap')).toBe(true)
 
     const files = filesFor(lesson, false)

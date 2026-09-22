@@ -2,8 +2,8 @@ import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-cor
 import { projects } from './projects'
 import { users } from './users'
 
-// The permanent log of every prompt (homework review and admin views read
-// it); the rate limit no longer does — that lives in Redis (lib/ratelimit.ts).
+// The permanent log of every prompt (admin views read it); the rate limit no
+// longer does — that lives in Redis (lib/ratelimit.ts).
 export const prompts = pgTable(
   'prompts',
   {

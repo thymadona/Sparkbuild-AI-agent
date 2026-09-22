@@ -1,6 +1,7 @@
 export type ProjectFiles = Record<string, string>
 
-// null = homework not handed in yet
+// Unused since the homework/review feature was removed — describes the
+// values the retained-but-unwritten submission_status column can still hold.
 export type SubmissionStatus = 'submitted' | 'approved' | 'needs_work'
 
 export interface Project {

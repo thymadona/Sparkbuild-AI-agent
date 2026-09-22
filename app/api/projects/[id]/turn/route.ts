@@ -132,7 +132,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (
       viewedTask &&
       viewedTask.type !== 'core' &&
-      viewedTask.type !== 'homework' &&
       !hasCompletedTask(new Set(doneIds), viewedTask.id) &&
       !isTaskLocked(lesson.tasks, lesson.tasks.indexOf(viewedTask), new Set(doneIds))
     ) {
@@ -159,11 +158,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       const stuckTurns = onTask.filter((m) => m.role === 'user').length
       const prevUserMessage = [...onTask].reverse().find((m) => m.role === 'user')?.content
       const askedNow = parsed.data.type === 'student_message' ? parsed.data.text : ''
-      const tier = escalationTier(
-        stuckTurns,
-        detectConfusion(askedNow, prevUserMessage),
-        openTask.type === 'homework'
-      )
+      const tier = escalationTier(stuckTurns, detectConfusion(askedNow, prevUserMessage))
       const concept = awaitingEditor(board, openTask, taskPageId(openTask))
       canComplete = !concept
       nudge = concept

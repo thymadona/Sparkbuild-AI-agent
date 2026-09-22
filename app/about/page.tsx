@@ -39,13 +39,12 @@ export default async function AboutPage() {
           <p className="mt-3 text-fg-secondary leading-relaxed">
             Each weekly lesson takes 45–60 minutes. Students work entirely in their browser — Python
             runs right there, nothing to install. Projects are saved automatically. Teachers can see
-            activity and review homework in the admin dashboard.
+            activity in the admin dashboard.
           </p>
           <ul className="mt-5 space-y-2.5 text-sm text-fg-secondary">
             {[
               'No account setup for students — just a school email',
               'AI is in tutor mode by default — it guides, never solves for you',
-              'Homework is checked by the platform and reviewed by the teacher',
               'Works on any device with a modern browser',
             ].map((item) => (
               <li key={item} className="flex items-start gap-2">

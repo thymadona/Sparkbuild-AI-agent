@@ -4,7 +4,6 @@ export const TASK_LABELS: Record<LessonTaskType, string> = {
   core: 'Core mission',
   choice: 'Make it yours',
   bonus: 'Bonus challenge',
-  homework: 'Homework',
 }
 
 // Type scale for lesson UI. Keeps everything at 14px or larger and drops the

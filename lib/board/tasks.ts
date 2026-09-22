@@ -1,4 +1,4 @@
-import { hasCompletedTask, type Lesson, type LessonTask } from '@/lib/lessons'
+import type { Lesson, LessonTask } from '@/lib/lessons'
 import type { BoardState } from './reducer'
 import type { BoardNode } from './schema'
 import { pageCode, pageCodeNodeId } from './code'
@@ -48,16 +48,6 @@ export function taskFile(task: LessonTask, entry: string): string {
   for (const check of task.checks ?? [])
     if ('file' in check && check.file && check.file !== task.then?.file) return check.file
   return entry
-}
-
-// Homework is done after class and stays shut until the lesson itself is
-// finished. isTaskLocked deliberately does not cover this (the old task panel
-// gated it separately), so the board applies the same rule here.
-export function isTaskOpen(lesson: Lesson, index: number, done: Set<string>): boolean {
-  const task = lesson.tasks[index]
-  if (!task) return false
-  if (task.type !== 'homework') return true
-  return lesson.tasks.every((t) => t.type !== 'core' || hasCompletedTask(done, t.id))
 }
 
 // --- Concept steps: scripted questions shown before a task's editor -----------

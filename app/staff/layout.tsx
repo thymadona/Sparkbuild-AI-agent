@@ -12,7 +12,7 @@ export const maxDuration = 20
 // admin, or anyone who teaches at least one class) and what the sidebar
 // shows them. It is NOT a substitute for each page's own authorization
 // check — a page whose data isn't scoped to "classes I teach" (students,
-// finance, telegram, users, the global homework queue) must still verify
+// finance, telegram, users) must still verify
 // its own required permission, exactly as CLAUDE.md requires for every
 // admin route. Nav visibility here is a convenience, not an access
 // boundary.

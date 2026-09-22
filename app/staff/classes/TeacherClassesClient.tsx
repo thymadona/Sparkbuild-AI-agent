@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -17,7 +16,6 @@ type ClassRow = {
   name: string
   description: string | null
   studentCount: number
-  pendingReviewCount: number
 }
 
 export default function TeacherClassesClient({ classes }: { classes: ClassRow[] }) {
@@ -43,7 +41,6 @@ export default function TeacherClassesClient({ classes }: { classes: ClassRow[] 
             <TableRow>
               <TableHead>Class</TableHead>
               <TableHead className="text-right">Students</TableHead>
-              <TableHead className="text-right">Pending review</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -62,13 +59,6 @@ export default function TeacherClassesClient({ classes }: { classes: ClassRow[] 
                   {cls.studentCount}
                 </TableCell>
                 <TableCell className="text-right">
-                  {cls.pendingReviewCount > 0 ? (
-                    <Badge variant="warning">{cls.pendingReviewCount} waiting</Badge>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/70">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
                   <Link
                     href={`/staff/classes/${cls.id}`}
                     className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors"
@@ -81,7 +71,7 @@ export default function TeacherClassesClient({ classes }: { classes: ClassRow[] 
             {filtered.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={3}
                   className="py-10 text-center text-sm text-muted-foreground/70"
                 >
                   {search ? 'No classes match your search.' : 'No classes assigned yet.'}

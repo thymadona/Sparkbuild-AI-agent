@@ -1,9 +1,10 @@
 import type { TaskCheck } from './task-checks'
 import { PY_LESSONS } from './py-lessons'
 
-// 'homework' tasks are done at home, after class. Like core tasks they hold back
-// build mode, so the AI cannot do the assignment for the student.
-export type LessonTaskType = 'core' | 'choice' | 'bonus' | 'homework'
+// 'core' tasks are the lesson itself; they hold back build mode, so the AI
+// cannot do the assignment for the student. 'choice' and 'bonus' are optional
+// extras and never block it.
+export type LessonTaskType = 'core' | 'choice' | 'bonus'
 
 // Projects pin the catalog version they were created on. Only the Python
 // course (3) exists now; older versions resolve to no lesson.
@@ -72,7 +73,7 @@ export interface LessonTask {
   // checks then judge that program alone, never the code of a neighbouring task.
   starter?: string
   // Start from the final code of this earlier task (`starter` is appended), for
-  // tasks that build on what the student made, like the boss and the homework.
+  // tasks that build on what the student made, like the boss and bonus tasks.
   from?: string
   // How the student works it out: 🔮 predict, ✏️ change, 🛠 make, 🐞 bugzap,
   // 💬 direct the AI, 📝 explain. Only shown as an icon.
@@ -111,8 +112,6 @@ export interface Lesson {
   // mode stays locked until core work is done. 'director': the student
   // directs the AI, so build mode is open and tasks are checked by outcome.
   aiPolicy?: 'tutor' | 'director'
-  // One short line telling the student what this week's homework is about.
-  homeworkBrief?: string
   tasks: LessonTask[]
 }
 

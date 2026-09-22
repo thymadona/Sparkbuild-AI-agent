@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import type { StudentLessonProgress } from './page'
 
 const TYPE_LABEL: Record<string, string> = {
-  homework: 'Homework',
   bonus: 'Bonus',
   choice: 'Choice',
 }
@@ -78,7 +77,7 @@ export default function LessonsPanel({ classId, lessons }: Props) {
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {showProgress
-            ? 'Turn a week on when the class is ready for it, and click a week to see how every student is doing on it — including their homework.'
+            ? 'Turn a week on when the class is ready for it, and click a week to see how every student is doing on it.'
             : 'Weeks start locked for a new class. Turn a week on when this class is ready for it. Students already partway through a week keep their work either way.'}
         </p>
       </div>
@@ -155,13 +154,7 @@ export default function LessonsPanel({ classId, lessons }: Props) {
                                   {t.chip}
                                 </span>
                                 {t.type !== 'core' && (
-                                  <span
-                                    className={`shrink-0 rounded px-1 py-0.5 text-[10px] leading-none ${
-                                      t.type === 'homework'
-                                        ? 'border border-warning/40 bg-warning/10 text-warning'
-                                        : 'border border-border bg-muted text-muted-foreground'
-                                    }`}
-                                  >
+                                  <span className="shrink-0 rounded border border-border bg-muted px-1 py-0.5 text-[10px] leading-none text-muted-foreground">
                                     {TYPE_LABEL[t.type] ?? t.type}
                                   </span>
                                 )}

@@ -13,11 +13,11 @@ describe('xpFor', () => {
   it('pays by task type, with a bigger prize for the boss', () => {
     const boss = week1.tasks.find((t) => t.boss)!
     const core = week1.tasks.find((t) => t.type === 'core' && !t.boss)!
-    const homework = week1.tasks.find((t) => t.type === 'homework')!
+    const bonus = week1.tasks.find((t) => t.type === 'bonus')!
     expect(taskXp(core)).toBe(10)
-    expect(taskXp(homework)).toBe(15)
+    expect(taskXp(bonus)).toBe(20)
     expect(taskXp(boss)).toBe(XP_BOSS)
-    expect(xpFor([row([core.id, boss.id, homework.id])])).toBe(10 + XP_BOSS + 15)
+    expect(xpFor([row([core.id, boss.id, bonus.id])])).toBe(10 + XP_BOSS + 20)
   })
 
   it('counts a task once even when the lesson has two projects', () => {

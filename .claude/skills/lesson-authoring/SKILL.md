@@ -1,6 +1,6 @@
 ---
 name: lesson-authoring
-description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (6 weeks, ids 101–106) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, homework brief, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
+description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (6 weeks, ids 101–106) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
 ---
 
 # Lesson authoring (Python catalog v3)
@@ -23,12 +23,11 @@ interface Lesson {
   scene?: 'robot' | 'vault' // declared, not read yet (world node not built)
   badge?: string // won by the boss task
   aiPolicy?: 'tutor' | 'director' // declared, not read; director mode is not built
-  homeworkBrief?: string // ≤ 8 words
   tasks: LessonTask[]
 }
 interface LessonTask {
   id: string
-  type: 'core' | 'choice' | 'bonus' | 'homework'
+  type: 'core' | 'choice' | 'bonus'
   chip: string // ≤ 5 words — the page title on the board
   success: string // ≤ 8 words — the goal line
   prompt: string // what the student would ask Spark (not budgeted)
@@ -63,11 +62,11 @@ type LessonStep =
 
 Two ways a task binds to code: weeks 2–6 share one starter file per week and each task's
 `commentAnchor` marks its block; week 1 tasks each carry their own `starter` (`from` chains
-them, e.g. boss/homework build on an earlier task's final code) and their checks judge that
+them, e.g. boss/bonus build on an earlier task's final code) and their checks judge that
 program alone. `then` adds a second file (own code block, Run and output) under the first.
 
 Per-lesson task shape used by all six weeks: core ×4–5 (one is the boss) → choice ×1 →
-bonus ×1 → homework ×2–3 (one of them a `bugzap` in `bugzap.py`). Existing: 101 Wake the
+bonus ×3–4 (one of them a `bugzap` in `bugzap.py`). Existing: 101 Wake the
 Robot (Robot Whisperer), 102 The Number Vault (Vault Cracker), 103 Repeat Reactor (Loop
 Master), 104 Inventory Raid (Loot Lord), 105 The Spell Book (Spell Caster), 106 Bug Hunt
 (Code Agent, single file).
@@ -112,7 +111,7 @@ test suite is what catches it.
 
 ## Adding a week — checklist
 
-1. Append the `Lesson` to `PY_LESSONS` (next id, `templateFile: 'py/w7.py'`, `extraFiles`, `badge`, `homeworkBrief`, tasks via `task()`).
+1. Append the `Lesson` to `PY_LESSONS` (next id, `templateFile: 'py/w7.py'`, `extraFiles`, `badge`, tasks via `task()`).
 2. Add `'py/w7.py'` and `'py/w7-bugzap.py'` to `TEMPLATES` in `lib/lessons/templates.ts` with every anchor (or give each task its own `starter`).
 3. Write `__tests__/fixtures/py/w7.solution.py` and `w7-bugzap.solution.py`.
 4. `NODE_OPTIONS=--experimental-vm-modules bunx jest __tests__/unit/lib/py-lessons.test.ts __tests__/unit/lib/lesson-copy.test.ts __tests__/unit/lib/scenes.test.ts` (real Pyodide, ~2 min).
@@ -122,7 +121,7 @@ test suite is what catches it.
 ## Invariants enforced by `__tests__/unit/lib/py-lessons.test.ts`
 
 Ids > 100 and unique · task ids unique per lesson · exactly one `boss`, and it is `core` ·
-`badge` set · ≥ 2 homework tasks · ≥ 1 `bugzap` kind · every task has ≥ 1 check · every anchor
+`badge` set · ≥ 2 bonus tasks · ≥ 1 `bugzap` kind · every task has ≥ 1 check · every anchor
 present in a seeded file · every `from` names an earlier task · every runtime check's `file` is seeded · **no task passes on the
 untouched starter** · **every task passes with the solution fixture** · every
 `sourceMatches.example` repeated `min` times satisfies its check · every bugzap task fails on
@@ -130,7 +129,7 @@ the starter and passes on the fix.
 
 ## Copy budget (`__tests__/unit/lib/lesson-copy.test.ts`)
 
-`MAX_WORDS = { chip: 5, success: 8, label: 6, hint: 10, brief: 8 }`; banned words list
+`MAX_WORDS = { chip: 5, success: 8, label: 6, hint: 10 }`; banned words list
 `TOO_ADVANCED` lives in that test (milestone, customize, prototype, placeholder, gradient,
 duration, specific, realistic, memorable, challenge, celebration, energetic, description,
 collection, encouraging, instructions, statement, interaction, personalize, genuinely, …);
@@ -147,7 +146,7 @@ Copy-only fixes (typos, hints) are safe, and so is adding `steps`/`go` to a task
 
 ## XP per task (from `lib/xp.ts`)
 
-core 10 · choice 15 · bonus 20 · homework 15 · boss 40. Details in `xp-and-streak`.
+core 10 · choice 15 · bonus 20 · boss 40. Details in `xp-and-streak`.
 
 ## Gotchas
 

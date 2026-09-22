@@ -18,24 +18,11 @@ import {
 import { isUuid } from '@/lib/db/uuid'
 import { STAFF_ROLES, hasPermission, isAdmin, isTeacherOfClass } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS, type LessonTaskType } from '@/lib/lessons'
-import { homeworkTasks } from '@/lib/task-guard'
-import type { ClassSchedule, SubmissionStatus } from '@/types'
+import type { ClassSchedule } from '@/types'
 import ClassDetailClient from './ClassDetailClient'
 import TeacherClassClient from './TeacherClassClient'
 import LessonsPanel from './LessonsPanel'
 import { getSessionUser } from '@/lib/auth/session'
-
-export interface TeacherSubmissionRow {
-  projectId: string
-  title: string
-  studentName: string
-  studentEmail: string
-  lessonTitle: string
-  status: SubmissionStatus
-  homeworkDone: number
-  homeworkTotal: number
-  updatedAt: string
-}
 
 export interface StudentTaskProgress {
   id: string
@@ -61,7 +48,7 @@ export interface LessonProgressEntry {
 
 // Same URL, two genuinely different feature sets — not a UI skin
 // difference. Full management (schedule, billing, add/remove teacher)
-// only for classes:manage/admin; homework review + roster for the
+// only for classes:manage/admin; lesson-progress roster for the
 // teacher(s) actually assigned to this specific class. isTeacherOfClass
 // re-checks per class, since teaching one class grants nothing on another.
 export default async function ClassDetailPage(props: { params: Promise<{ id: string }> }) {
@@ -267,58 +254,6 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
     .map((id) => ({ userId: id, name: nameById[id] ?? '', email: emailById[id] ?? id.slice(0, 8) }))
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  let homeworkRows: TeacherSubmissionRow[] = []
-  if (studentIds.length > 0) {
-    const submissions = await db
-      .select({
-        id: projects.id,
-        user_id: projects.userId,
-        title: projects.title,
-        lesson_id: projects.lessonId,
-        lesson_version: projects.lessonVersion,
-        submission_status: projects.submissionStatus,
-        updated_at: projects.updatedAt,
-      })
-      .from(projects)
-      .where(and(isNotNull(projects.submissionStatus), inArray(projects.userId, studentIds)))
-      .orderBy(desc(projects.updatedAt))
-
-    const progressById = new Map<string, string[]>()
-    if (submissions.length > 0) {
-      const progress = await db
-        .select({
-          project_id: lessonProgress.projectId,
-          completed_task_ids: lessonProgress.completedTaskIds,
-        })
-        .from(lessonProgress)
-        .where(
-          inArray(
-            lessonProgress.projectId,
-            submissions.map((p) => p.id)
-          )
-        )
-
-      for (const row of progress) progressById.set(row.project_id, row.completed_task_ids)
-    }
-
-    homeworkRows = submissions.map((project) => {
-      const lesson = getLessonForProject(project.lesson_id ?? -1, project.lesson_version)
-      const homework = homeworkTasks(lesson)
-      const done = new Set(progressById.get(project.id) ?? [])
-      return {
-        projectId: project.id,
-        title: project.title,
-        studentName: nameById[project.user_id] || '',
-        studentEmail: emailById[project.user_id] ?? project.user_id,
-        lessonTitle: lesson?.title ?? 'Unknown lesson',
-        status: project.submission_status as SubmissionStatus,
-        homeworkDone: homework.filter((task) => done.has(task.id)).length,
-        homeworkTotal: homework.length,
-        updatedAt: project.updated_at,
-      }
-    })
-  }
-
   const enabledLessonIds = (enabledLessons ?? []).map((d) => d.lesson_id)
   const blankTasks = (lesson: (typeof LESSONS)[number]) =>
     lesson.tasks.map((t) => ({ id: t.id, chip: t.chip, type: t.type, done: false }))
@@ -338,8 +273,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
 
   if (studentIds.length > 0) {
     // Every project a student has started, one row per (student, lesson) at
-    // most since we keep only the most recently updated per pair below —
-    // unlike homeworkRows above, this isn't limited to submitted homework.
+    // most since we keep only the most recently updated per pair below.
     const projectRows = await db
       .select({
         id: projects.id,
@@ -418,12 +352,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
         <span className="text-foreground">{cls.name}</span>
       </div>
 
-      <TeacherClassClient
-        classId={cls.id}
-        className={cls.name}
-        homeworkRows={homeworkRows}
-        lessonsProgress={lessonsProgress}
-      />
+      <TeacherClassClient classId={cls.id} className={cls.name} lessonsProgress={lessonsProgress} />
     </div>
   )
 }

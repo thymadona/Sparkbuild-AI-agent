@@ -30,9 +30,9 @@ describe('hasPermission', () => {
   it('denies a permission the user’s role does not carry', async () => {
     const user = await makeUser()
     await grantRole(user.id, 'teacher')
-    // The teacher role is seeded with homework:review and students:message only.
+    // The teacher role is seeded with students:message only.
     await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(false)
-    await expect(hasPermission(user.id, 'homework:review')).resolves.toBe(true)
+    await expect(hasPermission(user.id, 'students:message')).resolves.toBe(true)
   })
 
   it('denies a user with no roles at all', async () => {
@@ -44,7 +44,7 @@ describe('hasPermission', () => {
     const user = await makeUser()
     await grantRole(user.id, 'student')
     await expect(hasPermission(user.id, 'invoices:manage')).resolves.toBe(false)
-    await expect(hasPermission(user.id, 'homework:review')).resolves.toBe(false)
+    await expect(hasPermission(user.id, 'students:message')).resolves.toBe(false)
     await expect(hasPermission(user.id, 'roles:manage')).resolves.toBe(false)
   })
 
@@ -247,9 +247,9 @@ describe('getStaffContext', () => {
     await grantRole(user.id, 'teacher')
 
     // A batched query with mis-aliased columns would return one value for all.
-    const ctx = await getStaffContext(user.id, ['homework:review', 'classes:manage'])
+    const ctx = await getStaffContext(user.id, ['students:message', 'classes:manage'])
 
-    expect(ctx.permissions['homework:review']).toBe(true)
+    expect(ctx.permissions['students:message']).toBe(true)
     expect(ctx.permissions['classes:manage']).toBe(false)
   })
 

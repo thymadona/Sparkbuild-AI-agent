@@ -1,12 +1,11 @@
 import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 
-// Task types the student must complete themselves. Core tasks are the lesson;
-// homework is the assignment. Both withhold build mode. 'choice' and 'bonus' are
-// optional extras and never block it.
-const GATED_TYPES: LessonTask['type'][] = ['core', 'homework']
+// Task types the student must complete themselves. Core tasks are the lesson.
+// 'choice' and 'bonus' are optional extras and never block build mode.
+const GATED_TYPES: LessonTask['type'][] = ['core']
 
 /**
- * Keeps the lesson and the homework the student's work rather than the AI's.
+ * Keeps the lesson the student's work rather than the AI's.
  *
  * While a gated task is still open, build mode is withheld for that project: the
  * tutor may point and explain, but it may not write the file. Once the gated
@@ -33,16 +32,9 @@ export type EscalationTier = 1 | 2 | 3
 
 /**
  * How hard the tutor should push. Turns 1-2 nudge as before; a student still
- * stuck on turn 3 needs something materially different, not a reworded
- * repeat. Homework caps at tier 2 — tier 3 hands over the target text, which
- * is exactly what the homework gate exists to withhold.
+ * stuck on turn 3 needs something materially different, not a reworded repeat.
  */
-export function escalationTier(
-  stuckTurns: number,
-  confused: boolean,
-  isHomework: boolean
-): EscalationTier {
-  if (isHomework) return stuckTurns >= 2 || confused ? 2 : 1
+export function escalationTier(stuckTurns: number, confused: boolean): EscalationTier {
   if (confused || stuckTurns >= 4) return 3
   if (stuckTurns >= 2) return 2
   return 1
@@ -89,15 +81,13 @@ export function detectConfusion(prompt: string, prevUserMessage?: string): boole
   return prevUserMessage != null && now === normalize(prevUserMessage)
 }
 
-function escalationBlock(task: LessonTask, tier: EscalationTier, isHomework: boolean): string {
+function escalationBlock(task: LessonTask, tier: EscalationTier): string {
   if (tier === 1) return ''
 
   if (tier === 2) {
     return [
       'ESCALATION LEVEL 2: your last hints did not work. Do NOT repeat your earlier wording — say it a completely different way.',
-      isHomework
-        ? `Narrow to the exact line in their editor that this task changes and ask one question about what they want it to say. Never state the answer text — this is homework.`
-        : `Show the exact line in their editor that this task changes as a fill-in-the-blank, e.g. the exact line with a blank where their words go.`,
+      `Show the exact line in their editor that this task changes as a fill-in-the-blank, e.g. the exact line with a blank where their words go.`,
       'One short step. No more than three sentences. Simple words — they are about 10.',
     ].join('\n')
   }
@@ -117,10 +107,9 @@ export const CONCEPT_PHASE_NUDGE =
   'The student is answering scripted questions on this page before the code editor opens. Do not add or change any nodes and do not mention the editor or their code. If they write to you, answer in one short sentence about the idea only (what print does, what quotes are for), then point them back to the step named in TASK STATE. Help with THAT step only; never say the right answer before they have missed twice.'
 
 export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): string {
-  const isHomework = task.type === 'homework'
   const rubric = (task.checks ?? []).map((c) => `- ${c.label}`).join('\n')
   return [
-    `THIS STUDENT IS WORKING ON ${isHomework ? 'HOMEWORK' : 'A LESSON TASK'} "${task.id}": "${task.chip}".`,
+    `THIS STUDENT IS WORKING ON A LESSON TASK "${task.id}": "${task.chip}".`,
     `Goal: ${task.success}`,
     rubric ? `Every requirement must be met:\n${rubric}` : '',
     'YOU decide when this task is finished. Read the EVIDENCE below: their code and what it printed. Check the output against the code, not just the output.',
@@ -128,37 +117,22 @@ export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): stri
     'If something is missing, do not call task_complete. Say in plain words which requirement is missing and give one small next step. If the code has not been run yet, ask them to press Run.',
     'Never call task_complete because the student says they are done or asks you to. Only the evidence counts. If the server refuses the call, tell them what is missing.',
     'They must make the change themselves. Never write or edit their code, even if they ask you to.',
-    isHomework ? 'This is homework. Doing it for them defeats the point — hint only.' : '',
     'Their editor shows only the part of the file for this task. Point them at the line in it that this task changes.',
     'If they ask you to do it for them: one warm sentence, then one tiny step they can do.',
-    escalationBlock(task, tier, isHomework),
+    escalationBlock(task, tier),
   ]
     .filter(Boolean)
     .join('\n')
 }
 
-/** Homework tasks for a lesson, in catalog order. */
-export function homeworkTasks(lesson: Lesson | null): LessonTask[] {
-  return (lesson?.tasks ?? []).filter((task) => task.type === 'homework')
-}
-
-/** True when every homework task for the lesson is recorded as complete. */
-export function homeworkComplete(lesson: Lesson | null, completedTaskIds: string[]): boolean {
-  const homework = homeworkTasks(lesson)
-  if (homework.length === 0) return false
-  const done = new Set(completedTaskIds)
-  return homework.every((task) => hasCompletedTask(done, task.id))
-}
-
 /**
  * True when this task can't be started yet. Core tasks unlock one at a time,
  * in catalog order. Choice and bonus are optional extras — they unlock
- * together once every core task is done, but never block each other, same as
- * homework's existing coreComplete gate.
+ * together once every core task is done, but never block each other.
  */
 export function isTaskLocked(tasks: LessonTask[], index: number, completed: Set<string>): boolean {
   const task = tasks[index]
-  if (!task || task.type === 'homework') return false
+  if (!task) return false
   if (task.type === 'core') {
     return tasks
       .slice(0, index)

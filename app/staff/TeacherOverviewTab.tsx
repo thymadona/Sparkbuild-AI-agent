@@ -1,19 +1,10 @@
-import Link from 'next/link'
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classMembers, classes, lessonProgress, projects as projectsTable } from '@/lib/db/schema'
 import { getTeacherClassIds } from '@/lib/auth/permissions'
 import { getLessonForProject, LESSONS } from '@/lib/lessons'
-import type { SubmissionStatus } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  AttentionFeed,
-  HeroMetric,
-  MagnitudeBar,
-  Meter,
-  StatChip,
-  StatusBar,
-} from './OverviewWidgets'
+import { HeroMetric, MagnitudeBar, Meter, StatChip } from './OverviewWidgets'
 
 const WEEK_MS = 7 * 86_400_000
 
@@ -51,11 +42,6 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
   for (const m of studentMembers) classStudentIds.get(m.class_id)?.add(m.user_id)
   const studentIds = Array.from(new Set(studentMembers.map((m) => m.user_id)))
 
-  const statusCounts: Record<SubmissionStatus, number> = {
-    submitted: 0,
-    approved: 0,
-    needs_work: 0,
-  }
   let lessonsCompleted = 0
   let tasksCompleted = 0
   let activeThisWeek = 0
@@ -76,33 +62,17 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
   }
 
   if (studentIds.length > 0) {
-    const [submissions, projectRows] = await Promise.all([
-      db
-        .select({
-          user_id: projectsTable.userId,
-          submission_status: projectsTable.submissionStatus,
-        })
-        .from(projectsTable)
-        .where(
-          and(isNotNull(projectsTable.submissionStatus), inArray(projectsTable.userId, studentIds))
-        ),
-      db
-        .select({
-          id: projectsTable.id,
-          user_id: projectsTable.userId,
-          lesson_id: projectsTable.lessonId,
-          lesson_version: projectsTable.lessonVersion,
-          updated_at: projectsTable.updatedAt,
-        })
-        .from(projectsTable)
-        .where(and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId)))
-        .orderBy(desc(projectsTable.updatedAt)),
-    ])
-
-    for (const row of submissions) {
-      const status = row.submission_status as SubmissionStatus
-      if (status in statusCounts) statusCounts[status]++
-    }
+    const projectRows = await db
+      .select({
+        id: projectsTable.id,
+        user_id: projectsTable.userId,
+        lesson_id: projectsTable.lessonId,
+        lesson_version: projectsTable.lessonVersion,
+        updated_at: projectsTable.updatedAt,
+      })
+      .from(projectsTable)
+      .where(and(inArray(projectsTable.userId, studentIds), isNotNull(projectsTable.lessonId)))
+      .orderBy(desc(projectsTable.updatedAt))
 
     const progressById = new Map<string, { completedTaskIds: string[]; updatedAt: string }>()
     if (projectRows.length > 0) {
@@ -188,24 +158,11 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <HeroMetric
-            label="Active students this week"
-            value={activeThisWeek.toLocaleString()}
-            trend={activeTrend}
-          />
-        </div>
-        <AttentionFeed
-          items={[
-            {
-              href: '/staff/classes',
-              label: 'Homework awaiting review',
-              count: statusCounts.submitted,
-            },
-          ]}
-        />
-      </div>
+      <HeroMetric
+        label="Active students this week"
+        value={activeThisWeek.toLocaleString()}
+        trend={activeTrend}
+      />
 
       <Card>
         <CardContent className="flex flex-wrap gap-x-6 gap-y-2">
@@ -214,46 +171,29 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-muted-foreground">Homework</h2>
-              <Link
-                href="/staff/classes"
-                className="text-xs text-primary hover:underline transition-colors"
-              >
-                Review →
-              </Link>
-            </div>
-            <StatusBar counts={statusCounts} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="flex items-baseline justify-between mb-3">
-              <h2 className="text-sm font-semibold text-muted-foreground">
-                Progress across your students
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-2xl font-bold text-foreground">
-                  {lessonsCompleted.toLocaleString()}
-                </div>
-                <div className="text-muted-foreground text-xs mt-1">Lessons completed</div>
+      <Card>
+        <CardContent>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Progress across your students
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-2xl font-bold text-foreground">
+                {lessonsCompleted.toLocaleString()}
               </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">
-                  {tasksCompleted.toLocaleString()}
-                </div>
-                <div className="text-muted-foreground text-xs mt-1">Tasks completed</div>
-              </div>
+              <div className="text-muted-foreground text-xs mt-1">Lessons completed</div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <div className="text-2xl font-bold text-foreground">
+                {tasksCompleted.toLocaleString()}
+              </div>
+              <div className="text-muted-foreground text-xs mt-1">Tasks completed</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent>

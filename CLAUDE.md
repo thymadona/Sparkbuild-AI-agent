@@ -9,8 +9,8 @@ bottom) so it loads only when relevant. Read the matching skill before exploring
 Student Code Builder: an AI-assisted Python platform for students aged 10–16. A 12-week
 course (catalog version 3; weeks 1–6 exist) where the LLM tutors on a shared board
 (`/board/[id]`, the only student workspace) and Python runs in the browser via Pyodide.
-Teachers/admins run classes, review homework and send invoices/receipts over Telegram from a
-back office (`/staff`).
+Teachers/admins run classes and send invoices/receipts over Telegram from a back office
+(`/staff`).
 
 **The platform is Python-only.** There is no HTML editor, web preview, free-form project or
 public gallery — do not add them. Anything that still references such things (see Known
@@ -99,7 +99,7 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 | roles, permission keys, `hasPermission`, `/staff` gating, assigning roles                  | `roles-permissions`     |
 | Redis, `cached()`, TTLs, invalidation, rate limit / 429                                    | `redis-cache-ratelimit` |
 | tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace    | `ai-tutor`              |
-| task checks, verify, complete, homework submit/review, enabled lessons, autosave           | `lesson-progress`       |
+| task checks, verify, complete, enabled lessons, autosave                                   | `lesson-progress`       |
 | adding a week/task, templates, anchors, fixtures, word budgets, catalog version            | `lesson-authoring`      |
 | XP, levels, badges, streak, `activity_days`, `APP_TIMEZONE`                                | `xp-and-streak`         |
 | issue → branch → PR loop                                                                   | `issue-workflow`        |

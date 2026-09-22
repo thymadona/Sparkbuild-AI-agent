@@ -3,7 +3,6 @@ import {
   cheer,
   stepAction,
   awaitingEditor,
-  isTaskOpen,
   nextStepIndex,
   stepNode,
   stepNodeId,
@@ -49,17 +48,6 @@ describe('board task pages', () => {
     const bugzap = lesson.tasks.find((t) => t.id === 'hw-bug-quote')!
     expect(taskFile(bugzap, 'main.py')).toBe('bugzap.py')
     expect(taskFile(lesson.tasks[0], 'main.py')).toBe('main.py')
-  })
-
-  it('keeps homework shut until every core task is done', () => {
-    const homeworkIndex = lesson.tasks.findIndex((t) => t.type === 'homework')
-    const core = lesson.tasks.filter((t) => t.type === 'core').map((t) => t.id)
-
-    expect(isTaskOpen(lesson, homeworkIndex, new Set())).toBe(false)
-    expect(isTaskOpen(lesson, homeworkIndex, new Set(core.slice(0, -1)))).toBe(false)
-    expect(isTaskOpen(lesson, homeworkIndex, new Set(core))).toBe(true)
-    // Everything else is open on its own terms; ordering is isTaskLocked's job.
-    expect(isTaskOpen(lesson, 0, new Set())).toBe(true)
   })
 })
 
