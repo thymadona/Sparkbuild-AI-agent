@@ -226,7 +226,10 @@ export default function BoardView({
                 {showEarlier &&
                   captions.slice(0, -1).map((c, i) => (
                     <div key={i} className="mb-2 text-sm text-[#faf6ee]/75">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={captionMarkdownComponents}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={captionMarkdownComponents}
+                      >
                         {c}
                       </ReactMarkdown>
                     </div>
