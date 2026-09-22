@@ -119,9 +119,27 @@ export interface Lesson {
 export const LESSONS: Lesson[] = PY_LESSONS
 
 // A project pinned to any other version predates the Python course and has no
-// lesson to resolve to. Bump the version by adding a catalog — never edit the
-// old one in place, since lesson_progress stores task ids as plain strings.
+// lesson to resolve to.
 export function getLessonForProject(lessonId: number, lessonVersion: number | null) {
   if (lessonVersion !== CURRENT_LESSON_VERSION) return null
   return LESSONS.find((lesson) => lesson.id === lessonId) ?? null
+}
+
+// The catalog is read live, so content edits (checks, prompts, steps, wording)
+// reach every student immediately — that's fine, nothing persists it. Task ids
+// and `# TASK: <id>` anchors are different: lesson_progress stores completed
+// ids as plain strings, and a board node's anchor is baked in at creation time
+// (app/board/LiveBoard.tsx). Renaming or removing a shipped id/anchor without
+// registering it here makes an already-completed task look undone again
+// (re-locks build mode, drops XP/a badge) — caught by py-lessons.test.ts
+// against __tests__/fixtures/frozen-task-ids.json. Append-only, one hop.
+export const TASK_ID_ALIASES: Record<string, string> = {}
+
+// Whether a task counts as completed, whether the student's saved progress
+// used the task's current id or an id it was later renamed from.
+export function hasCompletedTask(completed: Set<string>, taskId: string): boolean {
+  if (completed.has(taskId)) return true
+  for (const [oldId, newId] of Object.entries(TASK_ID_ALIASES))
+    if (newId === taskId && completed.has(oldId)) return true
+  return false
 }

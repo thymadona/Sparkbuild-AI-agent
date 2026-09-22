@@ -1,4 +1,4 @@
-import type { Lesson, LessonTask } from '@/lib/lessons'
+import { hasCompletedTask, type Lesson, type LessonTask } from '@/lib/lessons'
 import type { BoardState } from './reducer'
 import type { BoardNode } from './schema'
 import { pageCode, pageCodeNodeId } from './code'
@@ -57,7 +57,7 @@ export function isTaskOpen(lesson: Lesson, index: number, done: Set<string>): bo
   const task = lesson.tasks[index]
   if (!task) return false
   if (task.type !== 'homework') return true
-  return lesson.tasks.every((t) => t.type !== 'core' || done.has(t.id))
+  return lesson.tasks.every((t) => t.type !== 'core' || hasCompletedTask(done, t.id))
 }
 
 // --- Concept steps: scripted questions shown before a task's editor -----------

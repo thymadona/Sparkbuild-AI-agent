@@ -1,6 +1,7 @@
 import { BoardNode } from './schema'
 import type { BoardState } from './reducer'
 import { z } from 'zod'
+import { TASK_ID_ALIASES } from '@/lib/lessons'
 
 // The student's program on the board. A project opened from an old editor session
 // is seeded as node `main`; otherwise it is the newest editable Python node.
@@ -63,9 +64,25 @@ export interface Block {
   compose: (block: string) => string
 }
 
+// A node's anchor is baked in at creation time from the task's commentAnchor
+// (app/board/LiveBoard.tsx), so a renamed id leaves already-created nodes
+// pointing at the old anchor text. Try the id(s) it was renamed from before
+// falling open to the whole file. ponytail: one hop, matching TASK_ID_ALIASES.
+function anchorCandidates(anchor: string): string[] {
+  const id = anchor.match(/^TASK: (.+)$/)?.[1]
+  if (!id) return [anchor]
+  const oldIds = Object.entries(TASK_ID_ALIASES)
+    .filter(([, newId]) => newId === id)
+    .map(([oldId]) => `TASK: ${oldId}`)
+  return [anchor, ...oldIds]
+}
+
 export function blockOf(source: string, anchor?: string): Block {
   const lines = source.split('\n')
-  const at = anchor ? lines.findIndex((l) => l.trim() === `# ${anchor}`) : -1
+  const candidates = anchor ? anchorCandidates(anchor) : []
+  const at = candidates.length
+    ? lines.findIndex((l) => candidates.some((c) => l.trim() === `# ${c}`))
+    : -1
   if (at < 0) return { block: source, offset: 0, compose: (v) => v }
   const next = lines.findIndex((l, i) => i > at && /^#\s*TASK:/.test(l))
   const end = next < 0 ? lines.length : next

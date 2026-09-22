@@ -1,0 +1,71 @@
+{
+  "101": [
+    "first-words",
+    "intro-3",
+    "name-tag",
+    "shout",
+    "boot-up",
+    "paint",
+    "story",
+    "hw-add-fact",
+    "hw-bug-quote"
+  ],
+  "102": [
+    "vault-math",
+    "true-false",
+    "door-lock",
+    "three-doors",
+    "vault-guard",
+    "and-or",
+    "even-odd",
+    "hw-discount",
+    "hw-bug-equals"
+  ],
+  "103": [
+    "count-down",
+    "times-table",
+    "hold-line",
+    "ask-repeat",
+    "guess-number",
+    "stars",
+    "total",
+    "hw-countdown",
+    "hw-explain",
+    "hw-bug-loop"
+  ],
+  "104": [
+    "backpack",
+    "loot-loop",
+    "grab-drop",
+    "item-stats",
+    "loot-report",
+    "sort-loot",
+    "trade",
+    "hw-shopping",
+    "hw-comment",
+    "hw-bug-index"
+  ],
+  "105": [
+    "first-spell",
+    "target-spell",
+    "damage",
+    "dice",
+    "battle-round",
+    "heal",
+    "crit",
+    "hw-shield",
+    "hw-explain",
+    "hw-bug-return"
+  ],
+  "106": [
+    "read-crash",
+    "three-bugs",
+    "detective",
+    "catch-ai",
+    "factory-rescue",
+    "shrink",
+    "plant-bug",
+    "hw-bug-crash",
+    "hw-report"
+  ]
+}

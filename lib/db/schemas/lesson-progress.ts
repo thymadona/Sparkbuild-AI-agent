@@ -1,9 +1,10 @@
 import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { projects } from './projects'
 
-// completed_task_ids stores task ids as plain strings, which is why a lesson
-// catalog is never edited in place once students have progress on it —
-// bump `projects.lesson_version` and add a catalog instead.
+// completed_task_ids stores task ids as plain strings, so lib/py-lessons.ts
+// content stays freely live-editable but a shipped task id or `# TASK: <id>`
+// anchor must never be renamed or removed without a lib/lessons.ts
+// TASK_ID_ALIASES entry — see the comment above TASK_ID_ALIASES there.
 //
 // __tests__/integration/api/lesson-progress.test.ts regexes this file's text
 // for the cascading FK below; keep that chain's call order and options as-is.

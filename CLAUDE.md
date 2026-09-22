@@ -63,10 +63,14 @@ Each rule's rationale is in the skill named in parentheses.
   `awaitingEditor` withholds the tool —, backed by a real run, static checks re-pass on
   stored code via `verifyTask`) and `recordTaskDone` (`lib/task-progress.ts`) is the **only**
   writer that grows `lesson_progress`. `PUT …/lesson-progress` may only shrink. (`lesson-progress`)
-- Never edit lesson catalog v3 in place once students have progress; bump
-  `CURRENT_LESSON_VERSION` (adding `steps` to a task is additive and needs no bump). Starters
-  are TS strings in `lib/lessons/templates.ts`, never files under `public/`; renaming a
-  `# TASK: <id>` anchor there silently breaks the block view. Student copy has word budgets
+- The lesson catalog (`lib/py-lessons.ts`) is read live: content edits (checks, prompts, steps,
+  wording) reach every student immediately, old and new, and need no version bump. A shipped
+  task id or its `# TASK: <id>` anchor is different — `lesson_progress` stores ids as plain
+  strings and a board node's anchor is baked in at creation, so renaming or removing one
+  un-completes a finished task for students who already have it. Never rename/remove a shipped
+  id without adding it to `TASK_ID_ALIASES` (`lib/lessons.ts`); `py-lessons.test.ts` +
+  `__tests__/fixtures/frozen-task-ids.json` enforce this in CI. Starters are TS strings in
+  `lib/lessons/templates.ts`, never files under `public/`. Student copy has word budgets
   enforced by tests. (`lesson-authoring`)
 - Schema changes: edit `lib/db/schemas/<table>.ts` → `bun run db:generate` → hand-add what the
   DSL can't express (`--custom`) → `bun run db:migrate` → update `types/index.ts` by hand. A

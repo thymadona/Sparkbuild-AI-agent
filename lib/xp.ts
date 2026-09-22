@@ -1,4 +1,4 @@
-import { getLessonForProject, type Lesson, type LessonTask } from './lessons'
+import { getLessonForProject, hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 
 // The game layer. XP, levels and badges are pure functions of the student's
 // saved task progress and the lesson catalog, so there is nothing to store or
@@ -47,7 +47,7 @@ function doneByLesson(rows: ProgressRow[]) {
 export function xpFor(rows: ProgressRow[]): number {
   let total = 0
   for (const { lesson, ids } of doneByLesson(rows)) {
-    for (const task of lesson.tasks) if (ids.has(task.id)) total += taskXp(task)
+    for (const task of lesson.tasks) if (hasCompletedTask(ids, task.id)) total += taskXp(task)
   }
   return total
 }
@@ -56,7 +56,7 @@ export function xpFor(rows: ProgressRow[]): number {
 export function badgesFor(rows: ProgressRow[]): string[] {
   return doneByLesson(rows).flatMap(({ lesson, ids }) => {
     const boss = lesson.tasks.find((t) => t.boss)
-    return lesson.badge && boss && ids.has(boss.id) ? [lesson.badge] : []
+    return lesson.badge && boss && hasCompletedTask(ids, boss.id) ? [lesson.badge] : []
   })
 }
 
