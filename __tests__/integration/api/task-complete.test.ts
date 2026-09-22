@@ -390,3 +390,56 @@ describe('a task with two programs', () => {
     expect(await progressOf(project.id)).toEqual([])
   })
 })
+
+describe('a choice task while a later homework task is still pending', () => {
+  // Choice/bonus tasks are never pendingCoreTask's answer, so the turn route
+  // must open whichever unlocked one the student's board page names instead.
+  const paint = lesson.tasks.find((t) => t.id === 'paint')!
+  const CODE = 'import sparky\nsparky.color("pink")\n'
+  const paintBoard = {
+    pages: [{ id: taskPageId(paint), title: paint.chip, nodeIds: ['c1'] }],
+    activePageId: taskPageId(paint),
+    focusId: null,
+    nodes: {
+      c1: {
+        id: 'c1',
+        parentId: null,
+        createdBy: 'student',
+        type: 'code',
+        language: 'python',
+        source: CODE,
+        editable: true,
+      },
+    },
+  }
+
+  it('is recorded even though every core task is done and homework is open', async () => {
+    const user = await makeUser()
+    mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
+    const project = await makeProject(user.id, {
+      lessonId: lesson.id,
+      lessonVersion: 3,
+      files: { 'main.py': CODE },
+      board: paintBoard,
+    })
+    await setLessonProgress(
+      project.id,
+      ['first-words', 'intro-3', 'name-tag', 'shout', 'boot-up'],
+      new Date().toISOString()
+    )
+    complete(paint.id)
+
+    await drain(
+      await post(project.id, {
+        type: 'code_run_result',
+        nodeId: 'c1',
+        source: CODE,
+        ok: true,
+        stdout: '',
+        stderr: '',
+      })
+    )
+
+    expect(await progressOf(project.id)).toContain(paint.id)
+  })
+})

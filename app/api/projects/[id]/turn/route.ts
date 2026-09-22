@@ -7,16 +7,17 @@ import { deepseek, MODEL } from '@/lib/deepseek'
 import { checkRateLimit } from '@/lib/ratelimit'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
-import { getLessonForProject, type LessonTask } from '@/lib/lessons'
+import { getLessonForProject, hasCompletedTask, type LessonTask } from '@/lib/lessons'
 import { entryFileFor } from '@/lib/starter-file'
 import { pageCode, withBoardCode } from '@/lib/board/code'
-import { awaitingEditor, taskPageId } from '@/lib/board/tasks'
+import { awaitingEditor, taskForPageId, taskPageId } from '@/lib/board/tasks'
 import { cached } from '@/lib/cache'
 import {
   CONCEPT_PHASE_NUDGE,
   buildTaskNudge,
   detectConfusion,
   escalationTier,
+  isTaskLocked,
   pendingCoreTask,
 } from '@/lib/task-guard'
 import { isRuntimeCheck } from '@/lib/task-checks'
@@ -121,7 +122,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
       return row ?? null
     })
-    openTask = pendingCoreTask(lesson, progress?.completed_task_ids ?? [])
+    const doneIds = progress?.completed_task_ids ?? []
+    openTask = pendingCoreTask(lesson, doneIds)
+    // Choice/bonus tasks never gate the lesson, so pendingCoreTask never answers
+    // with one — but once unlocked they are a real task the student can be
+    // working on. Let the one they're actually looking at take the turn, or it
+    // can never be finished: task_complete only ever names the pending core task.
+    const viewedTask = taskForPageId(lesson, board.activePageId)
+    if (
+      viewedTask &&
+      viewedTask.type !== 'core' &&
+      viewedTask.type !== 'homework' &&
+      !hasCompletedTask(new Set(doneIds), viewedTask.id) &&
+      !isTaskLocked(lesson.tasks, lesson.tasks.indexOf(viewedTask), new Set(doneIds))
+    ) {
+      openTask = viewedTask
+    }
     if (openTask) {
       // The checklist is a rubric for the tutor, not a verdict: the tutor judges
       // the evidence itself and completes the task with task_complete.
