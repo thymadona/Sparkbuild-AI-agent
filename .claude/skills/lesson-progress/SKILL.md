@@ -1,6 +1,6 @@
 ---
 name: lesson-progress
-description: How a student's lesson progress is made and verified end to end — catalog resolution (`getLessonForProject`, `CURRENT_LESSON_VERSION = 3`), the check kinds (`sourceMatches` static; `outputContains`/`worldContains`/`callReturns` runtime in Pyodide), `runTaskChecks`, the tutor-judged completion path (`task_complete` tool → turn-route guard → `verifyTask` static floor on stored code → `recordTaskDone` in `lib/task-progress.ts`, the only writer that grows `lesson_progress`, plus the `task_progress` audit row), task gating (`isTaskLocked`, `isTaskOpen`, `pendingCoreTask`, `awaitingEditor`), the `lesson_progress` routes (GET / shrink-only PUT), the board's `task.complete` SSE flow, lesson availability (`class_enabled_lessons`), project creation and autosave (`/api/projects`), and homework submit/review (`submission_status`, teacher `messages`). Use for anything mentioning lesson progress, task, check, verify, complete, task_complete, completed_task_ids, lesson_progress, task_progress, evidence, hasRun, stale run, done, locked, gate, next task, homework, submit, hand in, review, approved, needs_work, submission_status, enabled lessons, "not open yet", start/resume lesson, project creation, autosave, PATCH projects, runtime verdict, 409. Use this before exploring `lib/task-*.ts`, `app/api/projects/`, `hooks/use*Progress*`, `lib/lesson-availability.ts`, `lib/lesson-files.ts` — it already maps them.
+description: How a student's lesson progress is made and verified end to end — catalog resolution (`getLessonForProject`, `CURRENT_LESSON_VERSION = 3`), the check kinds (`sourceMatches` static; `outputContains`/`worldContains`/`callReturns` runtime in Pyodide), `runTaskChecks`, the tutor-judged completion path (`task_complete` tool → turn-route guard → `verifyTask` static floor on stored code → `recordTaskDone` in `lib/task-progress.ts`, the only writer that grows `lesson_progress`, plus the `task_progress` audit row), task gating (`isTaskLocked`, `pendingCoreTask`, `awaitingEditor`), the `lesson_progress` routes (GET / shrink-only PUT), the board's `task.complete` SSE flow, lesson availability (`class_enabled_lessons`), and project creation and autosave (`/api/projects`). Use for anything mentioning lesson progress, task, check, verify, complete, task_complete, completed_task_ids, lesson_progress, task_progress, evidence, hasRun, stale run, done, locked, gate, next task, enabled lessons, "not open yet", start/resume lesson, project creation, autosave, PATCH projects, runtime verdict, 409. Use this before exploring `lib/task-*.ts`, `app/api/projects/`, `hooks/use*Progress*`, `lib/lesson-availability.ts`, `lib/lesson-files.ts` — it already maps them.
 ---
 
 # Lesson progress: checks → evidence → tutor verdict → record
@@ -13,27 +13,25 @@ prompt/tool side). Authoring a lesson (tasks, checks, templates, word budgets) i
 
 ## Files
 
-| Path                                                                    | What it holds                                                                                                                                                                                                                                                       |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/lessons.ts`                                                        | `Lesson`, `LessonTask`, `LessonTaskType = core                                                                                                                                                                                                                      | choice                                                                                                                                                  | bonus | homework`, `CURRENT_LESSON_VERSION = 3`, `LESSONS = PY_LESSONS`, `getLessonForProject(lessonId, lessonVersion)`→`null` unless version 3. |
-| `lib/task-checks.ts`                                                    | `TaskCheck` union, `RuntimeVerdicts = (boolean                                                                                                                                                                                                                      | undefined)[]`(by check index),`isRuntimeCheck`, `runTaskChecks(checks, code, verdicts) → TaskCheckResult[]`(sync),`allChecksPassed`, `firstUnmetCheck`. |
-| `lib/python-checks.ts`                                                  | `runPythonChecks(checks, files, entry, exec) → RuntimeVerdicts`; `PyExec` interface; `PyUnavailable`. Browser exec: `lib/python-check-client.ts` `workerExec` (hidden worker, 5s).                                                                                  |
-| `lib/task-verify.ts`                                                    | `taskCode(board, files, entry, task)` (page code → board code → `files[entry]`), `verifyTask(task, code, reported) → { results, passed, failed }` — the static floor.                                                                                               |
-| `lib/task-evidence.ts`                                                  | `Program { file, source, stdout, stale }`, `taskPrograms(board, task, entry, run?)`, `hasRun` (a run of the exact current source), `outputVerdict`, `describeEvidence`, `describeStep`, `describeTaskState` — the EVIDENCE / TASK STATE blocks the tutor reads.     |
-| `lib/task-progress.ts`                                                  | `recordTaskDone(projectId, userId, taskId, { reason, programs })` — **the only writer that grows `lesson_progress`**; one transaction with the `task_progress` audit row; idempotent; invalidates the cache; `recordActivity`.                                      |
-| `lib/task-guard.ts`                                                     | `pendingCoreTask(lesson, done)` (first unfinished `core`/`homework`), `isTaskLocked(tasks, index, doneSet)`, `homeworkTasks`, `homeworkComplete`, `CONCEPT_PHASE_NUDGE`, plus the tutor nudge helpers.                                                              |
-| `lib/board/tasks.ts`                                                    | `isTaskOpen(lesson, index, done)` — homework opens only when every core task is done; `taskPageId`, `taskCodeNodeId`, `taskFile`, `taskStarter`, `awaitingEditor(board, task, pageId)` (concept steps still showing → task code is `''`, `task_complete` withheld). |
-| `lib/lesson-project.ts`                                                 | `getLessonProject(projectId, userId)` — owner-scoped project + resolved lesson. **No live caller** since the complete route went (dead file).                                                                                                                       |
-| `lib/lesson-files.ts`, `lib/lessons/templates.ts`                       | `lessonFiles(lesson)` builds a new project's files server-side from `TEMPLATES` (`templateFor(key)`); nothing the client sends is used.                                                                                                                             |
-| `lib/starter-file.ts`                                                   | `entryFileFor(lesson, _files)` → `lesson.starterFile ?? 'main.py'` (second arg unused).                                                                                                                                                                             |
-| `lib/lesson-availability.ts`                                            | `getEnabledLessonIdsForUser(userId) → Set<number>` — `class_members(role='student') ⋈ class_enabled_lessons`, cached 60s, DB error → empty set.                                                                                                                     |
-| `app/api/projects/route.ts`                                             | GET list · POST create · PATCH autosave · DELETE.                                                                                                                                                                                                                   |
-| `app/api/projects/[id]/lesson-progress/route.ts`                        | GET, PUT (shrink only). No route adds an id — that is `task_complete` inside `app/api/projects/[id]/turn/route.ts` (below).                                                                                                                                         |
-| `app/api/projects/[id]/submit/route.ts`                                 | Homework hand-in.                                                                                                                                                                                                                                                   |
-| `app/api/admin/homework/[id]/review/route.ts`                           | Teacher/admin review. UI: `components/dashboard/HomeworkReviewTable.tsx` from `app/staff/homework/HomeworkClient.tsx` (admin queue) and `app/staff/classes/[id]/TeacherClassClient.tsx`.                                                                            |
-| `app/api/admin/classes/[id]/lessons/route.ts`                           | Teacher enables/disables a lesson for a class (`LessonsPanel.tsx`).                                                                                                                                                                                                 |
-| `app/lessons/page.tsx` + `LessonsClient.tsx`, `app/lessons/[id]/`       | Roadmap: Start (`POST /api/projects { lessonId }` → `/board/<id>`), Resume, "Not open yet".                                                                                                                                                                         |
-| `hooks/useRuntimeChecks.ts`, `useTaskChecks.ts`, `useLessonProgress.ts` | Board-side checklist + `applyDone(ids)` / `resetProgress` / `submitHomework` (flow below).                                                                                                                                                                          |
+| Path                                                                    | What it holds                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/lessons.ts`                                                        | `Lesson`, `LessonTask`, `LessonTaskType = core                                                                                                                                                                                                                  | choice                                                                                                                                                  | bonus`, `CURRENT_LESSON_VERSION = 3`, `LESSONS = PY_LESSONS`, `getLessonForProject(lessonId, lessonVersion)`→`null` unless version 3. |
+| `lib/task-checks.ts`                                                    | `TaskCheck` union, `RuntimeVerdicts = (boolean                                                                                                                                                                                                                  | undefined)[]`(by check index),`isRuntimeCheck`, `runTaskChecks(checks, code, verdicts) → TaskCheckResult[]`(sync),`allChecksPassed`, `firstUnmetCheck`. |
+| `lib/python-checks.ts`                                                  | `runPythonChecks(checks, files, entry, exec) → RuntimeVerdicts`; `PyExec` interface; `PyUnavailable`. Browser exec: `lib/python-check-client.ts` `workerExec` (hidden worker, 5s).                                                                              |
+| `lib/task-verify.ts`                                                    | `taskCode(board, files, entry, task)` (page code → board code → `files[entry]`), `verifyTask(task, code, reported) → { results, passed, failed }` — the static floor.                                                                                           |
+| `lib/task-evidence.ts`                                                  | `Program { file, source, stdout, stale }`, `taskPrograms(board, task, entry, run?)`, `hasRun` (a run of the exact current source), `outputVerdict`, `describeEvidence`, `describeStep`, `describeTaskState` — the EVIDENCE / TASK STATE blocks the tutor reads. |
+| `lib/task-progress.ts`                                                  | `recordTaskDone(projectId, userId, taskId, { reason, programs })` — **the only writer that grows `lesson_progress`**; one transaction with the `task_progress` audit row; idempotent; invalidates the cache; `recordActivity`.                                  |
+| `lib/task-guard.ts`                                                     | `pendingCoreTask(lesson, done)` (first unfinished `core`), `isTaskLocked(tasks, index, doneSet)`, `CONCEPT_PHASE_NUDGE`, plus the tutor nudge helpers.                                                                                                          |
+| `lib/board/tasks.ts`                                                    | `taskPageId`, `taskCodeNodeId`, `taskFile`, `taskStarter`, `awaitingEditor(board, task, pageId)` (concept steps still showing → task code is `''`, `task_complete` withheld).                                                                                   |
+| `lib/lesson-project.ts`                                                 | `getLessonProject(projectId, userId)` — owner-scoped project + resolved lesson. **No live caller** since the complete route went (dead file).                                                                                                                   |
+| `lib/lesson-files.ts`, `lib/lessons/templates.ts`                       | `lessonFiles(lesson)` builds a new project's files server-side from `TEMPLATES` (`templateFor(key)`); nothing the client sends is used.                                                                                                                         |
+| `lib/starter-file.ts`                                                   | `entryFileFor(lesson, _files)` → `lesson.starterFile ?? 'main.py'` (second arg unused).                                                                                                                                                                         |
+| `lib/lesson-availability.ts`                                            | `getEnabledLessonIdsForUser(userId) → Set<number>` — `class_members(role='student') ⋈ class_enabled_lessons`, cached 60s, DB error → empty set.                                                                                                                 |
+| `app/api/projects/route.ts`                                             | GET list · POST create · PATCH autosave · DELETE.                                                                                                                                                                                                               |
+| `app/api/projects/[id]/lesson-progress/route.ts`                        | GET, PUT (shrink only). No route adds an id — that is `task_complete` inside `app/api/projects/[id]/turn/route.ts` (below).                                                                                                                                     |
+| `app/api/admin/classes/[id]/lessons/route.ts`                           | Teacher enables/disables a lesson for a class (`LessonsPanel.tsx`).                                                                                                                                                                                             |
+| `app/lessons/page.tsx` + `LessonsClient.tsx`, `app/lessons/[id]/`       | Roadmap: Start (`POST /api/projects { lessonId }` → `/board/<id>`), Resume, "Not open yet".                                                                                                                                                                     |
+| `hooks/useRuntimeChecks.ts`, `useTaskChecks.ts`, `useLessonProgress.ts` | Board-side checklist + `applyDone(ids)` / `resetProgress` (flow below).                                                                                                                                                                                         |
 
 ## Checks
 
@@ -52,13 +50,12 @@ reported run's stdout; `worldContains`/`callReturns` are left to the tutor's jud
 ## Gating
 
 - `isTaskLocked`: core locked while an earlier core is unfinished; choice/bonus locked while
-  _any_ core is unfinished; homework never locked here.
-- `isTaskOpen`: homework open only when all core tasks are done (this is the homework gate the
-  board page rail uses).
-- `pendingCoreTask` gates the tutor on `['core','homework']` in catalog order.
+  _any_ core is unfinished, but never against each other.
+- `pendingCoreTask` gates the tutor on `['core']` in catalog order — choice/bonus never withhold
+  build mode.
 - `awaitingEditor`: while a task's concept steps are still showing there is no editor, the
   task's code is `''` (never the `boardCode` fallback) and `task_complete` is withheld.
-- Optional tasks (`choice`/`bonus`) are skippable on the board so they can't wall off homework.
+- Optional tasks (`choice`/`bonus`) are skippable on the board so they can't wall off anything.
 
 ## Routes
 
@@ -96,19 +93,11 @@ neither forge nor fetch starters); inserts with `lessonVersion: CURRENT_LESSON_V
 must pass `SavedBoard.safeParse` (400); owner-scoped → 404. **DELETE `?id=`** deletes
 `messages`, `prompts`, then the project (the `prompts` FK is NO ACTION).
 
-**POST `submit`** — 404 no lesson; 400 lesson has no homework; already `submitted`/`approved`
-→ 200 unchanged; `!homeworkComplete` → 409 `Finish your homework tasks first`; sets
-`submission_status = 'submitted'`. `needs_work` may resubmit.
-
-**POST `admin/homework/[id]/review` `{ status: 'approved'|'needs_work', feedback? }`** —
-`isAdmin || hasPermission('homework:review')` → 403; `needs_work` requires feedback (400);
-not handed in → 409; non-admins must teach a class the student is in (`getTeacherClassIds` +
-`class_members.role='student'`) → 403; transaction: update status + insert
-`messages { role: 'teacher', userId: student, content: feedback }`. The tutor sees that row as a
-plain user message (`ai-tutor`).
-
-`SubmissionStatus = 'submitted' | 'approved' | 'needs_work'` (`types/index.ts`); `null` = not
-handed in; DB check constraint matches.
+There is no submission/review flow anymore — homework tasks were relabeled as plain `bonus`
+tasks and the submit/review routes were deleted. `projects.submission_status` (and old
+`messages` rows with `role: 'teacher'` from before the removal) stay in the DB as historical
+data, but no live code reads or writes them; `SubmissionStatus` (`types/index.ts`) documents the
+column's possible values only.
 
 ## Board flow (student finishes a task)
 
@@ -123,7 +112,6 @@ handed in; DB check constraint matches.
    server's end-of-turn board write) → `useLessonProgress.applyDone(ids)`.
 5. `LiveBoard`: confetti (big when all tasks done), `advanceTo` opens the next unfinished task page
    (`taskStarter`, or the code carried forward), then a `task_advanced` tutor turn introduces it.
-6. Homework page footer → `submit`; teacher reviews; `needs_work` unlocks resubmission.
 
 Completion costs a tutor turn, so a student past the 50/hour rate limit cannot finish tasks
 until it resets. The 90s "I am stuck — show me" escape hatch and "Skip this one" on optional
@@ -154,11 +142,8 @@ toggled via `POST admin/classes/[id]/lessons { lessonId, enabled }` — `classes
 ## Gotchas / stale comments
 
 - `turn/route.ts` mentions `/api/generate` (gone) and "build mode"; `lib/lesson-project.ts` has no caller.
-- `lib/task-guard.ts` `isTaskLocked` comment cites a `coreComplete` symbol that does not exist;
-  the homework gate is `isTaskOpen` in `lib/board/tasks.ts`.
 - `lesson-progress/route.ts` has a private copy of `getLessonProject` instead of importing `lib/lesson-project.ts`.
 - `app/lessons/[id]/LessonDetailClient.tsx` strips a `Task N — ` prefix no chip has.
-- `app/admin/homework/page.tsx` is a redirect to `/staff/homework`.
 
 ## Tests
 

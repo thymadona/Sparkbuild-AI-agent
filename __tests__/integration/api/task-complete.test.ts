@@ -391,7 +391,7 @@ describe('a task with two programs', () => {
   })
 })
 
-describe('a choice task while a later homework task is still pending', () => {
+describe('a choice task while a later bonus task is still pending', () => {
   // Choice/bonus tasks are never pendingCoreTask's answer, so the turn route
   // must open whichever unlocked one the student's board page names instead.
   const paint = lesson.tasks.find((t) => t.id === 'paint')!
@@ -413,7 +413,7 @@ describe('a choice task while a later homework task is still pending', () => {
     },
   }
 
-  it('is recorded even though every core task is done and homework is open', async () => {
+  it('is recorded even though every core task is done and another bonus task is open', async () => {
     const user = await makeUser()
     mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
     const project = await makeProject(user.id, {

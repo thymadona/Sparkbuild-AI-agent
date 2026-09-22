@@ -6,7 +6,6 @@ import {
   classSchedules,
   classes as classesTable,
   invoices,
-  projects,
   roles,
   studentProfiles,
   userRoles,
@@ -153,7 +152,7 @@ export default async function ClassesPage() {
   const classIds = await getTeacherClassIds(user.id)
   if (classIds.length === 0) redirect('/staff')
 
-  const [classes, members, submitted] = await Promise.all([
+  const [classes, members] = await Promise.all([
     db
       .select({
         id: classesTable.id,
@@ -171,10 +170,6 @@ export default async function ClassesPage() {
       })
       .from(classMembers)
       .where(inArray(classMembers.classId, classIds)),
-    db
-      .select({ user_id: projects.userId })
-      .from(projects)
-      .where(eq(projects.submissionStatus, 'submitted')),
   ])
 
   const studentIdsByClass: Record<string, string[]> = {}
@@ -184,25 +179,19 @@ export default async function ClassesPage() {
     studentIdsByClass[m.class_id].push(m.user_id)
   }
 
-  const pendingReviewUserIds = new Set(submitted.map((p) => p.user_id))
-
-  const rows = classes.map((cls) => {
-    const studentIds = studentIdsByClass[cls.id] ?? []
-    return {
-      id: cls.id,
-      name: cls.name,
-      description: cls.description,
-      studentCount: studentIds.length,
-      pendingReviewCount: studentIds.filter((id) => pendingReviewUserIds.has(id)).length,
-    }
-  })
+  const rows = classes.map((cls) => ({
+    id: cls.id,
+    name: cls.name,
+    description: cls.description,
+    studentCount: (studentIdsByClass[cls.id] ?? []).length,
+  }))
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">Your classes</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Rosters and homework review, scoped to classes you teach.
+          Rosters and class management, scoped to classes you teach.
         </p>
       </div>
       <TeacherClassesClient classes={rows} />

@@ -16,12 +16,12 @@ the streak needs a table.
 | `lib/player-stats.ts`                          | `getPlayerStats(userId) → PlayerStats` (fail-open to zeros), `recordActivity(userId)`.                                                                                                      |
 | `lib/db/schemas/activity-days.ts`              | `activity_days (user_id uuid FK cascade, day date)` PK `(user_id, day)`.                                                                                                                    |
 | `components/PlayerCard.tsx`                    | Level name, XP bar, streak pill, badges. Rendered by `app/lessons/page.tsx` (`LessonsClient` sidebar).                                                                                      |
-| `app/board/TaskHeader.tsx`, `lib/lesson-ui.ts` | `+N XP` per task via `taskXp`; labels `TASK_LABELS` (Core mission / Make it yours / Bonus challenge / Homework; boss → 🏆 Boss fight).                                                      |
+| `app/board/TaskHeader.tsx`, `lib/lesson-ui.ts` | `+N XP` per task via `taskXp`; labels `TASK_LABELS` (Core mission / Make it yours / Bonus challenge; boss → 🏆 Boss fight).                                                                 |
 
 ## Values
 
 ```ts
-XP_PER_TASK = { core: 10, choice: 15, bonus: 20, homework: 15 }
+XP_PER_TASK = { core: 10, choice: 15, bonus: 20 }
 XP_BOSS = 40                     // taskXp(task) = task.boss ? XP_BOSS : XP_PER_TASK[task.type]
 LEVELS = [Rookie 0, Coder 100, Scripter 250, Debugger 450, Agent 750, Director 1100, Studio Head 1700]
 ```

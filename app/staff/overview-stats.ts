@@ -18,11 +18,9 @@ export interface SchoolOverviewStats {
   totalClasses: number
   activeStudentCount: number
   teacherCount: number
-  needsReview: number
   unpaidCount: number
   overdueCount: number
   lessonsStartedThisWeek: number
-  submittedThisWeek: number
   promptsToday: number
   totalPrompts: number
   // 14 entries, oldest first, zero-filled — real per-day counts, not a
@@ -65,9 +63,6 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
       (select count(distinct ${classMembers.userId}) from ${classMembers}
         where ${classMembers.role} = 'teacher')::int as teachers,
 
-      (select count(*) from ${projects}
-        where ${projects.submissionStatus} = 'submitted')::int as needs_review,
-
       (select count(*) from ${invoices}
         where ${invoices.status} = 'unpaid')::int as unpaid,
       (select count(*) from ${invoices}
@@ -77,9 +72,6 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
       (select count(*) from ${projects}
         where ${projects.lessonId} is not null
           and ${projects.createdAt} >= ${weekAgo})::int as lessons_started,
-      (select count(*) from ${projects}
-        where ${projects.submissionStatus} is not null
-          and ${projects.updatedAt} >= ${weekAgo})::int as submitted_week,
 
       (select count(*) from ${prompts}
         where ${prompts.createdAt} >= ${dayAgo})::int as prompts_today,
@@ -108,11 +100,9 @@ export async function getSchoolOverviewStats(): Promise<SchoolOverviewStats> {
     totalClasses: row.total_classes ?? 0,
     activeStudentCount: row.active_students ?? 0,
     teacherCount: row.teachers ?? 0,
-    needsReview: row.needs_review ?? 0,
     unpaidCount: row.unpaid ?? 0,
     overdueCount: row.overdue ?? 0,
     lessonsStartedThisWeek: row.lessons_started ?? 0,
-    submittedThisWeek: row.submitted_week ?? 0,
     promptsToday: row.prompts_today ?? 0,
     totalPrompts: promptsEstimate >= 0 ? promptsEstimate : await db.$count(prompts),
     promptsByDay,

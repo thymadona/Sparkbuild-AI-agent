@@ -78,6 +78,13 @@
       "when": 1789966648436,
       "tag": "0010_bouncy_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790093991000,
+      "tag": "0011_remove_homework_review_permission",
+      "breakpoints": true
     }
   ]
 }

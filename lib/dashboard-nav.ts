@@ -44,7 +44,7 @@ export interface NavItem {
 }
 
 export const GROUP_LABEL: Record<NavGroup, string> = {
-  classes: 'Classes & Homework',
+  classes: 'Classes',
   people: 'People',
   billing: 'Billing & Integrations',
 }
@@ -57,15 +57,6 @@ export const STAFF_NAV: NavItem[] = [
     icon: 'book',
     group: 'classes',
     visible: (p) => p.canManageClasses || p.isTeacherOfAnyClass,
-  },
-  // The global cross-class queue — teachers review homework scoped to their
-  // own class from the Classes tab instead, matching existing behavior.
-  {
-    href: '/staff/homework',
-    label: 'Homework',
-    icon: 'check',
-    group: 'classes',
-    visible: (p) => p.isAdmin,
   },
   {
     href: '/staff/students',

@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { classMembers, classSchedules, lessonProgress, messages, projects } from '@/lib/db/schema'
+import { lessonProgress, messages, projects } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { getSessionUser } from '@/lib/auth/session'
 import { emptyBoard, type BoardState } from '@/lib/board/reducer'
@@ -9,8 +9,6 @@ import { getLessonForProject } from '@/lib/lessons'
 import { entryFileFor } from '@/lib/starter-file'
 import { boardFromFiles } from '@/lib/board/code'
 import { lessonFiles } from '@/lib/lesson-files'
-import type { ClassSlot } from '@/lib/schedule'
-import type { SubmissionStatus } from '@/types'
 import { getPlayerStats } from '@/lib/player-stats'
 import { taskXp } from '@/lib/xp'
 import LiveBoard from '../LiveBoard'
@@ -31,7 +29,6 @@ export default async function LiveBoardPage({ params }: Props) {
       files: projects.files,
       lessonId: projects.lessonId,
       lessonVersion: projects.lessonVersion,
-      submission: projects.submissionStatus,
     })
     .from(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
@@ -58,30 +55,13 @@ export default async function LiveBoardPage({ params }: Props) {
   board ??= emptyBoard()
 
   let completed: string[] = []
-  let classSlots: ClassSlot[] = []
   if (lesson) {
-    const [[progress], memberships] = await Promise.all([
-      db
-        .select({ ids: lessonProgress.completedTaskIds })
-        .from(lessonProgress)
-        .where(eq(lessonProgress.projectId, id))
-        .limit(1),
-      db
-        .select({ classId: classMembers.classId })
-        .from(classMembers)
-        .where(eq(classMembers.userId, user.id)),
-    ])
+    const [progress] = await db
+      .select({ ids: lessonProgress.completedTaskIds })
+      .from(lessonProgress)
+      .where(eq(lessonProgress.projectId, id))
+      .limit(1)
     completed = progress?.ids ?? []
-    if (memberships.length)
-      classSlots = await db
-        .select({ day_of_week: classSchedules.dayOfWeek, start_time: classSchedules.startTime })
-        .from(classSchedules)
-        .where(
-          inArray(
-            classSchedules.classId,
-            memberships.map((m) => m.classId)
-          )
-        )
   }
 
   // Course-wide XP minus this lesson's share; the client adds the live lesson XP back.
@@ -100,8 +80,6 @@ export default async function LiveBoardPage({ params }: Props) {
       entry={entry}
       files={files}
       completedTaskIds={completed}
-      submission={project.submission as SubmissionStatus | null}
-      classSlots={classSlots}
       baseXp={baseXp}
     />
   )

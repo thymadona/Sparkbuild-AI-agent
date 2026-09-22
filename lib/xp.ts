@@ -7,7 +7,7 @@ import { getLessonForProject, hasCompletedTask, type Lesson, type LessonTask } f
 // Not built yet: the +5 "solo" and +5 "predict" bonuses from the plan. They
 // need per-task data (hint used, first-try guess) that progress does not keep.
 
-export const XP_PER_TASK = { core: 10, choice: 15, bonus: 20, homework: 15 } as const
+export const XP_PER_TASK = { core: 10, choice: 15, bonus: 20 } as const
 export const XP_BOSS = 40
 
 export const LEVELS = [

@@ -152,7 +152,7 @@ describe('blockOf (the part of the file a task shows)', () => {
     '',
     '',
     '# TASK: hw-add-fact',
-    '# HOMEWORK: add 2 more facts about you.',
+    '# BONUS: add 2 more facts about you.',
     '',
   ].join('\n')
 
@@ -191,7 +191,7 @@ describe('blockOf (the part of the file a task shows)', () => {
   })
 
   it('shows the last task up to the end of the file', () => {
-    expect(blockOf(file, 'TASK: hw-add-fact').block).toContain('HOMEWORK')
+    expect(blockOf(file, 'TASK: hw-add-fact').block).toContain('BONUS')
   })
 
   it('falls back to the whole file when there is no anchor, or the comment is gone', () => {

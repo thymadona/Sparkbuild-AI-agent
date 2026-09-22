@@ -7,7 +7,6 @@ import { usePythonRunner } from '@/hooks/usePythonRunner'
 import { boardCode, boardFiles, fileOf, pageCode, withBoardCode } from '@/lib/board/code'
 import {
   awaitingEditor,
-  isTaskOpen,
   nextStepIndex,
   cheer,
   stepAction,
@@ -26,13 +25,10 @@ import { useTaskChecks } from '@/hooks/useTaskChecks'
 import { isTaskLocked } from '@/lib/task-guard'
 import ConfettiBurst from '@/components/ConfettiBurst'
 import type { Lesson, LessonTask } from '@/lib/lessons'
-import type { ClassSlot } from '@/lib/schedule'
-import type { SubmissionStatus } from '@/types'
 import BoardView, { type PageStatus } from './BoardView'
 import TaskHeader from './TaskHeader'
 import ProgressBar from './ProgressBar'
 import { taskXp } from '@/lib/xp'
-import HomeworkFooter from './HomeworkFooter'
 import type { MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
 import { useTutor } from './useTutor'
@@ -49,8 +45,6 @@ interface Props {
   entry: string
   files: Record<string, string>
   completedTaskIds: string[]
-  submission: SubmissionStatus | null
-  classSlots: ClassSlot[]
   /** XP earned outside this lesson, so the strip shows the running course total. */
   baseXp: number
 }
@@ -63,8 +57,6 @@ export default function LiveBoard({
   entry,
   files,
   completedTaskIds,
-  submission,
-  classSlots,
   baseXp,
 }: Props) {
   const [board, dispatch] = useReducer(boardReducer, initialBoard)
@@ -191,7 +183,6 @@ export default function LiveBoard({
     projectId,
     code,
     initialCompletedTaskIds: completedTaskIds,
-    initialSubmissionStatus: submission,
     onComplete: (task, done) => {
       setConfetti({
         key: `${task.id}:${Date.now()}`,
@@ -519,11 +510,7 @@ export default function LiveBoard({
       const task = lesson.tasks[index]
       if (progress.done.has(task.id)) return 'done'
       if (task.id === viewedTask?.id) return 'current'
-      if (
-        isTaskLocked(lesson.tasks, index, progress.done) ||
-        !isTaskOpen(lesson, index, progress.done)
-      )
-        return 'locked'
+      if (isTaskLocked(lesson.tasks, index, progress.done)) return 'locked'
       return 'open'
     },
     [lesson, progress.done, viewedTask]
@@ -555,36 +542,6 @@ export default function LiveBoard({
     [lesson, viewedTask, waiting, progress.done, progress.saveError, checks, busy]
   )
 
-  const footer = useCallback(
-    (pageId: string) => {
-      const task = taskForPageId(lesson, pageId)
-      if (!lesson || task?.type !== 'homework') return null
-      // Only under the last homework page, so hand-in appears once.
-      const last = lesson.tasks.filter((t) => t.type === 'homework').at(-1)
-      if (task.id !== last?.id) return null
-      return (
-        <HomeworkFooter
-          lesson={lesson}
-          done={progress.done}
-          submission={progress.submission}
-          isSubmitting={progress.isSubmitting}
-          submitError={progress.submitError}
-          onSubmit={progress.submitHomework}
-          classSlots={classSlots}
-        />
-      )
-    },
-    [
-      lesson,
-      progress.done,
-      progress.submission,
-      progress.isSubmitting,
-      progress.submitError,
-      progress.submitHomework,
-      classSlots,
-    ]
-  )
-
   return (
     <>
       <ConfettiBurst trigger={confetti.key} big={confetti.big} />
@@ -605,7 +562,6 @@ export default function LiveBoard({
         code={codeActions}
         busy={busy}
         header={lesson ? header : undefined}
-        footer={lesson ? footer : undefined}
         progress={
           lesson ? (
             <ProgressBar

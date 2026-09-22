@@ -3,15 +3,12 @@ import {
   buildTaskNudge,
   detectConfusion,
   escalationTier,
-  homeworkComplete,
-  homeworkTasks,
   isTaskLocked,
   pendingCoreTask,
 } from '@/lib/task-guard'
 
 const week3 = LESSONS.find((lesson) => lesson.id === 103)!
 const coreIds = week3.tasks.filter((task) => task.type === 'core').map((task) => task.id)
-const homeworkIds = week3.tasks.filter((task) => task.type === 'homework').map((task) => task.id)
 const optionalIds = week3.tasks
   .filter((task) => task.type === 'choice' || task.type === 'bonus')
   .map((task) => task.id)
@@ -22,17 +19,13 @@ describe('pendingCoreTask', () => {
     expect(pendingCoreTask(week3, [coreIds[0]])?.id).toBe(coreIds[1])
   })
 
-  it('moves on to homework once the core tasks are done', () => {
-    expect(pendingCoreTask(week3, coreIds)?.id).toBe(homeworkIds[0])
-  })
-
-  it('returns null only when core and homework are both done', () => {
-    expect(pendingCoreTask(week3, [...coreIds, ...homeworkIds])).toBeNull()
+  it('returns null once every core task is done', () => {
+    expect(pendingCoreTask(week3, coreIds)).toBeNull()
   })
 
   it('ignores unfinished choice and bonus tasks', () => {
     expect(optionalIds.length).toBeGreaterThan(0)
-    expect(pendingCoreTask(week3, [...coreIds, ...homeworkIds])).toBeNull()
+    expect(pendingCoreTask(week3, coreIds)).toBeNull()
   })
 
   it('is not fooled by completing optional tasks first', () => {
@@ -41,28 +34,6 @@ describe('pendingCoreTask', () => {
 
   it('returns null for a project with no lesson', () => {
     expect(pendingCoreTask(null, [])).toBeNull()
-  })
-})
-
-describe('homework helpers', () => {
-  it('lists homework tasks for every current lesson', () => {
-    for (const lesson of LESSONS) {
-      expect(homeworkTasks(lesson).length).toBeGreaterThanOrEqual(2)
-    }
-  })
-
-  it('reports homework complete only when every homework task is done', () => {
-    expect(homeworkComplete(week3, [])).toBe(false)
-    expect(homeworkComplete(week3, coreIds)).toBe(false)
-    expect(homeworkComplete(week3, [homeworkIds[0]])).toBe(false)
-    expect(homeworkComplete(week3, homeworkIds)).toBe(true)
-  })
-
-  it('never reports complete for a lesson with no homework', () => {
-    const noHomework = { ...week3, tasks: week3.tasks.filter((task) => task.type !== 'homework') }
-    expect(homeworkTasks(noHomework)).toEqual([])
-    expect(homeworkComplete(noHomework, [])).toBe(false)
-    expect(homeworkComplete(null, [])).toBe(false)
   })
 })
 
@@ -78,11 +49,6 @@ describe('isTaskLocked', () => {
   it('unlocks once every earlier task is done', () => {
     const upToFirst = new Set(week3.tasks.slice(0, 1).map((task) => task.id))
     expect(isTaskLocked(week3.tasks, 1, upToFirst)).toBe(false)
-  })
-
-  it('never locks a homework task, whatever else is unfinished', () => {
-    const homeworkIndex = week3.tasks.findIndex((task) => task.type === 'homework')
-    expect(isTaskLocked(week3.tasks, homeworkIndex, new Set())).toBe(false)
   })
 
   it('locks choice and bonus tasks while any core task is unfinished', () => {
@@ -110,14 +76,6 @@ describe('buildTaskNudge', () => {
     expect(nudge).toMatch(/never write or edit their code/i)
   })
 
-  it('says plainly when the task is homework', () => {
-    const homework = homeworkTasks(week3)[0]
-    const nudge = buildTaskNudge(homework)
-
-    expect(nudge).toContain('HOMEWORK')
-    expect(nudge).toMatch(/hint only/i)
-  })
-
   it('defaults to tier 1, identical to the original single-arg call', () => {
     const task = week3.tasks[0]
     expect(buildTaskNudge(task)).toBe(buildTaskNudge(task, 1))
@@ -133,15 +91,6 @@ describe('buildTaskNudge', () => {
     expect(tier2).not.toContain('ESCALATION LEVEL 3')
     expect(tier3).toContain('ESCALATION LEVEL 3')
     expect(tier3).not.toContain('ESCALATION LEVEL 2')
-  })
-
-  it('never reveals the answer text at tier 2 or 3 for homework', () => {
-    const homework = homeworkTasks(week3)[0]
-    const tier2 = buildTaskNudge(homework, 2)
-
-    expect(tier2).toContain('ESCALATION LEVEL 2')
-    expect(tier2).not.toMatch(/ESCALATION LEVEL 3/)
-    expect(tier2).toMatch(/never state the answer/i)
   })
 
   it('restates the no-write-code constraint at tier 3 so it cannot license build behavior', () => {
@@ -173,23 +122,14 @@ describe('buildTaskNudge', () => {
 
 describe('escalationTier', () => {
   it.each([
-    [0, false, false, 1],
-    [1, false, false, 1],
-    [2, false, false, 2],
-    [3, false, false, 2],
-    [4, false, false, 3],
-    [0, true, false, 3],
-    [9, false, true, 2],
-    [0, true, true, 2],
-  ] as const)(
-    'stuckTurns=%s confused=%s homework=%s -> tier %s',
-    (stuckTurns, confused, isHomework, expected) => {
-      expect(escalationTier(stuckTurns, confused, isHomework)).toBe(expected)
-    }
-  )
-
-  it('never returns tier 3 for homework, however stuck', () => {
-    expect(escalationTier(100, true, true)).toBe(2)
+    [0, false, 1],
+    [1, false, 1],
+    [2, false, 2],
+    [3, false, 2],
+    [4, false, 3],
+    [0, true, 3],
+  ] as const)('stuckTurns=%s confused=%s -> tier %s', (stuckTurns, confused, expected) => {
+    expect(escalationTier(stuckTurns, confused)).toBe(expected)
   })
 })
 

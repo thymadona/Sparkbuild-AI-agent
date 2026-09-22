@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
-import type { SubmissionStatus } from '@/types'
 
 // Shared presentational pieces for OverviewTab (admin) and TeacherOverviewTab
 // (teacher) — both route-colocated under app/staff/, not promoted to
@@ -160,47 +159,5 @@ export function MagnitudeBar({
         />
       </div>
     </Link>
-  )
-}
-
-export const STATUS_META: Record<SubmissionStatus, { label: string; className: string }> = {
-  submitted: { label: 'Waiting for review', className: 'bg-warning' },
-  approved: { label: 'Approved', className: 'bg-success' },
-  needs_work: { label: 'Sent back', className: 'bg-destructive' },
-}
-
-// Part-to-whole across a fixed status set — a segmented bar, colored by
-// status (never a generic categorical hue) with a legend and its counts.
-export function StatusBar({ counts }: { counts: Record<SubmissionStatus, number> }) {
-  const total = counts.submitted + counts.approved + counts.needs_work
-  const order: SubmissionStatus[] = ['submitted', 'approved', 'needs_work']
-
-  return (
-    <div>
-      {total === 0 ? (
-        <div className="h-2.5 rounded-full bg-muted" />
-      ) : (
-        <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
-          {order.map((status) =>
-            counts[status] > 0 ? (
-              <div
-                key={status}
-                className={STATUS_META[status].className}
-                style={{ width: `${(counts[status] / total) * 100}%` }}
-              />
-            ) : null
-          )}
-        </div>
-      )}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-        {order.map((status) => (
-          <div key={status} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_META[status].className}`} />
-            {STATUS_META[status].label}
-            <span className="font-medium text-foreground">{counts[status]}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }

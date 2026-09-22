@@ -191,7 +191,6 @@ export const PY_LESSONS: Lesson[] = [
     scene: 'robot',
     aiPolicy: 'tutor',
     badge: 'Robot Whisperer',
-    homeworkBrief: 'Add facts and fix a crash.',
     tasks: [
       task(
         'first-words',
@@ -606,7 +605,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-add-fact',
-        'homework',
+        'bonus',
         'make',
         'Add 2 more facts',
         'Sparky shares two more facts.',
@@ -632,11 +631,11 @@ export const PY_LESSONS: Lesson[] = [
         undefined,
         undefined,
         undefined,
-        { from: 'boot-up', starter: '# HOMEWORK: add 2 more facts about you.\n' }
+        { from: 'boot-up', starter: '# BONUS: add 2 more facts about you.\n' }
       ),
       task(
         'hw-bug-quote',
-        'homework',
+        'bonus',
         'bugzap',
         'Fix the crash',
         'bugzap.py runs.',
@@ -660,7 +659,6 @@ export const PY_LESSONS: Lesson[] = [
     scene: 'vault',
     aiPolicy: 'tutor',
     badge: 'Vault Cracker',
-    homeworkBrief: 'Give a discount and fix the door.',
     tasks: [
       task(
         'vault-math',
@@ -978,7 +976,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-discount',
-        'homework',
+        'bonus',
         'make',
         'Shop discount',
         'Big totals get a discount.',
@@ -999,7 +997,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-bug-equals',
-        'homework',
+        'bonus',
         'bugzap',
         'Fix the door',
         'bugzap.py opens the door.',
@@ -1023,7 +1021,6 @@ export const PY_LESSONS: Lesson[] = [
     scene: 'robot',
     aiPolicy: 'tutor',
     badge: 'Loop Master',
-    homeworkBrief: 'Launch countdown, explain a loop, fix a crash.',
     tasks: [
       task(
         'count-down',
@@ -1211,7 +1208,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-countdown',
-        'homework',
+        'bonus',
         'make',
         'Launch countdown',
         'Sparky counts down, then launches.',
@@ -1233,7 +1230,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-explain',
-        'homework',
+        'bonus',
         'explain',
         'Explain the loop',
         'Each line has a # note.',
@@ -1250,7 +1247,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-bug-loop',
-        'homework',
+        'bonus',
         'bugzap',
         'Fix the countdown',
         'bugzap.py counts down.',
@@ -1274,7 +1271,6 @@ export const PY_LESSONS: Lesson[] = [
     scene: 'robot',
     aiPolicy: 'tutor',
     badge: 'Loot Lord',
-    homeworkBrief: 'Shopping list, comments, and an index crash.',
     tasks: [
       task(
         'backpack',
@@ -1570,7 +1566,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-shopping',
-        'homework',
+        'bonus',
         'make',
         'Shopping list',
         'A list of five things.',
@@ -1587,7 +1583,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-comment',
-        'homework',
+        'bonus',
         'explain',
         'Explain the prices',
         'Each line has a # note.',
@@ -1604,7 +1600,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-bug-index',
-        'homework',
+        'bonus',
         'bugzap',
         'Fix the crash',
         'bugzap.py finishes.',
@@ -1628,7 +1624,6 @@ export const PY_LESSONS: Lesson[] = [
     scene: 'robot',
     aiPolicy: 'tutor',
     badge: 'Spell Caster',
-    homeworkBrief: 'Shield spell, notes, and a missing return.',
     tasks: [
       task(
         'first-spell',
@@ -1923,7 +1918,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-shield',
-        'homework',
+        'bonus',
         'make',
         'Shield spell',
         'shield cuts damage in half.',
@@ -1940,7 +1935,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-explain',
-        'homework',
+        'bonus',
         'explain',
         'Explain the code',
         'Each line has a # note.',
@@ -1957,7 +1952,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-bug-return',
-        'homework',
+        'bonus',
         'bugzap',
         'Fix the spell',
         'bugzap.py prints 10.',
@@ -1982,7 +1977,6 @@ export const PY_LESSONS: Lesson[] = [
     scene: 'robot',
     aiPolicy: 'tutor',
     badge: 'Code Agent',
-    homeworkBrief: 'Fix a crash and write a bug report.',
     tasks: [
       task(
         'read-crash',
@@ -2212,7 +2206,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-bug-crash',
-        'homework',
+        'bonus',
         'bugzap',
         'Fix the crash',
         'greet says hello.',
@@ -2227,7 +2221,7 @@ export const PY_LESSONS: Lesson[] = [
       ),
       task(
         'hw-report',
-        'homework',
+        'bonus',
         'explain',
         'Write a bug report',
         'Your report has three notes.',

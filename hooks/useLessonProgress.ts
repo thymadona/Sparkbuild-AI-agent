@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import type { Lesson, LessonTask } from '@/lib/lessons'
 import { isTaskLocked } from '@/lib/task-guard'
-import type { SubmissionStatus } from '@/types'
 
 export function firstUnfinishedTaskIndex(tasks: LessonTask[], completed: Set<string>) {
   const unfinishedCore = tasks.findIndex((task) => task.type === 'core' && !completed.has(task.id))
@@ -17,7 +16,6 @@ interface UseLessonProgressArgs {
   projectId: string
   code: string
   initialCompletedTaskIds: string[]
-  initialSubmissionStatus?: SubmissionStatus | null
   // Fired only after a task is actually saved as done — the cue for things
   // like a completion celebration, which should never fire on a failed save.
   // nextDone is the just-saved done set, so callers can detect "every task
@@ -26,16 +24,15 @@ interface UseLessonProgressArgs {
 }
 
 /**
- * Task and homework progress shared between the Tasks and Homework side
- * panels. Both act on the same lesson and the same "done" set, so the state
- * has to live above either panel rather than be duplicated in each.
+ * Task progress shared across the board. Acts on the lesson's "done" set, so
+ * the state has to live above the panels that read it rather than be
+ * duplicated in each.
  */
 export function useLessonProgress({
   lesson,
   projectId,
   code,
   initialCompletedTaskIds,
-  initialSubmissionStatus = null,
   onComplete,
 }: UseLessonProgressArgs) {
   const tasks = lesson?.tasks ?? []
@@ -45,9 +42,6 @@ export function useLessonProgress({
   )
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [submission, setSubmission] = useState<SubmissionStatus | null>(initialSubmissionStatus)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const activeTask = tasks[activeIndex]
 
@@ -80,33 +74,13 @@ export function useLessonProgress({
     }
   }
 
-  async function submitHomework(homeworkReady: boolean) {
-    if (!homeworkReady || isSubmitting) return
-    setIsSubmitting(true)
-    setSubmitError(null)
-    try {
-      const response = await fetch(`/api/projects/${projectId}/submit`, { method: 'POST' })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error ?? 'Could not hand in your homework')
-      setSubmission(data.submissionStatus ?? 'submitted')
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Could not hand in your homework')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return {
     done,
     activeIndex,
     activeTask,
     isSaving,
     saveError,
-    submission,
-    isSubmitting,
-    submitError,
     applyDone,
     resetProgress,
-    submitHomework,
   }
 }

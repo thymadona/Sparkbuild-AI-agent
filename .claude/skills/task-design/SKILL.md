@@ -109,7 +109,7 @@ verb is only "read" or "click the right one of 3", find a more active type.
 ### Sketch template
 
 ```
-Task: <id> · <chip>            Type: core|choice|bonus|homework
+Task: <id> · <chip>            Type: core|choice|bonus
 One idea: …                     Misconception fixed: …
 Student's goal / story: …
 Steps:

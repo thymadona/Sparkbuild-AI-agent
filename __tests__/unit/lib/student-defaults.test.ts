@@ -93,7 +93,6 @@ describe('the student role carries no permissions', () => {
     'invoices:manage',
     'classes:manage',
     'students:manage',
-    'homework:review',
     'students:message',
     'telegram:manage',
     'roles:manage',

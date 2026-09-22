@@ -5,10 +5,9 @@
 SparkBuild is an AI-assisted Python platform for students aged 10–16. Students work through a
 weekly course on a shared board with **Spark**, an AI tutor that talks in short captions,
 draws on the board and nudges instead of solving — so what they write is actually theirs.
-Python runs in the browser. Every task is verified by code, homework is gated and reviewed by a
-teacher, and progress earns XP, levels, badges and a daily streak. Teachers and admins run
-classes, review homework and deliver invoices and receipts to parents over Telegram from one
-back office.
+Python runs in the browser. Every task is verified by code, and progress earns XP, levels, badges
+and a daily streak. Teachers and admins run classes and deliver invoices and receipts to parents
+over Telegram from one back office.
 
 ![SparkBuild landing page](docs/screenshots/landing.png)
 
@@ -16,12 +15,12 @@ back office.
 
 - **Tutor board** — one page per task; Spark speaks in captions and edits the board with tools
   (code nodes, quizzes, variable diagrams, step-by-step traces). Code runs in a Pyodide worker.
-- **Verified lessons and homework** — each task carries checks that run against the student's
-  live code in the browser and are re-verified on the server; a task completes itself when the
-  checks pass. Homework unlocks after the core tasks and goes to a teacher for review.
+- **Verified lessons** — each task carries checks that run against the student's live code in
+  the browser and are re-verified on the server; a task completes itself when the checks pass.
+  Core tasks are required; choice and bonus tasks are optional extras that unlock alongside them.
 - **Game layer** — XP per task, seven levels, a badge per lesson boss, and a streak.
 - **Staff back office** — students, classes with weekly schedules, per-class lesson unlocking,
-  homework review with mandatory feedback, invoices/receipts sent over Telegram, role management.
+  invoices/receipts sent over Telegram, role management.
 
 ## Tech stack
 
@@ -122,14 +121,14 @@ app/
 ├── board/[id]/       Student workspace: server page + LiveBoard client (the tutor board)
 ├── lessons/          Lesson roadmap and detail pages
 ├── dashboard/        Student home
-├── staff/            Back office (overview, classes, students, homework, finance, telegram, users)
+├── staff/            Back office (overview, classes, students, finance, telegram, users)
 ├── admin/, teacher/  Redirect shells into /staff
 ├── invoice/[id]/, receipt/[id]/   Link-based views sent to parents
 ├── login/, register/, no-class/, profile/, about/
 └── api/
     ├── auth/[...all]/            Better Auth (incl. the Google callback)
-    ├── projects/                 Project CRUD, autosave, lesson progress, submit, tutor turn
-    ├── admin/                    Classes, students, homework review, invoices, schedules, telegram, roles
+    ├── projects/                 Project CRUD, autosave, lesson progress, tutor turn
+    ├── admin/                    Classes, students, invoices, schedules, telegram, roles
     └── profile/
 components/           Reusable UI (ui/ primitives, admin/, dashboard/, CodeEditor, PlayerCard…)
 hooks/                Python runner, task checks, auto-complete, lesson progress

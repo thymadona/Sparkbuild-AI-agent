@@ -66,7 +66,7 @@ guess = 1234
 
 
 # TASK: hw-discount
-# HOMEWORK: totals over 50 get a discount.
+# BONUS: totals over 50 get a discount.
 total = 80
 `,
   'py/w3-bugzap.py': `# BUG ZAP: the countdown is broken. Find two mistakes.
@@ -115,11 +115,11 @@ secret = 7
 
 
 # TASK: hw-countdown
-# HOMEWORK: count down from 5 to 1. Then print a launch message.
+# BONUS: count down from 5 to 1. Then print a launch message.
 
 
 # TASK: hw-explain
-# HOMEWORK: add a # note after each line of this loop.
+# BONUS: add a # note after each line of this loop.
 for n in range(2):
     print("Reactor", n)
 `,
@@ -171,11 +171,11 @@ loot = {"sword": 5, "shield": 3, "bow": 4}
 
 
 # TASK: hw-shopping
-# HOMEWORK: make a shopping list of 5 things. Loop over it.
+# BONUS: make a shopping list of 5 things. Loop over it.
 
 
 # TASK: hw-comment
-# HOMEWORK: add a # note after each print line.
+# BONUS: add a # note after each print line.
 prices = {"apple": 2, "kiwi": 3}
 print(prices["apple"])
 print(prices["kiwi"])
@@ -225,11 +225,11 @@ monster_hp = 20
 
 
 # TASK: hw-shield
-# HOMEWORK: write shield(dmg). It returns half of dmg.
+# BONUS: write shield(dmg). It returns half of dmg.
 
 
 # TASK: hw-explain
-# HOMEWORK: add a # note after each line of this code.
+# BONUS: add a # note after each line of this code.
 hp = 10
 hp = hp - 3
 print("HP:", hp)
@@ -333,13 +333,13 @@ print("Beep 3")
 
 
 # TASK: hw-bug-crash
-# HOMEWORK: greet crashes. Read the last line of the red text.
+# BONUS: greet crashes. Read the last line of the red text.
 def greet(name):
     return "Hello " + name + 1
 
 
 # TASK: hw-report
-# HOMEWORK: write a bug report. Fill in the three notes.
+# BONUS: write a bug report. Fill in the three notes.
 # error:
 # expected:
 # got:

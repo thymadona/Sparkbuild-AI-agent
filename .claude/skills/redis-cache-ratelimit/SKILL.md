@@ -57,7 +57,7 @@ only for low-volatility data.
 - Sole caller: `app/api/projects/[id]/turn/route.ts` → 429
   `{ error: "Hourly limit reached. Resets in N hour(s)." }`. **Admins and teachers bypass** the
   call entirely (`isAdmin || isTeacher`).
-- The `prompts` table is a permanent log of every turn (homework review, admin views); it is
+- The `prompts` table is a permanent log of every turn (admin views read it); it is
   not read to compute the limit.
 
 ## Gotchas

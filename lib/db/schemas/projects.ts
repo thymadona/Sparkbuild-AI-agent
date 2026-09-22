@@ -33,6 +33,9 @@ export const projects = pgTable(
       .defaultNow()
       .notNull(),
     lessonId: integer('lesson_id'),
+    // Unused since the homework/review feature was removed — the column, its
+    // check constraint, and old rows are kept as historical data, not read or
+    // written by any live code path.
     submissionStatus: text('submission_status'),
     lessonVersion: integer('lesson_version'),
     // Tutor board state (lib/board/reducer.ts BoardState); null until the tutor first draws.
@@ -44,9 +47,7 @@ export const projects = pgTable(
       sql`${t.submissionStatus} = ANY (ARRAY['submitted', 'approved', 'needs_work'])`
     ),
     index('projects_user_id_idx').on(t.userId),
-    // The /staff overview counts submitted homework, lessons started this
-    // week and homework submitted this week. Each was a full sequential scan
-    // of this table — fine on a laptop, not on a real roster.
+    // Kept alongside the unused column above rather than dropped with it.
     index('projects_submission_status_idx').on(t.submissionStatus),
     index('projects_created_at_idx').on(t.createdAt.desc()),
     index('projects_updated_at_idx').on(t.updatedAt.desc()),
