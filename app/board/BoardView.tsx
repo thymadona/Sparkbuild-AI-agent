@@ -4,9 +4,20 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { BoardState } from '@/lib/board/reducer'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 import Mascot, { type MascotState } from './Mascot'
 import { NodeView, type CodeActions } from './Nodes'
+
+// Sparky's captions render as markdown so a model slip like `age` becomes a
+// code chip instead of literal backticks. Preflight strips <code> styling, so
+// give it one explicitly against the bubble's dark background.
+const captionMarkdownComponents = {
+  code: ({ children }: { children?: ReactNode }) => (
+    <code className="rounded bg-[#faf6ee]/20 px-1 font-mono">{children}</code>
+  ),
+}
 
 // How a page reads in the rail. A lesson board has one page per task, so the
 // rail is the progress bar: what is finished, what is open, what is still shut.
@@ -214,11 +225,18 @@ export default function BoardView({
               <div className="pointer-events-auto w-[18.5rem] max-w-full break-words rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
                 {showEarlier &&
                   captions.slice(0, -1).map((c, i) => (
-                    <p key={i} className="mb-2 text-sm text-[#faf6ee]/75">
-                      {c}
-                    </p>
+                    <div key={i} className="mb-2 text-sm text-[#faf6ee]/75">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={captionMarkdownComponents}
+                      >
+                        {c}
+                      </ReactMarkdown>
+                    </div>
                   ))}
-                <p>{live || captions.at(-1) || '…'}</p>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={captionMarkdownComponents}>
+                  {live || captions.at(-1) || '…'}
+                </ReactMarkdown>
                 <div className="mt-1 flex gap-3 text-xs text-[#faf6ee]/80">
                   {captions.length > 1 && (
                     <button
