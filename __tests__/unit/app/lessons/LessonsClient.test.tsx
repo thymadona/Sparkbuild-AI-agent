@@ -109,7 +109,12 @@ describe('LessonsClient', () => {
       <LessonsClient
         lessons={[lesson]}
         userProjects={[
-          { id: 'finished-project', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z', done: 2 },
+          {
+            id: 'finished-project',
+            lesson_id: 101,
+            updated_at: '2026-04-02T00:00:00.000Z',
+            done: 2,
+          },
         ]}
       />
     )
