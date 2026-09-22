@@ -206,9 +206,11 @@ export default function LessonsClient({
                         >
                           {loadingId === lesson.id
                             ? 'Starting...'
-                            : isStarted
-                              ? 'Resume →'
-                              : 'Start'}
+                            : isDone
+                              ? 'Review →'
+                              : isStarted
+                                ? 'Resume →'
+                                : 'Start'}
                         </button>
                       )}
                     </div>

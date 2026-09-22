@@ -12,13 +12,21 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/lessons',
 }))
 
+const task = (id: string): Lesson['tasks'][number] => ({
+  id,
+  type: 'core',
+  chip: id,
+  success: 'Done',
+  prompt: 'Do it',
+})
+
 const lesson: Lesson = {
   id: 101,
   title: 'Week #1 — Wake the Robot',
   description: 'Wake Sparky up.',
   templateFile: 'py/w1.py',
   starterFile: 'main.py',
-  tasks: [],
+  tasks: [task('t1'), task('t2')],
 }
 
 beforeEach(() => {
@@ -32,8 +40,18 @@ describe('LessonsClient', () => {
       <LessonsClient
         lessons={[lesson]}
         userProjects={[
-          { id: 'newest-project', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z' },
-          { id: 'older-project', lesson_id: 101, updated_at: '2026-04-01T00:00:00.000Z' },
+          {
+            id: 'newest-project',
+            lesson_id: 101,
+            updated_at: '2026-04-02T00:00:00.000Z',
+            done: 1,
+          },
+          {
+            id: 'older-project',
+            lesson_id: 101,
+            updated_at: '2026-04-01T00:00:00.000Z',
+            done: 1,
+          },
         ]}
       />
     )
@@ -77,12 +95,27 @@ describe('LessonsClient', () => {
       <LessonsClient
         lessons={[lesson]}
         userProjects={[
-          { id: 'in-progress', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z' },
+          { id: 'in-progress', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z', done: 1 },
         ]}
         enabledLessonIds={[]}
       />
     )
 
     expect(screen.getByRole('button', { name: 'Resume →' })).toBeInTheDocument()
+  })
+
+  it('shows Review instead of Resume once every task in the lesson is done', () => {
+    render(
+      <LessonsClient
+        lessons={[lesson]}
+        userProjects={[
+          { id: 'finished-project', lesson_id: 101, updated_at: '2026-04-02T00:00:00.000Z', done: 2 },
+        ]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review →' }))
+
+    expect(push).toHaveBeenCalledWith('/board/finished-project')
   })
 })
