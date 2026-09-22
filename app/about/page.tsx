@@ -6,10 +6,14 @@ import { getSessionUser } from '@/lib/auth/session'
 
 export default async function AboutPage() {
   const user = await getSessionUser()
+  const isLoggedIn = !!user
+  const cta = isLoggedIn
+    ? { href: '/lessons', label: 'Go to lessons' }
+    : { href: '/register', label: 'Get started free' }
 
   return (
     <div className="min-h-screen bg-surface-900 font-body">
-      <Navbar variant="marketing" isLoggedIn={!!user} />
+      <Navbar variant="marketing" isLoggedIn={isLoggedIn} />
 
       <main className="mx-auto max-w-3xl px-6 py-24">
         <section>
@@ -22,7 +26,7 @@ export default async function AboutPage() {
             by building real things.
           </h1>
           <p className="mt-6 text-lg text-fg-secondary leading-relaxed">
-            CodeBuilder is a guided coding platform for students aged 10–16. Instead of watching
+            SparkBuild is a guided coding platform for students aged 10–16. Instead of watching
             videos or memorising syntax, you write real Python — waking up a robot, guessing games,
             a vault with a secret code — and an AI tutor helps you when you get stuck.
           </p>
@@ -54,7 +58,7 @@ export default async function AboutPage() {
 
         <section className="mt-16">
           <h2 className="font-display text-2xl font-bold text-fg-primary mb-6">
-            The 12-week curriculum
+            The 6-week curriculum
           </h2>
           <div className="space-y-5">
             {LESSONS.map((lesson, i) => (
@@ -73,10 +77,10 @@ export default async function AboutPage() {
 
         <section className="mt-16 text-center">
           <Link
-            href="/"
+            href={cta.href}
             className="inline-block rounded-full bg-brand-500 px-8 py-3.5 font-semibold text-white hover:bg-brand-600 transition-colors shadow-lg shadow-brand-500/20"
           >
-            Get started free
+            {cta.label}
           </Link>
         </section>
       </main>
