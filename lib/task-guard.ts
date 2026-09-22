@@ -1,4 +1,4 @@
-import type { Lesson, LessonTask } from './lessons'
+import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 
 // Task types the student must complete themselves. Core tasks are the lesson;
 // homework is the assignment. Both withhold build mode. 'choice' and 'bonus' are
@@ -22,7 +22,11 @@ export function pendingCoreTask(
 ): LessonTask | null {
   if (!lesson) return null
   const done = new Set(completedTaskIds)
-  return lesson.tasks.find((task) => GATED_TYPES.includes(task.type) && !done.has(task.id)) ?? null
+  return (
+    lesson.tasks.find(
+      (task) => GATED_TYPES.includes(task.type) && !hasCompletedTask(done, task.id)
+    ) ?? null
+  )
 }
 
 export type EscalationTier = 1 | 2 | 3
@@ -143,7 +147,7 @@ export function homeworkComplete(lesson: Lesson | null, completedTaskIds: string
   const homework = homeworkTasks(lesson)
   if (homework.length === 0) return false
   const done = new Set(completedTaskIds)
-  return homework.every((task) => done.has(task.id))
+  return homework.every((task) => hasCompletedTask(done, task.id))
 }
 
 /**
@@ -156,7 +160,9 @@ export function isTaskLocked(tasks: LessonTask[], index: number, completed: Set<
   const task = tasks[index]
   if (!task || task.type === 'homework') return false
   if (task.type === 'core') {
-    return tasks.slice(0, index).some((t) => t.type === 'core' && !completed.has(t.id))
+    return tasks
+      .slice(0, index)
+      .some((t) => t.type === 'core' && !hasCompletedTask(completed, t.id))
   }
-  return tasks.some((t) => t.type === 'core' && !completed.has(t.id))
+  return tasks.some((t) => t.type === 'core' && !hasCompletedTask(completed, t.id))
 }

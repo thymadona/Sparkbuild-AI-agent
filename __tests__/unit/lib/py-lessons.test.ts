@@ -1,7 +1,12 @@
 import fs from 'fs'
 import path from 'path'
 import { PY_LESSONS } from '@/lib/py-lessons'
-import { CURRENT_LESSON_VERSION, LESSONS, getLessonForProject } from '@/lib/lessons'
+import {
+  CURRENT_LESSON_VERSION,
+  LESSONS,
+  TASK_ID_ALIASES,
+  getLessonForProject,
+} from '@/lib/lessons'
 import { runPythonChecks } from '@/lib/python-checks'
 import { allChecksPassed, isRuntimeCheck, runTaskChecks } from '@/lib/task-checks'
 import { templateFor } from '@/lib/lessons/templates'
@@ -108,6 +113,44 @@ describe('python catalog', () => {
   it('uses ids above the retired web course range still present in class_enabled_lessons', () => {
     for (const lesson of PY_LESSONS) expect(lesson.id).toBeGreaterThan(100)
     expect(new Set(PY_LESSONS.map((l) => l.id)).size).toBe(PY_LESSONS.length)
+  })
+
+  // A shipped task id is how lesson_progress remembers what a student
+  // finished. Renaming or removing one without an alias makes a completed
+  // task look undone again (lib/lessons.ts hasCompletedTask). Register a
+  // rename in TASK_ID_ALIASES, or restore the id, to fix a failure here.
+  it('never renames or removes a shipped task id without a working alias', () => {
+    const frozen = JSON.parse(read('__tests__/fixtures/frozen-task-ids.json')) as Record<
+      string,
+      string[]
+    >
+    const liveByLesson = new Map(
+      PY_LESSONS.map((l) => [String(l.id), new Set(l.tasks.map((t) => t.id))])
+    )
+    const violations: string[] = []
+    for (const [lessonId, ids] of Object.entries(frozen)) {
+      const live = liveByLesson.get(lessonId)
+      for (const id of ids) {
+        const aliasTarget = TASK_ID_ALIASES[id]
+        const ok = live?.has(id) || (aliasTarget != null && live?.has(aliasTarget))
+        if (!ok) {
+          violations.push(
+            `${lessonId}/${id}: gone with no working alias — restore it, or add ` +
+              `"${id}": "<new-id>" to TASK_ID_ALIASES in lib/lessons.ts`
+          )
+        }
+      }
+    }
+    expect(violations).toEqual([])
+  })
+
+  it('TASK_ID_ALIASES only points at live ids, one hop, no collisions', () => {
+    const liveIds = new Set(PY_LESSONS.flatMap((l) => l.tasks.map((t) => t.id)))
+    for (const [oldId, newId] of Object.entries(TASK_ID_ALIASES)) {
+      expect(liveIds.has(oldId)).toBe(false)
+      expect(liveIds.has(newId)).toBe(true)
+      expect(TASK_ID_ALIASES[newId]).toBeUndefined()
+    }
   })
 
   it.each(PY_LESSONS.map((l) => [l.title, l] as const))('%s is well formed', (_title, lesson) => {
