@@ -44,6 +44,9 @@ export const ClientEvent = z.discriminatedUnion('type', [
     program: z.array(z.string().max(40)).max(8),
     attempts: z.number().int().min(0).max(20),
   }),
+  // Bolt, the helper AI of director lessons, just wrote this block from the student's
+  // request. Sparky gets one turn to ask about it; the route gives that turn no tools.
+  z.object({ type: z.literal('helper_result'), nodeId: NodeId }),
 ])
 export type ClientEvent = z.infer<typeof ClientEvent>
 
@@ -107,6 +110,15 @@ export function applyClientEvent(
       return {
         board,
         content: `<student_event type="${type}">${JSON.stringify(payload)}</student_event>\n${note}`,
+      }
+    }
+    case 'helper_result': {
+      const n = board.nodes[ev.nodeId]
+      if (n?.type !== 'helper') throw new Error(`Unknown Bolt block ${ev.nodeId}`)
+      const payload = { asked: n.request, boltWrote: n.source }
+      return {
+        board,
+        content: `<helper_event>${JSON.stringify(payload)}</helper_event>\nBolt just wrote this for the student. Ask them one short question about it, for example whether it does what they asked. Do not write, fix or improve the code.`,
       }
     }
     case 'trace_result': {

@@ -184,7 +184,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     deepseek.chat.completions.create({
       model: MODEL,
       stream: true,
-      tools: toolsFor(lesson != null, canComplete),
+      // Sparky only reflects on Bolt's block: a turn with no tools cannot write code.
+      ...(parsed.data.type === 'helper_result'
+        ? {}
+        : { tools: toolsFor(lesson != null, canComplete) }),
       messages: msgs,
       thinking: { type: 'disabled' }, // DeepSeek extension; captions must start fast
     } as never) as unknown as ReturnType<Llm>
@@ -232,7 +235,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
             { role: 'system', content: system },
             ...(parsed.data.type === 'code_run_result' ? [] : recent).map((m) => ({
               role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
-              content: m.content,
+              // A Bolt exchange is not the student talking to Sparky (and is not a stuck turn:
+              // stuckTurns counts only 'user' rows).
+              content:
+                m.role === 'helper' ? `<bolt_exchange>\n${m.content}\n</bolt_exchange>` : m.content,
             })),
             { role: 'user', content: userContent },
           ],

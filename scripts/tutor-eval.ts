@@ -12,6 +12,8 @@ import { lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
 import { buildTaskNudge } from '@/lib/task-guard'
 import { describeEvidence, describeTaskState, hasRun, taskPrograms } from '@/lib/task-evidence'
 import { taskCodeNodeId, taskPageId } from '@/lib/board/tasks'
+import { codeLines, MAX_HELPER_LINES } from '@/lib/board/schema'
+import { runBolt } from '@/lib/helper/bolt'
 
 const lesson = LESSONS[0]
 
@@ -187,6 +189,113 @@ async function play(s: Scenario) {
   return { called, text }
 }
 
+// Bolt builds exactly what was asked, literally, in at most 8 lines.
+const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[] }[] = [
+  // Vague on purpose: a literal, tiny program, not a guessed game.
+  { request: 'make a game', never: [/input\(/, /\bwhile\b/, /\bfor\b/, /random/, /\bif\b/] },
+  { request: 'print hello', never: [/input\(/, /\bfor\b/, /\bwhile\b/, /\bif\b/] },
+  {
+    request: 'ask my name and say hi to me',
+    must: [/input\(/],
+    never: [/\bwhile\b/, /\bfor\b/, /random/],
+  },
+]
+
+// A board on name-tag's page: the student's code, plus Bolt's block when given.
+function helperBoard(bolt?: { request: string; source: string }): BoardState {
+  const task = lesson.tasks.find((t) => t.id === 'name-tag')!
+  const id = taskCodeNodeId(task)
+  const page = taskPageId(task)
+  return {
+    pages: [{ id: page, title: task.chip, nodeIds: bolt ? [id, 'bolt_1'] : [id] }],
+    activePageId: page,
+    focusId: null,
+    nodes: {
+      [id]: {
+        id,
+        parentId: null,
+        createdBy: 'student',
+        type: 'code',
+        language: 'python',
+        source: 'name = "Ada"\nprint(name)\n',
+        editable: true,
+      },
+      ...(bolt
+        ? {
+            bolt_1: {
+              id: 'bolt_1',
+              parentId: null,
+              createdBy: 'system',
+              type: 'helper',
+              ...bolt,
+            },
+          }
+        : {}),
+    },
+  } as BoardState
+}
+
+async function playBolt(c: (typeof BOLT_CASES)[number]) {
+  const board = helperBoard()
+  const { op, caption } = await runBolt({ board, pageId: board.pages[0].id, request: c.request })
+  const code = op?.op === 'add' && op.node.type === 'helper' ? op.node.source : ''
+  const problems = [
+    !op && 'no block',
+    codeLines(code) > MAX_HELPER_LINES && `${codeLines(code)} lines`,
+    ...c.never.filter((re) => re.test(code)).map((re) => `has ${re}`),
+    ...(c.must ?? []).filter((re) => !re.test(code)).map((re) => `lacks ${re}`),
+  ].filter(Boolean)
+  return { ok: !problems.length, detail: `${problems.join(', ') || 'ok'}\n${code}\n-- ${caption}` }
+}
+
+// Sparky on helper_result, the way the turn route calls it: director layer, no tools.
+// It asks one question about Bolt's block and writes no code.
+const HELPER_CASES = [
+  { request: 'make a game', source: 'print("game")' },
+  { request: 'say hi to me', source: 'name = "Ada"\nprint("hi " + name)' },
+]
+
+async function playHelper(c: (typeof HELPER_CASES)[number]) {
+  const director = { ...lesson, aiPolicy: 'director' as const }
+  const task = lesson.tasks.find((t) => t.id === 'name-tag')!
+  const board = helperBoard(c)
+  const event = applyClientEvent(board, { type: 'helper_result', nodeId: 'bolt_1' })
+  const programs = taskPrograms(event.board, task, 'main.py')
+  const system = [
+    TUTOR_PROMPT,
+    lessonLayer(director, summarize(event.board, taskPageId(task)), task),
+    buildTaskNudge(task),
+    describeTaskState(event.board, task, programs),
+    describeEvidence(programs),
+  ].join('\n\n')
+  const llm: Llm = (messages) =>
+    deepseek.chat.completions.create({
+      model: MODEL,
+      stream: true,
+      messages,
+      thinking: { type: 'disabled' },
+    } as never) as unknown as ReturnType<Llm>
+  const { text } = await runTurn({
+    llm,
+    board: event.board,
+    emit: () => {},
+    // As the turn route sends it: the Bolt route's 'helper' row comes first in the history.
+    messages: [
+      { role: 'system', content: system },
+      {
+        role: 'user',
+        content: `<bolt_exchange>\nAsked Bolt: ${c.request}\nBolt wrote:\n${c.source}\n</bolt_exchange>`,
+      },
+      { role: 'user', content: event.content },
+    ],
+  })
+  const problems = [
+    !text.includes('?') && 'no question',
+    /print\(|input\(|=\s*"/.test(text) && 'wrote code',
+  ].filter(Boolean)
+  return { ok: !problems.length, detail: `${problems.join(', ') || 'ok'}: ${text.slice(0, 160)}` }
+}
+
 async function main() {
   let bad = 0
   for (const s of SCENARIOS) {
@@ -199,7 +308,20 @@ async function main() {
       `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})\n      Sparky (${n} words${n > 25 ? ', TOO LONG' : ''}): ${text.slice(0, 140)}`
     )
   }
-  console.log(`\n${SCENARIOS.length - bad}/${SCENARIOS.length} as expected`)
+  for (const c of BOLT_CASES) {
+    const { ok, detail } = await playBolt(c)
+    if (!ok) bad++
+    console.log(
+      `${ok ? 'PASS' : 'FAIL'}  Bolt "${c.request}": ${detail.replace(/\n/g, '\n      ')}`
+    )
+  }
+  for (const c of HELPER_CASES) {
+    const { ok, detail } = await playHelper(c)
+    if (!ok) bad++
+    console.log(`${ok ? 'PASS' : 'FAIL'}  Sparky on helper_result "${c.request}": ${detail}`)
+  }
+  const total = SCENARIOS.length + BOLT_CASES.length + HELPER_CASES.length
+  console.log(`\n${total - bad}/${total} as expected`)
   process.exit(bad ? 1 : 0)
 }
 void main()

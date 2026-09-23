@@ -26,8 +26,15 @@ import { POST } from '@/app/api/projects/[id]/turn/route'
 import { db } from '@/lib/db/client'
 import { messages, projects } from '@/lib/db/schema'
 import { makeProject, makeUser, resetDb, setLessonProgress } from '@/__tests__/helpers/db'
-import { LESSONS } from '@/lib/lessons'
+import { LESSONS, type LessonTask } from '@/lib/lessons'
 import { taskPageId } from '@/lib/board/tasks'
+import { toolsFor } from '@/lib/board/tools'
+import { buildTaskNudge } from '@/lib/task-guard'
+import {
+  addDirectorLesson,
+  DIRECTOR_LESSON,
+  removeDirectorLesson,
+} from '@/__tests__/fixtures/director-lesson'
 
 const modelSays = (text: string, calls: [string, object][] = []) =>
   mockCreate.mockResolvedValueOnce({
@@ -266,6 +273,104 @@ describe('POST /api/projects/[id]/turn', () => {
       expect(tools.map((t) => t.function.name)).toContain('board_new_page')
       expect(systemPrompt()).not.toContain('EVIDENCE')
       expect(tools.map((t) => t.function.name)).not.toContain('task_complete')
+    })
+  })
+
+  describe('Bolt (director lessons only)', () => {
+    beforeAll(addDirectorLesson)
+    afterAll(removeDirectorLesson)
+    const task = DIRECTOR_LESSON.tasks[0]
+    const systemPrompt = () => mockCreate.mock.calls[0][0].messages[0].content as string
+    const bolt = {
+      id: 'bolt_1',
+      parentId: null,
+      createdBy: 'system',
+      type: 'helper',
+      request: 'make a game',
+      source: 'print("game")',
+    }
+    const boardOf = (lessonTask: LessonTask) => ({
+      pages: [{ id: taskPageId(lessonTask), title: lessonTask.chip, nodeIds: ['c1', 'bolt_1'] }],
+      activePageId: taskPageId(lessonTask),
+      focusId: null,
+      nodes: {
+        c1: {
+          id: 'c1',
+          parentId: null,
+          createdBy: 'student',
+          type: 'code',
+          language: 'python',
+          source: 'print("mine")',
+          editable: true,
+        },
+        bolt_1: bolt,
+      },
+    })
+    const start = async (lessonId: number, lessonTask: LessonTask) => {
+      const user = await makeUser()
+      mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
+      const project = await makeProject(user.id, { lessonId, board: boardOf(lessonTask) })
+      return { user, project }
+    }
+
+    it('a tutor lesson has no Bolt text and the same tools as before', async () => {
+      const nameTag = LESSONS[0].tasks.find((t) => t.id === 'name-tag')!
+      const { project } = await start(LESSONS[0].id, nameTag)
+      await setLessonProgress(project.id, ['first-words', 'intro-3'], new Date().toISOString())
+      modelSays('ok')
+      await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
+      expect(systemPrompt()).not.toMatch(/Bolt|helper_event|bolt_exchange/)
+      expect(mockCreate.mock.calls[0][0].tools).toEqual(toolsFor(true, true))
+    })
+
+    it('marks helper rows as Bolt exchanges and never counts them as stuck turns', async () => {
+      const { user, project } = await start(DIRECTOR_LESSON.id, task)
+      for (let i = 0; i < 5; i++)
+        await db.insert(messages).values({
+          projectId: project.id,
+          userId: user.id,
+          role: 'helper',
+          content: `Asked Bolt: thing ${i}\nBolt wrote:\nprint(${i})`,
+          createdAt: new Date(Date.now() - 10_000 + i).toISOString(),
+        })
+      modelSays('ok')
+      await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
+
+      const sent = mockCreate.mock.calls[0][0].messages as { role: string; content: string }[]
+      const exchanges = sent.filter((m) => m.content.startsWith('<bolt_exchange>'))
+      expect(exchanges).toHaveLength(5)
+      expect(exchanges[0].content).toContain('Asked Bolt: thing 0')
+      // Five messages from the student would be tier 3; five to Bolt leave it at tier 1.
+      expect(systemPrompt()).not.toContain(buildTaskNudge(task, 2))
+      expect(systemPrompt()).not.toContain(buildTaskNudge(task, 3))
+      expect(systemPrompt()).toContain('Bolt, a separate helper robot')
+    })
+
+    it('helper_result shows Sparky the request and the code, with no tools', async () => {
+      const { project } = await start(DIRECTOR_LESSON.id, task)
+      modelSays('Does it do what you asked?')
+      const res = await post(project.id, { type: 'helper_result', nodeId: 'bolt_1' })
+      expect(res.status).toBe(200)
+      await drain(res)
+
+      const call = mockCreate.mock.calls[0][0]
+      expect(call.tools).toBeUndefined()
+      const last = call.messages.at(-1).content as string
+      expect(last).toContain('<helper_event>')
+      expect(last).toContain('make a game')
+      expect(last).toContain('print(\\"game\\")')
+      const rows = await db
+        .select({ role: messages.role })
+        .from(messages)
+        .where(eq(messages.projectId, project.id))
+      expect(rows.map((r) => r.role)).toEqual(['assistant'])
+    })
+
+    it('400s a helper_result for a node that is not a Bolt block', async () => {
+      const { project } = await start(DIRECTOR_LESSON.id, task)
+      expect((await post(project.id, { type: 'helper_result', nodeId: 'c1' })).status).toBe(400)
+      expect((await post(project.id, { type: 'helper_result', nodeId: 'nope' })).status).toBe(400)
+      expect(mockCreate).not.toHaveBeenCalled()
     })
   })
 })
