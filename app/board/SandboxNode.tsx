@@ -51,7 +51,7 @@ export default function SandboxNode({ node, code }: { node: Sandbox; code?: Code
           say(text)
         }}
       >
-        <label className="flex min-w-0 flex-1 basis-56 items-center rounded-lg bg-[#2b2118] px-3 font-mono text-sm text-[#f3e9d8]">
+        <label className="flex min-w-0 flex-1 basis-56 items-center rounded-lg bg-[#2b2118] px-3 font-mono text-base text-[#f3e9d8]">
           <span aria-hidden="true">{before}</span>
           <input
             value={text}

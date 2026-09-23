@@ -23,6 +23,65 @@ const captionMarkdownComponents = {
 // rail is the progress bar: what is finished, what is open, what is still shut.
 export type PageStatus = 'done' | 'current' | 'locked' | 'open'
 
+// Shared by the desktop rail (vertical) and the mobile top bar (horizontal) —
+// only sizing differs between them, via `className`; the locked/done/aria
+// logic must stay identical, so it lives in one place.
+function PageButton({
+  page: p,
+  index: i,
+  status,
+  here,
+  onPick,
+  className,
+}: {
+  page: BoardState['pages'][number]
+  index: number
+  status: PageStatus
+  here: boolean
+  onPick: () => void
+  className?: string
+}) {
+  const locked = status === 'locked'
+  return (
+    <button
+      onClick={() => !locked && onPick()}
+      disabled={locked}
+      aria-current={here ? 'page' : undefined}
+      aria-label={`${locked ? 'Locked. ' : status === 'done' ? 'Done. ' : ''}Page ${i + 1}: ${p.title}`}
+      title={p.title}
+      className={cn(
+        'grid place-items-center rounded-xl font-bold',
+        here
+          ? 'bg-[#2b2118] text-[#faf6ee]'
+          : locked
+            ? 'cursor-not-allowed border-2 border-[#d6c7a8] text-[#a89878]'
+            : status === 'done'
+              ? 'border-2 border-teal-600 bg-teal-50 text-teal-700 hover:bg-teal-100'
+              : 'border-2 border-[#2b2118] hover:bg-[#e4d3b3]',
+        className
+      )}
+    >
+      {locked ? (
+        <svg
+          className="size-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={3}
+          aria-hidden="true"
+        >
+          <rect x="4" y="10" width="16" height="10" rx="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 018 0v3" />
+        </svg>
+      ) : status === 'done' && !here ? (
+        '✓'
+      ) : (
+        i + 1
+      )}
+    </button>
+  )
+}
+
 interface Props {
   board: BoardState
   captions: string[]
@@ -123,9 +182,9 @@ export default function BoardView({
   }, [])
 
   return (
-    <div className="board-root h-dvh overflow-hidden bg-[#f1e6d0] p-3 md:p-4 text-[#2b2118]">
+    <div className="board-root h-dvh overflow-hidden bg-[#f1e6d0] px-0 py-3 md:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-[#2b2118]">
       <div className="flex h-full gap-3">
-        <nav aria-label="Pages" className="flex w-14 flex-col gap-2 pt-2">
+        <nav aria-label="Pages" className="hidden w-14 flex-col gap-2 overflow-y-auto pt-2 md:flex">
           <Link
             href="/lessons"
             aria-label="Back to roadmap"
@@ -133,57 +192,51 @@ export default function BoardView({
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          {board.pages.map((p, i) => {
-            const status = statusOf?.(p.id) ?? 'open'
-            const locked = status === 'locked'
-            const here = p.id === page?.id
-            return (
-              <button
-                key={p.id}
-                onClick={() => !locked && setPicked(p.id)}
-                disabled={locked}
-                aria-current={here ? 'page' : undefined}
-                aria-label={`${locked ? 'Locked. ' : status === 'done' ? 'Done. ' : ''}Page ${i + 1}: ${p.title}`}
-                title={p.title}
-                className={cn(
-                  'grid min-h-11 place-items-center rounded-xl text-lg font-bold',
-                  here
-                    ? 'bg-[#2b2118] text-[#faf6ee]'
-                    : locked
-                      ? 'cursor-not-allowed border-2 border-[#d6c7a8] text-[#a89878]'
-                      : status === 'done'
-                        ? 'border-2 border-teal-600 bg-teal-50 text-teal-700 hover:bg-teal-100'
-                        : 'border-2 border-[#2b2118] hover:bg-[#e4d3b3]'
-                )}
-              >
-                {locked ? (
-                  <svg
-                    className="size-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                    aria-hidden="true"
-                  >
-                    <rect x="4" y="10" width="16" height="10" rx="2" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10V7a4 4 0 018 0v3" />
-                  </svg>
-                ) : status === 'done' && !here ? (
-                  '✓'
-                ) : (
-                  i + 1
-                )}
-              </button>
-            )
-          })}
+          {board.pages.map((p, i) => (
+            <PageButton
+              key={p.id}
+              page={p}
+              index={i}
+              status={statusOf?.(p.id) ?? 'open'}
+              here={p.id === page?.id}
+              onPick={() => setPicked(p.id)}
+              className="min-h-11 text-lg"
+            />
+          ))}
         </nav>
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl bg-[#fffdf8] shadow-md">
+          <div className="flex shrink-0 items-center gap-2 border-b border-[#e4d9c5] px-3 py-2 md:hidden">
+            <Link
+              href="/lessons"
+              aria-label="Back to roadmap"
+              className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#2b2118] text-[#faf6ee] hover:bg-[#3b2a1c]"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div className="flex flex-1 gap-2 overflow-x-auto">
+              {board.pages.map((p, i) => (
+                <PageButton
+                  key={p.id}
+                  page={p}
+                  index={i}
+                  status={statusOf?.(p.id) ?? 'open'}
+                  here={p.id === page?.id}
+                  onPick={() => setPicked(p.id)}
+                  className="size-9 shrink-0 text-sm"
+                />
+              ))}
+            </div>
+          </div>
           {progress}
           <div
             ref={paperRef}
             onScroll={onScroll}
-            className="min-h-0 flex-1 overflow-y-auto px-6 md:px-12 py-8 pb-44"
+            // md:pb-80 reserves space for Sparky's floating widget at rest on
+            // desktop only (bubble capped at md:max-h-44 below + footer row +
+            // mascot row) — mobile docks the widget in normal flow instead,
+            // so it needs no reserve. Recompute if that cap ever changes.
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 md:px-12 py-8 md:pb-80"
           >
             <div className="mx-auto max-w-2xl">
               {page && header?.(page.id)}
@@ -216,27 +269,36 @@ export default function BoardView({
 
           <div
             className={cn(
-              'pointer-events-none absolute bottom-3 flex max-w-[calc(100%-1.5rem)] flex-col gap-2',
-              'left-3 items-start',
-              typing && 'w-[28rem]'
+              'flex flex-col gap-2',
+              'shrink-0 border-t border-[#e4d9c5] px-3 py-3',
+              'md:pointer-events-none md:absolute md:bottom-3 md:left-3',
+              'md:max-w-[calc(100%-1.5rem)] md:items-start md:border-t-0 md:px-0 md:py-0',
+              typing && 'md:w-[28rem]'
             )}
           >
             {!minimized && (
-              <div className="pointer-events-auto w-[18.5rem] max-w-full break-words rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg">
-                {showEarlier &&
-                  captions.slice(0, -1).map((c, i) => (
-                    <div key={i} className="mb-2 text-sm text-[#faf6ee]/75">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={captionMarkdownComponents}
-                      >
-                        {c}
-                      </ReactMarkdown>
-                    </div>
-                  ))}
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={captionMarkdownComponents}>
-                  {live || captions.at(-1) || '…'}
-                </ReactMarkdown>
+              <div className="pointer-events-auto w-full break-words rounded-2xl bg-[#3b2a1c] px-4 py-3 text-[#faf6ee] shadow-lg md:w-[18.5rem] md:max-w-full">
+                {/* Capped so a long tutor reply can't push the Hide button
+                    off-screen — it scrolls in place instead. Viewport-relative
+                    on mobile so the docked footer itself can't outgrow a
+                    short/landscape screen; fixed on desktop where the widget
+                    floats and pb-80 already reserves room for it. */}
+                <div className="max-h-[30vh] overflow-y-auto overscroll-contain md:max-h-44">
+                  {showEarlier &&
+                    captions.slice(0, -1).map((c, i) => (
+                      <div key={i} className="mb-2 text-sm text-[#faf6ee]/75">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={captionMarkdownComponents}
+                        >
+                          {c}
+                        </ReactMarkdown>
+                      </div>
+                    ))}
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={captionMarkdownComponents}>
+                    {live || captions.at(-1) || '…'}
+                  </ReactMarkdown>
+                </div>
                 <div className="mt-1 flex gap-3 text-xs text-[#faf6ee]/80">
                   {captions.length > 1 && (
                     <button
@@ -264,6 +326,24 @@ export default function BoardView({
                 </div>
               </div>
             )}
+            {minimized && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMinimized(false)
+                  setUnread(false)
+                }}
+                className="pointer-events-auto flex w-full items-center gap-2 rounded-2xl bg-[#3b2a1c] px-4 py-2 text-left text-[#faf6ee] shadow-lg md:hidden"
+              >
+                <Mascot state={face} className="size-8 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {(live || captions.at(-1) || '…').replace(/[*_`~]/g, '')}
+                </span>
+                {unread && (
+                  <span className="size-2 shrink-0 rounded-full bg-red-500" aria-hidden="true" />
+                )}
+              </button>
+            )}
             <div className={cn('flex items-center gap-2', typing && 'w-full')}>
               {!typing && (
                 <button
@@ -273,7 +353,10 @@ export default function BoardView({
                     setMinimized((v) => !v)
                     setUnread(false)
                   }}
-                  className="pointer-events-auto relative grid place-items-center rounded-full"
+                  className={cn(
+                    'pointer-events-auto relative grid place-items-center rounded-full',
+                    minimized && 'hidden md:grid'
+                  )}
                 >
                   <Mascot state={face} className="size-16" />
                   {unread && minimized && (
@@ -284,7 +367,12 @@ export default function BoardView({
               <form
                 className={cn(
                   'pointer-events-auto flex items-center gap-1 rounded-full border border-[#e4e0d6] bg-[#faf9f6] p-1 shadow-md focus-within:border-[#b45309]',
-                  typing && 'spark-typebox flex-1'
+                  'flex-1',
+                  // md:flex-1/md:flex-initial are mutually exclusive (a
+                  // ternary, not two conditionally-combined classes) so the
+                  // result doesn't depend on Tailwind's utility-ordering
+                  // between two same-breakpoint classes.
+                  typing ? 'md:spark-typebox md:flex-1' : 'md:flex-initial'
                 )}
                 onSubmit={(e) => {
                   e.preventDefault()
@@ -309,8 +397,8 @@ export default function BoardView({
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   className={cn(
-                    'board-input min-h-10 min-w-0 bg-transparent pl-3 text-base text-[#2b2118] outline-none placeholder:text-[#6b6357]',
-                    typing ? 'flex-1' : 'w-44'
+                    'board-input min-h-10 min-w-0 flex-1 bg-transparent pl-3 text-base text-[#2b2118] outline-none placeholder:text-[#6b6357]',
+                    !typing && 'md:w-44 md:flex-none'
                   )}
                 />
                 {onReplay ? (

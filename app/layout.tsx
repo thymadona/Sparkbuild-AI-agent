@@ -1,7 +1,16 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+// viewportFit lets the board's safe-area padding (see board-root in
+// BoardView.tsx) clear the iPhone home-indicator strip. interactiveWidget
+// keeps Android Chrome's on-screen keyboard from covering bottom-anchored
+// inputs. No maximumScale/userScalable: disabling pinch-zoom fails WCAG 1.4.4.
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+}
 
 export const metadata: Metadata = {
   // Resolves app/icon.svg and app/opengraph-image.tsx to absolute URLs, which
