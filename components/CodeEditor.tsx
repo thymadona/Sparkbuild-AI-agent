@@ -145,7 +145,7 @@ export default function CodeEditor({
           extensions={extensions}
           onChange={handleChange}
           onUpdate={handleUpdate}
-          style={{ height: '100%', fontSize: '13px' }}
+          style={{ height: '100%', fontSize: wrap ? '16px' : '13px' }}
           basicSetup={{
             lineNumbers: true,
             foldGutter: true,

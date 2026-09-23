@@ -66,6 +66,9 @@
 
   * {
     @apply border-border;
+    /* Kill the default tap-flash on iOS/Android; buttons already have their
+       own :active/:focus-visible states, so this doesn't remove feedback. */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {

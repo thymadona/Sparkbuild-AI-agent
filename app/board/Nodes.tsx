@@ -5,6 +5,7 @@ import type { EditorView } from '@codemirror/view'
 import dynamic from 'next/dynamic'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useIsNarrow } from '@/hooks/useIsNarrow'
 import type { BoardNode } from '@/lib/board/schema'
 import type { ClientEvent } from '@/lib/tutor/events'
 import { blockOf } from '@/lib/board/code'
@@ -57,6 +58,7 @@ function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
   const [answer, setAnswer] = useState('')
   const view = useRef<EditorView | null>(null) // Run must use what is typed now, not the debounced board copy
   const running = code.runningId === node.id
+  const isNarrow = useIsNarrow()
   // The editor shows this task's block; the node keeps, runs and saves the whole file.
   const region = blockOf(node.source, node.anchor)
   const count = region.block.split('\n').length
@@ -67,6 +69,7 @@ function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
         <CodeEditor
           code={region.block}
           hideToolbar
+          wrap={isNarrow}
           onViewReady={(v) => {
             view.current = v
           }}
@@ -111,7 +114,7 @@ function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             aria-label="Answer for input()"
-            className="min-h-11 flex-1 rounded-lg bg-[#3b2a1c] px-3 font-mono text-sm text-[#f3e9d8]"
+            className="min-h-11 flex-1 rounded-lg bg-[#3b2a1c] px-3 font-mono text-base text-[#f3e9d8]"
           />
           <button className="min-h-11 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-[#2b2118]">
             Send
