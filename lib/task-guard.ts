@@ -88,7 +88,7 @@ function escalationBlock(task: LessonTask, tier: EscalationTier): string {
     return [
       'ESCALATION LEVEL 2: your last hints did not work. Do NOT repeat your earlier wording — say it a completely different way.',
       `Show the exact line in their editor that this task changes as a fill-in-the-blank, e.g. the exact line with a blank where their words go.`,
-      'One short step. No more than three sentences. Simple words — they are about 10.',
+      'One short step. At most two short sentences. Simple words.',
     ].join('\n')
   }
 
@@ -97,6 +97,7 @@ function escalationBlock(task: LessonTask, tier: EscalationTier): string {
     `Show the line in their editor that this task changes exactly as it should read, then ask them to type just the first word themselves.`,
     'You still may not edit or write their file. Show the text; they type it.',
     'Ask one yes/no question at the end so they can tell you if it worked.',
+    'Keep your words to two short sentences besides the line you show.',
   ].join('\n')
 }
 

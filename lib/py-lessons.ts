@@ -382,7 +382,8 @@ export const PY_LESSONS: Lesson[] = [
             [0, 1]
           ),
           learn('Put the box in words.', [
-            { code: 'print(f"Hi {name}")', note: 'f lets words hold boxes.', hl: 'f' },
+            { code: 'name = "Ada"', note: 'A named box is a variable.', hl: 'name' },
+            { code: 'print(f"Hi {name}")', note: 'f-string: words that hold boxes.', hl: 'f' },
             {
               code: 'print(f"Hi {name}")',
               note: '{ } opens the box.',
@@ -808,7 +809,7 @@ export const PY_LESSONS: Lesson[] = [
         'core',
         'make',
         'Add a warm door',
-        'Sparky has three outcomes.',
+        'Sparky has three doors.',
         'Help me add a third door with elif.',
         [
           match(
@@ -932,7 +933,7 @@ export const PY_LESSONS: Lesson[] = [
         [
           match(
             'You used % 2',
-            'An even number has no rest.',
+            'Even numbers have nothing left over.',
             '%\\s*2\\s*==',
             'if coins % 2 == 0:'
           ),
@@ -1092,7 +1093,7 @@ export const PY_LESSONS: Lesson[] = [
         'hold-line',
         'core',
         'make',
-        'Hold the line',
+        'Stop the loop',
         'A while loop stops with break.',
         'Help me stop a while loop.',
         [
@@ -1466,7 +1467,7 @@ export const PY_LESSONS: Lesson[] = [
         'core',
         'make',
         'Boss: Loot report',
-        'Sparky reports total, best, count.',
+        'Sparky says total, best item, count.',
         'Help me build the loot report.',
         [
           output('Sparky says total power 12', 'Add up every power in loot.', '\\b12\\b'),
@@ -1700,7 +1701,7 @@ export const PY_LESSONS: Lesson[] = [
         false,
         [
           learn('A spell can have a target.', [
-            { code: 'def zap(target):', note: 'target is an empty slot.', hl: 'target' },
+            { code: 'def zap(target):', note: 'target is a slot: a parameter.', hl: 'target' },
             { code: '    print(f"Zap {target}")', note: 'The slot is used here.' },
             { code: 'zap("Ghost")', note: 'Ghost goes in the slot.', hl: '"Ghost"' },
           ]),

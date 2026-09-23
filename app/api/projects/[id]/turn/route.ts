@@ -268,7 +268,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           .catch((e) => console.error('prompt log failed:', e))
       } catch (err) {
         console.error('tutor turn error:', err)
-        send({ type: 'error', message: 'Spark had a problem. Try again.' })
+        send({ type: 'error', message: 'Sparky had a problem. Try again.' })
       }
       controller.close()
     },

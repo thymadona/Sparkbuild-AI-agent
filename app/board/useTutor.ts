@@ -53,8 +53,8 @@ export function useTutor(
         if (!res.ok || !res.body)
           throw new Error(
             res.status === 429
-              ? 'Spark needs a rest. Try again later.'
-              : 'Spark had a problem. Try again.'
+              ? 'Sparky needs a rest. Try again later.'
+              : 'Sparky had a problem. Try again.'
           )
         const reader = res.body.getReader()
         const dec = new TextDecoder()
@@ -82,7 +82,7 @@ export function useTutor(
       } catch (err) {
         said =
           said ||
-          (quiet ? '' : err instanceof Error ? err.message : 'Spark had a problem. Try again.')
+          (quiet ? '' : err instanceof Error ? err.message : 'Sparky had a problem. Try again.')
       } finally {
         if (said) setCaptions((c) => [...c, said])
         setLive('')

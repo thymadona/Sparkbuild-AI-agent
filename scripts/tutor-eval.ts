@@ -1,4 +1,4 @@
-// Does Spark judge tasks the way we expect? Runs canned student situations through
+// Does Sparky judge tasks the way we expect? Runs canned student situations through
 // the real turn loop against DeepSeek and checks whether it called task_complete.
 // Not part of CI (it needs the network and costs tokens).
 //   bun --env-file=.env run scripts/tutor-eval.ts
@@ -193,8 +193,10 @@ async function main() {
     const { called, text } = await play(s)
     const ok = called === s.complete
     if (!ok) bad++
+    // The prompt caps a reply at 25 words; flag any that run long.
+    const n = text.trim().split(/\s+/).filter(Boolean).length
     console.log(
-      `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})\n      Spark: ${text.slice(0, 140)}`
+      `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})\n      Sparky (${n} words${n > 25 ? ', TOO LONG' : ''}): ${text.slice(0, 140)}`
     )
   }
   console.log(`\n${SCENARIOS.length - bad}/${SCENARIOS.length} as expected`)

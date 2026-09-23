@@ -76,7 +76,7 @@ export default function Mascot({
       shapeRendering="crispEdges"
       className={`${className} shrink-0`}
       role="img"
-      aria-label={`Spark is ${state}`}
+      aria-label={`Sparky is ${state}`}
     >
       <g className={`spark spark-${state}`}>
         {r([armsUp ? [1, 3, 14, 2] : [1, 6, 14, 2]], body, 'arms')}

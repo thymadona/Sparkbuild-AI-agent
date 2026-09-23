@@ -157,14 +157,14 @@ describe('learn step', () => {
     try {
       view()
       fireEvent.click(screen.getByText('Next ▸'))
-      expect(screen.getByLabelText('Spark is speaking')).toBeTruthy()
+      expect(screen.getByLabelText('Sparky is speaking')).toBeTruthy()
       act(() => {
         jest.advanceTimersByTime(500)
       })
-      expect(screen.getByLabelText('Spark is celebrating')).toBeTruthy()
+      expect(screen.getByLabelText('Sparky is celebrating')).toBeTruthy()
       expect(screen.getByRole('status').textContent).toContain('Sparky says a')
       fireEvent.click(screen.getByText('↻ Again'))
-      expect(screen.getByLabelText('Spark is speaking')).toBeTruthy()
+      expect(screen.getByLabelText('Sparky is speaking')).toBeTruthy()
     } finally {
       jest.useRealTimers()
     }

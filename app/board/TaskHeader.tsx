@@ -103,7 +103,7 @@ export default function TaskHeader({
             disabled={busy || asked}
             className="min-h-11 rounded-xl border-2 border-[#2b2118] px-4 text-sm font-bold text-[#2b2118] transition-colors hover:bg-[#e4d3b3] disabled:opacity-50"
           >
-            {asked ? 'Asking Spark…' : 'I am stuck — show me'}
+            {asked ? 'Asking Sparky…' : 'I am stuck — show me'}
           </button>
         )}
       </div>
