@@ -97,7 +97,7 @@ export async function resetUser(
   })
 
   // Stale cache would otherwise serve the old progress for up to 15s, and the
-  // tester's hourly tutor-turn budget starts fresh with the course.
+  // tester's tutor-turn burst window starts fresh with the course.
   await Promise.all(projectIds.map((id) => invalidate(`lesson-progress:${id}`)))
   await invalidate(`ratelimit:prompts:${user.id}`)
 

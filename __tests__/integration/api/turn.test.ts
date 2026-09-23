@@ -3,6 +3,8 @@
  */
 const mockGetSessionUser = jest.fn()
 const mockCheckRateLimit = jest.fn()
+const mockIsAdmin = jest.fn()
+const mockIsTeacher = jest.fn()
 const mockCreate = jest.fn()
 
 jest.mock('@/lib/auth/session', () => ({ getSessionUser: () => mockGetSessionUser() }))
@@ -10,8 +12,8 @@ jest.mock('@/lib/ratelimit', () => ({
   checkRateLimit: (...a: unknown[]) => mockCheckRateLimit(...a),
 }))
 jest.mock('@/lib/auth/permissions', () => ({
-  isAdmin: async () => false,
-  isTeacher: async () => false,
+  isAdmin: (...a: unknown[]) => mockIsAdmin(...a),
+  isTeacher: (...a: unknown[]) => mockIsTeacher(...a),
 }))
 jest.mock('@/lib/deepseek', () => ({
   deepseek: { chat: { completions: { create: (...a: unknown[]) => mockCreate(...a) } } },
@@ -62,7 +64,10 @@ describe('POST /api/projects/[id]/turn', () => {
   beforeEach(async () => {
     await resetDb()
     mockCreate.mockReset()
-    mockCheckRateLimit.mockResolvedValue({ allowed: true, hoursUntilReset: 0 })
+    mockCheckRateLimit.mockReset()
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, count: 0 })
+    mockIsAdmin.mockResolvedValue(false)
+    mockIsTeacher.mockResolvedValue(false)
   })
 
   it('streams captions, applies the board op, and persists board and messages', async () => {
@@ -102,8 +107,26 @@ describe('POST /api/projects/[id]/turn', () => {
     mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: '' })
     expect((await post('not-a-uuid', { text: 'hi' })).status).toBe(404)
     const project = await makeProject(user.id)
-    mockCheckRateLimit.mockResolvedValue({ allowed: false, hoursUntilReset: 1 })
-    expect((await post(project.id, { text: 'hi' })).status).toBe(429)
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, count: 30 })
+    const limited = await post(project.id, { text: 'hi' })
+    expect(limited.status).toBe(429)
+    expect((await limited.json()).error).not.toMatch(/hour/i)
+  })
+
+  it.each([
+    ['admin', mockIsAdmin],
+    ['teacher', mockIsTeacher],
+  ])('never rate limits staff (%s)', async (_, role) => {
+    const user = await makeUser()
+    mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: '' })
+    role.mockResolvedValue(true)
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, count: 30 })
+    const project = await makeProject(user.id)
+    modelSays('Hi.')
+    const res = await post(project.id, { type: 'student_message', text: 'hi' })
+    expect(res.status).toBe(200)
+    await drain(res)
+    expect(mockCheckRateLimit).not.toHaveBeenCalled()
   })
 
   it('applies a code run to the persisted board and tells the tutor what happened', async () => {

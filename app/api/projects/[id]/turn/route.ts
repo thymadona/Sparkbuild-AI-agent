@@ -47,12 +47,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const [admin, teacher] = await Promise.all([isAdmin(user.id), isTeacher(user.id)])
   if (!admin && !teacher) {
-    const { allowed, hoursUntilReset } = await checkRateLimit(user.id)
+    const { allowed } = await checkRateLimit(user.id)
     if (!allowed) {
       return NextResponse.json(
-        {
-          error: `Hourly limit reached. Resets in ${hoursUntilReset} hour${hoursUntilReset === 1 ? '' : 's'}.`,
-        },
+        { error: 'Too many messages. Slow down and try again in a moment.' },
         { status: 429 }
       )
     }

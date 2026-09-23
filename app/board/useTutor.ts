@@ -40,7 +40,7 @@ export function useTutor(
       setBusy(true)
       let said = ''
       // Feedback on a wrong pick is a bonus on top of the hint already on screen: if the turn fails
-      // (hourly limit, network), say nothing rather than a scary caption.
+      // (too fast, network), say nothing rather than a scary caption.
       const quiet = event.type === 'step_answer' || event.type === 'stage_result'
       let completed: { taskId: string; done: string[] } | null = null
       const traces: string[] = [] // run after the turn, once the interpreter and the board are settled
@@ -53,7 +53,7 @@ export function useTutor(
         if (!res.ok || !res.body)
           throw new Error(
             res.status === 429
-              ? 'Sparky needs a rest. Try again later.'
+              ? 'Whoa, too fast! Wait a moment and try again.'
               : 'Sparky had a problem. Try again.'
           )
         const reader = res.body.getReader()

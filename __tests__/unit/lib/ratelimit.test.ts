@@ -17,7 +17,7 @@ import { redis } from '@/lib/redis'
 // Every test uses a fresh random user id, so tests never collide and nothing
 // needs flushing between them — which is also what keeps a misconfigured
 // TEST_REDIS_URL from destroying data.
-const HOURLY_LIMIT = 50
+const BURST_LIMIT = 30
 
 beforeAll(async () => {
   if (!redis) throw new Error('TEST_REDIS_URL is not usable — is Redis running?')
@@ -41,7 +41,6 @@ describe('checkRateLimit', () => {
 
     expect(result.allowed).toBe(true)
     expect(result.count).toBe(1)
-    expect(result.hoursUntilReset).toBe(0)
   })
 
   it('counts requests cumulatively for the same user', async () => {
@@ -69,16 +68,15 @@ describe('checkRateLimit', () => {
   it('allows exactly the limit, then blocks', async () => {
     const userId = randomUUID()
 
-    for (let i = 1; i < HOURLY_LIMIT; i++) await checkRateLimit(userId)
+    for (let i = 1; i < BURST_LIMIT; i++) await checkRateLimit(userId)
 
     const last = await checkRateLimit(userId)
     expect(last.allowed).toBe(true)
-    expect(last.count).toBe(HOURLY_LIMIT)
+    expect(last.count).toBe(BURST_LIMIT)
 
     const blocked = await checkRateLimit(userId)
     expect(blocked.allowed).toBe(false)
-    expect(blocked.count).toBe(HOURLY_LIMIT)
-    expect(blocked.hoursUntilReset).toBeGreaterThanOrEqual(1)
+    expect(blocked.count).toBe(BURST_LIMIT)
   })
 
   it('stays atomic under concurrent requests from one user', async () => {
@@ -88,10 +86,10 @@ describe('checkRateLimit', () => {
     const userId = randomUUID()
 
     const results = await Promise.all(
-      Array.from({ length: HOURLY_LIMIT + 10 }, () => checkRateLimit(userId))
+      Array.from({ length: BURST_LIMIT + 10 }, () => checkRateLimit(userId))
     )
 
-    expect(results.filter((r) => r.allowed)).toHaveLength(HOURLY_LIMIT)
+    expect(results.filter((r) => r.allowed)).toHaveLength(BURST_LIMIT)
     expect(results.filter((r) => !r.allowed)).toHaveLength(10)
   })
 
@@ -101,7 +99,7 @@ describe('checkRateLimit', () => {
 
     const ttl = await redis!.pttl(`ratelimit:prompts:${userId}`)
     expect(ttl).toBeGreaterThan(0)
-    expect(ttl).toBeLessThanOrEqual(60 * 60 * 1000)
+    expect(ttl).toBeLessThanOrEqual(60 * 1000)
   })
 })
 
@@ -124,7 +122,6 @@ describe('fail-open behaviour', () => {
 
     expect(result.allowed).toBe(true)
     expect(result.count).toBe(0)
-    expect(result.hoursUntilReset).toBe(0)
   })
 
   it('allows the request when no Redis is configured at all', async () => {
