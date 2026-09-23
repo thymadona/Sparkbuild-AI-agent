@@ -32,6 +32,7 @@ import { taskXp } from '@/lib/xp'
 import type { MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
 import { useTutor } from './useTutor'
+import { useBolt } from './useBolt'
 import { speak, speechSupported, stopSpeaking } from '@/lib/speech'
 
 // Long enough to read as a celebration, short enough not to feel like a wait.
@@ -151,6 +152,8 @@ export default function LiveBoard({
     },
     [projectId, files, entry, initialBoard]
   )
+
+  const bolt = useBolt({ projectId, dispatch, boardRef, saveBoard, send, say })
 
   // One page per task, and the page the student is looking at is the task they
   // are working on. The code a task is judged on is the code on its own page:
@@ -362,12 +365,12 @@ export default function LiveBoard({
   // Autosave: what the student typed survives a closed tab. Never while the tutor is
   // mid-turn (the server owns the board then); the effect re-runs when the turn ends.
   useEffect(() => {
-    if (busy || board === saved.current) return
+    if (busy || bolt.building || board === saved.current) return
     const timer = setTimeout(() => {
       void saveBoard(boardRef.current)
     }, 1200)
     return () => clearTimeout(timer)
-  }, [board, busy, saveBoard])
+  }, [board, busy, bolt.building, saveBoard])
   const started = useRef(false)
   const [mood, setMood] = useState<MascotState | null>(null)
   useEffect(() => {
@@ -571,11 +574,12 @@ export default function LiveBoard({
       <BoardView
         board={board}
         captions={captions}
-        live={live}
+        live={bolt.building ? 'Bolt is building…' : live}
         mascot={mascot}
         mood={mood}
         code={codeActions}
-        busy={busy}
+        // Bolt's route and Sparky's turn both rewrite the stored board: one at a time.
+        busy={busy || bolt.building}
         header={lesson ? header : undefined}
         progress={
           lesson ? (
@@ -594,6 +598,11 @@ export default function LiveBoard({
         voice={canSpeak ? voice : undefined}
         onVoice={toggleVoice}
         onSend={(text) => void send({ type: 'student_message', text })}
+        onAskBolt={
+          lesson?.aiPolicy === 'director' && currentPageId
+            ? (request) => void bolt.ask(request, currentPageId)
+            : undefined
+        }
       />
     </>
   )

@@ -66,6 +66,11 @@ Each rule's rationale is in the skill named in parentheses.
   `awaitingEditor` withholds the tool —, backed by a real run, static checks re-pass on
   stored code via `verifyTask`) and `recordTaskDone` (`lib/task-progress.ts`) is the **only**
   writer that grows `lesson_progress`. `PUT …/lesson-progress` may only shrink. (`lesson-progress`)
+- **Bolt** (`lib/helper/`, `POST /api/projects/[id]/helper`) is a separate helper AI that writes
+  code for the student. It answers only in `aiPolicy: 'director'` lessons (403 otherwise), writes
+  at most 8 non-blank lines into its own read-only `helper` block (only the `'bolt'` actor may add
+  one), and never completes a task: its block and its runs are never evidence for
+  `task_complete`. Sparky still never writes the answer. (`ai-tutor`)
 - The lesson catalog (`lib/py-lessons.ts`) is read live: content edits (checks, prompts, steps,
   wording) reach every student immediately, old and new, and need no version bump. A shipped
   task id or its `# TASK: <id>` anchor is different — `lesson_progress` stores ids as plain
@@ -79,7 +84,7 @@ Each rule's rationale is in the skill named in parentheses.
   DSL can't express (`--custom`) → `bun run db:migrate` → update `types/index.ts` by hand. A
   new table needs an `export *` in `lib/db/schema.ts` and an `enable row level security` line.
   `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. Latest
-  migration: `0010` (`task_progress`, the audit row behind every completed task). (`database`)
+  migration: `0012` (`messages.role` gains `'helper'`, Bolt's exchanges). (`database`)
 - Next 16: `params` is a `Promise` — await it. `.tsx` tests start with
   `/** @jest-environment jsdom */`. Read `node_modules/next/dist/docs/` before assuming an API.
 
@@ -94,19 +99,19 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 
 ## Skills index
 
-| When the task involves…                                                                    | Skill                   |
-| ------------------------------------------------------------------------------------------ | ----------------------- |
-| stack, folder layout, where X lives, Next 16 specifics, config, CI, jest harness, env vars | `project-architecture`  |
-| queries, Drizzle, `db`, migrations, tables, columns, RLS, `isUuid`, `rowsOf`               | `database`              |
-| login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, `/no-class`          | `auth-flow`             |
-| roles, permission keys, `hasPermission`, `/staff` gating, assigning roles                  | `roles-permissions`     |
-| Redis, `cached()`, TTLs, invalidation, rate limit / 429                                    | `redis-cache-ratelimit` |
-| tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace    | `ai-tutor`              |
-| task checks, verify, complete, enabled lessons, autosave                                   | `lesson-progress`       |
-| adding a week/task, templates, anchors, fixtures, word budgets, catalog version            | `lesson-authoring`      |
-| XP, levels, badges, streak, `activity_days`, `APP_TIMEZONE`                                | `xp-and-streak`         |
-| issue → branch → PR loop                                                                   | `issue-workflow`        |
-| planning the next roadmap phase, writing a feature spec                                    | `feature-spec`          |
+| When the task involves…                                                                       | Skill                   |
+| --------------------------------------------------------------------------------------------- | ----------------------- |
+| stack, folder layout, where X lives, Next 16 specifics, config, CI, jest harness, env vars    | `project-architecture`  |
+| queries, Drizzle, `db`, migrations, tables, columns, RLS, `isUuid`, `rowsOf`                  | `database`              |
+| login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, `/no-class`             | `auth-flow`             |
+| roles, permission keys, `hasPermission`, `/staff` gating, assigning roles                     | `roles-permissions`     |
+| Redis, `cached()`, TTLs, invalidation, rate limit / 429                                       | `redis-cache-ratelimit` |
+| tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace, Bolt | `ai-tutor`              |
+| task checks, verify, complete, enabled lessons, autosave                                      | `lesson-progress`       |
+| adding a week/task, templates, anchors, fixtures, word budgets, catalog version               | `lesson-authoring`      |
+| XP, levels, badges, streak, `activity_days`, `APP_TIMEZONE`                                   | `xp-and-streak`         |
+| issue → branch → PR loop                                                                      | `issue-workflow`        |
+| planning the next roadmap phase, writing a feature spec                                       | `feature-spec`          |
 
 ## Known issues (pre-existing; not yours)
 

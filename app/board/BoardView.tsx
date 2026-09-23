@@ -105,6 +105,9 @@ interface Props {
   // Sparky's voice toggle. `voice` undefined = this browser cannot speak, so no toggle.
   voice?: boolean
   onVoice?: () => void
+  // Director lessons only: the chat box gets a Sparky / Bolt switch, and Bolt mode sends
+  // the text to Bolt as a request instead of to Sparky.
+  onAskBolt?: (request: string) => void
 }
 
 export default function BoardView({
@@ -124,12 +127,15 @@ export default function BoardView({
   onViewPage,
   voice,
   onVoice,
+  onAskBolt,
 }: Props) {
   const [minimized, setMinimized] = useState(false)
   const [unread, setUnread] = useState(false) // a reply arrived while Spark was hidden
   const [showEarlier, setShowEarlier] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [toBolt, setToBolt] = useState(false)
+  const askBolt = toBolt && onAskBolt
   const [quiet, setQuiet] = useState(false)
   const [focused, setFocused] = useState(false)
   const typing = focused // input takes the row on the right; Spark steps aside, and returns on blur
@@ -377,12 +383,35 @@ export default function BoardView({
                 onSubmit={(e) => {
                   e.preventDefault()
                   if (onSend && draft.trim() && !busy) {
-                    onSend(draft.trim())
+                    ;(askBolt ? onAskBolt : onSend)(draft.trim())
                     setDraft('')
                     inputRef.current?.blur()
                   }
                 }}
               >
+                {onAskBolt && (
+                  <div
+                    role="group"
+                    aria-label="Who to ask"
+                    className="flex shrink-0 rounded-full bg-[#ece6da] p-0.5 text-xs font-bold"
+                  >
+                    {[false, true].map((bolt) => (
+                      <button
+                        key={String(bolt)}
+                        type="button"
+                        aria-pressed={toBolt === bolt}
+                        onClick={() => setToBolt(bolt)}
+                        className={cn(
+                          'min-h-9 rounded-full px-2',
+                          toBolt === bolt &&
+                            (bolt ? 'bg-sky-500 text-white' : 'bg-[#2b2118] text-[#faf6ee]')
+                        )}
+                      >
+                        {bolt ? '⚡ Bolt' : 'Sparky'}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <input
                   ref={inputRef}
                   onKeyDown={(e) => {
@@ -392,8 +421,14 @@ export default function BoardView({
                   onChange={(e) => setDraft(e.target.value)}
                   disabled={!onSend}
                   maxLength={1000}
-                  placeholder={onSend ? 'Type to Sparky' : 'Sparky will listen here soon…'}
-                  aria-label="Message Sparky"
+                  placeholder={
+                    askBolt
+                      ? 'Tell Bolt what to build'
+                      : onSend
+                        ? 'Type to Sparky'
+                        : 'Sparky will listen here soon…'
+                  }
+                  aria-label={askBolt ? 'Ask Bolt' : 'Message Sparky'}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   className={cn(

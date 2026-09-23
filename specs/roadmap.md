@@ -14,7 +14,7 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 - [x] **1. Week 7 — Dictionaries.** The last core Python concept, with no AI help.
 - [x] **2. Replace the hourly cap with a burst limit.** 30 turns/minute instead of 50 turns/hour
       (`lib/ratelimit.ts`).
-- [ ] **3a. AI helper (Bolt).** A separate AI helper, Bolt, that writes a small read-only code block
+- [x] **3a. AI helper (Bolt).** A separate AI helper, Bolt, that writes a small read-only code block
       from the student's request, only in `aiPolicy: 'director'` lessons. Sparky stays a tutor who
       never writes code. Nothing reaches students until 3b ships.
 - [ ] **3b. Week 8 — Ask AI Well.** The student writes a clear request, and Bolt builds only what was

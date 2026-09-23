@@ -131,6 +131,11 @@ toggled via `POST admin/classes/[id]/lessons { lessonId, enabled }` — `classes
   would be one request away from irrelevant.
 - The static floor runs on the **stored** board, never on request code; `hasRun` demands a run of
   the exact current source, so typing alone never advances anything.
+- **Bolt's `helper` block is never evidence.** `taskPrograms`/`hasRun`/`pageCode` read only
+  `code` nodes and their `output` nodes; a Bolt block keeps its run on itself, and a
+  `code_run_result` naming it is a 400 (`runOps` refuses non-code nodes). Only the student's own
+  editor, run by them, can back `task_complete`. Open for 3b: code the student pastes from Bolt
+  into their editor does count (mission rule 4 decides how it is judged).
 - stdout is browser-reported because Node cannot run Python; the model is told to check it
   against the source and the static floor is the hard backstop.
 - `task_progress` and `lesson_progress.completed_task_ids` are written in one transaction:
