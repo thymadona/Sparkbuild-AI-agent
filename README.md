@@ -2,7 +2,7 @@
 
 **Build the future, one line at a time.**
 
-SparkBuild is an AI-assisted Python platform for students aged 10–16. Students work through a
+SparkBuild is an AI-assisted Python platform for students aged 11–16. Students work through a
 weekly course on a shared board with **Spark**, an AI tutor that talks in short captions,
 draws on the board and nudges instead of solving — so what they write is actually theirs.
 Python runs in the browser. Every task is verified by code, and progress earns XP, levels, badges
