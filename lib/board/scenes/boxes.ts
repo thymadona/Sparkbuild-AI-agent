@@ -30,5 +30,8 @@ export const describe = (c: BoxesConfig, g: BoxesGoal) =>
   `Memory boxes ${c.boxes.map((b) => `${b.name}${b.value !== undefined ? `=${b.value}` : ' (empty)'}`).join(', ')}. Goal: ${Object.entries(
     g.values
   )
-    .map(([k, v]) => `${k} holds ${JSON.stringify(v)}`)
+    .map(
+      ([k, v]) =>
+        `${k}${c.boxes.some((b) => b.name === k) ? '' : ' (a new box)'} holds ${JSON.stringify(v)}`
+    )
     .join(', ')}.`

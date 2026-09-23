@@ -1,5 +1,5 @@
 import { PY_LESSONS } from '@/lib/py-lessons'
-import { programWins, runProgram, type Block } from '@/lib/board/scenes'
+import { describeScene, programWins, runProgram, type Block } from '@/lib/board/scenes'
 import type { GridState } from '@/lib/board/scenes/grid'
 
 const stages = PY_LESSONS.flatMap((l) =>
@@ -55,6 +55,18 @@ describe('scenes', () => {
     ]
     expect(programWins('room', {}, { says: ['Hi', 'Bye'] }, palette, [0, 1])).toBe(true)
     expect(programWins('room', {}, { says: ['Hi', 'Bye'] }, palette, [1, 0])).toBe(false)
+  })
+
+  it('boxes: setting a key that is not in the config adds a new box', () => {
+    const cfg = { boxes: [{ name: 'orc', value: 3 }] }
+    const goal = { values: { orc: 4, imp: 2 } }
+    const palette = [
+      { label: 'imp = 2', ops: ['set:imp=2'] },
+      { label: 'orc + 1', ops: ['add:orc:1'] },
+    ]
+    expect(programWins('boxes', cfg, goal, palette, [0, 1])).toBe(true)
+    expect(programWins('boxes', cfg, goal, palette, [1])).toBe(false)
+    expect(describeScene('boxes', cfg, goal)).toContain('imp (a new box) holds 2')
   })
 
   it('boxes: add starts an empty box at 0; machine: blocks chain', () => {
