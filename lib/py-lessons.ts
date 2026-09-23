@@ -5,7 +5,7 @@ import type { TaskCheck } from './task-checks'
 // holds rows 1-6 from the retired web course, and those must never re-enable a
 // Python week by accident.
 //
-// Weeks 1-6 the AI is a tutor (aiPolicy 'tutor'); weeks 7-12 the student
+// Weeks 1-7 the AI is a tutor (aiPolicy 'tutor'); weeks 8-12 the student
 // directs it ('director'). Checks are about what the program does, not which
 // exact words the student typed: they either match the source loosely or run
 // the program (lib/python-checks.ts). Every printed line is something Sparky
@@ -2252,6 +2252,209 @@ export const PY_LESSONS: Lesson[] = [
             1,
             'mi'
           ),
+        ]
+      ),
+    ],
+  },
+  {
+    id: 107,
+    title: 'Week #7 — Monster Dex',
+    description: 'Sparky keeps a Monster Dex. Grow it, count it, sort it.',
+    templateFile: 'py/w7.py',
+    starterFile: 'main.py',
+    extraFiles: { 'bugzap.py': 'py/w7-bugzap.py' },
+    scene: 'robot',
+    aiPolicy: 'tutor',
+    badge: 'Key Master',
+    tasks: [
+      task(
+        'new-monster',
+        'core',
+        'change',
+        'New monster',
+        'The dex grows. The bat levels up.',
+        'Help me add a monster to the dex.',
+        [
+          match(
+            'You added a new monster',
+            'A new name makes a new box: dex["imp"] = 3',
+            `^\\s*dex\\[\\s*["'](?!(?:slime|bat|golem)["'])[^"'\\n]+["']\\s*\\]\\s*=(?!=)`,
+            'dex["imp"] = 3'
+          ),
+          match(
+            'The bat got 1 more power',
+            'Use its old power: dex["bat"] + 1',
+            `^\\s*dex\\[\\s*(["'])(\\w+)\\1\\s*\\]\\s*(?:\\+=|=\\s*dex\\[\\s*["']\\2["']\\s*\\]\\s*\\+)`,
+            'dex["bat"] = dex["bat"] + 1'
+          ),
+          runs,
+        ]
+      ),
+      task(
+        'unknown-monster',
+        'core',
+        'change',
+        'Unknown monster',
+        'Sparky asks first. No crash.',
+        'Help me look up a monster safely.',
+        [
+          match(
+            'You asked about the yeti',
+            'Ask first: "yeti" in dex, or dex.get("yeti", 0)',
+            `^[^#\\n]*(?:["']yeti["']\\s+in\\s+dex\\b|\\bdex\\.get\\(\\s*["']yeti["'])`,
+            'print(dex.get("yeti", 0))'
+          ),
+          runs,
+        ]
+      ),
+      task(
+        'count-sightings',
+        'core',
+        'make',
+        'Count sightings',
+        'seen counts every monster.',
+        'Help me count the monsters Sparky saw.',
+        [
+          match(
+            'You loop over sightings',
+            'Try: for name in sightings:',
+            '^\\s*for\\s+\\w+\\s+in\\s+sightings\\s*:',
+            'for name in sightings:'
+          ),
+          calls(
+            'seen says bat 3 times',
+            'Start at 0. Add 1 each time you see it.',
+            'seen.get("bat") == 3'
+          ),
+          runs,
+        ]
+      ),
+      task(
+        'monster-types',
+        'core',
+        'make',
+        'Monster types',
+        'Each type lists its monsters.',
+        'Help me sort monsters by type.',
+        [
+          match(
+            'You added to a type list',
+            'Pick the list first: types["fire"].append(...)',
+            `^\\s*types\\[\\s*["']\\w+["']\\s*\\]\\.append\\(`,
+            'types["fire"].append("drake")'
+          ),
+          calls(
+            'Fire has two monsters',
+            'Add "drake" to the fire list.',
+            'len(types["fire"]) == 2'
+          ),
+          match(
+            'You loop with .items()',
+            'Try: for kind, names in types.items():',
+            '^\\s*for\\s+\\w+\\s*,\\s*\\w+\\s+in\\s+types\\.items\\(\\s*\\)\\s*:',
+            'for kind, names in types.items():'
+          ),
+          runs,
+        ]
+      ),
+      task(
+        'dex-report',
+        'core',
+        'make',
+        'Boss: Dex report',
+        'Sparky says the top monster and total.',
+        'Help me build the Dex report.',
+        [
+          calls(
+            'tally counts ghost 4 times',
+            'Count the log like seen.',
+            'tally.get("ghost") == 4'
+          ),
+          match(
+            'You loop over tally.items()',
+            'Try: for name, n in tally.items():',
+            '^\\s*for\\s+\\w+\\s*,\\s*\\w+\\s+in\\s+tally\\.items\\(\\s*\\)\\s*:',
+            'for name, n in tally.items():'
+          ),
+          output(
+            'Sparky names the most seen',
+            'Keep the name with the biggest count.',
+            '(?:most|top|best)\\D{0,20}ghost|ghost\\D{0,20}(?:most|top|best)',
+            { flags: 'i' }
+          ),
+          output(
+            'Sparky says the total 8',
+            'Print the word total, then the number.',
+            'total\\D{0,20}\\b8\\b',
+            {
+              flags: 'i',
+            }
+          ),
+        ],
+        true
+      ),
+      task(
+        'release',
+        'choice',
+        'change',
+        'Release a monster',
+        'The slime goes home.',
+        'Help me take a monster out.',
+        [
+          calls(
+            'The slime is gone',
+            'Try del dex["slime"] or dex.pop("slime")',
+            '"slime" not in dex'
+          ),
+          runs,
+        ]
+      ),
+      task(
+        'hw-my-dex',
+        'bonus',
+        'make',
+        'My dex',
+        'Your own dex has five monsters.',
+        'Help me make my own dex.',
+        [
+          match(
+            'Your dex has 5 monsters',
+            'Put five name: power pairs inside { }.',
+            '^\\s*\\w+\\s*=\\s*\\{(?:[^{}:,\\n]+:[^{}:,\\n]+,){4,}[^{}:,\\n]+:[^{}:,\\n]+\\}',
+            'my_dex = {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}'
+          ),
+          runs,
+        ]
+      ),
+      task(
+        'hw-explain-dex',
+        'bonus',
+        'explain',
+        'Explain the dex',
+        'Each print line has a # note.',
+        'Help me explain each line.',
+        [
+          match(
+            'You added 3 notes with #',
+            'A # note goes after your code.',
+            NOTE,
+            'print(1)  # one',
+            3
+          ),
+        ]
+      ),
+      task(
+        'hw-bug-key',
+        'bonus',
+        'bugzap',
+        'Fix the crash',
+        'bugzap.py finishes.',
+        'Help me find the mistake in bugzap.py.',
+        [
+          output('bugzap.py says done', 'Read the last line of the red text.', 'done', {
+            flags: 'i',
+            file: 'bugzap.py',
+          }),
         ]
       ),
     ],

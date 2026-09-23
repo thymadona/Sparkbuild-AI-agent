@@ -67,5 +67,16 @@
     "plant-bug",
     "hw-bug-crash",
     "hw-report"
+  ],
+  "107": [
+    "new-monster",
+    "unknown-monster",
+    "count-sightings",
+    "monster-types",
+    "dex-report",
+    "release",
+    "hw-my-dex",
+    "hw-explain-dex",
+    "hw-bug-key"
   ]
 }
