@@ -18,7 +18,7 @@ const tutorNodeSchema = z.union(
   ) as unknown as [z.ZodType, z.ZodType, ...z.ZodType[]]
 )
 
-const fn = (name: string, description: string, params: z.ZodType) => ({
+export const fn = (name: string, description: string, params: z.ZodType) => ({
   type: 'function' as const,
   function: { name, description, parameters: z.toJSONSchema(params) as Record<string, unknown> },
 })
