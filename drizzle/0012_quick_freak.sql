@@ -1,0 +1,2 @@
+ALTER TABLE "messages" DROP CONSTRAINT "messages_role_check";--> statement-breakpoint
+ALTER TABLE "messages" ADD CONSTRAINT "messages_role_check" CHECK ("messages"."role" = ANY (ARRAY['user', 'assistant', 'teacher', 'helper']));

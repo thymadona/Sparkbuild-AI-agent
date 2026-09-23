@@ -50,7 +50,7 @@ export interface Message {
   id: string
   project_id: string
   user_id: string
-  role: 'user' | 'assistant' | 'teacher'
+  role: 'user' | 'assistant' | 'teacher' | 'helper'
   content: string
   created_at: string
 }

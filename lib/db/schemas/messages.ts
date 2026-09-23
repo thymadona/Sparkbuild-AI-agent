@@ -20,7 +20,10 @@ export const messages = pgTable(
       .notNull(),
   },
   (t) => [
-    check('messages_role_check', sql`${t.role} = ANY (ARRAY['user', 'assistant', 'teacher'])`),
+    check(
+      'messages_role_check',
+      sql`${t.role} = ANY (ARRAY['user', 'assistant', 'teacher', 'helper'])`
+    ),
     index('messages_project_id_created_at_idx').on(t.projectId, t.createdAt),
   ]
 )

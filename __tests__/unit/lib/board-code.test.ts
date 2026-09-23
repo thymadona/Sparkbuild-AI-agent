@@ -132,6 +132,26 @@ describe('board code', () => {
     const bad = { ...boardFromFiles('x'), nodes: { main: { id: 'main', type: 'nope' } } }
     expect(SavedBoard.safeParse(bad).success).toBe(false)
   })
+
+  it("round-trips Bolt's block and rejects one over 8 lines", () => {
+    let b = apply(emptyBoard(), { op: 'new_page', pageId: 'p1', title: 'One' })
+    const node = {
+      id: 'b1',
+      parentId: null,
+      createdBy: 'system' as const,
+      type: 'helper' as const,
+      request: 'say hi',
+      source: 'print("hi")',
+    }
+    b = apply(b, { op: 'add', pageId: 'p1', node }, 'bolt')
+    const saved = SavedBoard.parse(JSON.parse(JSON.stringify(b)))
+    expect(saved.nodes.b1).toEqual(node)
+    // Bolt's block is not a code node: it is never the page's program.
+    expect(pageCode(b, 'p1')).toBeNull()
+    const long = Array.from({ length: 9 }, (_, i) => `print(${i})`).join('\n')
+    const bad = { ...b, nodes: { b1: { ...node, source: long } } }
+    expect(SavedBoard.safeParse(bad).success).toBe(false)
+  })
 })
 
 describe('blockOf (the part of the file a task shows)', () => {

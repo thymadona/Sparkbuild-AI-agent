@@ -32,6 +32,11 @@ export const TraceStep = z.object({
 
 export type TraceStep = z.infer<typeof TraceStep>
 
+// Bolt's block holds at most this many non-blank lines (mission rule 2). The helper
+// route checks Bolt's answer with the same function, so a saved board always parses.
+export const MAX_HELPER_LINES = 8
+export const codeLines = (source: string) => source.split('\n').filter((l) => l.trim()).length
+
 export const BoardNode = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('heading'), text: z.string().max(120) }),
   z.object({ ...base, type: z.literal('text'), markdown: z.string().max(1200) }),
@@ -195,6 +200,24 @@ export const BoardNode = z.discriminatedUnion('type', [
     program: z.array(z.number().int().min(0).max(7)).max(8).default([]),
     attempts: z.number().int().min(0).default(0),
     answered: z.boolean().default(false),
+  }),
+  // "Bolt wrote this": code the helper AI wrote from the student's request. Read-only and
+  // runnable. Not a `code` node, so it is never a task's program or evidence for task_complete.
+  z.object({
+    ...base,
+    parentId: z.null(),
+    type: z.literal('helper'),
+    request: z.string().max(500),
+    source: z
+      .string()
+      .max(1200)
+      .refine((s) => codeLines(s) <= MAX_HELPER_LINES, {
+        message: `Bolt's code must be at most ${MAX_HELPER_LINES} lines`,
+      }),
+    // The block's last run, written by the client.
+    stdout: z.string().max(4000).optional(),
+    stderr: z.string().max(4000).optional(),
+    ok: z.boolean().optional(),
   }),
   z.object({
     ...base,

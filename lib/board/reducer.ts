@@ -14,17 +14,19 @@ export const emptyBoard = (): BoardState => ({
   focusId: null,
 })
 
+// Who sends an op: Sparky ('tutor'), the board itself ('client'), or Bolt, the helper
+// AI, whose only op is adding its own read-only `helper` block.
+export type Actor = 'tutor' | 'client' | 'bolt'
+
 // Pure. Throws Error with a readable message on a bad op so the tutor loop can
 // hand it back to the model as a tool result.
-export function apply(
-  state: BoardState,
-  raw: unknown,
-  actor: 'tutor' | 'client' = 'client'
-): BoardState {
+export function apply(state: BoardState, raw: unknown, actor: Actor = 'client'): BoardState {
   const parsed = BoardOp.safeParse(raw)
   if (!parsed.success)
     throw new Error(`Invalid op: ${parsed.error.issues[0]?.message ?? 'bad shape'}`)
   const op = parsed.data
+  if (actor === 'bolt' && (op.op !== 'add' || op.node.type !== 'helper'))
+    throw new Error('Bolt can only add its own block')
 
   switch (op.op) {
     case 'new_page': {
@@ -41,6 +43,8 @@ export function apply(
       if (actor === 'tutor' && (CLIENT_ONLY_TYPES as readonly string[]).includes(node.type)) {
         throw new Error(`The tutor cannot create ${node.type} nodes`)
       }
+      if (node.type === 'helper' && actor !== 'bolt')
+        throw new Error('Only Bolt can create helper nodes')
       if (state.nodes[node.id]) throw new Error(`Node ${node.id} already exists`)
       if (!state.pages.some((p) => p.id === op.pageId)) throw new Error(`Unknown page ${op.pageId}`)
       if (node.parentId && !state.nodes[node.parentId])
@@ -61,6 +65,9 @@ export function apply(
       if (actor === 'tutor' && STUDENT_STEP_FIELDS.some((f) => f in patch)) {
         throw new Error(`The tutor cannot change ${STUDENT_STEP_FIELDS.join(', ')}`)
       }
+      // Bolt's block: only the client may write its run output; its code and request are fixed.
+      if (old.type === 'helper' && (actor === 'tutor' || 'source' in patch || 'request' in patch))
+        throw new Error(`${op.id} is Bolt's block and cannot be changed`)
       const next = BoardNode.safeParse({ ...old, ...patch })
       if (!next.success) throw new Error(`Bad patch for ${op.id}: ${next.error.issues[0]?.message}`)
       return { ...state, nodes: { ...state.nodes, [op.id]: next.data } }
@@ -76,6 +83,8 @@ export function apply(
           if (!drop.has(n.id) && owner && drop.has(owner)) (drop.add(n.id), (grew = true))
         }
       }
+      if (actor === 'tutor' && [...drop].some((id) => state.nodes[id].type === 'helper'))
+        throw new Error("The tutor cannot remove Bolt's block")
       return {
         ...state,
         nodes: Object.fromEntries(Object.entries(state.nodes).filter(([id]) => !drop.has(id))),
@@ -120,6 +129,6 @@ export function summarize(state: BoardState, focusPageId?: string): string {
 }
 
 // For useReducer in the board clients.
-export type BoardAction = { op: unknown; actor: 'tutor' | 'client' } | { reset: BoardState }
+export type BoardAction = { op: unknown; actor: Actor } | { reset: BoardState }
 export const boardReducer = (s: BoardState, a: BoardAction): BoardState =>
   'reset' in a ? a.reset : apply(s, a.op, a.actor)

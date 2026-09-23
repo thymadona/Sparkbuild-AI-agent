@@ -452,18 +452,28 @@ export default function LiveBoard({
     )
       return
     const node = b.nodes[id]
+    const stdout = output
+      .filter((c) => c.kind === 'out' || c.kind === 'in')
+      .map((c) => c.text)
+      .join('')
+    const stderr = output
+      .filter((c) => c.kind === 'err' || c.kind === 'note')
+      .map((c) => c.text)
+      .join('')
+    const ok = !output.some((c) => c.kind === 'err' || c.kind === 'note')
+    // Bolt's block keeps its output on itself and tells Sparky nothing: it is never evidence.
+    if (node?.type === 'helper') {
+      const patch = { stdout: stdout.slice(0, 4000), stderr: stderr.slice(0, 4000), ok }
+      dispatch({ op: { op: 'update', id, patch }, actor: 'client' })
+      setRunningId(null)
+      return
+    }
     if (node?.type !== 'code') return
     const result = {
       source: node.source,
-      stdout: output
-        .filter((c) => c.kind === 'out' || c.kind === 'in')
-        .map((c) => c.text)
-        .join(''),
-      stderr: output
-        .filter((c) => c.kind === 'err' || c.kind === 'note')
-        .map((c) => c.text)
-        .join(''),
-      ok: !output.some((c) => c.kind === 'err' || c.kind === 'note'),
+      stdout,
+      stderr,
+      ok,
     }
     for (const op of runOps(b, id, result)) dispatch({ op, actor: 'client' })
     setRunningId(null)
@@ -485,6 +495,11 @@ export default function LiveBoard({
       // A task that lives in another file runs that file, not the entry.
       const target = fileOf(node, entry)
       py.run({ ...files, ...boardFiles(boardRef.current, entry), [target]: source }, target)
+    },
+    // Bolt's code is a whole program of its own: run it alone, not as the student's entry file.
+    runHelper: (node) => {
+      setRunningId(node.id)
+      py.run({ 'bolt.py': node.source }, 'bolt.py')
     },
     stop: py.stop,
     edit: (id, source) =>

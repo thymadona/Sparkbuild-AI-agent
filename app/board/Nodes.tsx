@@ -15,6 +15,7 @@ import SandboxNode from './SandboxNode'
 import { Boxes, TraceView, type Box } from './TraceView'
 import { BugNode, LearnNode, MatchNode, OrderNode, WalkNode } from './StepNodes'
 import StageNode from './StageNode'
+import HelperNode from './HelperNode'
 
 type Of<T extends BoardNode['type']> = Extract<BoardNode, { type: T }>
 
@@ -29,6 +30,8 @@ export interface CodeActions {
   runningId: string | null
   waiting: boolean
   run(node: Of<'code'>, source: string): void
+  // Runs Bolt's block on its own. Its output stays on the block; Sparky is not told.
+  runHelper?(node: Of<'helper'>): void
   stop(): void
   edit(id: string, source: string): void
   sendInput(text: string): void
@@ -54,8 +57,33 @@ function StaticCode({ node }: { node: Of<'code'> }) {
   )
 }
 
-function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
+// Answers input() while a run is waiting for one.
+function RunInput({ code }: { code: CodeActions }) {
   const [answer, setAnswer] = useState('')
+  return (
+    <form
+      className="flex gap-2 bg-[#2b2118] px-3 pb-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        code.sendInput(answer)
+        setAnswer('')
+      }}
+    >
+      <input
+        autoFocus
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        aria-label="Answer for input()"
+        className="min-h-11 flex-1 rounded-lg bg-[#3b2a1c] px-3 font-mono text-base text-[#f3e9d8]"
+      />
+      <button className="min-h-11 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-[#2b2118]">
+        Send
+      </button>
+    </form>
+  )
+}
+
+function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
   const view = useRef<EditorView | null>(null) // Run must use what is typed now, not the debounced board copy
   const running = code.runningId === node.id
   const isNarrow = useIsNarrow()
@@ -100,27 +128,7 @@ function RunnableCode({ node, code }: { node: Of<'code'>; code: CodeActions }) {
           <figcaption className="text-xs text-[#f3e9d8]/75">{node.caption}</figcaption>
         )}
       </div>
-      {running && code.waiting && (
-        <form
-          className="flex gap-2 bg-[#2b2118] px-3 pb-3"
-          onSubmit={(e) => {
-            e.preventDefault()
-            code.sendInput(answer)
-            setAnswer('')
-          }}
-        >
-          <input
-            autoFocus
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            aria-label="Answer for input()"
-            className="min-h-11 flex-1 rounded-lg bg-[#3b2a1c] px-3 font-mono text-base text-[#f3e9d8]"
-          />
-          <button className="min-h-11 rounded-lg bg-amber-500 px-4 text-sm font-semibold text-[#2b2118]">
-            Send
-          </button>
-        </form>
-      )}
+      {running && code.waiting && <RunInput code={code} />}
     </figure>
   )
 }
@@ -145,7 +153,7 @@ const FRIENDLY: [RegExp, string][] = [
   [/IndexError/, 'That list slot does not exist.'],
 ]
 
-function OutputNode({ node }: { node: Of<'output'> }) {
+function OutputNode({ node }: { node: Pick<Of<'output'>, 'stdout' | 'stderr' | 'ok'> }) {
   const lastLine = node.stderr.trim().split('\n').at(-1) ?? ''
   return (
     <div
@@ -255,6 +263,18 @@ export function NodeView({
       return <MatchNode node={node} code={code} />
     case 'stage':
       return <StageNode node={node} code={code} />
+    case 'helper':
+      return (
+        <div className="space-y-2">
+          <HelperNode node={node} code={code} />
+          {code?.runningId === node.id && code.waiting && <RunInput code={code} />}
+          {node.ok !== undefined && (
+            <OutputNode
+              node={{ stdout: node.stdout ?? '', stderr: node.stderr ?? '', ok: node.ok }}
+            />
+          )}
+        </div>
+      )
     case 'diagram':
       return <DiagramNode node={node} />
     case 'trace':

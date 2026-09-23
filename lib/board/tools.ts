@@ -2,9 +2,11 @@ import { z } from 'zod'
 import type OpenAI from 'openai'
 import { BoardNode, CLIENT_ONLY_TYPES, NodeId } from './schema'
 
-// The tutor may only create these; CLIENT_ONLY_TYPES belong to the client.
+// The tutor may only create these; CLIENT_ONLY_TYPES belong to the client, `helper` to Bolt.
 const TutorNode = BoardNode.options.filter(
-  (o) => !(CLIENT_ONLY_TYPES as readonly string[]).includes(o.shape.type.value)
+  (o) =>
+    o.shape.type.value !== 'helper' &&
+    !(CLIENT_ONLY_TYPES as readonly string[]).includes(o.shape.type.value)
 )
 
 // createdBy/parentId are filled in by the server, so the model never sees them.
