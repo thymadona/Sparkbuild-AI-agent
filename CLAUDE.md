@@ -6,7 +6,7 @@ bottom) so it loads only when relevant. Read the matching skill before exploring
 
 ## What this is
 
-Student Code Builder: an AI-assisted Python platform for students aged 10–16. A 12-week
+Student Code Builder: an AI-assisted Python platform for students aged 11–16. A 12-week
 course (catalog version 3; weeks 1–6 exist) where the LLM tutors on a shared board
 (`/board/[id]`, the only student workspace) and Python runs in the browser via Pyodide.
 Teachers/admins run classes and send invoices/receipts over Telegram from a back office
@@ -15,6 +15,9 @@ Teachers/admins run classes and send invoices/receipts over Telegram from a back
 **The platform is Python-only.** There is no HTML editor, web preview, free-form project or
 public gallery — do not add them. Anything that still references such things (see Known
 issues) is a dead remnant to delete or move toward the Python model, not a second track.
+
+Product intent, roadmap and feature specs live in `specs/` (mission, tech-stack, roadmap,
+`features/`). Start a roadmap phase with the `feature-spec` skill.
 
 ## Commands
 
@@ -103,6 +106,7 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 | adding a week/task, templates, anchors, fixtures, word budgets, catalog version            | `lesson-authoring`      |
 | XP, levels, badges, streak, `activity_days`, `APP_TIMEZONE`                                | `xp-and-streak`         |
 | issue → branch → PR loop                                                                   | `issue-workflow`        |
+| planning the next roadmap phase, writing a feature spec                                    | `feature-spec`          |
 
 ## Known issues (pre-existing; not yours)
 
