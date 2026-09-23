@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState, type Dispatch, type RefObject } from 'react'
-import type { BoardAction, BoardState } from '@/lib/board/reducer'
+import { apply, type BoardAction, type BoardState } from '@/lib/board/reducer'
 import type { ClientEvent } from '@/lib/tutor/events'
 import { TOO_FAST } from './useTutor'
 
@@ -40,14 +40,14 @@ export function useBolt(opts: {
         setBuilding(false)
       }
       if (!reply) return
-      if (reply.op) dispatch({ op: reply.op, actor: 'bolt' })
       say(`Bolt: ${reply.caption}`)
       if (!reply.op) return // too big: no block for Sparky to ask about
+      // Save the board with the block before Sparky is told: the turn route reads the stored
+      // board. Computed here, not read back after dispatch, so it cannot miss the block.
+      const withBlock = apply(boardRef.current, reply.op, 'bolt')
+      dispatch({ op: reply.op, actor: 'bolt' })
       const nodeId = reply.op.node.id
-      // The reducer has not run yet in this tick; save the board with the block, then tell Sparky.
-      setTimeout(() => {
-        void saveBoard(boardRef.current).then(() => send({ type: 'helper_result', nodeId }))
-      }, 0)
+      void saveBoard(withBlock).then(() => send({ type: 'helper_result', nodeId }))
     },
     [projectId, dispatch, boardRef, saveBoard, send, say]
   )
