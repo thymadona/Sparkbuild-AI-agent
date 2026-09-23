@@ -2,9 +2,11 @@ import { randomUUID } from 'crypto'
 import type Redis from 'ioredis'
 import { redis } from './redis'
 
-const HOURLY_LIMIT = 50
-const WINDOW_MS = 60 * 60 * 1000
-const HOUR_MS = 60 * 60 * 1000
+// A burst limit, not a quota: no student working through a lesson sends a turn every two
+// seconds for a whole minute, but a script calling the tutor in a loop trips it within seconds.
+// ponytail: a script paced just under this gets ~1,800 turns/hour; add a daily cap if that happens.
+const BURST_LIMIT = 30
+const WINDOW_MS = 60 * 1000
 
 // Replaces @upstash/ratelimit, which only accepted an @upstash/redis client and
 // so could not survive the move to a plain REDIS_URL. This is a true sliding
@@ -26,15 +28,14 @@ redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
 local count = redis.call('ZCARD', key)
 
 if count >= limit then
-  local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
-  return { 0, count, oldest[2] }
+  return { 0, count }
 end
 
 redis.call('ZADD', key, now, member)
 -- Refreshed on every admitted request, so the key outlives the newest entry and
 -- Redis reclaims it once a student stops prompting.
 redis.call('PEXPIRE', key, window)
-return { 1, count + 1, '0' }
+return { 1, count + 1 }
 `
 
 type LimiterClient = Redis & {
@@ -44,7 +45,7 @@ type LimiterClient = Redis & {
     windowMs: string,
     limit: string,
     member: string
-  ): Promise<[number, number, string]>
+  ): Promise<[number, number]>
 }
 
 let client: LimiterClient | null = null
@@ -61,40 +62,28 @@ function limiter(): LimiterClient | null {
   return client
 }
 
-export async function checkRateLimit(
-  userId: string
-): Promise<{ allowed: boolean; hoursUntilReset: number; count: number }> {
+export async function checkRateLimit(userId: string): Promise<{ allowed: boolean; count: number }> {
   const redisClient = limiter()
 
   // No Redis configured is the same as Redis being unreachable: allow.
-  if (!redisClient) return { allowed: true, hoursUntilReset: 0, count: 0 }
+  if (!redisClient) return { allowed: true, count: 0 }
 
   try {
     const now = Date.now()
-    const [allowed, count, oldest] = await redisClient.slidingWindow(
+    const [allowed, count] = await redisClient.slidingWindow(
       `ratelimit:prompts:${userId}`,
       String(now),
       String(WINDOW_MS),
-      String(HOURLY_LIMIT),
+      String(BURST_LIMIT),
       // Two requests in the same millisecond would otherwise collide on score
       // *and* member, and ZADD would update one entry instead of adding a second.
       `${now}-${randomUUID()}`
     )
 
-    if (allowed === 1) return { allowed: true, hoursUntilReset: 0, count }
-
-    // The window frees a slot when its oldest entry ages out.
-    const resetAt = Number(oldest) + WINDOW_MS
-    return {
-      allowed: false,
-      // Never report 0 hours to someone who has just been blocked — rounding an
-      // entry that is about to expire would otherwise say "try again in 0 hours".
-      hoursUntilReset: Math.max(1, Math.ceil((resetAt - now) / HOUR_MS)),
-      count,
-    }
+    return { allowed: allowed === 1, count }
   } catch (err) {
     // Fail open — allow the request if we can't check
     console.error('Rate limit check failed:', err)
-    return { allowed: true, hoursUntilReset: 0, count: 0 }
+    return { allowed: true, count: 0 }
   }
 }

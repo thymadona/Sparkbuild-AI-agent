@@ -1,6 +1,6 @@
 ---
 name: redis-cache-ratelimit
-description: The optional Redis layer — `lib/redis.ts` (ioredis over one `REDIS_URL`, `null` when unset, `TEST_REDIS_URL` under test), `lib/cache.ts` `cached()`/`invalidate()` and every cache key with its TTL and invalidation (permissions 30s, enabled lessons 60s, lesson progress 15s), and `lib/ratelimit.ts` `checkRateLimit` (50 tutor turns/hour, Lua sliding window, fails open, staff bypass). Use for anything mentioning redis, cache, caching, cached(), invalidate, TTL, stale data after a change, rate limit, 429, hourly limit, ioredis, REDIS_URL, Upstash, sliding window, "why is the old value still showing". Use this before exploring `lib/redis.ts`, `lib/cache.ts`, `lib/ratelimit.ts` — it already maps them.
+description: The optional Redis layer — `lib/redis.ts` (ioredis over one `REDIS_URL`, `null` when unset, `TEST_REDIS_URL` under test), `lib/cache.ts` `cached()`/`invalidate()` and every cache key with its TTL and invalidation (permissions 30s, enabled lessons 60s, lesson progress 15s), and `lib/ratelimit.ts` `checkRateLimit` (30 tutor turns/minute burst limit, Lua sliding window, fails open, staff bypass). Use for anything mentioning redis, cache, caching, cached(), invalidate, TTL, stale data after a change, rate limit, 429, burst limit, too fast, ioredis, REDIS_URL, Upstash, sliding window, "why is the old value still showing". Use this before exploring `lib/redis.ts`, `lib/cache.ts`, `lib/ratelimit.ts` — it already maps them.
 ---
 
 # Redis: cache and rate limit (optional)
@@ -10,11 +10,11 @@ Redis backs two things and both **fail open**: the app boots, builds and serves 
 
 ## Files
 
-| Path               | Exports                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------- |
-| `lib/redis.ts`     | `redis: Redis                                                                                | null`(ioredis). URL =`TEST_REDIS_URL ?? redis://127.0.0.1:6379/15`under`NODE_ENV=test`(so tests can't evict dev entries), else`REDIS_URL`. `null`if unset or not matching`^rediss?://`(logs an error when set but malformed). Singleton on`globalThis.__redis`. |
-| `lib/cache.ts`     | `cached<T>(key, ttlSeconds, fn)`; `invalidate(key)`.                                         |
-| `lib/ratelimit.ts` | `checkRateLimit(userId): Promise<{ allowed, hoursUntilReset, count }>`; `HOURLY_LIMIT = 50`. |
+| Path               | Exports                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| `lib/redis.ts`     | `redis: Redis                                                                       | null`(ioredis). URL =`TEST_REDIS_URL ?? redis://127.0.0.1:6379/15`under`NODE_ENV=test`(so tests can't evict dev entries), else`REDIS_URL`. `null`if unset or not matching`^rediss?://`(logs an error when set but malformed). Singleton on`globalThis.__redis`. |
+| `lib/cache.ts`     | `cached<T>(key, ttlSeconds, fn)`; `invalidate(key)`.                                |
+| `lib/ratelimit.ts` | `checkRateLimit(userId): Promise<{ allowed, count }>`; `BURST_LIMIT = 30` per 60 s. |
 
 Production URL is `rediss://…` — for Upstash that is the **Redis-protocol/TLS endpoint**, not
 the REST URL (`@upstash/redis` and its REST transport are gone).
@@ -47,15 +47,17 @@ only for low-volatility data.
 
 ## `checkRateLimit(userId)`
 
-- Key `ratelimit:prompts:<userId>`, sorted set, member `<now>-<uuid>`, window `3_600_000` ms.
+- Key `ratelimit:prompts:<userId>`, sorted set, member `<now>-<uuid>`, window `60_000` ms.
 - One Lua script (`slidingWindow`, registered once via `redis.defineCommand`):
-  `ZREMRANGEBYSCORE 0 now-window` → `ZCARD` → if `count >= 50` return denied with the oldest
-  score, else `ZADD`, `PEXPIRE window`, return allowed. Atomic — a `ZCARD`-then-`ZADD` pair
+  `ZREMRANGEBYSCORE 0 now-window` → `ZCARD` → if `count >= 30` return denied, else `ZADD`, `PEXPIRE window`, return allowed. Atomic — a `ZCARD`-then-`ZADD` pair
   would admit every request in a concurrent burst.
-- Denied: `hoursUntilReset = max(1, ceil((oldest + window - now) / 1h))`.
-- No Redis or any error → `{ allowed: true, hoursUntilReset: 0, count: 0 }`.
+- A burst guard against scripts, not a quota: no student reaches one turn every 2 s for a minute.
+  Known ceiling: a script paced just under it gets ~1,800 turns/hour (backstop: staff overview
+  prompt counts + deactivation). No reset time is returned — nothing needs it at a 60 s window.
+- No Redis or any error → `{ allowed: true, count: 0 }`.
 - Sole caller: `app/api/projects/[id]/turn/route.ts` → 429
-  `{ error: "Hourly limit reached. Resets in N hour(s)." }`. **Admins and teachers bypass** the
+  `{ error: "Too many messages. Slow down and try again in a moment." }`; `useTutor` captions
+  "Whoa, too fast! Wait a moment and try again." (quiet events stay silent). **Admins and teachers bypass** the
   call entirely (`isAdmin || isTeacher`).
 - The `prompts` table is a permanent log of every turn (admin views read it); it is
   not read to compute the limit.

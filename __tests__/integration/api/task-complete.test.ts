@@ -7,7 +7,7 @@ const mockCreate = jest.fn()
 
 jest.mock('@/lib/auth/session', () => ({ getSessionUser: () => mockGetSessionUser() }))
 jest.mock('@/lib/ratelimit', () => ({
-  checkRateLimit: async () => ({ allowed: true, hoursUntilReset: 0 }),
+  checkRateLimit: async () => ({ allowed: true, count: 0 }),
 }))
 jest.mock('@/lib/auth/permissions', () => ({
   isAdmin: async () => false,

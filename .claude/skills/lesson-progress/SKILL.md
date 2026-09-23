@@ -113,8 +113,8 @@ column's possible values only.
 5. `LiveBoard`: confetti (big when all tasks done), `advanceTo` opens the next unfinished task page
    (`taskStarter`, or the code carried forward), then a `task_advanced` tutor turn introduces it.
 
-Completion costs a tutor turn, so a student past the 50/hour rate limit cannot finish tasks
-until it resets. The 90s "I am stuck — show me" escape hatch and "Skip this one" on optional
+Completion costs a tutor turn, so a student past the 30/minute burst limit cannot finish tasks
+until the minute rolls over. The 90s "I am stuck — show me" escape hatch and "Skip this one" on optional
 tasks are unchanged.
 
 ## Availability

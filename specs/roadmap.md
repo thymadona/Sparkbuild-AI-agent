@@ -12,7 +12,8 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 ## Course track
 
 - [x] **1. Week 7 — Dictionaries.** The last core Python concept, with no AI help.
-- [ ] **2. Remove the tutor rate limit.** Drop the 50 turns/hour cap (`lib/ratelimit.ts`).
+- [x] **2. Replace the hourly cap with a burst limit.** 30 turns/minute instead of 50 turns/hour
+      (`lib/ratelimit.ts`).
 - [ ] **3. Week 8 — Ask AI Well.** The student writes a clear request, and the AI helper builds only
       what was described. Introduces the AI helper: its architecture is an open decision (it
       conflicts with today's "tutor never solves" rule), so this phase may split into several.
