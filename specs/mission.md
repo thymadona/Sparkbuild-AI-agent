@@ -14,8 +14,8 @@ ships is their own.
 
 ## Our promise about AI
 
-- **Weeks 1–6: Sparky never writes the answer.** Students build the basics with their own hands.
-- **Weeks 7–12: students learn to use AI and still own the thinking.** A separate AI helper may
+- **Weeks 1–7: Sparky never writes the answer.** Students build the basics with their own hands.
+- **Weeks 8–12: students learn to use AI and still own the thinking.** A separate AI helper may
   write code, but only under four ownership rules:
   1. The student plans first: goal and steps before the AI touches code.
   2. The AI writes small pieces only, a few lines at a time.
