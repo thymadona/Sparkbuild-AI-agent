@@ -2288,7 +2288,39 @@ export const PY_LESSONS: Lesson[] = [
             'dex["bat"] = dex["bat"] + 1'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Add the imp. Level up the bat.',
+            {
+              boxes: [
+                { name: 'slime', value: 2 },
+                { name: 'bat', value: 5 },
+              ],
+            },
+            { values: { imp: 3, bat: 6 } },
+            [
+              ['dex["imp"] = 3', 'set:imp=3'],
+              ['dex["bat"] = dex["bat"] + 1', 'add:bat:1'],
+              ['dex["bat"] = 1', 'set:bat=1'],
+            ],
+            [0, 1]
+          ),
+          learn('A new name makes a new box.', [
+            { code: 'dex["imp"] = 3', note: 'New name? New box.', hl: '"imp"' },
+            { code: 'dex["bat"] = dex["bat"] + 1', note: 'Old name? Its box changes.', hl: '+ 1' },
+          ]),
+          choose(
+            'How many monsters now?',
+            ['2', '3', '1'],
+            0,
+            'bat was changed, not added. imp is new.',
+            'dex = {"bat": 5}\ndex["imp"] = 3\ndex["bat"] = 6\nprint(len(dex))'
+          ),
+        ],
+        'Add a new monster. Level up the bat.'
       ),
       task(
         'unknown-monster',
@@ -2305,7 +2337,26 @@ export const PY_LESSONS: Lesson[] = [
             'print(dex.get("yeti", 0))'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          bug(
+            'Tap the line that crashes.',
+            'dex = {"bat": 5}\nprint(dex["bat"])\nprint(dex["yeti"])',
+            2,
+            'No yeti in the dex. KeyError!'
+          ),
+          learn('Ask first. Then look.', [
+            { code: 'if "yeti" in dex:', note: 'Ask first. True or False.', hl: 'in' },
+            { code: 'dex.get("yeti", 0)', note: 'Not there? You get 0.', hl: 'get', speak: '0' },
+          ]),
+          pairUp('Tap a piece. Tap its job.', [
+            ['dex["yeti"]', 'Crash if it is missing'],
+            ['"yeti" in dex', 'True or False'],
+            ['dex.get("yeti", 0)', '0 if it is missing'],
+          ]),
+        ],
+        'Look up the yeti. Ask first so it does not crash.'
       ),
       task(
         'count-sightings',
@@ -2327,7 +2378,33 @@ export const PY_LESSONS: Lesson[] = [
             'seen.get("bat") == 3'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Sparky saw bat, imp, bat. Count them.',
+            { boxes: [] },
+            { values: { bat: 2, imp: 1 } },
+            [
+              ['seen["bat"] = seen.get("bat", 0) + 1', 'add:bat:1'],
+              ['seen["imp"] = seen.get("imp", 0) + 1', 'add:imp:1'],
+              ['seen["bat"] = 1', 'set:bat=1'],
+            ],
+            [0, 1, 0]
+          ),
+          learn('Count in a loop.', [
+            { code: 'for name in sightings:', note: 'One monster at a time.' },
+            { code: 'seen[name] = seen.get(name, 0) + 1', note: 'Start at 0. Add 1.', hl: 'get' },
+          ]),
+          order('Tap the lines in order.', [
+            'seen = {}',
+            'for name in sightings:',
+            '    seen[name] = seen.get(name, 0) + 1',
+            'print(seen)',
+          ]),
+        ],
+        'Count every sighting. Print seen.'
       ),
       task(
         'monster-types',
@@ -2355,7 +2432,53 @@ export const PY_LESSONS: Lesson[] = [
             'for kind, names in types.items():'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('A key can hold a list.', [
+            { code: 'types = {"fire": ["imp"]}', note: 'fire holds a list.', hl: '["imp"]' },
+            {
+              code: 'types["fire"].append("drake")',
+              note: 'Open the fire list. Add one.',
+              hl: 'append',
+            },
+          ]),
+          walk(
+            'Step through the types.',
+            'types = {"fire": ["imp"], "ice": []}\ntypes["fire"].append("bat")\ntypes["ice"].append("yak")\nprint(types["fire"])\nprint(types["ice"])',
+            [
+              { line: 1, vars: {}, note: 'Each type gets a list.' },
+              {
+                line: 2,
+                vars: { types: "{'fire': ['imp'], 'ice': []}" },
+                note: 'bat goes in the fire list.',
+              },
+              {
+                line: 3,
+                vars: { types: "{'fire': ['imp', 'bat'], 'ice': []}" },
+                note: 'yak goes in the ice list.',
+              },
+              {
+                line: 4,
+                vars: { types: "{'fire': ['imp', 'bat'], 'ice': ['yak']}" },
+                note: 'Print only the fire list.',
+              },
+              {
+                line: 5,
+                vars: { types: "{'fire': ['imp', 'bat'], 'ice': ['yak']}" },
+                out: "['imp', 'bat']",
+                note: 'Sparky said the fire list.',
+              },
+            ]
+          ),
+          bug(
+            'Tap the broken line.',
+            'types = {"fire": ["imp"]}\ntypes.append("drake")\nprint(types)',
+            1,
+            'Pick the list first: types["fire"].append'
+          ),
+        ],
+        'Add drake to fire. Print each type and its monsters.'
       ),
       task(
         'dex-report',
@@ -2391,7 +2514,23 @@ export const PY_LESSONS: Lesson[] = [
             }
           ),
         ],
-        true
+        true,
+        [
+          choose(
+            'What will Sparky say?',
+            ['slime', 'bat', '3'],
+            0,
+            'max looks at the names, not the counts.',
+            'tally = {"bat": 3, "slime": 1}\nprint(max(tally))'
+          ),
+          bug(
+            'Tap the broken line.',
+            'top = 0\nfor name, n in tally.items():\n    if n < top:\n        top = n',
+            2,
+            'Bigger wins: use n > top.'
+          ),
+        ],
+        'Count the log. Print the most seen monster and the total.'
       ),
       task(
         'release',
@@ -2407,7 +2546,20 @@ export const PY_LESSONS: Lesson[] = [
             '"slime" not in dex'
           ),
           runs,
-        ]
+        ],
+        false,
+        [
+          learn('Take a monster out.', [
+            { code: 'del dex["slime"]', note: 'The slime box is gone.', hl: 'del' },
+            { code: 'dex.pop("slime")', note: 'Gone, and you get 2 back.', hl: 'pop', speak: '2' },
+          ]),
+          pairUp('Tap a piece. Tap its job.', [
+            ['del dex["slime"]', 'The box is gone'],
+            ['dex.pop("slime")', 'Gone, and gives back 2'],
+            ['dex.remove("slime")', 'Crash: no remove for dicts'],
+          ]),
+        ],
+        'Let the slime go. Print the dex.'
       ),
       task(
         'hw-my-dex',
