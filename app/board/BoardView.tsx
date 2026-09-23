@@ -261,7 +261,7 @@ export default function BoardView({
                     />
                   </div>
                 ))}
-                {!page && <p className="text-[#7a6a52]">Spark is getting the board ready…</p>}
+                {!page && <p className="text-[#7a6a52]">Sparky is getting the board ready…</p>}
               </div>
               {page && footer?.(page.id)}
             </div>
@@ -348,7 +348,7 @@ export default function BoardView({
               {!typing && (
                 <button
                   type="button"
-                  aria-label={minimized ? 'Show Spark' : 'Hide Spark'}
+                  aria-label={minimized ? 'Show Sparky' : 'Hide Sparky'}
                   onClick={() => {
                     setMinimized((v) => !v)
                     setUnread(false)
@@ -392,8 +392,8 @@ export default function BoardView({
                   onChange={(e) => setDraft(e.target.value)}
                   disabled={!onSend}
                   maxLength={1000}
-                  placeholder={onSend ? 'Type to Spark' : 'Spark will listen here soon…'}
-                  aria-label="Message Spark"
+                  placeholder={onSend ? 'Type to Sparky' : 'Sparky will listen here soon…'}
+                  aria-label="Message Sparky"
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   className={cn(
