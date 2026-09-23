@@ -354,6 +354,64 @@ if __name__ == "__main__":
     print(run_tests())
     print(greet("Sparky"))
 `,
+  'py/w7-bugzap.py': `# BUG ZAP: this dex crashes with a KeyError.
+# Press Run and read the last line of the red text.
+
+# TASK: hw-bug-key
+dex = {"slime": 2, "bat": 5}
+print(dex["slime"])
+print(dex["Bat"])
+print("Dex done!")
+`,
+  'py/w7.py': `# WEEK 7: Monster Dex
+# Sparky keeps a Monster Dex. A dict pairs each monster with its power.
+
+# TASK: new-monster
+dex = {"slime": 2, "bat": 5, "golem": 9}
+print(dex["bat"])
+# Add a new monster: dex["imp"] = 3
+# The bat levels up. Add 1 to its power.
+
+
+# TASK: unknown-monster
+# Is there a yeti in the dex? dex["yeti"] would crash!
+# Ask first with in, or use .get(). Print what you find.
+
+
+# TASK: count-sightings
+# Sparky saw these monsters today. Count each one in seen.
+sightings = ["bat", "imp", "bat", "slime", "bat"]
+seen = {}
+
+
+# TASK: monster-types
+# Each type holds a list of monsters.
+types = {"fire": ["imp"], "ice": ["yeti"]}
+# Add "drake" to the fire list. Print each type and its monsters.
+
+
+# TASK: dex-report
+# BOSS: count the log in tally.
+# Print the most seen monster and the total.
+log = ["ghost", "bat", "ghost", "imp", "ghost", "bat", "ghost", "slime"]
+tally = {}
+
+
+# TASK: release
+# SIDE QUEST: the slime wants to go home. Take it out of the dex.
+
+
+# TASK: hw-my-dex
+# BONUS: make your own dex with 5 monsters. Print one by its name.
+
+
+# TASK: hw-explain-dex
+# BONUS: add a # note after each print line.
+eggs = {"dragon": 1, "phoenix": 2}
+print(eggs["dragon"])
+print(eggs.get("griffin", 0))
+print(len(eggs))
+`,
 }
 
 export function templateFor(file: string): string {

@@ -186,7 +186,7 @@ export const BoardNode = z.discriminatedUnion('type', [
     goal: z.record(z.string(), z.unknown()).default({}),
     palette: z
       .array(
-        z.object({ label: z.string().max(30), ops: z.array(z.string().max(40)).min(1).max(6) })
+        z.object({ label: z.string().max(40), ops: z.array(z.string().max(40)).min(1).max(6) })
       )
       .min(1)
       .max(8),
