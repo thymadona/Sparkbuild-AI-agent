@@ -210,7 +210,7 @@ Fix: delete `snacks = snacks - 1`.
 - `success`: `Rex does just what you asked.`
 - `go`: `You asked: hi to each friend, then count snacks. Check it.`
 - Steps:
-  1. `stage` room "Make Rex say only: Hi Ann, Hi Tom.". Blocks: `say Hi Ann`, `say Woof!`,
+  1. `stage` room "Make Sparky say only: Hi Ann, Hi Tom." (the room scene shows Sparky). Blocks: `say Hi Ann`, `say Woof!`,
      `say Hi Tom`, solution `[0, 2]`. The student understands "only the ask" because the extra
      block loses the goal.
 - Checks:
@@ -251,7 +251,7 @@ There are two planted bugs:
      because they give the answers before any run.
   2. `walk` "Walk through stars(5)." on
      `def stars(walks): / if walks > 5: return "gold" / return "silver" / print(stars(5))`:
-     Test 5. → 5 > 5? No. → Skips to silver. → Planned gold. Got silver! They understand how a
+     (def) → Test 5. → 5 > 5? No. → Returns silver. Planned gold! (frames match the real trace, `walk-steps.test.ts`) They understand how a
      plan catches a bug because the plan and the output disagree.
 - Checks:
   - `calls('3 tricks get big', 'Test the border.', 'snack(3) == "big" and snack(5) == "big" and snack(2) == "small"')`;

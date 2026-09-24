@@ -2988,8 +2988,22 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'A ball costs 5 coins. What prints?',
+            ['Buy', 'Wait', 'A red error'],
+            1,
+            '5 > 5 is False: 5 is not more.',
+            'coins = 5\nif coins > 5:\n    print("Buy")\nelse:\n    print("Wait")'
+          ),
+          learn('Test before you trust.', [
+            { code: 'coins = 9', note: 'Buy. Looks right.' },
+            { code: 'coins = 5', note: 'Wait! Test the border.' },
+            { code: 'if coins >= 5:', note: '>= means 5 or more.', hl: '>=' },
+            { code: '# bug: at 5 it said Wait, not Buy', note: 'Say what it did wrong.' },
+          ]),
+        ],
+        'Bolt wrote this. Rex eats with 10 or more. Test it.',
         undefined,
         {
           starter:
@@ -3013,8 +3027,21 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          walk('Step through. Count the spins.', 'for i in range(1, 3):\n    print("spin", i)', [
+            { line: 1, vars: {}, note: 'Start at 1.' },
+            { line: 2, vars: { i: '1' } },
+            { line: 1, vars: { i: '1' }, out: 'spin 1', note: 'One spin.' },
+            { line: 2, vars: { i: '2' }, out: 'spin 1' },
+            { line: 1, vars: { i: '2' }, out: 'spin 1\nspin 2', note: 'Stops before 3!' },
+          ]),
+          pairUp('Tap a range. Tap its numbers.', [
+            ['range(3)', '0 1 2'],
+            ['range(1, 3)', '1 2'],
+            ['range(1, 4)', '1 2 3'],
+          ]),
+        ],
+        'Bolt wrote this. tricks(3) must give 3 jumps.',
         undefined,
         {
           starter:
@@ -3038,8 +3065,21 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'What does mood(0) give?',
+            ['happy', 'None', 'A red error'],
+            1,
+            'Nothing answers 0, so you get None.',
+            'def mood(toys):\n    if toys > 0:\n        return "happy"\nprint(mood(0))'
+          ),
+          order('Add the missing case. Tap in order.', [
+            '    if toys > 0:',
+            '        return "happy"',
+            '    return "sad"',
+          ]),
+        ],
+        'Bolt wrote this. Over 5: full. 1–5: some. 0: empty.',
         undefined,
         {
           starter:
@@ -3060,8 +3100,21 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'room',
+            'Make Sparky say only: Hi Ann, Hi Tom.',
+            {},
+            { says: ['Hi Ann', 'Hi Tom'] },
+            [
+              ['say Hi Ann', 'say:Hi Ann'],
+              ['say Woof!', 'say:Woof!'],
+              ['say Hi Tom', 'say:Hi Tom'],
+            ],
+            [0, 2]
+          ),
+        ],
+        'You asked: hi to each friend, then count snacks. Check it.',
         undefined,
         {
           starter:
@@ -3090,8 +3143,29 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(2),
         ],
         true,
-        undefined,
-        undefined,
+        [
+          pairUp('Plan tests. 5+ walks: gold. 1–4: silver. 0: none.', [
+            ['stars(5)', 'gold'],
+            ['stars(2)', 'silver'],
+            ['stars(0)', 'none'],
+          ]),
+          walk(
+            'Walk through stars(5).',
+            'def stars(walks):\n    if walks > 5:\n        return "gold"\n    return "silver"\nprint(stars(5))',
+            [
+              { line: 1, vars: {} },
+              { line: 5, vars: {}, note: 'Test 5.' },
+              { line: 2, vars: { walks: '5' }, stack: ['<module>', 'stars'], note: '5 > 5? No.' },
+              {
+                line: 4,
+                vars: { walks: '5' },
+                stack: ['<module>', 'stars'],
+                note: 'Returns silver. Planned gold!',
+              },
+            ]
+          ),
+        ],
+        '3 or more tricks: big. 1 or 2: small. 0: none. Two mistakes.',
         undefined,
         {
           starter:
@@ -3107,8 +3181,14 @@ export const PY_LESSONS: Lesson[] = [
         'No planted bug: the student asks the real Bolt for one trick and tests it. Judge # bug: against their ask, code and runs.',
         [runs, ask(), notes(1, 'Add # and your words.'), bugNote()],
         false,
-        undefined,
-        undefined,
+        [
+          learn('Ask. Test. Say what you found.', [
+            { code: '# ask: Rex says he is 3', note: 'Ask Bolt for one thing.' },
+            { code: '# bug: none, it said I am 3', note: 'Right? Say none, and why.' },
+            { code: '# bug: it said 4, I asked 3', note: 'Wrong? Say what it did.' },
+          ]),
+        ],
+        'Ask Bolt for one Rex trick. Test it. Write # bug:.',
         undefined,
         { starter: '' }
       ),
@@ -3129,8 +3209,26 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'boxes',
+            'Rex ate a bone. Put it in ate.',
+            {
+              boxes: [
+                { name: 'food', value: 'bone' },
+                { name: 'toy', value: 'stick' },
+                { name: 'ate' },
+              ],
+            },
+            { values: { ate: 'bone' } },
+            [
+              ['ate = toy', 'set:ate=stick'],
+              ['ate = food', 'set:ate=bone'],
+            ],
+            [1]
+          ),
+        ],
+        "Bolt wrote Rex's diary. Is it true?",
         undefined,
         {
           starter:
@@ -3161,8 +3259,15 @@ export const PY_LESSONS: Lesson[] = [
           bugNote(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'It all works. Which # bug: line?',
+            ['fixed it', 'none: 9, 10 and 12 work', 'none'],
+            1,
+            'No bug is fine. Say what you tried.'
+          ),
+        ],
+        'Bolt wrote this. Rex walkers must be 10 or older. Bug?',
         undefined,
         {
           starter:
