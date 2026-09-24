@@ -109,6 +109,6 @@ describe('runTurn', () => {
 describe('tool schemas', () => {
   it('never offer client-only node types', () => {
     const json = JSON.stringify(TOOLS)
-    for (const t of ['"output"', '"trace"', '"preview"']) expect(json).not.toContain(t)
+    for (const t of ['"output"', '"trace"', '"preview"', '"helper"']) expect(json).not.toContain(t)
   })
 })

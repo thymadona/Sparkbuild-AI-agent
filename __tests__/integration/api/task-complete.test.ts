@@ -22,7 +22,7 @@ jest.mock('next/headers', () => ({ cookies: () => ({ getAll: () => [], set: jest
 import { eq } from 'drizzle-orm'
 import { POST } from '@/app/api/projects/[id]/turn/route'
 import { db } from '@/lib/db/client'
-import { activityDays, lessonProgress, taskProgress } from '@/lib/db/schema'
+import { activityDays, lessonProgress, projects, taskProgress } from '@/lib/db/schema'
 import { LESSONS } from '@/lib/lessons'
 import { taskPageId } from '@/lib/board/tasks'
 import { makeProject, makeUser, resetDb, setLessonProgress } from '@/__tests__/helpers/db'
@@ -441,5 +441,59 @@ describe('a choice task while a later bonus task is still pending', () => {
     )
 
     expect(await progressOf(project.id)).toContain(paint.id)
+  })
+})
+
+describe("Bolt's block is never evidence", () => {
+  // Bolt's block holds the finished answer and a run of it; the student's editor was never run.
+  const withBolt = () => {
+    const b = board(DONE)
+    return {
+      ...b,
+      pages: [{ ...b.pages[0], nodeIds: ['c1', 'bolt_1'] }],
+      nodes: {
+        ...b.nodes,
+        bolt_1: {
+          id: 'bolt_1',
+          parentId: null,
+          createdBy: 'system',
+          type: 'helper',
+          request: 'greet me',
+          source: DONE,
+          stdout: 'Hi Moral\n',
+          stderr: '',
+          ok: true,
+        },
+      },
+    }
+  }
+  const setupBolt = async () => {
+    const { project } = await setup(DONE)
+    await db.update(projects).set({ board: withBolt() }).where(eq(projects.id, project.id))
+    return project
+  }
+
+  it("a run of only Bolt's block does not let task_complete through", async () => {
+    const project = await setupBolt()
+    complete()
+    const events = await drain(await post(project.id, { type: 'student_message', text: 'done!' }))
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    // Bolt's run output never reaches Sparky as evidence.
+    expect(mockCreate.mock.calls[0][0].messages[0].content).not.toContain('Hi Moral')
+    expect(await progressOf(project.id)).toEqual(['first-words', 'intro-3'])
+  })
+
+  it("a run reported against Bolt's block is rejected", async () => {
+    const project = await setupBolt()
+    const res = await post(project.id, { ...run(DONE, 'Hi Moral\n'), nodeId: 'bolt_1' })
+    expect(res.status).toBe(400)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it("a run of the student's own editor still completes the task", async () => {
+    const project = await setupBolt()
+    complete()
+    await drain(await post(project.id, run(DONE, 'Hi Moral\n')))
+    expect(await progressOf(project.id)).toContain(task.id)
   })
 })

@@ -2,9 +2,11 @@ import { z } from 'zod'
 import type OpenAI from 'openai'
 import { BoardNode, CLIENT_ONLY_TYPES, NodeId } from './schema'
 
-// The tutor may only create these; CLIENT_ONLY_TYPES belong to the client.
+// The tutor may only create these; CLIENT_ONLY_TYPES belong to the client, `helper` to Bolt.
 const TutorNode = BoardNode.options.filter(
-  (o) => !(CLIENT_ONLY_TYPES as readonly string[]).includes(o.shape.type.value)
+  (o) =>
+    o.shape.type.value !== 'helper' &&
+    !(CLIENT_ONLY_TYPES as readonly string[]).includes(o.shape.type.value)
 )
 
 // createdBy/parentId are filled in by the server, so the model never sees them.
@@ -16,7 +18,7 @@ const tutorNodeSchema = z.union(
   ) as unknown as [z.ZodType, z.ZodType, ...z.ZodType[]]
 )
 
-const fn = (name: string, description: string, params: z.ZodType) => ({
+export const fn = (name: string, description: string, params: z.ZodType) => ({
   type: 'function' as const,
   function: { name, description, parameters: z.toJSONSchema(params) as Record<string, unknown> },
 })

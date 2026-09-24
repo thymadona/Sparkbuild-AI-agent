@@ -180,4 +180,61 @@ describe('board reducer', () => {
       ).toMatchObject({ attempts: 0, answered: false })
     })
   })
+
+  describe("Bolt's block", () => {
+    const helper = (id = 'b1', source = 'print("hi")') => ({
+      id,
+      parentId: null,
+      createdBy: 'system',
+      type: 'helper',
+      request: 'say hi',
+      source,
+    })
+    const add = (node: unknown) => ({ op: 'add', pageId: 'p1', node })
+    const withHelper = () => apply(withPage(), add(helper()), 'bolt')
+
+    it('only Bolt may add it, and Bolt may add nothing else', () => {
+      expect(withHelper().nodes.b1).toMatchObject({ type: 'helper', request: 'say hi' })
+      expect(() => apply(withPage(), add(helper()), 'tutor')).toThrow(/Only Bolt/)
+      expect(() => apply(withPage(), add(helper()), 'client')).toThrow(/Only Bolt/)
+      expect(() => apply(withPage(), add(code('c1')), 'bolt')).toThrow(/Bolt can only/)
+      const s = withHelper()
+      expect(() => apply(s, { op: 'focus', id: 'b1' }, 'bolt')).toThrow(/Bolt can only/)
+      expect(() => apply(s, { op: 'remove', id: 'b1' }, 'bolt')).toThrow(/Bolt can only/)
+      expect(() => apply(s, { op: 'update', id: 'b1', patch: { ok: true } }, 'bolt')).toThrow(
+        /Bolt can only/
+      )
+    })
+
+    it('rejects a block over 8 non-blank lines', () => {
+      const nine = Array.from({ length: 9 }, (_, i) => `print(${i})`).join('\n')
+      expect(() => apply(withPage(), add(helper('b1', nine)), 'bolt')).toThrow(/at most 8/)
+      const eight = Array.from({ length: 8 }, (_, i) => `print(${i})\n`).join('\n')
+      expect(apply(withPage(), add(helper('b1', eight)), 'bolt').nodes.b1).toBeDefined()
+    })
+
+    it('Sparky cannot patch or remove it', () => {
+      const s = withHelper()
+      expect(() => apply(s, { op: 'update', id: 'b1', patch: { ok: true } }, 'tutor')).toThrow(
+        /Bolt's block/
+      )
+      expect(() => apply(s, { op: 'remove', id: 'b1' }, 'tutor')).toThrow(/cannot remove Bolt/)
+    })
+
+    it('the client may store a run but not change the code or request', () => {
+      const s = withHelper()
+      expect(() => apply(s, { op: 'update', id: 'b1', patch: { source: 'x' } })).toThrow(
+        /Bolt's block/
+      )
+      expect(() => apply(s, { op: 'update', id: 'b1', patch: { request: 'x' } })).toThrow(
+        /Bolt's block/
+      )
+      const ran = apply(s, {
+        op: 'update',
+        id: 'b1',
+        patch: { stdout: 'hi\n', stderr: '', ok: true },
+      })
+      expect(ran.nodes.b1).toMatchObject({ source: 'print("hi")', stdout: 'hi\n', ok: true })
+    })
+  })
 })

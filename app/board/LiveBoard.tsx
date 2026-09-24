@@ -32,6 +32,7 @@ import { taskXp } from '@/lib/xp'
 import type { MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
 import { useTutor } from './useTutor'
+import { useBolt } from './useBolt'
 import { speak, speechSupported, stopSpeaking } from '@/lib/speech'
 
 // Long enough to read as a celebration, short enough not to feel like a wait.
@@ -151,6 +152,8 @@ export default function LiveBoard({
     },
     [projectId, files, entry, initialBoard]
   )
+
+  const bolt = useBolt({ projectId, dispatch, boardRef, saveBoard, send, say })
 
   // One page per task, and the page the student is looking at is the task they
   // are working on. The code a task is judged on is the code on its own page:
@@ -362,12 +365,12 @@ export default function LiveBoard({
   // Autosave: what the student typed survives a closed tab. Never while the tutor is
   // mid-turn (the server owns the board then); the effect re-runs when the turn ends.
   useEffect(() => {
-    if (busy || board === saved.current) return
+    if (busy || bolt.building || board === saved.current) return
     const timer = setTimeout(() => {
       void saveBoard(boardRef.current)
     }, 1200)
     return () => clearTimeout(timer)
-  }, [board, busy, saveBoard])
+  }, [board, busy, bolt.building, saveBoard])
   const started = useRef(false)
   const [mood, setMood] = useState<MascotState | null>(null)
   useEffect(() => {
@@ -452,18 +455,28 @@ export default function LiveBoard({
     )
       return
     const node = b.nodes[id]
+    const stdout = output
+      .filter((c) => c.kind === 'out' || c.kind === 'in')
+      .map((c) => c.text)
+      .join('')
+    const stderr = output
+      .filter((c) => c.kind === 'err' || c.kind === 'note')
+      .map((c) => c.text)
+      .join('')
+    const ok = !output.some((c) => c.kind === 'err' || c.kind === 'note')
+    // Bolt's block keeps its output on itself and tells Sparky nothing: it is never evidence.
+    if (node?.type === 'helper') {
+      const patch = { stdout: stdout.slice(0, 4000), stderr: stderr.slice(0, 4000), ok }
+      dispatch({ op: { op: 'update', id, patch }, actor: 'client' })
+      setRunningId(null)
+      return
+    }
     if (node?.type !== 'code') return
     const result = {
       source: node.source,
-      stdout: output
-        .filter((c) => c.kind === 'out' || c.kind === 'in')
-        .map((c) => c.text)
-        .join(''),
-      stderr: output
-        .filter((c) => c.kind === 'err' || c.kind === 'note')
-        .map((c) => c.text)
-        .join(''),
-      ok: !output.some((c) => c.kind === 'err' || c.kind === 'note'),
+      stdout,
+      stderr,
+      ok,
     }
     for (const op of runOps(b, id, result)) dispatch({ op, actor: 'client' })
     setRunningId(null)
@@ -485,6 +498,11 @@ export default function LiveBoard({
       // A task that lives in another file runs that file, not the entry.
       const target = fileOf(node, entry)
       py.run({ ...files, ...boardFiles(boardRef.current, entry), [target]: source }, target)
+    },
+    // Bolt's code is a whole program of its own: run it alone, not as the student's entry file.
+    runHelper: (node) => {
+      setRunningId(node.id)
+      py.run({ 'bolt.py': node.source }, 'bolt.py')
     },
     stop: py.stop,
     edit: (id, source) =>
@@ -556,11 +574,12 @@ export default function LiveBoard({
       <BoardView
         board={board}
         captions={captions}
-        live={live}
+        live={bolt.building ? 'Bolt is building…' : live}
         mascot={mascot}
         mood={mood}
         code={codeActions}
-        busy={busy}
+        // Bolt's route and Sparky's turn both rewrite the stored board: one at a time.
+        busy={busy || bolt.building}
         header={lesson ? header : undefined}
         progress={
           lesson ? (
@@ -579,6 +598,11 @@ export default function LiveBoard({
         voice={canSpeak ? voice : undefined}
         onVoice={toggleVoice}
         onSend={(text) => void send({ type: 'student_message', text })}
+        onAskBolt={
+          lesson?.aiPolicy === 'director' && currentPageId
+            ? (request) => void bolt.ask(request, currentPageId)
+            : undefined
+        }
       />
     </>
   )

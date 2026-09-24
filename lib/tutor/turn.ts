@@ -39,6 +39,13 @@ export async function runTurn(opts: {
   // Judges and records a task_complete call. Returns the new done list, or
   // throws with the reason it was refused (which goes back to the model).
   onTaskComplete?: (args: { taskId: string; reason: string }) => Promise<string[]>
+  // Replaces Sparky's tools: every tool call becomes this op on the board (Bolt's route).
+  // Tool results are then a bare ok/error, without the board summary.
+  act?: (
+    name: string,
+    args: Record<string, unknown>,
+    board: BoardState
+  ) => { board: BoardState; op: unknown }
 }): Promise<{ board: BoardState; text: string }> {
   const { llm, emit } = opts
   let board = opts.board
@@ -71,7 +78,12 @@ export async function runTurn(opts: {
       let content: string
       try {
         const args = JSON.parse(c.args || '{}')
-        if (c.name === 'request_trace') {
+        if (opts.act) {
+          const done = opts.act(c.name, args, board)
+          board = done.board
+          emit({ type: 'board.op', op: done.op })
+          content = 'ok'
+        } else if (c.name === 'request_trace') {
           // The browser owns the interpreter; it runs the trace after this turn and reports back.
           const n = board.nodes[args.nodeId]
           if (n?.type !== 'code' || n.language !== 'python')
@@ -95,7 +107,8 @@ export async function runTurn(opts: {
         }
       } catch (e) {
         failed = true
-        content = `error: ${e instanceof Error ? e.message : String(e)}\nBoard now:\n${summarize(board)}`
+        content = `error: ${e instanceof Error ? e.message : String(e)}`
+        if (!opts.act) content += `\nBoard now:\n${summarize(board)}`
       }
       results.push({ role: 'tool', tool_call_id: c.id, content })
     }

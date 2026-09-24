@@ -108,9 +108,10 @@ export interface Lesson {
   scene?: 'robot' | 'vault'
   // Badge earned by beating the boss task.
   badge?: string
-  // Who writes the code. 'tutor' (default): the student types it and build
-  // mode stays locked until core work is done. 'director': the student
-  // directs the AI, so build mode is open and tasks are checked by outcome.
+  // Who may write code. 'tutor' (default): only the student. 'director': the
+  // student may also ask Bolt, a separate helper AI, for a small read-only block
+  // (app/api/projects/[id]/helper). Sparky still never writes the answer, and a
+  // task is still judged only from the student's own editor.
   aiPolicy?: 'tutor' | 'director'
   tasks: LessonTask[]
 }

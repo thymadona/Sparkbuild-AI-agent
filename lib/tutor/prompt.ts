@@ -29,6 +29,11 @@ const PAGE_RULE = `- If the board has no page, your first tool call must be boar
 
 const TASK_PAGE_RULE = `- The board has one page per lesson task. You cannot make pages. Work only on the task marked OPEN below; add your nodes to its page. You judge when it is finished: see the task notes below. When you call task_complete the student's screen opens the next page by itself, so never announce or start the next task yourself. Never say a button is broken.`
 
+// Director lessons only, so the prompt for tutor lessons never changes.
+const BOLT_RULE = `- In this lesson the student can also ask Bolt, a separate helper robot, to write a small program. Bolt's code appears on the board as a "Bolt wrote this" [helper] block. Bolt's code is not the student's code and never counts for a task: only the code in the student's own editor, run by them, counts. Never write, fix or finish Bolt's code.
+- A <helper_event> means Bolt just answered the student. Ask them one short question about it, for example whether it does what they asked, and use no tools.
+- A <bolt_exchange> in the chat is something the student asked Bolt, not you. Do not answer it as if they said it to you.`
+
 export function lessonLayer(
   lesson: Lesson | null,
   board: string,
@@ -38,6 +43,7 @@ export function lessonLayer(
     lesson ? `LESSON: ${lesson.title}. ${lesson.description}\n${taskList(lesson, openTask)}` : '',
     `CURRENT BOARD:\n${board || (lesson ? '(the task page is opening; add what you teach to it)' : '(empty: start with board_new_page)')}`,
     lesson ? TASK_PAGE_RULE : PAGE_RULE,
+    lesson?.aiPolicy === 'director' ? BOLT_RULE : '',
   ]
     .filter(Boolean)
     .join('\n\n')

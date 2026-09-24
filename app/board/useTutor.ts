@@ -5,6 +5,8 @@ import type { BoardAction } from '@/lib/board/reducer'
 import type { ClientEvent } from '@/lib/tutor/events'
 import type { MascotState } from './Mascot'
 
+export const TOO_FAST = 'Whoa, too fast! Wait a moment and try again.'
+
 // Sends one event to the tutor and applies the SSE reply as it streams in.
 export function useTutor(
   projectId: string,
@@ -51,11 +53,7 @@ export function useTutor(
           body: JSON.stringify({ ...extra(), ...event }),
         })
         if (!res.ok || !res.body)
-          throw new Error(
-            res.status === 429
-              ? 'Whoa, too fast! Wait a moment and try again.'
-              : 'Sparky had a problem. Try again.'
-          )
+          throw new Error(res.status === 429 ? TOO_FAST : 'Sparky had a problem. Try again.')
         const reader = res.body.getReader()
         const dec = new TextDecoder()
         let buf = ''
