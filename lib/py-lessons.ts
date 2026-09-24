@@ -62,6 +62,8 @@ const PRINT_F = '^\\s*print\\(\\s*f["\']'
 export const NOTE = '^[ \\t]*[^#\\s][^#\\n]*[ \\t]#[ \\t]*\\S'
 // Director weeks: the student's request to Bolt, kept as a "# ask:" line of 3+ words.
 export const ASK_LINE = '^[ \\t]*#[ \\t]*ask:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
+// Week 9 on: what was wrong with Bolt's code, as a "# bug:" line of 3+ words ("none, …" too).
+export const BUG_LINE = '^[ \\t]*#[ \\t]*bug:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
 // Three printed lines, no two the same.
 const THREE_LINES = '^(.+)\\n(?!\\1$)(.+)\\n(?!\\1$|\\2$).+'
 
@@ -101,6 +103,17 @@ const ask = (min = 1): TaskCheck => ({
     min > 1 ? 'One # ask: per piece.' : 'Write # ask: then your words.',
     ASK_LINE,
     '# ask: a pet named Rex',
+    min
+  ),
+  judged: true,
+})
+// Sparky judges it like an ask: it must say what the code did against what it should do.
+const bugNote = (min = 1): TaskCheck => ({
+  ...match(
+    min > 1 ? `You wrote ${min} # bug: lines` : 'You wrote # bug:',
+    min > 1 ? 'One per mistake.' : 'Say what it did wrong.',
+    BUG_LINE,
+    '# bug: at 10 it said wait, not eat',
     min
   ),
   judged: true,
@@ -2941,6 +2954,340 @@ export const PY_LESSONS: Lesson[] = [
             file: 'bugzap.py',
           }),
           notes(1, 'Add a # note on your fix.'),
+        ]
+      ),
+    ],
+  },
+  {
+    id: 109,
+    title: "Week #9 — Rex's Tricks",
+    description: 'Bolt wrote new tricks for Rex. Test them before you trust them.',
+    templateFile: 'py/w9.py',
+    starterFile: 'main.py',
+    extraFiles: { 'bugzap.py': 'py/w9-bugzap.py' },
+    scene: 'robot',
+    aiPolicy: 'director',
+    badge: 'Bug Spotter',
+    // Each starter is scripted Bolt code with one planted bug, the same for every student.
+    // A check that proves the bug is gone also proves the right behaviour (joined with `and`).
+    tasks: [
+      task(
+        'feed-rex',
+        'core',
+        'bugzap',
+        'Feed Rex',
+        'Rex eats with 10 or more biscuits.',
+        'Scripted Bolt code under review. Rule: 10 or more biscuits, Rex eats. Planted bug: feed(10) says Rex waits.',
+        [
+          calls(
+            'Rex eats from 10 biscuits',
+            'Is 10 enough? Test it.',
+            'feed(10) == "Rex eats" and feed(9) == "Rex waits"'
+          ),
+          notes(1, 'Add # and your words.'),
+          bugNote(),
+        ],
+        false,
+        [
+          choose(
+            'A ball costs 5 coins. What prints?',
+            ['Buy', 'Wait', 'A red error'],
+            1,
+            '5 > 5 is False: 5 is not more.',
+            'coins = 5\nif coins > 5:\n    print("Buy")\nelse:\n    print("Wait")'
+          ),
+          learn('Test before you trust.', [
+            { code: 'coins = 9', note: 'Buy. Looks right.' },
+            { code: 'coins = 5', note: 'Wait! Test the border.' },
+            { code: 'if coins >= 5:', note: '>= means 5 or more.', hl: '>=' },
+            { code: '# bug: at 5 it said Wait, not Buy', note: 'Say what it did wrong.' },
+          ]),
+        ],
+        'Bolt wrote this. Rex eats with 10 or more. Test it.',
+        undefined,
+        {
+          starter:
+            'def feed(biscuits):\n    if biscuits > 10:\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n',
+        }
+      ),
+      task(
+        'trick-count',
+        'core',
+        'bugzap',
+        'Count the tricks',
+        'tricks(3) gives 3 jumps.',
+        'Scripted Bolt code under review. tricks(n) must return n jumps. Planted bug: it returns one too few.',
+        [
+          calls(
+            'tricks gives the right count',
+            'Count the jumps.',
+            'tricks(3) == ["jump"] * 3 and len(tricks(5)) == 5'
+          ),
+          notes(1, 'Add # and your words.'),
+          bugNote(),
+        ],
+        false,
+        [
+          walk('Step through. Count the spins.', 'for i in range(1, 3):\n    print("spin", i)', [
+            { line: 1, vars: {}, note: 'Start at 1.' },
+            { line: 2, vars: { i: '1' } },
+            { line: 1, vars: { i: '1' }, out: 'spin 1', note: 'One spin.' },
+            { line: 2, vars: { i: '2' }, out: 'spin 1' },
+            { line: 1, vars: { i: '2' }, out: 'spin 1\nspin 2', note: 'Stops before 3!' },
+          ]),
+          pairUp('Tap a range. Tap its numbers.', [
+            ['range(3)', '0 1 2'],
+            ['range(1, 3)', '1 2'],
+            ['range(1, 4)', '1 2 3'],
+          ]),
+        ],
+        'Bolt wrote this. tricks(3) must give 3 jumps.',
+        undefined,
+        {
+          starter:
+            'def tricks(n):\n    done = []\n    for i in range(1, n):\n        done.append("jump")\n    return done\n\nprint(tricks(3))\n',
+        }
+      ),
+      task(
+        'empty-bowl',
+        'core',
+        'bugzap',
+        'The empty bowl',
+        'The bowl says full, some or empty.',
+        'Scripted Bolt code under review. Rule: over 5 full, 1 to 5 some, 0 empty. Planted bug: bowl(0) returns None.',
+        [
+          calls(
+            'Every bowl gets an answer',
+            'Test the smallest bowl too.',
+            'bowl(0) == "empty" and bowl(8) == "full" and bowl(3) == "some"'
+          ),
+          notes(1, 'Add # and your words.'),
+          bugNote(),
+        ],
+        false,
+        [
+          choose(
+            'What does mood(0) give?',
+            ['happy', 'None', 'A red error'],
+            1,
+            'Nothing answers 0, so you get None.',
+            'def mood(toys):\n    if toys > 0:\n        return "happy"\nprint(mood(0))'
+          ),
+          order('Add the missing case. Tap in order.', [
+            '    if toys > 0:',
+            '        return "happy"',
+            '    return "sad"',
+          ]),
+        ],
+        'Bolt wrote this. Over 5: full. 1–5: some. 0: empty.',
+        undefined,
+        {
+          starter:
+            'def bowl(biscuits):\n    if biscuits > 5:\n        return "full"\n    if biscuits > 0:\n        return "some"\n\nprint(bowl(8))\nprint(bowl(3))\n',
+        }
+      ),
+      task(
+        'just-asked',
+        'core',
+        'change',
+        'Just what I asked',
+        'Rex does just what you asked.',
+        'Scripted Bolt code under review. The ask: hi to each friend, then say how many snacks Rex has. Planted bug: visit also takes a snack per friend, which was not asked.',
+        [
+          output('Rex greets Mia and Sam', 'Both friends get a hi.', 'Hi Mia\\nHi Sam'),
+          calls('Rex keeps his snacks', 'Did you ask for that?', 'visit(["Ann", "Tom"], 4) == 4'),
+          notes(1, 'Add # and your words.'),
+          bugNote(),
+        ],
+        false,
+        [
+          stage(
+            'room',
+            'Make Sparky say only: Hi Ann, Hi Tom.',
+            {},
+            { says: ['Hi Ann', 'Hi Tom'] },
+            [
+              ['say Hi Ann', 'say:Hi Ann'],
+              ['say Woof!', 'say:Woof!'],
+              ['say Hi Tom', 'say:Hi Tom'],
+            ],
+            [0, 2]
+          ),
+        ],
+        'You asked: hi to each friend, then count snacks. Check it.',
+        undefined,
+        {
+          starter:
+            'def visit(friends, snacks):\n    for friend in friends:\n        print("Hi " + friend)\n        snacks = snacks - 1\n    return snacks\n\nleft = visit(["Mia", "Sam"], 5)\nprint("Rex has", left, "snacks")\n',
+        }
+      ),
+      task(
+        'rex-check',
+        'core',
+        'bugzap',
+        'Boss: Rex check',
+        'Every trick count gets the right snack.',
+        'Scripted Bolt code under review. Rule: 3+ tricks big, 1 or 2 small, 0 none. Two planted bugs: snack(3) says small, and snack(0) returns None.',
+        [
+          calls(
+            '3 tricks get big',
+            'Test the border.',
+            'snack(3) == "big" and snack(5) == "big" and snack(2) == "small"'
+          ),
+          calls(
+            '0 tricks get none',
+            'Test the smallest number.',
+            'snack(0) == "none" and snack(1) == "small"'
+          ),
+          notes(2, 'Add # and your words.'),
+          bugNote(2),
+        ],
+        true,
+        [
+          pairUp('Plan tests. 5+ walks: gold. 1–4: silver. 0: none.', [
+            ['stars(5)', 'gold'],
+            ['stars(2)', 'silver'],
+            ['stars(0)', 'none'],
+          ]),
+          walk(
+            'Walk through stars(5).',
+            'def stars(walks):\n    if walks > 5:\n        return "gold"\n    return "silver"\nprint(stars(5))',
+            [
+              { line: 1, vars: {} },
+              { line: 5, vars: {}, note: 'Test 5.' },
+              { line: 2, vars: { walks: '5' }, stack: ['<module>', 'stars'], note: '5 > 5? No.' },
+              {
+                line: 4,
+                vars: { walks: '5' },
+                stack: ['<module>', 'stars'],
+                note: 'Returns silver. Planned gold!',
+              },
+            ]
+          ),
+        ],
+        '3 or more tricks: big. 1 or 2: small. 0: none. Two mistakes.',
+        undefined,
+        {
+          starter:
+            'def snack(tricks):\n    if tricks > 3:\n        return "big"\n    if tricks > 0:\n        return "small"\n\nprint(snack(5))\nprint(snack(1))\n',
+        }
+      ),
+      task(
+        'ask-and-check',
+        'choice',
+        'direct',
+        'Ask and check',
+        "You tested Bolt's code yourself.",
+        'No planted bug: the student asks the real Bolt for one trick and tests it. Judge # bug: against their ask, code and runs.',
+        [runs, ask(), notes(1, 'Add # and your words.'), bugNote()],
+        false,
+        [
+          learn('Ask. Test. Say what you found.', [
+            { code: '# ask: Rex says he is 3', note: 'Ask Bolt for one thing.' },
+            { code: '# bug: none, it said I am 3', note: 'Right? Say none, and why.' },
+            { code: '# bug: it said 4, I asked 3', note: 'Wrong? Say what it did.' },
+          ]),
+        ],
+        'Ask Bolt for one Rex trick. Test it. Write # bug:.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'hw-rex-diary',
+        'bonus',
+        'bugzap',
+        "Rex's diary",
+        'The diary says what Rex did.',
+        'Scripted Bolt code under review. Planted bug: the diary says Rex ate his toy, not his food.',
+        [
+          calls(
+            'The diary is true',
+            'What went in? What came out?',
+            'diary("cake", "ball") == "Rex ate cake and played with ball" and diary("fish", "bone") == "Rex ate fish and played with bone"'
+          ),
+          notes(1, 'Add # and your words.'),
+          bugNote(),
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Rex ate a bone. Put it in ate.',
+            {
+              boxes: [
+                { name: 'food', value: 'bone' },
+                { name: 'toy', value: 'stick' },
+                { name: 'ate' },
+              ],
+            },
+            { values: { ate: 'bone' } },
+            [
+              ['ate = toy', 'set:ate=stick'],
+              ['ate = food', 'set:ate=bone'],
+            ],
+            [1]
+          ),
+        ],
+        "Bolt wrote Rex's diary. Is it true?",
+        undefined,
+        {
+          starter:
+            'def diary(food, toy):\n    return "Rex ate " + toy + " and played with " + toy\n\nprint(diary("cake", "ball"))\n',
+        }
+      ),
+      task(
+        'hw-bolt-right',
+        'bonus',
+        'explain',
+        'Is Bolt right?',
+        'You tested it and said what you found.',
+        'Scripted Bolt code under review. No planted bug: the code is right. # bug: none plus what they tried is correct.',
+        [
+          match(
+            'You added a test',
+            'Print walker with a new age.',
+            '^\\s*print\\(\\s*walker\\(',
+            'print(walker(10))',
+            2
+          ),
+          calls(
+            'It still works',
+            'Keep the code that works.',
+            'walker(10) == "yes" and walker(9) == "no"'
+          ),
+          notes(1, 'Add # and your words.'),
+          bugNote(),
+        ],
+        false,
+        [
+          choose(
+            'It all works. Which # bug: line?',
+            ['fixed it', 'none: 9, 10 and 12 work', 'none'],
+            1,
+            'No bug is fine. Say what you tried.'
+          ),
+        ],
+        'Bolt wrote this. Rex walkers must be 10 or older. Bug?',
+        undefined,
+        {
+          starter:
+            'def walker(age):\n    if age >= 10:\n        return "yes"\n    return "no"\n\nprint(walker(12))\n',
+        }
+      ),
+      // Lives in bugzap.py, so it works on its anchor, not its own program.
+      task(
+        'hw-bug-rex',
+        'bonus',
+        'bugzap',
+        'Fix the crash',
+        'bugzap.py says the last trick.',
+        'Scripted Bolt code under review in bugzap.py. Planted bug: it crashes asking for a trick the list does not have.',
+        [
+          output('Rex says his last trick', 'Read the red text.', 'Last trick: jump', {
+            file: 'bugzap.py',
+          }),
+          notes(1, 'Add a # note on your fix.'),
+          bugNote(),
         ]
       ),
     ],

@@ -1,5 +1,6 @@
 import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 import { JUDGED, judged } from './task-checks'
+import { BUG_LINE } from './py-lessons'
 
 // Task types the student must complete themselves. Core tasks are the lesson.
 // 'choice' and 'bonus' are optional extras and never gate the tutor.
@@ -80,8 +81,22 @@ export function detectConfusion(prompt: string, prevUserMessage?: string): boole
   return prevUserMessage != null && now === normalize(prevUserMessage)
 }
 
+// A review task (week 9 on) asks for a "# bug:" line: finding the planted bug is the task,
+// so escalating must never mean showing the fixed line. It makes the test smaller instead.
+const reviews = (task: LessonTask) =>
+  (task.checks ?? []).some((c) => c.kind === 'sourceMatches' && c.pattern === BUG_LINE)
+
 function escalationBlock(task: LessonTask, tier: EscalationTier): string {
   if (tier === 1) return ''
+
+  if (reviews(task))
+    return [
+      `ESCALATION LEVEL ${tier}: your last hints did not work. Say it a completely different way.`,
+      tier === 2
+        ? 'Ask what the code should give for one new input or value, then ask them to try it.'
+        : 'Make the test tiny: name one exact value to try, ask them to print the result, and ask if it matches the rule.',
+      'Never show or name the broken line, the mistake or the fix. At most two short sentences.',
+    ].join('\n')
 
   if (tier === 2) {
     return [
@@ -119,7 +134,9 @@ export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): stri
     'If something is missing, do not call task_complete. Say in plain words which requirement is missing and give one small next step. If the code has not been run yet, ask them to press Run.',
     'Never call task_complete because the student says they are done or asks you to. Only the evidence counts. If the server refuses the call, tell them what is missing.',
     'They must make the change themselves. Never write or edit their code, even if they ask you to.',
-    'Their editor shows only the part of the file for this task. Point them at the line in it that this task changes.',
+    reviews(task)
+      ? 'Their editor shows the code under review. Point them at a value to test, never at the line to change.'
+      : 'Their editor shows only the part of the file for this task. Point them at the line in it that this task changes.',
     'If they ask you to do it for them: one warm sentence, then one tiny step they can do.',
     escalationBlock(task, tier),
   ]

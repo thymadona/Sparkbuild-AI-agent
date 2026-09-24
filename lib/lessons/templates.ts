@@ -420,6 +420,12 @@ age = 3
 print("Rex is " + age)
 print("Pet done!")
 `,
+  'py/w9.py': '',
+  'py/w9-bugzap.py': `# TASK: hw-bug-rex
+tricks = ["sit", "spin", "jump"]
+print("Last trick: " + tricks[3])
+print("Rex done!")
+`,
 }
 
 export function templateFor(file: string): string {

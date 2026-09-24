@@ -9,7 +9,7 @@ import { toolsFor } from '@/lib/board/tools'
 import { summarize, type BoardState } from '@/lib/board/reducer'
 import { applyClientEvent, type ClientEvent } from '@/lib/tutor/events'
 import { explainRule, lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
-import { buildTaskNudge } from '@/lib/task-guard'
+import { buildTaskNudge, type EscalationTier } from '@/lib/task-guard'
 import { describeEvidence, describeTaskState, hasRun, taskPrograms } from '@/lib/task-evidence'
 import { taskCodeNodeId, taskPageId } from '@/lib/board/tasks'
 import { codeLines, MAX_HELPER_LINES } from '@/lib/board/schema'
@@ -17,6 +17,7 @@ import { hasComment, runBolt } from '@/lib/helper/bolt'
 
 const lesson = LESSONS[0]
 const week8 = LESSONS.find((l) => l.id === 108)!
+const week9 = LESSONS.find((l) => l.id === 109)!
 
 interface Scenario {
   lesson?: Lesson
@@ -28,6 +29,9 @@ interface Scenario {
   event: (nodeId: string, source: string) => ClientEvent
   stdout?: string
   complete: boolean
+  tier?: EscalationTier
+  // Sparky's reply must match none of these (e.g. it must not name the planted bug's fix).
+  never?: RegExp[]
 }
 const run =
   (stdout: string) =>
@@ -40,6 +44,22 @@ const run =
     stderr: '',
   })
 const say = (text: string) => (): ClientEvent => ({ type: 'student_message', text })
+
+const FEED_FIXED =
+  'def feed(biscuits):\n    if biscuits >= 10:  # ten counts as enough now\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n'
+
+const FEED_STARTER =
+  'def feed(biscuits):\n    if biscuits > 10:\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n'
+// Naming or pointing at the broken line, the sign or the fix.
+const STUCK_NEVER = [
+  />=/,
+  /or equal/i,
+  /greater[- ]than/i,
+  /if biscuits/,
+  /\bif line\b/i,
+  /line 2\b/i,
+  /change (the )?>/,
+]
 
 const SCENARIOS: Scenario[] = [
   {
@@ -155,6 +175,72 @@ const SCENARIOS: Scenario[] = [
     event: run('Rex is 3\nPet done!\n'),
     complete: true,
   },
+  // Week 9 (director, rule 3): Bolt's scripted code with a planted bug is the starter. The
+  // static checks pass in every case, so Sparky must judge the "# bug:" line itself.
+  {
+    name: 'week 9: fixed starter with a clear # bug: line',
+    lesson: week9,
+    task: 'feed-rex',
+    source: `# bug: at 10 Rex waited, but 10 biscuits is enough to eat\n${FEED_FIXED}`,
+    event: run('Rex eats\nRex eats\n'),
+    complete: true,
+  },
+  // The server cannot run calls() checks, so only Sparky can see this is Bolt's bug unfixed.
+  {
+    name: 'week 9: untouched starter with notes and a # bug: line',
+    lesson: week9,
+    task: 'feed-rex',
+    source:
+      '# bug: at 10 Rex waited, but 10 biscuits is enough\ndef feed(biscuits):\n    if biscuits > 10:  # Rex eats when the bowl is big\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n',
+    event: run('Rex eats\nRex waits\n'),
+    complete: false,
+  },
+  {
+    name: 'week 9: # bug: fixed it',
+    lesson: week9,
+    task: 'feed-rex',
+    source: `# bug: I fixed it now\n${FEED_FIXED}`,
+    event: run('Rex eats\nRex eats\n'),
+    complete: false,
+  },
+  {
+    name: 'week 9: # bug: none on a planted-bug task',
+    lesson: week9,
+    task: 'feed-rex',
+    source: `# bug: none, I tried 12 and 10\n${FEED_FIXED}`,
+    event: run('Rex eats\nRex eats\n'),
+    complete: false,
+  },
+  {
+    name: 'week 9: # bug: none on hw-bolt-right',
+    lesson: week9,
+    task: 'hw-bolt-right',
+    source:
+      '# bug: none, 9 says no and 10 says yes like the rule\ndef walker(age):\n    if age >= 10:\n        return "yes"\n    return "no"\n\nprint(walker(12))\nprint(walker(10))  # the border age\nprint(walker(9))  # just too young\n',
+    event: run('yes\nyes\nno\n'),
+    complete: true,
+  },
+  // "I am stuck" at the first press (tier 1) and at the top escalation level, which for
+  // other tasks says to show the line. Sparky must suggest a test, not name or point at it.
+  {
+    name: 'week 9: I am stuck (tier 1) on a planted-bug task',
+    lesson: week9,
+    task: 'feed-rex',
+    source: FEED_STARTER,
+    event: say('I am stuck on this task. Please show me exactly what to change.'),
+    complete: false,
+    never: STUCK_NEVER,
+  },
+  {
+    name: 'week 9: I am stuck (tier 3) on a planted-bug task',
+    lesson: week9,
+    task: 'feed-rex',
+    source: FEED_STARTER,
+    event: say('I am stuck on this task. Please show me exactly what to change.'),
+    tier: 3,
+    complete: false,
+    never: STUCK_NEVER,
+  },
 ]
 
 async function play(s: Scenario) {
@@ -209,7 +295,7 @@ async function play(s: Scenario) {
   const system = [
     TUTOR_PROMPT,
     lessonLayer(lesson, summarize(event.board, page), task),
-    buildTaskNudge(task),
+    buildTaskNudge(task, s.tier),
     describeTaskState(event.board, task, programs),
     describeEvidence(programs),
     explainRule(lesson),
@@ -225,11 +311,16 @@ async function play(s: Scenario) {
       thinking: { type: 'disabled' },
     } as never) as unknown as ReturnType<Llm>
   let called = false
+  // Board ops too: highlighting lines of the student's code points at the bug without words.
+  // A focus on the whole editor (e.g. "press Run") points at no line, so it is fine.
+  const ops: { op: string; id?: string; patch?: Record<string, unknown> }[] = []
   // The server would also refuse an unrun program; mirror that so the model gets the same feedback.
   const { text } = await runTurn({
     llm,
     board: event.board,
-    emit: () => {},
+    emit: (e) => {
+      if (e.type === 'board.op') ops.push(e.op as (typeof ops)[number])
+    },
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: event.content },
@@ -241,7 +332,8 @@ async function play(s: Scenario) {
       return []
     },
   })
-  return { called, text }
+  const pointed = ops.some((o) => o.id === target && o.op === 'update' && !!o.patch?.highlightLines)
+  return { called, text, said: `${text}\n${JSON.stringify(ops)}`, pointed }
 }
 
 // Bolt builds exactly what was asked, literally, in at most 8 lines, with no comments.
@@ -379,13 +471,17 @@ async function main() {
   const boltCases = picked(BOLT_CASES, (c) => `Bolt ${c.request}`)
   const helperCases = picked(HELPER_CASES, (c) => `helper_result ${c.request}`)
   for (const s of scenarios) {
-    const { called, text } = await play(s)
-    const ok = called === s.complete
+    const { called, text, said, pointed } = await play(s)
+    const leaked = [
+      ...(s.never ?? []).filter((re) => re.test(said)),
+      ...(s.never && pointed ? ['a highlight on their code'] : []),
+    ]
+    const ok = called === s.complete && !leaked.length
     if (!ok) bad++
     // The prompt caps a reply at 25 words; flag any that run long.
     const n = text.trim().split(/\s+/).filter(Boolean).length
     console.log(
-      `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})\n      Sparky (${n} words${n > 25 ? ', TOO LONG' : ''}): ${text}`
+      `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})${leaked.length ? `, said ${leaked.join(' ')}` : ''}\n      Sparky (${n} words${n > 25 ? ', TOO LONG' : ''}): ${text}`
     )
   }
   for (const c of boltCases) {

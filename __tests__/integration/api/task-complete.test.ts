@@ -558,3 +558,83 @@ describe('Week 8: notes and the ask are evidence', () => {
     expect(progress).toEqual([makePet.id])
   })
 })
+
+// Mission rule 3 in Week 9: Bolt's scripted code is the starter. It counts once the student has
+// fixed it, explained it and named the bug in a "# bug:" line; the behaviour checks prove the fix.
+describe('Week 9: the # bug: line and the fix are evidence', () => {
+  const week9 = LESSONS.find((l) => l.id === 109)!
+  const CORE = week9.tasks.filter((t) => t.type === 'core').map((t) => t.id)
+  const FIXED =
+    'def feed(biscuits):\n    if biscuits >= 10:  # ten counts as enough now\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n'
+  const BUG = '# bug: at 10 Rex waited, but 10 biscuits is enough\n'
+  const CRASH = `# TASK: hw-bug-rex\ntricks = ["sit", "spin", "jump"]\nprint("Last trick: " + tricks[3])  # asks for the last trick\nprint("Rex done!")\n`
+
+  const attempt = async (
+    taskId: string,
+    source: string,
+    result: { ok: boolean; stdout: string; stderr?: string },
+    done: string[] = [],
+    file?: string
+  ) => {
+    const t = week9.tasks.find((x) => x.id === taskId)!
+    const user = await makeUser()
+    mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
+    const b = board(source)
+    const project = await makeProject(user.id, {
+      lessonId: week9.id,
+      lessonVersion: 3,
+      files: { [file ?? 'main.py']: source },
+      board: {
+        ...b,
+        pages: [{ ...b.pages[0], id: taskPageId(t), title: t.chip }],
+        activePageId: taskPageId(t),
+        nodes: { c1: { ...b.nodes.c1, ...(file ? { file } : {}) } },
+      },
+    })
+    await setLessonProgress(project.id, done, new Date().toISOString())
+    complete(t.id)
+    const events = await drain(
+      await post(project.id, {
+        ...run(source, result.stdout),
+        ...result,
+        stderr: result.stderr ?? '',
+      })
+    )
+    const retry = JSON.stringify(mockCreate.mock.calls[1]?.[0].messages ?? [])
+    return { events, retry, progress: await progressOf(project.id) }
+  }
+
+  it('refuses the fixed code with notes but no # bug: line', async () => {
+    const { events, retry, progress } = await attempt('feed-rex', FIXED, {
+      ok: true,
+      stdout: 'Rex eats\nRex eats\n',
+    })
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: Say what it did wrong.')
+    expect(progress).toEqual([])
+  })
+
+  // Only output checks can be answered on the server (Python runs in the browser), so the
+  // bugzap's "says the last trick" check is the one the floor enforces against the starter.
+  it('refuses the untouched starter even with a note and a # bug: line', async () => {
+    const { events, retry, progress } = await attempt(
+      'hw-bug-rex',
+      `${CRASH.replace('\n', `\n# bug: it crashed because there is no trick 3\n`)}`,
+      { ok: false, stdout: '', stderr: 'IndexError: list index out of range' },
+      CORE,
+      'bugzap.py'
+    )
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: Read the red text.')
+    expect(progress).toEqual(CORE)
+  })
+
+  it('completes the fixed code with notes and a # bug: line', async () => {
+    const { events, progress } = await attempt('feed-rex', `${BUG}${FIXED}`, {
+      ok: true,
+      stdout: 'Rex eats\nRex eats\n',
+    })
+    expect(events.some((e) => e.type === 'task.complete')).toBe(true)
+    expect(progress).toEqual(['feed-rex'])
+  })
+})

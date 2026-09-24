@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { ASK_LINE, NOTE, PY_LESSONS } from '@/lib/py-lessons'
+import { ASK_LINE, BUG_LINE, NOTE, PY_LESSONS } from '@/lib/py-lessons'
 import {
   CURRENT_LESSON_VERSION,
   LESSONS,
@@ -202,19 +202,23 @@ describe.each(
   const has = (t: Lesson['tasks'][number], pattern: string) =>
     t.checks!.some((c) => c.kind === 'sourceMatches' && c.pattern === pattern)
 
-  it('asks for # notes on every task and a # ask: line on every core task', () => {
+  // Week 8 starts from a request (# ask:); week 9 on can start from Bolt's code under review (# bug:).
+  it('asks for # notes on every task and a # ask: or # bug: line on every core task', () => {
     expect(lesson.tasks.filter((t) => !has(t, NOTE)).map((t) => t.id)).toEqual([])
     expect(
-      lesson.tasks.filter((t) => t.type === 'core' && !has(t, ASK_LINE)).map((t) => t.id)
+      lesson.tasks
+        .filter((t) => t.type === 'core' && !has(t, ASK_LINE) && !has(t, BUG_LINE))
+        .map((t) => t.id)
     ).toEqual([])
   })
 
-  // Every starter already lacks notes and an ask, so prove the behaviour checks bite on their own.
-  it('fails every task on its starter even without the notes and ask checks', async () => {
+  // Every starter already lacks notes, an ask and a bug line, so prove the behaviour checks
+  // bite on their own: no task passes on a judged line alone.
+  it('fails every task on its starter even without the notes, ask and bug checks', async () => {
     const passing: string[] = []
     for (const t of lesson.tasks) {
       const checks = t.checks!.filter(
-        (c) => !(c.kind === 'sourceMatches' && [NOTE, ASK_LINE].includes(c.pattern))
+        (c) => !(c.kind === 'sourceMatches' && [NOTE, ASK_LINE, BUG_LINE].includes(c.pattern))
       )
       const files = filesFor(lesson, false, t)
       const entry = lesson.starterFile!

@@ -319,7 +319,7 @@ describe('POST /api/projects/[id]/turn', () => {
       await setLessonProgress(project.id, ['first-words', 'intro-3'], new Date().toISOString())
       modelSays('ok')
       await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
-      expect(systemPrompt()).not.toMatch(/Bolt|helper_event|bolt_exchange|# ask:/)
+      expect(systemPrompt()).not.toMatch(/Bolt|helper_event|bolt_exchange|# ask:|# bug:/)
       expect(mockCreate.mock.calls[0][0].tools).toEqual(toolsFor(true, true))
     })
 
@@ -331,6 +331,9 @@ describe('POST /api/projects/[id]/turn', () => {
       await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
       expect(systemPrompt()).toContain('Code counts only once the student explains it')
       expect(systemPrompt()).toContain('"# ask:" line')
+      // Rule 3 (week 9 on): the # bug: clause, and a test to try instead of the answer.
+      expect(systemPrompt()).toContain('"# bug:" line')
+      expect(systemPrompt()).toContain('never name the mistake or the fix')
     })
 
     it('marks helper rows as Bolt exchanges and never counts them as stuck turns', async () => {

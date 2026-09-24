@@ -35,6 +35,8 @@ then `lesson-authoring` (groups 1, 2 and 4), `ai-tutor` and `lesson-progress` (g
   - every core task has an `ASK_LINE` **or** a `BUG_LINE` check;
   - the "fails on the starter even without notes/ask" test also drops `BUG_LINE`, so no Week 9
     task passes it on its judged line alone.
+- `__tests__/unit/lib/lesson-copy.test.ts` (owner decision, `sketch.md`): the per-lesson reading
+  total counts a label or hint that repeats inside a lesson once; per-string caps unchanged.
 - Add week 9's ids and the anchor to `__tests__/fixtures/frozen-task-ids.json`.
 - Run the `py-lessons` and `lesson-copy` tests. Every task fails on its starter and passes on the
   solution.
