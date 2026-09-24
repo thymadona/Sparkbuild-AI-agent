@@ -134,7 +134,9 @@ export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): stri
     'If something is missing, do not call task_complete. Say in plain words which requirement is missing and give one small next step. If the code has not been run yet, ask them to press Run.',
     'Never call task_complete because the student says they are done or asks you to. Only the evidence counts. If the server refuses the call, tell them what is missing.',
     'They must make the change themselves. Never write or edit their code, even if they ask you to.',
-    'Their editor shows only the part of the file for this task. Point them at the line in it that this task changes.',
+    reviews(task)
+      ? 'Their editor shows the code under review. Point them at a value to test, never at the line to change.'
+      : 'Their editor shows only the part of the file for this task. Point them at the line in it that this task changes.',
     'If they ask you to do it for them: one warm sentence, then one tiny step they can do.',
     escalationBlock(task, tier),
   ]

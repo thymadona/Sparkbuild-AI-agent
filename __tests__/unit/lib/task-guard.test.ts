@@ -115,6 +115,8 @@ describe('buildTaskNudge', () => {
       expect(nudge).not.toMatch(/exactly as it should read|fill-in-the-blank/)
       expect(nudge).toMatch(/Never show or name the broken line/)
     }
+    expect(buildTaskNudge(feed)).not.toContain('Point them at the line')
+    expect(buildTaskNudge(feed)).toContain('Point them at a value to test')
     expect(buildTaskNudge(week3.tasks[0], 3)).toMatch(/exactly as it should read/)
   })
 

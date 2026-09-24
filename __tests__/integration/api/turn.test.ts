@@ -333,7 +333,7 @@ describe('POST /api/projects/[id]/turn', () => {
       expect(systemPrompt()).toContain('"# ask:" line')
       // Rule 3 (week 9 on): the # bug: clause, and a test to try instead of the answer.
       expect(systemPrompt()).toContain('"# bug:" line')
-      expect(systemPrompt()).toContain('Never name the broken line, the mistake or the fix')
+      expect(systemPrompt()).toContain('never name the mistake or the fix')
     })
 
     it('marks helper rows as Bolt exchanges and never counts them as stuck turns', async () => {

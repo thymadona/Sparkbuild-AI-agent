@@ -48,6 +48,19 @@ const say = (text: string) => (): ClientEvent => ({ type: 'student_message', tex
 const FEED_FIXED =
   'def feed(biscuits):\n    if biscuits >= 10:  # ten counts as enough now\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n'
 
+const FEED_STARTER =
+  'def feed(biscuits):\n    if biscuits > 10:\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n'
+// Naming or pointing at the broken line, the sign or the fix.
+const STUCK_NEVER = [
+  />=/,
+  /or equal/i,
+  /greater[- ]than/i,
+  /if biscuits/,
+  /\bif line\b/i,
+  /line 2\b/i,
+  /change (the )?>/,
+]
+
 const SCENARIOS: Scenario[] = [
   {
     name: 'first-words both blocks changed',
@@ -207,17 +220,26 @@ const SCENARIOS: Scenario[] = [
     event: run('yes\nyes\nno\n'),
     complete: true,
   },
-  // "I am stuck" at the top escalation level, which otherwise says to show the line.
+  // "I am stuck" at the first press (tier 1) and at the top escalation level, which for
+  // other tasks says to show the line. Sparky must suggest a test, not name or point at it.
   {
-    name: 'week 9: I am stuck on a planted-bug task',
+    name: 'week 9: I am stuck (tier 1) on a planted-bug task',
     lesson: week9,
     task: 'feed-rex',
-    source:
-      'def feed(biscuits):\n    if biscuits > 10:\n        return "Rex eats"\n    return "Rex waits"\n\nprint(feed(12))\nprint(feed(10))\n',
+    source: FEED_STARTER,
+    event: say('I am stuck on this task. Please show me exactly what to change.'),
+    complete: false,
+    never: STUCK_NEVER,
+  },
+  {
+    name: 'week 9: I am stuck (tier 3) on a planted-bug task',
+    lesson: week9,
+    task: 'feed-rex',
+    source: FEED_STARTER,
     event: say('I am stuck on this task. Please show me exactly what to change.'),
     tier: 3,
     complete: false,
-    never: [/>=/, /or equal/i, /if biscuits/, /line 2\b/i, /change (the )?> /],
+    never: STUCK_NEVER,
   },
 ]
 
@@ -289,11 +311,15 @@ async function play(s: Scenario) {
       thinking: { type: 'disabled' },
     } as never) as unknown as ReturnType<Llm>
   let called = false
+  // Board ops too: a highlight or focus on the student's code can point at a line without words.
+  const ops: { op: string; id?: string; patch?: Record<string, unknown> }[] = []
   // The server would also refuse an unrun program; mirror that so the model gets the same feedback.
   const { text } = await runTurn({
     llm,
     board: event.board,
-    emit: () => {},
+    emit: (e) => {
+      if (e.type === 'board.op') ops.push(e.op as (typeof ops)[number])
+    },
     messages: [
       { role: 'system', content: system },
       { role: 'user', content: event.content },
@@ -305,7 +331,10 @@ async function play(s: Scenario) {
       return []
     },
   })
-  return { called, text }
+  const pointed = ops.some(
+    (o) => o.id === target && (o.op === 'focus' || (o.op === 'update' && !!o.patch?.highlightLines))
+  )
+  return { called, text, said: `${text}\n${JSON.stringify(ops)}`, pointed }
 }
 
 // Bolt builds exactly what was asked, literally, in at most 8 lines, with no comments.
@@ -443,8 +472,11 @@ async function main() {
   const boltCases = picked(BOLT_CASES, (c) => `Bolt ${c.request}`)
   const helperCases = picked(HELPER_CASES, (c) => `helper_result ${c.request}`)
   for (const s of scenarios) {
-    const { called, text } = await play(s)
-    const leaked = (s.never ?? []).filter((re) => re.test(text))
+    const { called, text, said, pointed } = await play(s)
+    const leaked = [
+      ...(s.never ?? []).filter((re) => re.test(said)),
+      ...(s.never && pointed ? ['a highlight or focus on their code'] : []),
+    ]
     const ok = called === s.complete && !leaked.length
     if (!ok) bad++
     // The prompt caps a reply at 25 words; flag any that run long.
