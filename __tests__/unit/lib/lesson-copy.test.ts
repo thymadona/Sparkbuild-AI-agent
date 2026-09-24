@@ -159,8 +159,18 @@ describe('Python course reading level', () => {
     // Steps are read once, on the way to the editor, so they get their own budget
     // and do not eat into the per-lesson budget for the task text.
     const STEP_KINDS = ['question', 'option', 'explain', 'go']
+    // A label or hint repeated inside a lesson (every director task's "You wrote # bug:") is
+    // read once, then recognised, so it counts once per lesson.
+    const seen = new Set<string>()
     const total = entries
       .filter((e) => !STEP_KINDS.includes(e.kind))
+      .filter((e) => {
+        if (e.kind !== 'label' && e.kind !== 'hint') return true
+        const key = `${e.where.split('/')[0]} ${e.kind} ${e.text}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
       .reduce((sum, entry) => sum + words(entry.text), 0)
     const steps = entries
       .filter((e) => STEP_KINDS.includes(e.kind))
