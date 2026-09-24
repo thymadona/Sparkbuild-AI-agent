@@ -1,6 +1,6 @@
 ---
 name: lesson-authoring
-description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (8 weeks, ids 101–108) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
+description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (9 weeks, ids 101–109) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
 ---
 
 # Lesson authoring (Python catalog v3)
@@ -22,7 +22,7 @@ interface Lesson {
   extraFiles?: Record<string, string> // { 'bugzap.py': 'py/wN-bugzap.py' } — also TEMPLATES keys
   scene?: 'robot' | 'vault' // declared, not read yet (world node not built)
   badge?: string // won by the boss task
-  aiPolicy?: 'tutor' | 'director' // 'director': Bolt answers and the explain rule applies (week 8)
+  aiPolicy?: 'tutor' | 'director' // 'director': Bolt answers and the explain rule applies (weeks 8–9)
   tasks: LessonTask[]
 }
 interface LessonTask {
@@ -70,7 +70,9 @@ bonus ×3–4 (one of them a `bugzap` in `bugzap.py`). Existing: 101 Wake the
 Robot (Robot Whisperer), 102 The Number Vault (Vault Cracker), 103 Repeat Reactor (Loop
 Master), 104 Inventory Raid (Loot Lord), 105 The Spell Book (Spell Caster), 106 Bug Hunt
 (Code Agent, single file), 107 Monster Dex (Key Master), 108 Robot Pet (Bolt Boss, the first
-`director` week: every task is its own program).
+`director` week: every task is its own program), 109 Rex's Tricks (Bug Spotter, `director`: each
+task's starter is scripted Bolt code with a planted bug to find, fix and explain; `hw-bug-rex` is
+anchored in `bugzap.py`).
 
 ## Check helpers (`lib/py-lessons.ts`)
 
@@ -82,6 +84,7 @@ Master), 104 Inventory Raid (Loot Lord), 105 The Spell Book (Spell Caster), 106 
 | `calls(label, hint, call, file?)`                                                             | `callReturns` with `equals: 'True'`                                                                                                                                                                             |
 | `guess(min)`                                                                                  | `sourceMatches` on a `# guess:` comment (predict tasks)                                                                                                                                                         |
 | `ask(min)` / `notes(min, hint)`                                                               | Director weeks: `ask` matches `ASK_LINE` (a `# ask:` line, 3+ words) and is `judged` (Sparky decides if it is clear); `notes` matches `NOTE` with `ownWords` (a note that only repeats its line does not count) |
+| `bugNote(min)`                                                                                | Review tasks (week 9): matches `BUG_LINE` (a `# bug:` line, 3+ words), `judged` — Sparky checks it against the planted bug named in the task `prompt`. Named so it does not clash with the `bug` step builder   |
 | `runs` / `runs3`                                                                              | "It runs without errors" (`runs3` feeds `inputs: ['3','1','9','7']`)                                                                                                                                            |
 | `task(id, type, kind, chip, success, prompt, checks, boss = false, steps?, go?, then?, own?)` | a `LessonTask`; `own = { starter, from? }` makes it its own program, otherwise the anchor is set                                                                                                                |
 | `choose`, `tryIt`, `learn`, `order`, `bug`, `pairUp`, `stage`                                 | `LessonStep` builders for `steps` (`stage` takes `palette` as `[label, ...ops][]`)                                                                                                                              |
@@ -149,9 +152,14 @@ Copy-only fixes (typos, hints) are safe, and so is adding `steps`/`go` to a task
 ## Director lessons (`aiPolicy: 'director'`, week 8+)
 
 Bolt reads the student's code, so `py-lessons.test.ts` enforces for every director lesson:
-every task has a notes check and every core task an `ask()` check; the behaviour checks fail on
-the starter even without them; and no starter comment other than a `# TASK:` anchor (a comment
+every task has a notes check and every core task an `ask()` **or** a `bugNote()` check; the
+behaviour checks fail on the starter even without the notes, ask and bug checks; and no starter comment other than a `# TASK:` anchor (a comment
 stating the goal would be read by Bolt). The tutor side of rule 4 (`EXPLAIN_RULE`) is in `ai-tutor`.
+
+Review tasks (week 9): the starter is Bolt's code with one planted bug, and the tutor-only
+`prompt` reads "Scripted Bolt code under review. Rule: … Planted bug: <behaviour>" (or "none").
+Pair each "bug gone" `calls` check with a positive one. `calls` checks are not re-run on the
+server (Node has no Python), so Sparky is what refuses an unfixed starter there.
 
 ## XP per task (from `lib/xp.ts`)
 
@@ -159,6 +167,5 @@ core 10 · choice 15 · bonus 20 · boss 40. Details in `xp-and-streak`.
 
 ## Gotchas
 
-- Comments in `py-lessons.ts` describe weeks 8–12 as `director` weeks; only week 8 exists so far.
 - `scene` is set on every lesson but no board node draws the world yet; it has no renderer.
 - `app/lessons/[id]/LessonDetailClient.tsx` strips a `Task N — ` prefix that no chip has.

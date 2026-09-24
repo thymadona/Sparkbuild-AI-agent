@@ -108,6 +108,15 @@ screen opens it by itself.
   (`ownWords`: a note that only repeats its line fails, `echoes` in `lib/task-checks.ts`); the
   `# ask:` check is `judged`, so the rubric and TASK STATE show it as "found; you judge if it is
   clear" and Sparky refuses an unclear ask.
+- Review tasks (a `BUG_LINE` check, week 9): `EXPLAIN_RULE` says fixed Bolt code in the editor
+  counts once explained; the `# bug:` line must say what the code did against what it should do,
+  judged against the planted bug the task `prompt` names (`# bug: none` is right only when none
+  was planted); and while the student hunts, Sparky suggests a value to test and never names,
+  points at or highlights the broken line, the mistake or the fix. `buildTaskNudge` enforces the
+  same at the source: for review tasks (`reviews(task)` in `lib/task-guard.ts`) the base nudge
+  says "point them at a value to test", and escalation tiers 2–3 ask for a new input / one exact
+  value to print instead of showing the line. `scripts/tutor-eval.ts` checks no leak in the
+  caption **or** the board ops (a focus or `highlightLines` on the student's code).
 
 ## Bolt, the helper AI (director lessons only)
 

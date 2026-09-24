@@ -138,7 +138,10 @@ toggled via `POST admin/classes/[id]/lessons { lessonId, enabled }` — `classes
   editor does count, once they explain it (mission rule 4): in director lessons each task needs
   `# ` notes in their own words (`sourceMatches` with `ownWords`, so `verifyTask` refuses a note
   that only repeats its line) and core tasks a `# ask:` line (`judged`: the static floor only
-  finds it, Sparky decides if it is clear).
+  finds it, Sparky decides if it is clear). In review tasks (week 9) the evidence is a `# bug:`
+  line instead (`bugNote()`, also `judged`): the fixed code counts even though Bolt wrote the
+  starter, and Sparky judges the line against the planted bug. The static floor can refuse a
+  missing `# bug:` line or a failing `output` check, but not an unfixed `calls` check.
 - stdout is browser-reported because Node cannot run Python; the model is told to check it
   against the source and the static floor is the hard backstop.
 - `task_progress` and `lesson_progress.completed_task_ids` are written in one transaction:
