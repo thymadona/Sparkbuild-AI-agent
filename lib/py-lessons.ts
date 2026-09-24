@@ -18,7 +18,7 @@ const match = (
   example: string,
   min = 1,
   flags = 'm'
-): TaskCheck => ({
+): Extract<TaskCheck, { kind: 'sourceMatches' }> => ({
   kind: 'sourceMatches',
   label,
   hint,
@@ -94,22 +94,26 @@ const guess = (min = 1): TaskCheck =>
 
 // Director tasks (mission rule 4): the request stays in the editor as "# ask: …", and
 // the student explains the code in their own # notes. Sparky judges both before completing.
-const ask = (min = 1): TaskCheck =>
-  match(
+const ask = (min = 1): TaskCheck => ({
+  ...match(
     min > 1 ? `You wrote ${min} asks` : 'You wrote # ask:',
     min > 1 ? 'One # ask: per piece.' : 'Write # ask: then your words.',
     ASK_LINE,
     '# ask: a pet named Rex',
     min
-  )
-const notes = (min = 1, hint = 'After a line: # and your words.'): TaskCheck =>
-  match(
+  ),
+  judged: true,
+})
+const notes = (min = 1, hint = 'After a line: # and your words.'): TaskCheck => ({
+  ...match(
     min > 1 ? `You added ${min} # notes` : 'You added a # note',
     hint,
     NOTE,
     'print(1)  # one',
     min
-  )
+  ),
+  judged: true,
+})
 
 function task(
   id: string,

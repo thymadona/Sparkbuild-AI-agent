@@ -20,6 +20,9 @@ export type TaskCheck =
       // A snippet that satisfies this check. Documents the expected shape and
       // lets tests prove the check is actually reachable.
       example?: string
+      // The match only proves it is there; the tutor judges whether it is good
+      // (director weeks: the student's # notes and "# ask:" line, mission rule 4).
+      judged?: boolean
     }
   | RuntimeCheck
 
@@ -61,6 +64,10 @@ export type RuntimeCheck =
       equals: string
       file?: string
     }
+
+// A check the tutor must judge beyond "it is there", and what it is told about it.
+export const judged = (check: TaskCheck) => check.kind === 'sourceMatches' && !!check.judged
+export const JUDGED = 'found, but you judge it: see the explain rule at the end.'
 
 export function isRuntimeCheck(check: TaskCheck): check is RuntimeCheck {
   return (

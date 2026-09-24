@@ -34,7 +34,7 @@ import {
 import { emptyBoard, summarize, type BoardState } from '@/lib/board/reducer'
 import { toolsFor } from '@/lib/board/tools'
 import { ClientEvent, applyClientEvent } from '@/lib/tutor/events'
-import { lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
+import { explainRule, lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
 import { runTurn, type Llm, type TurnEvent } from '@/lib/tutor/turn'
 
 export const runtime = 'nodejs'
@@ -165,7 +165,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
             buildTaskNudge(openTask, tier),
             describeTaskState(board, openTask, programs, entry),
             evidence,
-          ].join('\n\n')
+            explainRule(lesson),
+          ]
+            .filter(Boolean)
+            .join('\n\n')
     }
   }
 

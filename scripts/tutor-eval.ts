@@ -1,14 +1,14 @@
 // Does Sparky judge tasks the way we expect? Runs canned student situations through
 // the real turn loop against DeepSeek and checks whether it called task_complete.
 // Not part of CI (it needs the network and costs tokens).
-//   bun --env-file=.env run scripts/tutor-eval.ts
+//   bun --env-file=.env run scripts/tutor-eval.ts [name filter, e.g. "week 8"]
 import { deepseek, MODEL } from '@/lib/deepseek'
 import { LESSONS, type Lesson } from '@/lib/lessons'
 import { runTurn, type Llm } from '@/lib/tutor/turn'
 import { toolsFor } from '@/lib/board/tools'
 import { summarize, type BoardState } from '@/lib/board/reducer'
 import { applyClientEvent, type ClientEvent } from '@/lib/tutor/events'
-import { lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
+import { explainRule, lessonLayer, TUTOR_PROMPT } from '@/lib/tutor/prompt'
 import { buildTaskNudge } from '@/lib/task-guard'
 import { describeEvidence, describeTaskState, hasRun, taskPrograms } from '@/lib/task-evidence'
 import { taskCodeNodeId, taskPageId } from '@/lib/board/tasks'
@@ -20,6 +20,7 @@ const week8 = LESSONS.find((l) => l.id === 108)!
 
 interface Scenario {
   lesson?: Lesson
+  file?: string
   second?: string
   name: string
   task: string
@@ -113,7 +114,7 @@ const SCENARIOS: Scenario[] = [
     lesson: week8,
     task: 'make-pet',
     source:
-      '# ask: a pet named Rex that says Woof\nprint("I am Rex")  # print I am Rex\nprint("Woof!")  # print Woof\n',
+      '# ask: a pet named Rex that says I am Rex, then Woof\nprint("I am Rex")  # prints I am Rex\nprint("Woof!")  # prints Woof\n',
     event: run('I am Rex\nWoof!\n'),
     complete: false,
   },
@@ -130,7 +131,7 @@ const SCENARIOS: Scenario[] = [
     lesson: week8,
     task: 'make-pet',
     source:
-      '# ask: make it good\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
+      '# ask: a nice pet please\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
     event: run('I am Rex\nWoof!\n'),
     complete: false,
   },
@@ -141,6 +142,17 @@ const SCENARIOS: Scenario[] = [
     source:
       '# ask: a pet named Rex that says I am Rex, then Woof\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
     event: run('I am Rex\nWoof!\n'),
+    complete: true,
+  },
+  // The bugzap task asks for a note on the fix but no "# ask:" line.
+  {
+    name: 'week 8: bugzap fixed with a note, no ask',
+    lesson: week8,
+    task: 'hw-bug-pet',
+    file: 'bugzap.py',
+    source:
+      '# TASK: hw-bug-pet\nage = 3\nprint("Rex is " + str(age))  # age is a number, so I turn it into text\nprint("Pet done!")\n',
+    event: run('Rex is 3\nPet done!\n'),
     complete: true,
   },
 ]
@@ -166,7 +178,7 @@ async function play(s: Scenario) {
     activePageId: page,
     focusId: null,
     nodes: {
-      [id]: code(id, s.source),
+      [id]: code(id, s.source, s.file),
       ...(two
         ? {
             [`out_${id}`]: {
@@ -200,7 +212,10 @@ async function play(s: Scenario) {
     buildTaskNudge(task),
     describeTaskState(event.board, task, programs),
     describeEvidence(programs),
-  ].join('\n\n')
+    explainRule(lesson),
+  ]
+    .filter(Boolean)
+    .join('\n\n')
   const llm: Llm = (messages) =>
     deepseek.chat.completions.create({
       model: MODEL,
@@ -324,6 +339,7 @@ async function playHelper(c: (typeof HELPER_CASES)[number]) {
     buildTaskNudge(task),
     describeTaskState(event.board, task, programs),
     describeEvidence(programs),
+    explainRule(director),
   ].join('\n\n')
   const llm: Llm = (messages) =>
     deepseek.chat.completions.create({
@@ -353,31 +369,38 @@ async function playHelper(c: (typeof HELPER_CASES)[number]) {
   return { ok: !problems.length, detail: `${problems.join(', ') || 'ok'}: ${text.slice(0, 160)}` }
 }
 
+const only = process.argv[2] ?? ''
+const picked = <T>(cases: T[], name: (c: T) => string) =>
+  cases.filter((c) => name(c).includes(only))
+
 async function main() {
   let bad = 0
-  for (const s of SCENARIOS) {
+  const scenarios = picked(SCENARIOS, (s) => s.name)
+  const boltCases = picked(BOLT_CASES, (c) => `Bolt ${c.request}`)
+  const helperCases = picked(HELPER_CASES, (c) => `helper_result ${c.request}`)
+  for (const s of scenarios) {
     const { called, text } = await play(s)
     const ok = called === s.complete
     if (!ok) bad++
     // The prompt caps a reply at 25 words; flag any that run long.
     const n = text.trim().split(/\s+/).filter(Boolean).length
     console.log(
-      `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})\n      Sparky (${n} words${n > 25 ? ', TOO LONG' : ''}): ${text.slice(0, 140)}`
+      `${ok ? 'PASS' : 'FAIL'}  ${s.name}: task_complete ${called ? 'called' : 'not called'} (expected ${s.complete ? 'called' : 'not called'})\n      Sparky (${n} words${n > 25 ? ', TOO LONG' : ''}): ${text}`
     )
   }
-  for (const c of BOLT_CASES) {
+  for (const c of boltCases) {
     const { ok, detail } = await playBolt(c)
     if (!ok) bad++
     console.log(
       `${ok ? 'PASS' : 'FAIL'}  Bolt "${c.request}": ${detail.replace(/\n/g, '\n      ')}`
     )
   }
-  for (const c of HELPER_CASES) {
+  for (const c of helperCases) {
     const { ok, detail } = await playHelper(c)
     if (!ok) bad++
     console.log(`${ok ? 'PASS' : 'FAIL'}  Sparky on helper_result "${c.request}": ${detail}`)
   }
-  const total = SCENARIOS.length + BOLT_CASES.length + HELPER_CASES.length
+  const total = scenarios.length + boltCases.length + helperCases.length
   console.log(`\n${total - bad}/${total} as expected`)
   process.exit(bad ? 1 : 0)
 }

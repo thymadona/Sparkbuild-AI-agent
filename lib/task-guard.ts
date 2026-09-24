@@ -1,4 +1,5 @@
 import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
+import { JUDGED, judged } from './task-checks'
 
 // Task types the student must complete themselves. Core tasks are the lesson.
 // 'choice' and 'bonus' are optional extras and never block build mode.
@@ -108,7 +109,9 @@ export const CONCEPT_PHASE_NUDGE =
   'The student is answering scripted questions on this page before the code editor opens. Do not add or change any nodes and do not mention the editor or their code. If they write to you, answer in one short sentence about the idea only (what print does, what quotes are for), then point them back to the step named in TASK STATE. Help with THAT step only; never say the right answer before they have missed twice.'
 
 export function buildTaskNudge(task: LessonTask, tier: EscalationTier = 1): string {
-  const rubric = (task.checks ?? []).map((c) => `- ${c.label}`).join('\n')
+  const rubric = (task.checks ?? [])
+    .map((c) => `- ${c.label}${judged(c) ? ` (${JUDGED})` : ''}`)
+    .join('\n')
   return [
     `THIS STUDENT IS WORKING ON A LESSON TASK "${task.id}": "${task.chip}".`,
     `Goal: ${task.success}`,

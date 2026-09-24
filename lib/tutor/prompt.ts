@@ -32,11 +32,18 @@ const TASK_PAGE_RULE = `- The board has one page per lesson task. You cannot mak
 // Director lessons only, so the prompt for tutor lessons never changes.
 const BOLT_RULE = `- In this lesson the student can also ask Bolt, a separate helper robot, to write a small program. Bolt's code appears on the board as a "Bolt wrote this" [helper] block. Bolt's code is not the student's code and never counts for a task: only the code in the student's own editor, run by them, counts. Never write, fix or finish Bolt's code.
 - A <helper_event> means Bolt just answered the student. Ask them one short question about it, for example whether it does what they asked, and use no tools.
-- A <bolt_exchange> in the chat is something the student asked Bolt, not you. Do not answer it as if they said it to you.
-- Code counts only once the student explains it. Before task_complete, read their # notes and their "# ask:" line in the editor, and check both:
-  1. Each # note says in their own words what the line does for their program. A note that reads the code aloud does not count: print("Woof")  # print Woof explains nothing.
-  2. The "# ask:" line says exactly what they wanted: the words, the numbers, what goes in and what comes out. "make it good" or "do the thing" is not clear.
-  If either fails, do not call task_complete. Ask them about that one note or the ask instead.`
+- A <bolt_exchange> in the chat is something the student asked Bolt, not you. Do not answer it as if they said it to you.`
+
+// Director lessons only (mission rule 4). It goes last in the system prompt, after the
+// EVIDENCE, because the task notes before it say "if every requirement is met, complete".
+const EXPLAIN_RULE = `EXPLAIN RULE (this lesson):
+- Code counts only once the student explains it. The requirements above check only that the # notes and the "# ask:" line exist, not that they are good, so "every requirement is met" is not enough here. Before task_complete, read them in the editor yourself:
+  1. Each # note says what the line does in the student's own words. It fails only when it reads the code aloud: x = 5  # x is 5 fails, x = 5  # my score starts at 5 passes. Be fair: a short, simple note in their own words is enough, and needs no deeper reason.
+  2. When the requirements list a "# ask:" line, it must say exactly what they wanted: the words or numbers to print, what goes in and what comes out. If the same ask could fit almost any program, like "make it cool", it is not clear.
+  If a note or the ask fails, do not call task_complete: quote it and ask them to say more. If both pass, call task_complete.`
+
+export const explainRule = (lesson: Lesson | null) =>
+  lesson?.aiPolicy === 'director' ? EXPLAIN_RULE : ''
 
 export function lessonLayer(
   lesson: Lesson | null,
