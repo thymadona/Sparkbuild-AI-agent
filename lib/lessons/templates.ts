@@ -412,6 +412,14 @@ print(eggs["dragon"])
 print(eggs.get("griffin", 0))
 print(len(eggs))
 `,
+  // Week 8 is a director week: Bolt reads the student's code, so no starter comment may state
+  // the goal (only the bugzap anchor). Each task carries its own starter (lib/py-lessons.ts).
+  'py/w8.py': '',
+  'py/w8-bugzap.py': `# TASK: hw-bug-pet
+age = 3
+print("Rex is " + age)
+print("Pet done!")
+`,
 }
 
 export function templateFor(file: string): string {

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { PY_LESSONS } from '@/lib/py-lessons'
+import { ASK_LINE, NOTE, PY_LESSONS } from '@/lib/py-lessons'
 import {
   CURRENT_LESSON_VERSION,
   LESSONS,
@@ -10,7 +10,7 @@ import {
 import { runPythonChecks } from '@/lib/python-checks'
 import { allChecksPassed, isRuntimeCheck, runTaskChecks } from '@/lib/task-checks'
 import { templateFor } from '@/lib/lessons/templates'
-import { taskStarter } from '@/lib/board/tasks'
+import { taskFile, taskStarter } from '@/lib/board/tasks'
 import { emptyBoard } from '@/lib/board/reducer'
 import { nodeExec } from '@/__tests__/helpers/pyodide'
 
@@ -97,7 +97,8 @@ async function results(lesson: (typeof PY_LESSONS)[number], solved: boolean, tas
   const files = filesFor(lesson, solved, task)
   const entry = lesson.starterFile!
   const verdicts = await runPythonChecks(task.checks!, files, entry, nodeExec)
-  return runTaskChecks(task.checks, files[entry], verdicts)
+  // Static checks read the file the task works in (bugzap.py for a bugzap task), as verifyTask does.
+  return runTaskChecks(task.checks, files[taskFile(task, entry)], verdicts)
 }
 
 describe('python catalog', () => {
@@ -190,6 +191,36 @@ describe('python catalog', () => {
         if (isRuntimeCheck(c) && c.file) expect(Object.keys(files)).toContain(c.file)
       }
     }
+  })
+})
+
+// Director weeks (mission rule 4): code counts only once the student has explained it,
+// and Bolt reads the student's code, so no starter may tell it the goal.
+describe.each(
+  PY_LESSONS.filter((l) => l.aiPolicy === 'director').map((l) => [l.title, l] as const)
+)('%s: director rules', (_title, lesson) => {
+  const has = (t: Lesson['tasks'][number], pattern: string) =>
+    t.checks!.some((c) => c.kind === 'sourceMatches' && c.pattern === pattern)
+
+  it('asks for # notes on every task and a # ask: line on every core task', () => {
+    expect(lesson.tasks.filter((t) => !has(t, NOTE)).map((t) => t.id)).toEqual([])
+    expect(
+      lesson.tasks.filter((t) => t.type === 'core' && !has(t, ASK_LINE)).map((t) => t.id)
+    ).toEqual([])
+  })
+
+  it('has no starter comment besides a # TASK: anchor', () => {
+    const starters = [
+      ...lesson.tasks.flatMap((t) => (t.starter !== undefined ? [t.starter] : [])),
+      template(lesson.templateFile),
+      ...Object.values(lesson.extraFiles ?? {}).map(template),
+    ]
+    const commented = starters
+      .flatMap((code) => code.split('\n'))
+      .filter((line) => !/^# TASK: [\w-]+$/.test(line))
+      // Drop string literals first: a # inside quotes is not a comment.
+      .filter((line) => line.replace(/(["'])(?:\\.|(?!\1).)*\1/g, '').includes('#'))
+    expect(commented).toEqual([])
   })
 })
 
