@@ -103,10 +103,12 @@ export function LearnNode({ node, code }: { node: Of<'learn'>; code?: CodeAction
   return (
     <div className={card}>
       <p className="font-semibold">{node.prompt}</p>
-      <div className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-4 rounded-xl bg-[#2b2118] p-4">
+      {/* On a phone the robot sits under the code and long lines wrap: side by side, the code
+          got ~12 characters and the words that matter (a # note, an ask) were scrolled away. */}
+      <div className="grid grid-cols-1 justify-items-center gap-4 rounded-xl bg-[#2b2118] p-4 sm:grid-cols-[minmax(0,1fr)_9rem] sm:items-center sm:justify-items-stretch">
         <pre
           key={`c${node.frame}`}
-          className="board-rise overflow-x-auto font-mono text-base text-[#f3e9d8]"
+          className="board-rise w-full overflow-x-auto whitespace-pre-wrap break-words font-mono text-base text-[#f3e9d8] sm:whitespace-pre"
         >
           <Lit code={f.code} hl={f.hl} dim={!!speak} />
         </pre>
