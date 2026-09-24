@@ -138,7 +138,7 @@ the starter and passes on the fix.
 `TOO_ADVANCED` lives in that test (milestone, customize, prototype, placeholder, gradient,
 duration, specific, realistic, memorable, challenge, celebration, energetic, description,
 collection, encouraging, instructions, statement, interaction, personalize, genuinely, …);
-`TAUGHT_IN_PYTHON = ['variable', 'variables']` is exempt; total prose `< 300 × lessons` words;
+`TAUGHT_IN_PYTHON = ['variable', 'variables']` is exempt; total prose `< 300 × lessons` words (a label or hint repeated inside one lesson counts once);
 ≥ 30 copy entries per lesson. Code-ish tokens are stripped before counting.
 
 ## Versioning rule
