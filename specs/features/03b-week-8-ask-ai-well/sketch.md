@@ -59,7 +59,7 @@ Starter: print("pet")      (Bolt's literal result; no comment says so, the go li
 Steps:
   1. choose — hook/predict — code '# ask: make a pet', prompt "Bolt reads this ask. What does it build?" (8)
      options 'print("pet")' · 'A dog game' · 'A cat that says meow' (5), answer 0.
-     explain "Bolt builds only your words. Nothing more." (7)
+     explain "Bolt builds only your words." (5) — trimmed from 7 in group 5: the step budget was 1 word over
      The student understands Bolt is literal because they expect a real pet and get "pet".
   2. learn (3 frames) — name it, and meet the note — prompt "Say more. Get more." (4)
      '# ask: make a pet'                      "Few words. A plain pet." (5)        speak "pet"

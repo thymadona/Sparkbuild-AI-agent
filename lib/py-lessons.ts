@@ -2671,8 +2671,29 @@ export const PY_LESSONS: Lesson[] = [
           notes(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'Bolt reads this ask. What does it build?',
+            ['print("pet")', 'A dog game', 'A cat that says meow'],
+            0,
+            'Bolt builds only your words.',
+            '# ask: make a pet'
+          ),
+          learn('Say more. Get more.', [
+            { code: '# ask: make a pet', note: 'Few words. A plain pet.', speak: 'pet' },
+            {
+              code: '# ask: a pet named Rex that says Woof',
+              note: 'Name and words. Now Bolt knows.',
+              speak: 'Rex says Woof',
+            },
+            {
+              code: 'print("Rex says Woof")  # Rex talks',
+              note: 'Your # note: your own words.',
+              hl: '# Rex talks',
+            },
+          ]),
+        ],
+        'Bolt made this from "make a pet". Ask for a name and words.',
         undefined,
         { starter: 'print("pet")\n' }
       ),
@@ -2689,8 +2710,16 @@ export const PY_LESSONS: Lesson[] = [
           notes(2, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          bug(
+            'Which line has no real age? Tap it.',
+            '# ask: Rex says hi and his age\nprint("Hi")\nprint("Rex is old")',
+            2,
+            'No number in the ask.'
+          ),
+          tryIt("Type Rex's exact words. Sparky says them.", 2, ['Hi, I am Rex', 'I am 3']),
+        ],
+        'Ask for exact words and a number. Put the words in quotes.',
         undefined,
         { starter: 'print("Rex")\n' }
       ),
@@ -2716,8 +2745,33 @@ export const PY_LESSONS: Lesson[] = [
           notes(2, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'machine',
+            'Put cake in. Get cakecake! out.',
+            { input: 'cake' },
+            { out: 'cakecake!' },
+            [
+              ['* 2', 'double'],
+              ['+ "!"', 'exclaim'],
+              ['.upper()', 'upper'],
+            ],
+            [0, 1]
+          ),
+          learn('Say what goes in. Say what comes out.', [
+            { code: 'food = input("Food? ")', note: 'In: you type a food.' },
+            {
+              code: 'print("Yum, " + food)',
+              note: 'Out: Rex says Yum and it.',
+              speak: 'Yum, cake',
+            },
+            {
+              code: '# ask: I type a food. Rex says Yum + food',
+              note: 'Your ask says in and out.',
+            },
+          ]),
+        ],
+        'Ask for a pet you can feed. Say what goes in and out.',
         undefined,
         { starter: 'print("Yum")\n' }
       ),
@@ -2736,8 +2790,25 @@ export const PY_LESSONS: Lesson[] = [
           notes(3, 'Each main line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'Which ask can Bolt build?',
+            ['A whole pet game', 'Rex says his mood', 'Rex with 10 tricks'],
+            1,
+            'Bolt writes 8 lines at most. Ask small.'
+          ),
+          pairUp('Tap a piece. Tap the ask for it.', [
+            ['name = "Rex"', 'Give the pet a name'],
+            ['mood = name + " is happy"', 'Make Rex happy'],
+            ['print(mood)', 'Rex says his mood'],
+          ]),
+          order('Join the pieces. Tap them in order.', [
+            'name = "Rex"',
+            'mood = name + " is happy"',
+            'print(mood)',
+          ]),
+        ],
+        'Ask Bolt for 2 small pieces. Join them. Write both asks.',
         undefined,
         { starter: 'name = "Rex"\n' }
       ),
@@ -2767,8 +2838,22 @@ export const PY_LESSONS: Lesson[] = [
           notes(4, 'Each main line: # and your words.'),
         ],
         true,
-        undefined,
-        undefined,
+        [
+          bug(
+            'Two pieces, joined. Tap the line that breaks.',
+            'name = "Rex"\nprint(name + " ate " + food)\nfood = input("Food? ")',
+            1,
+            'food comes later. Move it up.'
+          ),
+          choose(
+            'Which note explains it best?',
+            ['# print Yum plus food', '# Rex thanks me for food', '# a print'],
+            1,
+            'A good note says why, in your words.',
+            'print("Yum, " + food)'
+          ),
+        ],
+        'Ask Bolt for 2 or 3 pieces: name, mood, food. Join them. Explain each.',
         undefined,
         { starter: 'name = "Rex"\n' }
       ),
@@ -2781,8 +2866,14 @@ export const PY_LESSONS: Lesson[] = [
         'Help me ask Bolt for one pet trick.',
         [runs, ask(), notes()],
         false,
-        undefined,
-        undefined,
+        [
+          pairUp('Tap an ask. Tap what Bolt builds.', [
+            ['# ask: Rex jumps 3 times', 'Says jump jump jump'],
+            ['# ask: Rex spins once', 'Says spin once'],
+            ['# ask: Rex does a trick', 'Says trick. That is all.'],
+          ]),
+        ],
+        'Pick one trick for Rex. Ask Bolt for just that.',
         undefined,
         { starter: 'name = "Rex"\n' }
       ),
@@ -2824,8 +2915,15 @@ export const PY_LESSONS: Lesson[] = [
           notes(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          bug(
+            'A friend wrote this ask. Tap the weak line.',
+            '# ask: my pet does stuff\nprint("stuff")',
+            0,
+            'Say the words, not stuff.'
+          ),
+        ],
+        'Write a better ask. Say the name, the words and a number.',
         undefined,
         { starter: 'print("stuff")\n' }
       ),
