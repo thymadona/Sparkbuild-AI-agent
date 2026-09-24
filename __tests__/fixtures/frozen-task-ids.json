@@ -78,5 +78,16 @@
     "hw-my-dex",
     "hw-explain-dex",
     "hw-bug-key"
+  ],
+  "108": [
+    "make-pet",
+    "exact-words",
+    "in-and-out",
+    "small-pieces",
+    "pet-game",
+    "pet-trick",
+    "hw-my-pet",
+    "hw-better-ask",
+    "hw-bug-pet"
   ]
 }

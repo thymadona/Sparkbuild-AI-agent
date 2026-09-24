@@ -18,7 +18,7 @@ const match = (
   example: string,
   min = 1,
   flags = 'm'
-): TaskCheck => ({
+): Extract<TaskCheck, { kind: 'sourceMatches' }> => ({
   kind: 'sourceMatches',
   label,
   hint,
@@ -59,7 +59,11 @@ const PRINT_LINE = '^\\s*print\\('
 const PRINT_F = '^\\s*print\\(\\s*f["\']'
 // A # note after code on the same line. Full-line # comments are the starter's
 // own instructions, so they never count.
-const NOTE = '^[ \\t]*[^#\\s][^#\\n]*[ \\t]#[ \\t]*\\S'
+export const NOTE = '^[ \\t]*[^#\\s][^#\\n]*[ \\t]#[ \\t]*\\S'
+// Director weeks: the student's request to Bolt, kept as a "# ask:" line of 3+ words.
+export const ASK_LINE = '^[ \\t]*#[ \\t]*ask:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
+// Three printed lines, no two the same.
+const THREE_LINES = '^(.+)\\n(?!\\1$)(.+)\\n(?!\\1$|\\2$).+'
 
 const WHILE = '^\\s*while\\s+.+:'
 const ASK = 'int\\(\\s*input\\('
@@ -87,6 +91,30 @@ const guess = (min = 1): TaskCheck =>
     '# guess: 62',
     min
   )
+
+// Director tasks (mission rule 4): the request stays in the editor as "# ask: …", and
+// the student explains the code in their own # notes. A note that only repeats its line
+// does not count (`echoes`); Sparky judges whether the ask is clear.
+const ask = (min = 1): TaskCheck => ({
+  ...match(
+    min > 1 ? `You wrote ${min} asks` : 'You wrote # ask:',
+    min > 1 ? 'One # ask: per piece.' : 'Write # ask: then your words.',
+    ASK_LINE,
+    '# ask: a pet named Rex',
+    min
+  ),
+  judged: true,
+})
+const notes = (min = 1, hint = 'After a line: # and your words.'): TaskCheck => ({
+  ...match(
+    min > 1 ? `You added ${min} # notes` : 'You added a # note',
+    hint,
+    NOTE,
+    'print(1)  # one',
+    min
+  ),
+  ownWords: true,
+})
 
 function task(
   id: string,
@@ -284,7 +312,7 @@ export const PY_LESSONS: Lesson[] = [
           output(
             'Sparky says 3 different lines',
             'Make each line say something new.',
-            '^(.+)\\n(?!\\1$)(.+)\\n(?!\\1$|\\2$).+',
+            THREE_LINES,
             { flags: 'm' }
           ),
         ],
@@ -2607,6 +2635,312 @@ export const PY_LESSONS: Lesson[] = [
             flags: 'i',
             file: 'bugzap.py',
           }),
+        ]
+      ),
+    ],
+  },
+  // The first director week: the student asks Bolt for code. Each task is its own program,
+  // so its checks, notes and "# ask:" line cover only that task. No starter comment states
+  // the goal, because Bolt reads the student's code (specs/features/03b-week-8-ask-ai-well).
+  {
+    id: 108,
+    title: 'Week #8 — Robot Pet',
+    description: 'Rex is a robot pet. Tell Bolt exactly what to build.',
+    templateFile: 'py/w8.py',
+    starterFile: 'main.py',
+    extraFiles: { 'bugzap.py': 'py/w8-bugzap.py' },
+    scene: 'robot',
+    aiPolicy: 'director',
+    badge: 'Bolt Boss',
+    tasks: [
+      task(
+        'make-pet',
+        'core',
+        'change',
+        'Make a pet',
+        'Rex has a name and says something.',
+        'Help me ask Bolt for a better pet.',
+        [
+          output(
+            'Rex says more than pet',
+            'Ask for a name and words.',
+            '^(?!pet\\s*$)\\S+[ \\t]+\\S',
+            { flags: 'm' }
+          ),
+          ask(),
+          notes(),
+        ],
+        false,
+        [
+          choose(
+            'Bolt reads this ask. What does it build?',
+            ['print("pet")', 'A dog game', 'A cat that says meow'],
+            0,
+            'Bolt builds only your words.',
+            '# ask: make a pet'
+          ),
+          learn('Say more. Get more.', [
+            { code: '# ask: make a pet', note: 'Few words. A plain pet.', speak: 'pet' },
+            {
+              code: '# ask: a pet named Rex that says Woof',
+              note: 'Name and words. Now Bolt knows.',
+              speak: 'Rex says Woof',
+            },
+            {
+              code: 'print("Rex says Woof")  # Rex talks',
+              note: 'Your # note: your own words.',
+              hl: '# Rex talks',
+            },
+          ]),
+        ],
+        'Bolt made this from "make a pet". Ask for a name and words.',
+        undefined,
+        { starter: 'print("pet")\n' }
+      ),
+      task(
+        'exact-words',
+        'core',
+        'change',
+        'Exact words',
+        'Rex says your exact words.',
+        'Help me ask Bolt for exact words.',
+        [
+          output('Rex says a number', 'Ask for a number, like 3.', '\\d'),
+          ask(),
+          notes(2, 'After each line: # and your words.'),
+        ],
+        false,
+        [
+          bug(
+            'Which line has no real age? Tap it.',
+            '# ask: Rex says hi and his age\nprint("Hi")\nprint("Rex is old")',
+            2,
+            'No number in the ask.'
+          ),
+          tryIt("Type Rex's exact words. Sparky says them.", 2, ['Hi, I am Rex', 'I am 3']),
+        ],
+        'Ask for exact words and a number. Put the words in quotes.',
+        undefined,
+        { starter: 'print("Rex")\n' }
+      ),
+      task(
+        'in-and-out',
+        'core',
+        'make',
+        'In and out',
+        'Rex eats the food you type.',
+        'Help me say what goes in and what comes out.',
+        [
+          match(
+            'You use input()',
+            'Use input() so you type the food.',
+            '^[^#\\n]*\\binput\\(',
+            'food = input("Food? ")'
+          ),
+          output('Rex says your food', 'Print the food you typed.', 'cake', {
+            flags: 'i',
+            inputs: ['cake'],
+          }),
+          ask(),
+          notes(2, 'After each line: # and your words.'),
+        ],
+        false,
+        [
+          stage(
+            'machine',
+            'Put cake in. Get cakecake! out.',
+            { input: 'cake' },
+            { out: 'cakecake!' },
+            [
+              ['* 2', 'double'],
+              ['+ "!"', 'exclaim'],
+              ['.upper()', 'upper'],
+            ],
+            [0, 1]
+          ),
+          learn('Say what goes in. Say what comes out.', [
+            { code: 'food = input("Food? ")', note: 'In: you type a food.' },
+            {
+              code: 'print("Yum, " + food)',
+              note: 'Out: Rex says Yum and it.',
+              speak: 'Yum, cake',
+            },
+            {
+              code: '# ask: I type a food. Rex says Yum + food',
+              note: 'Your ask says in and out.',
+            },
+          ]),
+        ],
+        'Ask for a pet you can feed. Say what goes in and out.',
+        undefined,
+        { starter: 'print("Yum")\n' }
+      ),
+      task(
+        'small-pieces',
+        'core',
+        'make',
+        'Small pieces',
+        'Two small pieces, joined by you.',
+        'Help me split a big ask into small pieces.',
+        [
+          ask(2),
+          output('Rex says 3 lines', 'Three different lines. Join your pieces.', THREE_LINES, {
+            flags: 'm',
+          }),
+          notes(3, 'Each main line: # and your words.'),
+        ],
+        false,
+        [
+          choose(
+            'Which ask can Bolt build?',
+            ['A whole pet game', 'Rex says his mood', 'Rex with 10 tricks'],
+            1,
+            'Bolt writes 8 lines at most. Ask small.'
+          ),
+          pairUp('Tap a piece. Tap the ask for it.', [
+            ['name = "Rex"', 'Give the pet a name'],
+            ['mood = name + " is happy"', 'Make Rex happy'],
+            ['print(mood)', 'Rex says his mood'],
+          ]),
+          order('Join the pieces. Tap them in order.', [
+            'name = "Rex"',
+            'mood = name + " is happy"',
+            'print(mood)',
+          ]),
+        ],
+        'Ask Bolt for 2 small pieces. Join them. Write both asks.',
+        undefined,
+        { starter: 'name = "Rex"\n' }
+      ),
+      task(
+        'pet-game',
+        'core',
+        'make',
+        'Boss: Pet game',
+        'Your pet game runs, explained by you.',
+        'Help me build my pet game and explain it.',
+        [
+          ask(2),
+          match(
+            'You use input()',
+            'Use input() so you type the food.',
+            '^[^#\\n]*\\binput\\(',
+            'food = input("Food? ")'
+          ),
+          output('Rex says your food', 'Print the food you typed.', 'cake', {
+            flags: 'i',
+            inputs: ['cake'],
+          }),
+          output('Rex says 3 lines', 'Three different lines. Join your pieces.', THREE_LINES, {
+            flags: 'm',
+            inputs: ['cake'],
+          }),
+          notes(4, 'Each main line: # and your words.'),
+        ],
+        true,
+        [
+          bug(
+            'Two pieces, joined. Tap the line that breaks.',
+            'name = "Rex"\nprint(name + " ate " + food)\nfood = input("Food? ")',
+            1,
+            'food comes later. Move it up.'
+          ),
+          choose(
+            'Which note explains it best?',
+            ['# print Yum plus food', '# Rex thanks me for food', '# a print'],
+            1,
+            'A good note says why, in your words.',
+            'print("Yum, " + food)'
+          ),
+        ],
+        'Ask Bolt for 2 or 3 pieces: name, mood, food. Join them. Explain each.',
+        undefined,
+        { starter: 'name = "Rex"\n' }
+      ),
+      task(
+        'pet-trick',
+        'choice',
+        'make',
+        'Pet trick',
+        'Rex does your trick.',
+        'Help me ask Bolt for one pet trick.',
+        [runs, ask(), notes()],
+        false,
+        [
+          pairUp('Tap an ask. Tap what Bolt builds.', [
+            ['# ask: Rex jumps 3 times', 'Says jump jump jump'],
+            ['# ask: Rex spins once', 'Says spin once'],
+            ['# ask: Rex does a trick', 'Says trick. That is all.'],
+          ]),
+        ],
+        'Pick one trick for Rex. Ask Bolt for just that.',
+        undefined,
+        { starter: 'name = "Rex"\n' }
+      ),
+      task(
+        'hw-my-pet',
+        'bonus',
+        'make',
+        'My own pet',
+        'Your own pet runs.',
+        'Help me make my own pet with Bolt.',
+        [
+          output('Your pet says 3 lines', 'Print 3 different lines.', THREE_LINES, {
+            flags: 'm',
+          }),
+          ask(),
+          notes(3, 'Each main line: # and your words.'),
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'hw-better-ask',
+        'bonus',
+        'change',
+        'Better request',
+        'The weak ask got better.',
+        'Help me make a weak ask better.',
+        [
+          output(
+            'The pet says more than stuff',
+            'Ask for exact words.',
+            '^(?!stuff\\s*$)\\S+[ \\t]+\\S',
+            { flags: 'm' }
+          ),
+          ask(),
+          notes(),
+        ],
+        false,
+        [
+          bug(
+            'A friend wrote this ask. Tap the weak line.',
+            '# ask: my pet does stuff\nprint("stuff")',
+            0,
+            'Say the words, not stuff.'
+          ),
+        ],
+        'Write a better ask. Say the name, the words and a number.',
+        undefined,
+        { starter: 'print("stuff")\n' }
+      ),
+      // Lives in bugzap.py, so it works on its anchor, not its own program.
+      task(
+        'hw-bug-pet',
+        'bonus',
+        'bugzap',
+        'Fix the crash',
+        'bugzap.py finishes.',
+        'Help me fix the crash in bugzap.py. Bolt built exactly what a bad ask said.',
+        [
+          output('bugzap.py says done', 'Read the last line of the red text.', 'done', {
+            flags: 'i',
+            file: 'bugzap.py',
+          }),
+          notes(1, 'Add a # note on your fix.'),
         ]
       ),
     ],

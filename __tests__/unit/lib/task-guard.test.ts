@@ -1,4 +1,6 @@
 import { LESSONS } from '@/lib/lessons'
+import { ASK_LINE, NOTE } from '@/lib/py-lessons'
+import { JUDGED, judged } from '@/lib/task-checks'
 import {
   buildTaskNudge,
   detectConfusion,
@@ -163,5 +165,30 @@ describe('detectConfusion', () => {
 
   it('does not treat "no" as confusion', () => {
     expect(detectConfusion('no')).toBe(false)
+  })
+})
+
+// Rule 4: a director task's notes and "# ask:" checks only prove the lines exist, so the
+// tutor is told to judge them. Tutor weeks keep their rubric word for word.
+describe('judged checks (director weeks only)', () => {
+  const lessonById = (id: number) => LESSONS.find((l) => l.id === id)!
+  const taskOf = (lessonId: number, id: string) =>
+    lessonById(lessonId).tasks.find((t) => t.id === id)!
+
+  it("leaves week 7's notes task exactly as before", () => {
+    const explain = taskOf(107, 'hw-explain-dex')
+    expect(explain.checks!.some((c) => judged(c))).toBe(false)
+    expect(buildTaskNudge(explain)).toContain('- You added 3 notes with #\n')
+    expect(buildTaskNudge(explain)).not.toContain(JUDGED)
+  })
+
+  it('checks week 8 notes on the server and leaves the ask to the tutor', () => {
+    for (const t of lessonById(108).tasks)
+      for (const c of t.checks!) {
+        if (c.kind !== 'sourceMatches') continue
+        if (c.pattern === ASK_LINE) expect(`${t.id}: ${judged(c)}`).toBe(`${t.id}: true`)
+        if (c.pattern === NOTE) expect(`${t.id}: ${c.ownWords}`).toBe(`${t.id}: true`)
+      }
+    expect(buildTaskNudge(taskOf(108, 'make-pet'))).toContain(`- You wrote # ask: (${JUDGED})`)
   })
 })

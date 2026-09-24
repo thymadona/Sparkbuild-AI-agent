@@ -10,7 +10,7 @@ import {
   taskPageId,
 } from '@/lib/board/tasks'
 import { describeScene, type SceneId } from '@/lib/board/scenes'
-import { isRuntimeCheck, runTaskChecks, type TaskCheck } from '@/lib/task-checks'
+import { isRuntimeCheck, JUDGED, judged, runTaskChecks, type TaskCheck } from '@/lib/task-checks'
 
 // `stale`: the source was edited after the run whose output is shown.
 export interface Program {
@@ -171,8 +171,11 @@ export function describeTaskState(
   const code = programs[0]?.source ?? ''
   for (const c of task.checks ?? []) {
     const v = outputVerdict(c, programs, entry)
-    const state =
-      v !== undefined
+    const state = judged(c)
+      ? runTaskChecks([c], code)[0].passed
+        ? JUDGED
+        : 'not met'
+      : v !== undefined
         ? v
           ? 'met (checked against the run)'
           : 'NOT met'

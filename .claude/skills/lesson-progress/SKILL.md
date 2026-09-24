@@ -35,12 +35,13 @@ prompt/tool side). Authoring a lesson (tasks, checks, templates, word budgets) i
 
 ## Checks
 
-| Kind                                               | Where it runs                                   | Passes when                                                                       |
-| -------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- |
-| `sourceMatches { pattern, flags?, min?, example }` | regex on the task's code, client **and server** | ≥ `min ?? 1` matches (`g` forced). Invalid regex → **passes** (fail open).        |
-| `outputContains { pattern, inputs?, file? }`       | Pyodide, client only                            | program exits ok and stdout matches                                               |
-| `worldContains { pattern, inputs?, file? }`        | Pyodide                                         | `worldTranscript(sparky events)` matches (`say:`, `color:`, `door:open`, `alarm`) |
-| `callReturns { call, equals, file? }`              | Pyodide                                         | file imported (not `__main__`), `repr(eval(call)) === equals`                     |
+| Kind                                                       | Where it runs                                   | Passes when                                                                                                                                             |
+| ---------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sourceMatches { pattern, flags?, min?, example }`         | regex on the task's code, client **and server** | ≥ `min ?? 1` matches (`g` forced). Invalid regex → **passes** (fail open).                                                                              |
+| `sourceMatches` + `ownWords` / `judged` (director lessons) | same                                            | `ownWords`: a `# ` note line counts only if it is not an echo of its code (`echoes`). `judged`: the tutor sees it as "found; you judge if it is clear". |
+| `outputContains { pattern, inputs?, file? }`               | Pyodide, client only                            | program exits ok and stdout matches                                                                                                                     |
+| `worldContains { pattern, inputs?, file? }`                | Pyodide                                         | `worldTranscript(sparky events)` matches (`say:`, `color:`, `door:open`, `alarm`)                                                                       |
+| `callReturns { call, equals, file? }`                      | Pyodide                                         | file imported (not `__main__`), `repr(eval(call)) === equals`                                                                                           |
 
 `runTaskChecks` treats a runtime check as `verdict ?? false`. `runPythonChecks` returns `true`
 for a bad pattern or when Pyodide is unavailable (fail open — a broken check must never
@@ -134,8 +135,11 @@ toggled via `POST admin/classes/[id]/lessons { lessonId, enabled }` — `classes
 - **Bolt's `helper` block is never evidence.** `taskPrograms`/`hasRun`/`pageCode` read only
   `code` nodes and their `output` nodes; a Bolt block keeps its run on itself, and a
   `code_run_result` naming it is a 400 (`runOps` refuses non-code nodes). Only the student's own
-  editor, run by them, can back `task_complete`. Open for 3b: code the student pastes from Bolt
-  into their editor does count (mission rule 4 decides how it is judged).
+  editor, run by them, can back `task_complete`. Code the student pastes from Bolt into their
+  editor does count, once they explain it (mission rule 4): in director lessons each task needs
+  `# ` notes in their own words (`sourceMatches` with `ownWords`, so `verifyTask` refuses a note
+  that only repeats its line) and core tasks a `# ask:` line (`judged`: the static floor only
+  finds it, Sparky decides if it is clear).
 - stdout is browser-reported because Node cannot run Python; the model is told to check it
   against the source and the static floor is the hard backstop.
 - `task_progress` and `lesson_progress.completed_task_ids` are written in one transaction:

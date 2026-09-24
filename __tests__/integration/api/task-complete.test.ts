@@ -497,3 +497,64 @@ describe("Bolt's block is never evidence", () => {
     expect(await progressOf(project.id)).toContain(task.id)
   })
 })
+
+// Mission rule 4 in Week 8: code counts only once the student explains it. The static
+// floor refuses code without the student's # notes and "# ask:" line, whoever wrote it.
+describe('Week 8: notes and the ask are evidence', () => {
+  const week8 = LESSONS.find((l) => l.id === 108)!
+  const makePet = week8.tasks.find((t) => t.id === 'make-pet')!
+  const PASTED = 'print("I am Rex")\nprint("Woof!")\n'
+  const NOTED = 'print("I am Rex")  # Rex says his name\nprint("Woof!")  # then he barks\n'
+  const ASKED = `# ask: a pet named Rex that says Woof\n${NOTED}`
+
+  const attempt = async (source: string) => {
+    const user = await makeUser()
+    mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
+    const b = board(source)
+    const project = await makeProject(user.id, {
+      lessonId: week8.id,
+      lessonVersion: 3,
+      files: { 'main.py': source },
+      board: { ...b, pages: [{ ...b.pages[0], id: taskPageId(makePet), title: makePet.chip }] },
+    })
+    await setLessonProgress(project.id, [], new Date().toISOString())
+    complete(makePet.id)
+    const events = await drain(await post(project.id, run(source, 'I am Rex\nWoof!\n')))
+    // A refusal goes back to the model as the tool result it sees on its retry.
+    const retry = JSON.stringify(mockCreate.mock.calls[1]?.[0].messages ?? [])
+    return { events, retry, progress: await progressOf(project.id) }
+  }
+
+  it('refuses pasted code that passes the behaviour checks but has no notes', async () => {
+    const { events, retry, progress } = await attempt(PASTED)
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: Write # ask: then your words.')
+    expect(progress).toEqual([])
+  })
+
+  it('refuses the same code with notes but no # ask: line', async () => {
+    const { events, retry, progress } = await attempt(NOTED)
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: Write # ask: then your words.')
+    expect(progress).toEqual([])
+  })
+
+  it('refuses notes that only repeat the code', async () => {
+    const echo = 'print("I am Rex")  # print I am Rex\nprint("Woof!")  # prints Woof\n'
+    const { events, retry } = await attempt(`# ask: a pet named Rex that says Woof\n${echo}`)
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: After a line: # and your words.')
+  })
+
+  it('refuses an ask with no notes', async () => {
+    const { events, retry } = await attempt(`# ask: a pet named Rex that says Woof\n${PASTED}`)
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: After a line: # and your words.')
+  })
+
+  it('completes with both the notes and the ask', async () => {
+    const { events, progress } = await attempt(ASKED)
+    expect(events.some((e) => e.type === 'task.complete')).toBe(true)
+    expect(progress).toEqual([makePet.id])
+  })
+})
