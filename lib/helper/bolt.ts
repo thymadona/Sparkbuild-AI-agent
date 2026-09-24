@@ -23,10 +23,30 @@ const unfence = (code: string) =>
     .replace(/\n?```\s*$/, '')
     .trimEnd()
 
+// A `#` outside any string literal: a full-line or inline comment. `print("#1")` is not one.
+export function hasComment(source: string): boolean {
+  let quote = '' // the open string's delimiter: ', ", ''' or """
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i]
+    if (quote) {
+      if (c === '\\') i++
+      else if (source.startsWith(quote, i)) {
+        i += quote.length - 1
+        quote = ''
+      } else if (c === '\n' && quote.length === 1) quote = '' // an unclosed one-line string
+    } else if (c === '#') return true
+    else if (c === '"' || c === "'") {
+      quote = source.startsWith(c.repeat(3), i) ? c.repeat(3) : c
+      i += quote.length - 1
+    }
+  }
+  return false
+}
+
 // One Bolt request: the model sees BOLT_PROMPT, the request and the student's code on
 // `pageId` (the block their editor shows), nothing else. Its write_code call becomes a
-// helper block; over MAX_HELPER_LINES goes back to it as an error, and runTurn re-asks
-// at most twice. No persistence: the route owns that.
+// helper block; over MAX_HELPER_LINES or a comment goes back to it as an error, and
+// runTurn re-asks at most twice. Every note in a director lesson must be the student's own. No persistence: the route owns that.
 export async function runBolt(opts: {
   board: BoardState
   pageId: string
@@ -52,6 +72,10 @@ export async function runBolt(opts: {
     if (tooBig)
       throw new Error(
         `Your code has ${lines} lines. The limit is ${MAX_HELPER_LINES}. Build only what was asked, in fewer lines.`
+      )
+    if (hasComment(source))
+      throw new Error(
+        'Your code has a comment. Write no comments at all: the student adds the notes.'
       )
     const op: BoardOp = {
       op: 'add',

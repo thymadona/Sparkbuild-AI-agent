@@ -230,6 +230,56 @@ describe('POST /api/projects/[id]/helper', () => {
     expect(rows[0].content).toMatch(/^Asked Bolt: make a game\nBolt wrote no code: /)
   })
 
+  it('sends a commented reply back, and takes the retry without comments', async () => {
+    const { project } = await setup()
+    writes('# a pet\nprint("pet")')
+    writes('print("pet")')
+
+    const body = await (await post(project.id, { request: 'make a pet', pageId: 't_dir-1' })).json()
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(mockCreate.mock.calls[1][0].messages)).toMatch(/has a comment/)
+    expect(body.op.node.source).toBe('print("pet")')
+  })
+
+  it('gives up on code that is still commented after 2 retries: no block, could not build', async () => {
+    const { project } = await setup()
+    writes(long) // too big first: the final caption is still the comment failure
+    writes('print("pet")  # says pet')
+    writes('print("#1")  # hi')
+
+    const body = await (await post(project.id, { request: 'make a pet', pageId: 't_dir-1' })).json()
+    expect(mockCreate).toHaveBeenCalledTimes(3)
+    expect(body.op).toBeNull()
+    expect(body.caption).toMatch(/could not build/)
+    const [row] = await db.select().from(projects).where(eq(projects.id, project.id))
+    expect(Object.values((row.board as BoardState).nodes).some((n) => n.type === 'helper')).toBe(
+      false
+    )
+  })
+
+  it.each([
+    'print("#1 pet")',
+    `print("I'm #1")`,
+    "print('it\\'s #1')",
+    'print("""line one\n# still a string""")',
+  ])('accepts a # inside a string: %s', async (code) => {
+    const { project } = await setup()
+    writes(code)
+
+    const body = await (await post(project.id, { request: 'make a pet', pageId: 't_dir-1' })).json()
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect(body.op.node.source).toBe(code)
+  })
+
+  it("treats a # after an escaped quote as a comment: 'it\\'s'  # note", async () => {
+    const { project } = await setup()
+    for (let i = 0; i < 3; i++) writes("print('it\\'s')  # note")
+
+    const body = await (await post(project.id, { request: 'make a pet', pageId: 't_dir-1' })).json()
+    expect(mockCreate).toHaveBeenCalledTimes(3)
+    expect(body.op).toBeNull()
+  })
+
   it('403s a tutor lesson and a project with no lesson', async () => {
     const user = await makeUser()
     mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: '' })

@@ -69,7 +69,7 @@ Each rule's rationale is in the skill named in parentheses.
 - **Bolt** (`lib/helper/`, `POST /api/projects/[id]/helper`) is a separate helper AI that writes
   code for the student. It answers only in `aiPolicy: 'director'` lessons (403 otherwise), writes
   at most 8 non-blank lines into its own read-only `helper` block (only the `'bolt'` actor may add
-  one), and never completes a task: its block and its runs are never evidence for
+  one), writes no comments (the server sends a commented reply back), and never completes a task: its block and its runs are never evidence for
   `task_complete`. Sparky still never writes the answer. (`ai-tutor`)
 - The lesson catalog (`lib/py-lessons.ts`) is read live: content edits (checks, prompts, steps,
   wording) reach every student immediately, old and new, and need no version bump. A shipped

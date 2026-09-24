@@ -128,4 +128,89 @@ describe('useBolt', () => {
     expect(say).toHaveBeenCalledWith('Whoa, too fast! Wait a moment and try again.')
     expect(send).not.toHaveBeenCalled()
   })
+  describe('holding Sparky while Bolt builds', () => {
+    const run = {
+      type: 'code_run_result',
+      nodeId: 'code_1',
+      source: 'x',
+      ok: true,
+      stdout: '',
+      stderr: '',
+    } as const
+    const stuck = { type: 'student_message', text: 'I am stuck' } as const
+
+    function held() {
+      const log: string[] = []
+      let answer: (body: object) => void = () => {}
+      const reply = new Promise((resolve) => {
+        answer = (body) => resolve({ ok: true, status: 200, json: async () => body })
+      })
+      global.fetch = jest.fn(() => reply) as never
+      const saveBoard = jest.fn(async (b: BoardState) => {
+        log.push(b.nodes.bolt_1 ? 'save with block' : 'save')
+      })
+      // A Sparky turn takes a moment; a second send during it would replace a queued one.
+      const send = jest.fn(async (e: { type: string }) => {
+        log.push(e.type)
+        await new Promise((r) => setTimeout(r, 5))
+      })
+      const hook = renderHook(() => {
+        const [state, dispatch] = useReducer(boardReducer, board)
+        const boardRef = useRef(state)
+        boardRef.current = state
+        return {
+          state,
+          ...useBolt({ projectId: 'p', dispatch, boardRef, saveBoard, send, say: jest.fn() }),
+        }
+      })
+      return { hook, log, send, answer: (body: object) => answer(body) }
+    }
+
+    it('holds a Run and "I am stuck" until the block is saved and helper_result is sent', async () => {
+      const { hook, log, send, answer } = held()
+      let asked: Promise<void> = Promise.resolve()
+      act(() => {
+        asked = hook.result.current.ask('make a pet', 't_dir-1')
+      })
+      act(() => {
+        hook.result.current.send(run)
+        hook.result.current.send(stuck)
+      })
+      expect(send).not.toHaveBeenCalled()
+
+      await act(async () => {
+        answer({ op: block, caption: 'It prints game.' })
+        await asked
+      })
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(3))
+      expect(log).toEqual([
+        'save',
+        'save with block',
+        'helper_result',
+        'code_run_result',
+        'student_message',
+      ])
+      // Bolt's block is still on the board after the held turns.
+      expect(hook.result.current.state.nodes.bolt_1).toMatchObject({ type: 'helper' })
+
+      // The build is over: the next event goes straight through.
+      act(() => hook.result.current.send(stuck))
+      expect(send).toHaveBeenCalledTimes(4)
+    })
+
+    it('sends held events at once when Bolt builds nothing', async () => {
+      const { hook, log, send, answer } = held()
+      let asked: Promise<void> = Promise.resolve()
+      act(() => {
+        asked = hook.result.current.ask('make a huge pet', 't_dir-1')
+      })
+      act(() => hook.result.current.send(run))
+      await act(async () => {
+        answer({ op: null, caption: 'I could not build that. Try asking again.' })
+        await asked
+      })
+      await waitFor(() => expect(send).toHaveBeenCalledTimes(1))
+      expect(log).toEqual(['save', 'code_run_result'])
+    })
+  })
 })

@@ -33,6 +33,7 @@ import type { MascotState } from './Mascot'
 import type { CodeActions } from './Nodes'
 import { useTutor } from './useTutor'
 import { useBolt } from './useBolt'
+import type { ClientEvent } from '@/lib/tutor/events'
 import { speak, speechSupported, stopSpeaking } from '@/lib/speech'
 
 // Long enough to read as a celebration, short enough not to feel like a wait.
@@ -83,7 +84,14 @@ export default function LiveBoard({
     (_taskId: string, ids: string[]) => progressRef.current.applyDone(ids),
     []
   )
-  const { captions, live, mascot, busy, send, say } = useTutor(
+  const {
+    captions,
+    live,
+    mascot,
+    busy,
+    send: tutorSend,
+    say,
+  } = useTutor(
     projectId,
     dispatch,
     lastCaption ? [lastCaption] : [],
@@ -91,8 +99,7 @@ export default function LiveBoard({
     undefined,
     onTaskDone
   )
-  const sendRef = useRef(send)
-  sendRef.current = send
+  const sendRef = useRef<(e: ClientEvent) => void>(() => {}) // set below, once Bolt's gate exists
   // Sparky's voice: reads each new caption (the instruction of a box that just opened, or feedback)
   // aloud. Off until the student turns it on; the choice is a per-browser convenience.
   const [canSpeak, setCanSpeak] = useState(false)
@@ -153,7 +160,10 @@ export default function LiveBoard({
     [projectId, files, entry, initialBoard]
   )
 
-  const bolt = useBolt({ projectId, dispatch, boardRef, saveBoard, send, say })
+  const bolt = useBolt({ projectId, dispatch, boardRef, saveBoard, send: tutorSend, say })
+  // Every Sparky-bound event goes through Bolt's gate: held while Bolt builds.
+  const send = bolt.send
+  sendRef.current = send
 
   // One page per task, and the page the student is looking at is the task they
   // are working on. The code a task is judged on is the code on its own page:
