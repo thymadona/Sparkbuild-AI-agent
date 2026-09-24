@@ -319,8 +319,18 @@ describe('POST /api/projects/[id]/turn', () => {
       await setLessonProgress(project.id, ['first-words', 'intro-3'], new Date().toISOString())
       modelSays('ok')
       await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
-      expect(systemPrompt()).not.toMatch(/Bolt|helper_event|bolt_exchange/)
+      expect(systemPrompt()).not.toMatch(/Bolt|helper_event|bolt_exchange|# ask:/)
       expect(mockCreate.mock.calls[0][0].tools).toEqual(toolsFor(true, true))
+    })
+
+    it('Week 8, a real director lesson, tells Sparky to read the notes and the ask first', async () => {
+      const week8 = LESSONS.find((l) => l.id === 108)!
+      expect(week8.aiPolicy).toBe('director')
+      const { project } = await start(week8.id, week8.tasks[0])
+      modelSays('ok')
+      await drain(await post(project.id, { type: 'student_message', text: 'hi' }))
+      expect(systemPrompt()).toContain('Code counts only once the student explains it')
+      expect(systemPrompt()).toContain('"# ask:" line')
     })
 
     it('marks helper rows as Bolt exchanges and never counts them as stuck turns', async () => {

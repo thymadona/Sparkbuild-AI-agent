@@ -3,7 +3,7 @@
 // Not part of CI (it needs the network and costs tokens).
 //   bun --env-file=.env run scripts/tutor-eval.ts
 import { deepseek, MODEL } from '@/lib/deepseek'
-import { LESSONS } from '@/lib/lessons'
+import { LESSONS, type Lesson } from '@/lib/lessons'
 import { runTurn, type Llm } from '@/lib/tutor/turn'
 import { toolsFor } from '@/lib/board/tools'
 import { summarize, type BoardState } from '@/lib/board/reducer'
@@ -13,11 +13,13 @@ import { buildTaskNudge } from '@/lib/task-guard'
 import { describeEvidence, describeTaskState, hasRun, taskPrograms } from '@/lib/task-evidence'
 import { taskCodeNodeId, taskPageId } from '@/lib/board/tasks'
 import { codeLines, MAX_HELPER_LINES } from '@/lib/board/schema'
-import { runBolt } from '@/lib/helper/bolt'
+import { hasComment, runBolt } from '@/lib/helper/bolt'
 
 const lesson = LESSONS[0]
+const week8 = LESSONS.find((l) => l.id === 108)!
 
 interface Scenario {
+  lesson?: Lesson
   second?: string
   name: string
   task: string
@@ -104,9 +106,47 @@ const SCENARIOS: Scenario[] = [
     event: run('Hi I am Ada\nI like cats\nNice to meet you\n'),
     complete: true,
   },
+  // Week 8 (director, rule 4): the static checks pass in every case but the one missing its
+  // ask, so Sparky must read the notes and the ask itself before it completes.
+  {
+    name: 'week 8: notes only repeat the code',
+    lesson: week8,
+    task: 'make-pet',
+    source:
+      '# ask: a pet named Rex that says Woof\nprint("I am Rex")  # print I am Rex\nprint("Woof!")  # print Woof\n',
+    event: run('I am Rex\nWoof!\n'),
+    complete: false,
+  },
+  {
+    name: 'week 8: no # ask: line',
+    lesson: week8,
+    task: 'make-pet',
+    source: 'print("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
+    event: run('I am Rex\nWoof!\n'),
+    complete: false,
+  },
+  {
+    name: 'week 8: unclear ask',
+    lesson: week8,
+    task: 'make-pet',
+    source:
+      '# ask: make it good\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
+    event: run('I am Rex\nWoof!\n'),
+    complete: false,
+  },
+  {
+    name: 'week 8: own notes and a clear ask',
+    lesson: week8,
+    task: 'make-pet',
+    source:
+      '# ask: a pet named Rex that says I am Rex, then Woof\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
+    event: run('I am Rex\nWoof!\n'),
+    complete: true,
+  },
 ]
 
 async function play(s: Scenario) {
+  const lesson = s.lesson ?? LESSONS[0]
   const task = lesson.tasks.find((t) => t.id === s.task)!
   const id = taskCodeNodeId(task)
   const page = taskPageId(task)
@@ -189,8 +229,8 @@ async function play(s: Scenario) {
   return { called, text }
 }
 
-// Bolt builds exactly what was asked, literally, in at most 8 lines.
-const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[] }[] = [
+// Bolt builds exactly what was asked, literally, in at most 8 lines, with no comments.
+const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[]; code?: string }[] = [
   // Vague on purpose: a literal, tiny program, not a guessed game.
   { request: 'make a game', never: [/input\(/, /\bwhile\b/, /\bfor\b/, /random/, /\bif\b/] },
   { request: 'print hello', never: [/input\(/, /\bfor\b/, /\bwhile\b/, /\bif\b/] },
@@ -199,10 +239,26 @@ const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[] }[] = [
     must: [/input\(/],
     never: [/\bwhile\b/, /\bfor\b/, /random/],
   },
+  // Rule 4: every note must be the student's, so Bolt writes none, even when asked to.
+  {
+    request: 'a pet named Rex that says Woof, with a comment on each line',
+    must: [/Woof/],
+    never: [/input\(/],
+  },
+  // The student's own "# ask:" line and notes are on the page; Bolt must not copy them.
+  {
+    request: 'a pet named Rex that says Woof',
+    code: '# ask: a pet named Rex that says Woof\nprint("pet")  # my pet\n',
+    must: [/Woof/],
+    never: [/input\(/],
+  },
 ]
 
 // A board on name-tag's page: the student's code, plus Bolt's block when given.
-function helperBoard(bolt?: { request: string; source: string }): BoardState {
+function helperBoard(
+  bolt?: { request: string; source: string },
+  source = 'name = "Ada"\nprint(name)\n'
+): BoardState {
   const task = lesson.tasks.find((t) => t.id === 'name-tag')!
   const id = taskCodeNodeId(task)
   const page = taskPageId(task)
@@ -217,7 +273,7 @@ function helperBoard(bolt?: { request: string; source: string }): BoardState {
         createdBy: 'student',
         type: 'code',
         language: 'python',
-        source: 'name = "Ada"\nprint(name)\n',
+        source,
         editable: true,
       },
       ...(bolt
@@ -236,12 +292,13 @@ function helperBoard(bolt?: { request: string; source: string }): BoardState {
 }
 
 async function playBolt(c: (typeof BOLT_CASES)[number]) {
-  const board = helperBoard()
+  const board = helperBoard(undefined, c.code)
   const { op, caption } = await runBolt({ board, pageId: board.pages[0].id, request: c.request })
   const code = op?.op === 'add' && op.node.type === 'helper' ? op.node.source : ''
   const problems = [
     !op && 'no block',
     codeLines(code) > MAX_HELPER_LINES && `${codeLines(code)} lines`,
+    hasComment(code) && 'has a comment',
     ...c.never.filter((re) => re.test(code)).map((re) => `has ${re}`),
     ...(c.must ?? []).filter((re) => !re.test(code)).map((re) => `lacks ${re}`),
   ].filter(Boolean)

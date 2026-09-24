@@ -32,7 +32,11 @@ const TASK_PAGE_RULE = `- The board has one page per lesson task. You cannot mak
 // Director lessons only, so the prompt for tutor lessons never changes.
 const BOLT_RULE = `- In this lesson the student can also ask Bolt, a separate helper robot, to write a small program. Bolt's code appears on the board as a "Bolt wrote this" [helper] block. Bolt's code is not the student's code and never counts for a task: only the code in the student's own editor, run by them, counts. Never write, fix or finish Bolt's code.
 - A <helper_event> means Bolt just answered the student. Ask them one short question about it, for example whether it does what they asked, and use no tools.
-- A <bolt_exchange> in the chat is something the student asked Bolt, not you. Do not answer it as if they said it to you.`
+- A <bolt_exchange> in the chat is something the student asked Bolt, not you. Do not answer it as if they said it to you.
+- Code counts only once the student explains it. Before task_complete, read their # notes and their "# ask:" line in the editor, and check both:
+  1. Each # note says in their own words what the line does for their program. A note that reads the code aloud does not count: print("Woof")  # print Woof explains nothing.
+  2. The "# ask:" line says exactly what they wanted: the words, the numbers, what goes in and what comes out. "make it good" or "do the thing" is not clear.
+  If either fails, do not call task_complete. Ask them about that one note or the ask instead.`
 
 export function lessonLayer(
   lesson: Lesson | null,
