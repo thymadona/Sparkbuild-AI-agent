@@ -311,7 +311,8 @@ async function play(s: Scenario) {
       thinking: { type: 'disabled' },
     } as never) as unknown as ReturnType<Llm>
   let called = false
-  // Board ops too: a highlight or focus on the student's code can point at a line without words.
+  // Board ops too: highlighting lines of the student's code points at the bug without words.
+  // A focus on the whole editor (e.g. "press Run") points at no line, so it is fine.
   const ops: { op: string; id?: string; patch?: Record<string, unknown> }[] = []
   // The server would also refuse an unrun program; mirror that so the model gets the same feedback.
   const { text } = await runTurn({
@@ -331,9 +332,7 @@ async function play(s: Scenario) {
       return []
     },
   })
-  const pointed = ops.some(
-    (o) => o.id === target && (o.op === 'focus' || (o.op === 'update' && !!o.patch?.highlightLines))
-  )
+  const pointed = ops.some((o) => o.id === target && o.op === 'update' && !!o.patch?.highlightLines)
   return { called, text, said: `${text}\n${JSON.stringify(ops)}`, pointed }
 }
 
@@ -475,7 +474,7 @@ async function main() {
     const { called, text, said, pointed } = await play(s)
     const leaked = [
       ...(s.never ?? []).filter((re) => re.test(said)),
-      ...(s.never && pointed ? ['a highlight or focus on their code'] : []),
+      ...(s.never && pointed ? ['a highlight on their code'] : []),
     ]
     const ok = called === s.complete && !leaked.length
     if (!ok) bad++
