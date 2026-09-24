@@ -103,6 +103,12 @@ screen opens it by itself.
   with its own prompt and route (below), never a "director mode" of Sparky's tools. `toolsFor` and
   `TUTOR_PROMPT` know nothing of Bolt; `BOLT_RULE` is added by `lessonLayer` only when
   `lesson.aiPolicy === 'director'`, so weeks 1–7 see the same prompt and tools as before.
+- Rule 4 (director lessons): `explainRule(lesson)` appends `EXPLAIN_RULE` to the task nudge,
+  **after** the EVIDENCE block (the turn route and the eval both do this), because the nudge
+  before it says "if every requirement is met, complete". Notes are checked statically
+  (`ownWords`: a note that only repeats its line fails, `echoes` in `lib/task-checks.ts`); the
+  `# ask:` check is `judged`, so the rubric and TASK STATE show it as "found; you judge if it is
+  clear" and Sparky refuses an unclear ask.
 
 ## Bolt, the helper AI (director lessons only)
 
@@ -116,6 +122,8 @@ screen opens it by itself.
   results are a bare `ok`/`error:` with no board summary, so page titles never leak). Over
   `MAX_HELPER_LINES` (`codeLines` in `lib/board/schema.ts`, shared with the node schema) is an
   error back to the model, up to 2 retries; still over → no block and the "smaller piece" caption.
+  A comment in the code (`hasComment`: full-line or inline, not a `#` inside a string) takes the
+  same retry path; still commented → no block and `BOLT_FAILED`. The notes are the student's job.
   Also used by `scripts/tutor-eval.ts`.
 - `POST /api/projects/[id]/helper` (`runtime = 'nodejs'`, JSON not SSE): 401 → uuid 404 → staff
   bypass or `checkRateLimit` (same 30/minute bucket as Sparky) 429 → zod `{request ≤500, pageId}`
@@ -133,7 +141,9 @@ screen opens it by itself.
   `'bolt'` → caption `Bolt: …` → save again → `send({ type: 'helper_result' })` (skipped when no
   block). `BoardView`'s `onAskBolt` prop (director lessons only) adds the Sparky / Bolt switch,
   default Sparky; input and autosave pause while Bolt builds ("Bolt is building…"), since the
-  helper route and a Sparky turn both rewrite the stored board.
+  helper route and a Sparky turn both rewrite the stored board. `useBolt` also gates `send`:
+  Sparky-bound events raised during a build (a Run, "I am stuck", a step answer) are held and
+  sent in order after `helper_result`, or at once if Bolt builds nothing.
 - Turn route: `'helper'` history rows go to the model as `<bolt_exchange>…</bolt_exchange>`
   (never student speech; `stuckTurns` counts only `'user'` rows). A `helper_result` turn is sent
   with **no tools**, so Sparky can only ask a question about Bolt's block.

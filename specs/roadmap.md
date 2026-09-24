@@ -17,7 +17,7 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 - [x] **3a. AI helper (Bolt).** A separate AI helper, Bolt, that writes a small read-only code block
       from the student's request, only in `aiPolicy: 'director'` lessons. Sparky stays a tutor who
       never writes code. Nothing reaches students until 3b ships.
-- [ ] **3b. Week 8 — Ask AI Well.** The student writes a clear request, and Bolt builds only what was
+- [x] **3b. Week 8 — Ask AI Well.** The student writes a clear request, and Bolt builds only what was
       described. Must decide how pasted Bolt code is judged (mission rule 4) before it ships.
 - [ ] **4. Delete dead code.** `components/SparkyWorld.tsx`, `components/PythonRunner.tsx`, the
       `/board` fixture demo, and stale comments about `/api/generate`, "build mode" and "Mark done".
