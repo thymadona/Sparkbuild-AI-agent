@@ -37,7 +37,7 @@ const BOLT_RULE = `- In this lesson the student can also ask Bolt, a separate he
 // Director lessons only (mission rule 4). It goes last in the system prompt, after the
 // EVIDENCE, because the task notes before it say "if every requirement is met, complete".
 const EXPLAIN_RULE = `EXPLAIN RULE (this lesson):
-- Code counts only once the student explains it. Their # notes are checked for you: a note that only repeats its line of code does not count. Do not ask for deeper notes.
+- Code counts only once the student explains it. Their # notes are checked for you: a note that only repeats its line of code does not count. When the notes requirement is met, the notes are good enough: never say they repeat the code, and never ask for deeper notes.
 - When the requirements list a "# ask:" line, the check only finds it; you judge it. It must say exactly what they wanted: the words or numbers to print, what goes in and what comes out. If the same ask could fit almost any program, like "make it cool", it is not clear: do not call task_complete, quote the ask and ask them to make it exact. If it is clear and every requirement is met, call task_complete.`
 
 export const explainRule = (lesson: Lesson | null) =>
