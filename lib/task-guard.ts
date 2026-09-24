@@ -1,5 +1,6 @@
 import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 import { JUDGED, judged } from './task-checks'
+import { BUG_LINE } from './py-lessons'
 
 // Task types the student must complete themselves. Core tasks are the lesson.
 // 'choice' and 'bonus' are optional extras and never gate the tutor.
@@ -80,8 +81,22 @@ export function detectConfusion(prompt: string, prevUserMessage?: string): boole
   return prevUserMessage != null && now === normalize(prevUserMessage)
 }
 
+// A review task (week 9 on) asks for a "# bug:" line: finding the planted bug is the task,
+// so escalating must never mean showing the fixed line. It makes the test smaller instead.
+const reviews = (task: LessonTask) =>
+  (task.checks ?? []).some((c) => c.kind === 'sourceMatches' && c.pattern === BUG_LINE)
+
 function escalationBlock(task: LessonTask, tier: EscalationTier): string {
   if (tier === 1) return ''
+
+  if (reviews(task))
+    return [
+      `ESCALATION LEVEL ${tier}: your last hints did not work. Say it a completely different way.`,
+      tier === 2
+        ? 'Ask what the code should give for one new input or value, then ask them to try it.'
+        : 'Make the test tiny: name one exact value to try, ask them to print the result, and ask if it matches the rule.',
+      'Never show or name the broken line, the mistake or the fix. At most two short sentences.',
+    ].join('\n')
 
   if (tier === 2) {
     return [

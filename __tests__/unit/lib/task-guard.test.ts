@@ -1,5 +1,5 @@
 import { LESSONS } from '@/lib/lessons'
-import { ASK_LINE, NOTE } from '@/lib/py-lessons'
+import { ASK_LINE, BUG_LINE, NOTE } from '@/lib/py-lessons'
 import { JUDGED, judged } from '@/lib/task-checks'
 import {
   buildTaskNudge,
@@ -106,6 +106,18 @@ describe('buildTaskNudge', () => {
     expect(buildTaskNudge(task, 3)).toMatch(/do not bring up another task/i)
   })
 
+  // Week 9: finding the planted bug is the task, so no tier may show the fixed line.
+  it('escalates a review task by shrinking the test, never by showing the line', () => {
+    const feed = LESSONS.find((l) => l.id === 109)!.tasks.find((t) => t.id === 'feed-rex')!
+    for (const tier of [2, 3] as const) {
+      const nudge = buildTaskNudge(feed, tier)
+      expect(nudge).toContain(`ESCALATION LEVEL ${tier}`)
+      expect(nudge).not.toMatch(/exactly as it should read|fill-in-the-blank/)
+      expect(nudge).toMatch(/Never show or name the broken line/)
+    }
+    expect(buildTaskNudge(week3.tasks[0], 3)).toMatch(/exactly as it should read/)
+  })
+
   it('lists the requirements as a rubric and makes the tutor the judge', () => {
     const task = week3.tasks.find((t) => t.id === 'times-table')!
     const nudge = buildTaskNudge(task)
@@ -190,5 +202,14 @@ describe('judged checks (director weeks only)', () => {
         if (c.pattern === NOTE) expect(`${t.id}: ${c.ownWords}`).toBe(`${t.id}: true`)
       }
     expect(buildTaskNudge(taskOf(108, 'make-pet'))).toContain(`- You wrote # ask: (${JUDGED})`)
+  })
+
+  it('leaves the week 9 # bug: line to the tutor, with notes checked on the server', () => {
+    for (const t of lessonById(109).tasks) {
+      const bugs = t.checks!.filter((c) => c.kind === 'sourceMatches' && c.pattern === BUG_LINE)
+      expect(`${t.id}: ${bugs.length}`).toBe(`${t.id}: 1`)
+      expect(`${t.id}: ${judged(bugs[0])}`).toBe(`${t.id}: true`)
+    }
+    expect(buildTaskNudge(taskOf(109, 'feed-rex'))).toContain(`- You wrote # bug: (${JUDGED})`)
   })
 })
