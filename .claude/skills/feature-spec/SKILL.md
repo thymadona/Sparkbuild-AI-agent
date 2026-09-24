@@ -30,19 +30,31 @@ Read `specs/mission.md`, `specs/tech-stack.md` and the roadmap phase. Then read 
 from the `CLAUDE.md` skills index that matches the area (for a new lesson week, use `task-design`
 first, then `lesson-authoring`). Read only enough code to ask good questions.
 
-## 3. Interview (AskUserQuestion, small rounds)
+## 3. Interview (AskUserQuestion, one round)
+
+The user's time is the slowest part of the process, so ask everything in one AskUserQuestion
+call (up to 4 questions). Each option list puts your recommendation first:
 
 1. **Scope:** what is in and what is explicitly out. Keep the phase as written, or split it?
-2. **Key decisions and trade-offs:** give 2–4 options each, with your recommendation first.
-3. **Conflicts:** name anything that clashes with the mission, a locked stack item or a
-   `CLAUDE.md` hard rule, and let the user decide.
+2. **Key decisions and trade-offs:** 2–4 options each.
+3. **Conflicts:** anything that clashes with the mission, a locked stack item or a `CLAUDE.md`
+   hard rule.
 4. **Validation:** how both of you will know it is done.
 
-After each round, show a short draft of what you heard.
+Before the questions, show one short list headed "I'll assume these unless you object": the
+technical choices the code already settles (where a check lives, which test file, a helper
+name). Product and teaching decisions are never on that list; they are questions. Ask a second
+round only if an answer opens a new decision.
 
 ## 4. Write the spec
 
 Branch `<type>/<slug>` (as in `issue-workflow`). `<NN>` is the roadmap number, zero-padded.
+The spec and the code share this branch and one PR; the spec is not merged on its own.
+
+Reading budget: `plan.md`, `requirements.md` and `validation.md` together stay under about 150
+lines. The user reads every line before any code exists, so cut anything the implementer can
+find in the code. `sketch.md` is outside the budget, because it holds the teaching decisions
+the user must review.
 
 Each fact lives in exactly one file. The implementer reads the code itself, so the spec holds
 what the code can't tell it: intent, decisions and how to know it is done.
@@ -71,15 +83,17 @@ what the code can't tell it: intent, decisions and how to know it is done.
 
 ## 5. Stop for review
 
-Show the three files. Apply changes the user asks for through all three, so they stay in sync.
-Then commit the spec by itself: `docs(specs): <slug> feature spec`.
+Show the files. Apply changes the user asks for through all of them, so they stay in sync.
+Then commit the spec as the first commit on the feature branch:
+`docs(specs): <slug> feature spec`. Don't open a PR for it; it ships with the code.
 
 ## After this skill
 
-Implementation is a separate step in a fresh context: "implement specs/features/<NN>-<slug>".
+Implementation is a separate step in a fresh context, on the same branch:
+"implement specs/features/<NN>-<slug>".
 Read `requirements.md` and `validation.md`, then work through the groups in order. Keep going
 through `continue` groups. Stop at each `stop for review` gate: the sketch approval, a
 migration, auth or progress code, and any tutor prompt change (run the tutor eval by hand first,
 because it is not in CI). Check each group against its part of `validation.md` before moving
-on. If review changes a decision, fix the spec as well as the code. The PR that finishes the
-phase ticks its roadmap box.
+on. If review changes a decision, fix the spec as well as the code. One PR carries the spec
+and the code, and it ticks the phase's roadmap box.
