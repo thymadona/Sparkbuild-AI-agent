@@ -48,7 +48,8 @@ Do the groups in order, one review each. Read `requirements.md` first. Skills: `
 
 - `lib/tutor/prompt.ts` `BOLT_RULE`: before `task_complete`, read the student's `#` notes and
   `# ask:` line. If a note only repeats the code, is not in the student's own words, or the ask
-  is unclear, ask about it and do not complete.
+  is unclear, ask about it and do not complete. (As built: notes that repeat the code are refused
+  statically, and Sparky judges the ask. See requirements, rule 4.)
 - `__tests__/integration/api/task-complete.test.ts` (lesson 108):
   - pasted code that passes the behaviour checks but has no notes is refused by the static floor;
   - the same code with notes but no `# ask:` line is refused;

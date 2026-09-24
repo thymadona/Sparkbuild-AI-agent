@@ -93,7 +93,8 @@ const guess = (min = 1): TaskCheck =>
   )
 
 // Director tasks (mission rule 4): the request stays in the editor as "# ask: …", and
-// the student explains the code in their own # notes. Sparky judges both before completing.
+// the student explains the code in their own # notes. A note that only repeats its line
+// does not count (`echoes`); Sparky judges whether the ask is clear.
 const ask = (min = 1): TaskCheck => ({
   ...match(
     min > 1 ? `You wrote ${min} asks` : 'You wrote # ask:',
@@ -112,7 +113,7 @@ const notes = (min = 1, hint = 'After a line: # and your words.'): TaskCheck => 
     'print(1)  # one',
     min
   ),
-  judged: true,
+  ownWords: true,
 })
 
 function task(

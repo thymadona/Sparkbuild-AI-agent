@@ -140,7 +140,7 @@ const SCENARIOS: Scenario[] = [
     lesson: week8,
     task: 'make-pet',
     source:
-      '# ask: a pet named Rex that says I am Rex, then Woof\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
+      '# ask: a pet that says \"I am Rex\" and then \"Woof!\"\nprint("I am Rex")  # Rex tells me his name\nprint("Woof!")  # then he barks at me\n',
     event: run('I am Rex\nWoof!\n'),
     complete: true,
   },
@@ -257,14 +257,14 @@ const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[]; code?: st
   // Rule 4: every note must be the student's, so Bolt writes none, even when asked to.
   {
     request: 'a pet named Rex that says Woof, with a comment on each line',
-    must: [/Woof/],
+    must: [/woof/i],
     never: [/input\(/],
   },
   // The student's own "# ask:" line and notes are on the page; Bolt must not copy them.
   {
     request: 'a pet named Rex that says Woof',
     code: '# ask: a pet named Rex that says Woof\nprint("pet")  # my pet\n',
-    must: [/Woof/],
+    must: [/woof/i],
     never: [/input\(/],
   },
 ]

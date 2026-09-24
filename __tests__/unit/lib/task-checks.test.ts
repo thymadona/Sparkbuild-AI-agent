@@ -1,4 +1,4 @@
-import { allChecksPassed, firstUnmetCheck, runTaskChecks } from '@/lib/task-checks'
+import { allChecksPassed, echoes, firstUnmetCheck, runTaskChecks } from '@/lib/task-checks'
 import type { TaskCheck } from '@/lib/task-checks'
 
 // Language-neutral behaviour of the check evaluator. Coverage of the real
@@ -39,5 +39,34 @@ describe('runTaskChecks', () => {
 
   it('fails open on an invalid pattern instead of blocking the student', () => {
     expect(runTaskChecks([match('([unclosed')], program)[0].passed).toBe(true)
+  })
+})
+
+// Director weeks: a # note counts only if it says something its line of code does not.
+describe("notes in the student's own words (ownWords)", () => {
+  const NOTE = '^[ \\t]*[^#\\s][^#\\n]*[ \\t]#[ \\t]*\\S'
+  const notes = (min: number) => ({ ...match(NOTE, min), ownWords: true }) as TaskCheck
+
+  it('treats a note that reads its line aloud as an echo', () => {
+    expect(echoes('x = 5  # x is 5')).toBe(true)
+    expect(echoes('print("Woof!")  # prints Woof')).toBe(true)
+    expect(echoes('print("I am Rex")  # print I am Rex')).toBe(true)
+    expect(echoes('print("hi")  # print it')).toBe(true)
+  })
+
+  it("counts a short note in the student's own words", () => {
+    expect(echoes('x = 5  # my score starts at 5')).toBe(false)
+    expect(echoes('print("Woof!")  # then he barks at me')).toBe(false)
+    expect(echoes('print("Rex is " + str(age))  # age is a number, so I turn it into text')).toBe(
+      false
+    )
+  })
+
+  it('counts only the notes that are not echoes', () => {
+    const code = 'name = "Rex"  # name is Rex\nprint(name)  # my pet says hi\n'
+    expect(runTaskChecks([notes(1)], code)[0].passed).toBe(true)
+    expect(runTaskChecks([notes(2)], code)[0].passed).toBe(false)
+    // Without ownWords, the echo still counts: tutor weeks are unchanged.
+    expect(runTaskChecks([match(NOTE, 2)], code)[0].passed).toBe(true)
   })
 })

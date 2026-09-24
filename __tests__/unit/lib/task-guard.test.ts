@@ -182,11 +182,13 @@ describe('judged checks (director weeks only)', () => {
     expect(buildTaskNudge(explain)).not.toContain(JUDGED)
   })
 
-  it('marks every week 8 notes and ask check for the tutor to judge', () => {
+  it('checks week 8 notes on the server and leaves the ask to the tutor', () => {
     for (const t of lessonById(108).tasks)
-      for (const c of t.checks!)
-        if (c.kind === 'sourceMatches' && [NOTE, ASK_LINE].includes(c.pattern))
-          expect(`${t.id}: ${judged(c)}`).toBe(`${t.id}: true`)
+      for (const c of t.checks!) {
+        if (c.kind !== 'sourceMatches') continue
+        if (c.pattern === ASK_LINE) expect(`${t.id}: ${judged(c)}`).toBe(`${t.id}: true`)
+        if (c.pattern === NOTE) expect(`${t.id}: ${c.ownWords}`).toBe(`${t.id}: true`)
+      }
     expect(buildTaskNudge(taskOf(108, 'make-pet'))).toContain(`- You wrote # ask: (${JUDGED})`)
   })
 })

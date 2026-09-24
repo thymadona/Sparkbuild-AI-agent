@@ -50,6 +50,13 @@ Also in scope:
   `task_complete`. A note that only repeats the code, or is not in the student's own words, gets
   a request to explain it, not a completion. This uses existing checks plus one line in the
   director-only `BOLT_RULE`.
+  - _Changed in group 4 (owner, 2026-09-24):_ the "repeats the code" test is static, not
+    Sparky's. With thinking off, the model could not tell a simple own-words note from one that
+    reads the code aloud: good work completed 1 time in 8. Week 8's notes checks set `ownWords`,
+    so a note whose words (bar a few filler words) all appear in its line does not count
+    (`echoes` in `lib/task-checks.ts`). Sparky judges only whether the `# ask:` is clear, through
+    a director-only `EXPLAIN_RULE` placed after the EVIDENCE, and the ask check reads to it as
+    "found; you judge if it is clear" (`judged`). Weeks 1–7 see no change.
 - **Bolt never writes comments, and the server enforces it.** Rule 4 depends on every note being
   the student's own. A comment in Bolt's code is treated like the 8-line cap: an error back to
   the model, up to 2 retries, then no block and the "could not build" caption. A `#` inside a

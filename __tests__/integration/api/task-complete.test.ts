@@ -539,6 +539,13 @@ describe('Week 8: notes and the ask are evidence', () => {
     expect(progress).toEqual([])
   })
 
+  it('refuses notes that only repeat the code', async () => {
+    const echo = 'print("I am Rex")  # print I am Rex\nprint("Woof!")  # prints Woof\n'
+    const { events, retry } = await attempt(`# ask: a pet named Rex that says Woof\n${echo}`)
+    expect(events.some((e) => e.type === 'task.complete')).toBe(false)
+    expect(retry).toContain('not finished: After a line: # and your words.')
+  })
+
   it('refuses an ask with no notes', async () => {
     const { events, retry } = await attempt(`# ask: a pet named Rex that says Woof\n${PASTED}`)
     expect(events.some((e) => e.type === 'task.complete')).toBe(false)

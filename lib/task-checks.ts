@@ -21,8 +21,10 @@ export type TaskCheck =
       // lets tests prove the check is actually reachable.
       example?: string
       // The match only proves it is there; the tutor judges whether it is good
-      // (director weeks: the student's # notes and "# ask:" line, mission rule 4).
+      // (director weeks: the student's "# ask:" line, mission rule 4).
       judged?: boolean
+      // Count only lines whose # note says something beyond the code (see `echoes`).
+      ownWords?: boolean
     }
   | RuntimeCheck
 
@@ -67,7 +69,7 @@ export type RuntimeCheck =
 
 // A check the tutor must judge beyond "it is there", and what it is told about it.
 export const judged = (check: TaskCheck) => check.kind === 'sourceMatches' && !!check.judged
-export const JUDGED = 'found, but you judge it: see the explain rule at the end.'
+export const JUDGED = 'found; you judge if it is clear (see the explain rule at the end).'
 
 export function isRuntimeCheck(check: TaskCheck): check is RuntimeCheck {
   return (
@@ -75,6 +77,24 @@ export function isRuntimeCheck(check: TaskCheck): check is RuntimeCheck {
     check.kind === 'callReturns' ||
     check.kind === 'worldContains'
   )
+}
+
+// Words a note may add without explaining anything: "# prints Woof" still reads the code aloud.
+const FILLER = new Set(
+  'a an the is are it its to and then of this that print prints printed say says said show shows set sets make makes line'.split(
+    ' '
+  )
+)
+const words = (text: string) => text.toLowerCase().match(/[a-z0-9]+/g) ?? []
+
+// A "code  # note" line whose note only repeats the code: every word of the note, apart
+// from FILLER, is already in the code (x = 5  # x is 5). The code part of a NOTE line has
+// no #, so the first # starts the note.
+export function echoes(line: string): boolean {
+  const at = line.indexOf('#')
+  if (at < 0) return false
+  const code = new Set(words(line.slice(0, at)))
+  return words(line.slice(at + 1)).every((w) => FILLER.has(w) || code.has(w))
 }
 
 export interface TaskCheckResult {
@@ -92,6 +112,11 @@ function evaluate(check: TaskCheck, code: string, verdict: boolean | undefined):
     case 'sourceMatches': {
       const flags = check.flags?.includes('g') ? check.flags : `${check.flags ?? ''}g`
       try {
+        if (check.ownWords) {
+          const one = new RegExp(check.pattern, flags.replace('g', ''))
+          const own = code.split('\n').filter((line) => one.test(line) && !echoes(line))
+          return own.length >= (check.min ?? 1)
+        }
         const matches = code.match(new RegExp(check.pattern, flags))
         return (matches?.length ?? 0) >= (check.min ?? 1)
       } catch {
