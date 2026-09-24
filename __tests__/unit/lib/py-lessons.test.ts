@@ -209,6 +209,22 @@ describe.each(
     ).toEqual([])
   })
 
+  // Every starter already lacks notes and an ask, so prove the behaviour checks bite on their own.
+  it('fails every task on its starter even without the notes and ask checks', async () => {
+    const passing: string[] = []
+    for (const t of lesson.tasks) {
+      const checks = t.checks!.filter(
+        (c) => !(c.kind === 'sourceMatches' && [NOTE, ASK_LINE].includes(c.pattern))
+      )
+      const files = filesFor(lesson, false, t)
+      const entry = lesson.starterFile!
+      const verdicts = await runPythonChecks(checks, files, entry, nodeExec)
+      if (allChecksPassed(runTaskChecks(checks, files[taskFile(t, entry)], verdicts)))
+        passing.push(t.id)
+    }
+    expect(passing).toEqual([])
+  })
+
   it('has no starter comment besides a # TASK: anchor', () => {
     const starters = [
       ...lesson.tasks.flatMap((t) => (t.starter !== undefined ? [t.starter] : [])),
@@ -245,7 +261,7 @@ describe.each(PY_LESSONS.map((l) => [l.title, l] as const))('%s: real Python', (
   it('lets a student satisfy every source check with its documented example', () => {
     const failing: string[] = []
     for (const t of lesson.tasks) {
-      const starter = filesFor(lesson, false, t)[lesson.starterFile!]
+      const starter = filesFor(lesson, false, t)[taskFile(t, lesson.starterFile!)]
       for (const c of t.checks!) {
         if (c.kind !== 'sourceMatches') continue
         const edited = `${starter}\n${Array.from({ length: c.min ?? 1 }, () => c.example).join('\n')}`

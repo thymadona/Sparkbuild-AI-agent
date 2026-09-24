@@ -269,3 +269,23 @@ checks = bugzap.py says done (output, file bugzap.py, "Read the last line of the
 4. **Starters show Bolt's literal result** (`print("pet")` on task 1, `print("stuff")` on task 8),
    with no comment. The `go` line or step says where each came from.
 5. **Note counts**: 1 · 2 · 2 · 3 · 4 on the core tasks, 1 · 3 · 1 · 1 on tasks 6–9.
+
+## Check copy as built (group 3)
+
+The `notes` and `# ask:` checks add 29 labels and hints to one week, so the first draft read at 430
+words and broke the course's total reading budget (`lesson-copy.test.ts`: under 300 words per
+lesson in total). The check copy was shortened to fit (374 words; 2391 of 2400 for the course):
+
+| Check                | Label                                        | Hint                                     |
+| -------------------- | -------------------------------------------- | ---------------------------------------- |
+| `ask()` × 1          | You wrote # ask:                             | Write # ask: then your words.            |
+| `ask()` × 2          | You wrote 2 asks                             | One # ask: per piece.                    |
+| `notes()` × 1        | You added a # note                           | After a line: # and your words.          |
+| `notes()` × 2        | You added 2 # notes                          | After each line: # and your words.       |
+| `notes()` × 3 / 4    | You added 3 # notes / You added 4 # notes    | Each main line: # and your words.        |
+| task 9 `notes()`     | You added a # note                           | Add a # note on your fix.                |
+| food (tasks 3, 5)    | Rex says your food                           | Print the food you typed.                |
+| 3 lines (tasks 4, 5) | Rex says 3 lines (still 3 _different_ lines) | Three different lines. Join your pieces. |
+
+The course is now 9 words under its budget, so the next copy edit that adds words anywhere will
+fail CI. Weeks 9–12 raise the budget by 300 words each.
