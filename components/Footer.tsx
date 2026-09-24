@@ -14,6 +14,9 @@ export default function Footer() {
           <Link href="/lessons" className="hover:text-fg-primary transition-colors">
             Lessons
           </Link>
+          <Link href="/privacy" className="hover:text-fg-primary transition-colors">
+            Privacy
+          </Link>
         </nav>
         <p className="text-xs text-fg-muted">Built for students. Powered by AI.</p>
       </div>
