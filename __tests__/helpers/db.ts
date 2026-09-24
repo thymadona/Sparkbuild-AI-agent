@@ -94,7 +94,7 @@ export async function makeStudentProfile(
 }
 
 /** Upserts a project's lesson_progress row with an explicit `updatedAt` —
- *  the escalation counter in /api/generate reads this timestamp as "when the
+ *  the turn route's escalation counter reads this timestamp as "when the
  *  current task became open", so tests need it deterministic, not defaultNow(). */
 export async function setLessonProgress(
   projectId: string,

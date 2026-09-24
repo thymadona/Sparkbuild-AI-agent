@@ -143,9 +143,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       programs = taskPrograms(board, openTask, entry, run)
       evidence = describeEvidence(programs)
 
-      // Turns spent on this task: messages since it became open. Same reading of
-      // lesson_progress.updated_at as /api/generate, valid while the
-      // lesson-progress PUT route stays the sole writer of that column.
+      // Turns spent on this task: messages since it became open, read from
+      // lesson_progress.updated_at. recordTaskDone and the lesson-progress PUT
+      // both bump it, so the count restarts with each task.
       const since = progress?.updated_at ? Date.parse(progress.updated_at) : NaN
       const onTask = Number.isNaN(since)
         ? history

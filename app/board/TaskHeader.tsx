@@ -24,10 +24,10 @@ interface Props {
 
 /**
  * The page's main heading: which task this page is for, and exactly what is
- * still missing. The board has no task list and no Mark done button — a page
- * is a task, and it completes itself when every line below is ticked. That
- * makes the checklist the only thing telling a student why they have not moved
- * on yet, so it is never hidden.
+ * still missing. The board has no task list and no finish button — a page is
+ * a task, and Sparky completes it once the work passes. That makes the
+ * checklist the only thing telling a student why they have not moved on yet,
+ * so it is never hidden.
  */
 export default function TaskHeader({
   task,

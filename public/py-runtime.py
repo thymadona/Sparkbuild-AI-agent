@@ -4,9 +4,9 @@ import sys, traceback, runpy, types, json, io
 
 # --- Sparky's world -------------------------------------------------------
 # Every printed line is something Sparky says, and `import sparky` gives the
-# student a few more things to do. All of it is recorded as events; the page
-# replays them on a canvas (components/SparkyWorld.tsx) and lessons can check
-# them (`worldContains`). Registered before _BASE_MODULES so it survives _reset.
+# student a few more things to do. All of it is recorded as events, which feed
+# the lessons' `worldContains` checks. Registered before _BASE_MODULES so it
+# survives _reset.
 _events = []
 
 
