@@ -4,7 +4,7 @@ Small phases, done in order. Each phase gets a feature spec in `specs/features/<
 (start one with the `feature-spec` skill). Tick the box in the PR that finishes the phase.
 Replan between phases: is the next item still the right one?
 
-**Done:** course weeks 1–6 (Wake the Robot → Bug Hunt), the tutor board with Sparky, and the
+**Done:** course weeks 1–8 (Wake the Robot → Robot Pet), Bolt the helper AI, the tutor board with Sparky, and the
 staff back office (classes, lesson unlocking, Telegram invoices).
 
 Order: finish the Course track first, then the Dashboard track. Revisit at each replan.
