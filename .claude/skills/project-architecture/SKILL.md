@@ -46,9 +46,9 @@ pair. Keep `'use client'` explicit; never move server-only logic (or `db`) into 
 
 - `next.config.js`: `turbopack.root = __dirname` (an unrelated parent `package-lock.json` made
   Turbopack pick the wrong root) **and** `headers()`: COOP/COEP `credentialless` on
-  `/editor/:path*` and `/py-worker.js`, cache headers on `/templates/:path*.html`. Both patterns
-  predate the board: `/board` is **not** cross-origin isolated, so `usePythonRunner().isolated`
-  is false there and Python `input()` cannot use SharedArrayBuffer; templates are `.py` now.
+  `/editor/:path*` and `/py-worker.js`. The `/editor` pattern predates the board: `/board` is
+  **not** cross-origin isolated, so `usePythonRunner().isolated` is false there, the worker gets
+  no SharedArrayBuffer, and Python `input()` raises `EOFError` (LiveBoard passes no `inputs`).
 - `proxy.ts` `config.matcher` excludes `_next/static`, `_next/image`, `favicon.ico`, `api/auth`.
   Proxy runs on Node; setting the `runtime` option throws.
 - `eslint.config.mjs`: `@next/eslint-plugin-next` recommended + core-web-vitals +
@@ -97,14 +97,14 @@ touch the DB run with `bun --env-file=.env` (see `package.json`) — keep `.env`
 
 ## History you will see traces of
 
-The HTML/CSS/JS course (catalog v1–2), its srcdoc preview editor at `/editor/[id]`,
-`/api/generate` with build mode, free-form projects, `/explore` gallery, Supabase Auth and
-PostgREST access were removed in Aug–Sep 2026. Comments, `PROGRESS.md` (a phase-by-phase build
-log of the board) and `drizzle/_archive/` still mention them. Do not reintroduce them; `Lesson.aiPolicy`
-'director' (weeks 7–12) is declared but unbuilt.
+The HTML/CSS/JS course (catalog v1–2), its srcdoc preview editor at `/editor/[id]`, the old
+AI generate route, free-form projects, `/explore` gallery, Supabase Auth and PostgREST access
+were removed in Aug–Sep 2026. Shipped migrations (`drizzle/0009`, `drizzle/_archive/`) still
+mention them. Do not reintroduce them. `Lesson.aiPolicy` 'director' is built: director lessons
+and Bolt ship from week 8. `specs/` is the project memory now; git history keeps the old board
+build log.
 
 ## Known dead code
 
-`app/board/page.tsx` + `BoardClient.tsx` + `fixture.ts` (scripted demo at `/board`);
-`components/SparkyWorld.tsx`, `components/PythonRunner.tsx` (no caller); `lib/tutor/prompt.ts`
-`PAGE_RULE` mentions "a different screen"; `types/index.ts` has no `app_settings` interface.
+`lib/tutor/prompt.ts` `PAGE_RULE` mentions "a different screen"; `types/index.ts` has no
+`app_settings` interface. Bare `/board` is a plain 404 (only `/board/[id]` exists).

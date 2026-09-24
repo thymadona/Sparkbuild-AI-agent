@@ -19,7 +19,7 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
       never writes code. Nothing reaches students until 3b ships.
 - [x] **3b. Week 8 — Ask AI Well.** The student writes a clear request, and Bolt builds only what was
       described. Must decide how pasted Bolt code is judged (mission rule 4) before it ships.
-- [ ] **4. Delete dead code.** `components/SparkyWorld.tsx`, `components/PythonRunner.tsx`, the
+- [x] **4. Delete dead code.** `components/SparkyWorld.tsx`, `components/PythonRunner.tsx`, the
       `/board` fixture demo, and stale comments about `/api/generate`, "build mode" and "Mark done".
 - [ ] **5. Week 9 — AI Makes Mistakes.** The AI writes buggy code, and the student reviews and fixes it.
 - [ ] **6. Cross-origin isolation for `/board`.** Fix the `next.config.js` headers so Python

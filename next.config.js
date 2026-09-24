@@ -11,8 +11,9 @@ const nextConfig = {
       {
         // Cross-origin isolation gives Python's input() a SharedArrayBuffer.
         // `credentialless` (not require-corp) keeps third-party images such
-        // as Google avatars loading; browsers without it fall back to an
-        // up-front inputs box in PythonRunner.
+        // as Google avatars loading. Without isolation (any browser on /board
+        // today) the worker has no SharedArrayBuffer, so input() only reads the
+        // `inputs` passed to run() up front and gets end-of-file after that.
         source: '/editor/:path*',
         headers: [
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
@@ -26,21 +27,6 @@ const nextConfig = {
         // "loads" forever.
         source: '/py-worker.js',
         headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' }],
-      },
-      {
-        // Lesson templates are re-fetched on every "Start lesson" click.
-        // Short max-age + background revalidation avoids re-fetching within
-        // a session without risking long-lived staleness — nothing
-        // guarantees a template file's content never changes without its
-        // filename changing (that guarantee only covers lib/lessons.ts
-        // catalog versions, not the HTML files themselves).
-        source: '/templates/:path*.html',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=300, stale-while-revalidate=86400',
-          },
-        ],
       },
     ]
   },

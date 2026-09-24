@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { SparkyEvent } from '@/lib/sparky-events'
 import type { TraceStep } from '@/lib/board/schema'
 
 export interface OutputChunk {
@@ -17,15 +16,10 @@ const INPUT_BYTES = 1024
 
 // Runs Python in /py-worker.js. input() blocks the worker on a
 // SharedArrayBuffer, which needs cross-origin isolation (see next.config.js).
-// Without it (e.g. Safari) the caller passes `inputs` up front instead.
+// Without it input() only reads the `inputs` passed to run(), then gets EOF.
 export function usePythonRunner() {
   const [output, setOutput] = useState<OutputChunk[]>([])
   const [status, setStatus] = useState<RunStatus>('loading')
-  // What the last finished run did in Sparky's world; runId bumps each time so it replays.
-  const [world, setWorld] = useState<{ events: SparkyEvent[]; runId: number }>({
-    events: [],
-    runId: 0,
-  })
   const workerRef = useRef<Worker | null>(null)
   const sabRef = useRef<SharedArrayBuffer | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -53,7 +47,6 @@ export function usePythonRunner() {
       } else if (data.type === 'done') {
         clearTimeout(timerRef.current)
         setStatus('idle')
-        setWorld((w) => ({ events: data.events ?? [], runId: w.runId + 1 }))
       } else if (data.type === 'traced') {
         tracesRef.current.get(data.id)?.(data.steps)
         tracesRef.current.delete(data.id)
@@ -151,5 +144,5 @@ export function usePythonRunner() {
     [append, armTimeout]
   )
 
-  return { output, status, run, trace, stop, sendInput, isolated, world }
+  return { output, status, run, trace, stop, sendInput, isolated }
 }

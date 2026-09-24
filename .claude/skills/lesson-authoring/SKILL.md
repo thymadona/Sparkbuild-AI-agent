@@ -160,5 +160,5 @@ core 10 · choice 15 · bonus 20 · boss 40. Details in `xp-and-streak`.
 ## Gotchas
 
 - Comments in `py-lessons.ts` describe weeks 8–12 as `director` weeks; only week 8 exists so far.
-- `scene` is set on every lesson but no board node draws the world yet (`components/SparkyWorld.tsx` has no caller).
+- `scene` is set on every lesson but no board node draws the world yet; it has no renderer.
 - `app/lessons/[id]/LessonDetailClient.tsx` strips a `Task N — ` prefix that no chip has.

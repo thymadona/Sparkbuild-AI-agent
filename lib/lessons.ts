@@ -1,9 +1,9 @@
 import type { TaskCheck } from './task-checks'
 import { PY_LESSONS } from './py-lessons'
 
-// 'core' tasks are the lesson itself; they hold back build mode, so the AI
-// cannot do the assignment for the student. 'choice' and 'bonus' are optional
-// extras and never block it.
+// 'core' tasks are the lesson itself: the first open one is the task Sparky works
+// on, and the only one task_complete may finish. 'choice' and 'bonus' are
+// optional extras and never block it.
 export type LessonTaskType = 'core' | 'choice' | 'bonus'
 
 // Projects pin the catalog version they were created on. Only the Python
@@ -131,7 +131,7 @@ export function getLessonForProject(lessonId: number, lessonVersion: number | nu
 // ids as plain strings, and a board node's anchor is baked in at creation time
 // (app/board/LiveBoard.tsx). Renaming or removing a shipped id/anchor without
 // registering it here makes an already-completed task look undone again
-// (re-locks build mode, drops XP/a badge) — caught by py-lessons.test.ts
+// (locks the tasks after it again, drops XP/a badge) — caught by py-lessons.test.ts
 // against __tests__/fixtures/frozen-task-ids.json. Append-only, one hop.
 export const TASK_ID_ALIASES: Record<string, string> = {}
 

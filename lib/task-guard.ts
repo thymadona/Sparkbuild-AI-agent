@@ -2,15 +2,13 @@ import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 import { JUDGED, judged } from './task-checks'
 
 // Task types the student must complete themselves. Core tasks are the lesson.
-// 'choice' and 'bonus' are optional extras and never block build mode.
+// 'choice' and 'bonus' are optional extras and never gate the tutor.
 const GATED_TYPES: LessonTask['type'][] = ['core']
 
 /**
- * Keeps the lesson the student's work rather than the AI's.
- *
- * While a gated task is still open, build mode is withheld for that project: the
- * tutor may point and explain, but it may not write the file. Once the gated
- * tasks are done, build mode returns, so creative and bonus work is unrestricted.
+ * The first open core task, in catalog order: the one Sparky works on with the
+ * student, and the only one `task_complete` may finish. Null once every core
+ * task is done.
  *
  * Gating on recorded progress rather than on live checks is deliberate —
  * runtime checks only run in the student's browser, and progress is

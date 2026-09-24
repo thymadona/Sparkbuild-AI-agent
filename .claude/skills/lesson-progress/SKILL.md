@@ -23,7 +23,6 @@ prompt/tool side). Authoring a lesson (tasks, checks, templates, word budgets) i
 | `lib/task-progress.ts`                                                  | `recordTaskDone(projectId, userId, taskId, { reason, programs })` — **the only writer that grows `lesson_progress`**; one transaction with the `task_progress` audit row; idempotent; invalidates the cache; `recordActivity`.                                  |
 | `lib/task-guard.ts`                                                     | `pendingCoreTask(lesson, done)` (first unfinished `core`), `isTaskLocked(tasks, index, doneSet)`, `CONCEPT_PHASE_NUDGE`, plus the tutor nudge helpers.                                                                                                          |
 | `lib/board/tasks.ts`                                                    | `taskPageId`, `taskCodeNodeId`, `taskFile`, `taskStarter`, `awaitingEditor(board, task, pageId)` (concept steps still showing → task code is `''`, `task_complete` withheld).                                                                                   |
-| `lib/lesson-project.ts`                                                 | `getLessonProject(projectId, userId)` — owner-scoped project + resolved lesson. **No live caller** since the complete route went (dead file).                                                                                                                   |
 | `lib/lesson-files.ts`, `lib/lessons/templates.ts`                       | `lessonFiles(lesson)` builds a new project's files server-side from `TEMPLATES` (`templateFor(key)`); nothing the client sends is used.                                                                                                                         |
 | `lib/starter-file.ts`                                                   | `entryFileFor(lesson, _files)` → `lesson.starterFile ?? 'main.py'` (second arg unused).                                                                                                                                                                         |
 | `lib/lesson-availability.ts`                                            | `getEnabledLessonIdsForUser(userId) → Set<number>` — `class_members(role='student') ⋈ class_enabled_lessons`, cached 60s, DB error → empty set.                                                                                                                 |
@@ -52,8 +51,8 @@ reported run's stdout; `worldContains`/`callReturns` are left to the tutor's jud
 
 - `isTaskLocked`: core locked while an earlier core is unfinished; choice/bonus locked while
   _any_ core is unfinished, but never against each other.
-- `pendingCoreTask` gates the tutor on `['core']` in catalog order — choice/bonus never withhold
-  build mode.
+- `pendingCoreTask` gates the tutor on `['core']` in catalog order: the first open core task is
+  the one Sparky works on and the only one `task_complete` may finish. Choice/bonus never gate it.
 - `awaitingEditor`: while a task's concept steps are still showing there is no editor, the
   task's code is `''` (never the `boardCode` fallback) and `task_complete` is withheld.
 - Optional tasks (`choice`/`bonus`) are skippable on the board so they can't wall off anything.
@@ -150,8 +149,6 @@ toggled via `POST admin/classes/[id]/lessons { lessonId, enabled }` — `classes
 
 ## Gotchas / stale comments
 
-- `turn/route.ts` mentions `/api/generate` (gone) and "build mode"; `lib/lesson-project.ts` has no caller.
-- `lesson-progress/route.ts` has a private copy of `getLessonProject` instead of importing `lib/lesson-project.ts`.
 - `app/lessons/[id]/LessonDetailClient.tsx` strips a `Task N — ` prefix no chip has.
 
 ## Tests

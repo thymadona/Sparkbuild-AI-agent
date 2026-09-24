@@ -116,11 +116,9 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 ## Known issues (pre-existing; not yours)
 
 - `bun run lint` reports one `no-page-custom-font` warning in `app/layout.tsx`.
-- `next.config.js` headers still target `/editor/*` and `/templates/*.html`; `/board` is not
-  cross-origin isolated, so Python `input()` uses the fallback path there.
+- `next.config.js` isolation headers still target `/editor/*`; `/board` is not cross-origin
+  isolated, so Python `input()` there shows no answer box and raises `EOFError` (phase 6).
 - `types/index.ts` has no interface for `app_settings`.
-- `components/SparkyWorld.tsx`, `components/PythonRunner.tsx` and the `/board` fixture demo have
-  no live caller. Comments still mention `/api/generate`, "build mode" and "Mark done".
 
 <!-- BEGIN:nextjs-agent-rules -->
 
