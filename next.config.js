@@ -10,23 +10,23 @@ const nextConfig = {
     return [
       {
         // Cross-origin isolation gives Python's input() a SharedArrayBuffer.
-        // `credentialless` (not require-corp) keeps third-party images such
-        // as Google avatars loading. Without isolation (any browser on /board
-        // today) the worker has no SharedArrayBuffer, so input() only reads the
-        // `inputs` passed to run() up front and gets end-of-file after that.
-        source: '/editor/:path*',
+        // `require-corp`, not `credentialless`: Safari (every iPad browser)
+        // ignores `credentialless`. So anything the board loads from another
+        // site must send CORP or CORS headers (jsDelivr and Google Fonts do).
+        // The headers only apply on a full page load, so entering and leaving
+        // the board never use client-side navigation (lib/open-board.ts).
+        source: '/board/:path*',
         headers: [
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
         ],
       },
       {
         // A dedicated worker takes its COEP from its own script response, so
-        // /py-worker.js needs the same policy as the isolated editor page that
-        // spawns it — otherwise the browser refuses to start it and Python
-        // "loads" forever.
+        // /py-worker.js needs the same policy as the board that spawns it —
+        // otherwise the browser refuses to start it.
         source: '/py-worker.js',
-        headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' }],
+        headers: [{ key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' }],
       },
     ]
   },

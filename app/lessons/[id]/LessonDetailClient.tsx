@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Lesson } from '@/lib/lessons'
+import { openBoard } from '@/lib/open-board'
 
 interface Props {
   lesson: Lesson
@@ -15,7 +16,7 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
 
   async function startLesson() {
     if (existingProjectId) {
-      router.push(`/board/${existingProjectId}`)
+      openBoard(existingProjectId)
       return
     }
 
@@ -32,7 +33,7 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
 
       if (!res.ok) throw new Error('Failed to create project')
       const project = await res.json()
-      router.push(`/board/${project.id}`)
+      openBoard(project.id)
     } catch {
       setLoading(false)
     }

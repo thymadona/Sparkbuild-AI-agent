@@ -40,7 +40,12 @@ self.onmessage = async ({ data }) => {
   py.setStderr(send('err'))
   py.setStdin({
     stdin: () => {
-      if (!sab) return queue.length ? queue.shift() : undefined
+      if (!sab) {
+        if (queue.length) return queue.shift()
+        // A run on a page without cross-origin isolation: input() can't wait for an answer.
+        if (data.type === 'run') self.postMessage({ type: 'noinput' })
+        return undefined
+      }
       const flag = new Int32Array(sab, 0, 1)
       Atomics.store(flag, 0, 0)
       self.postMessage({ type: 'input' })

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { BoardState } from '@/lib/board/reducer'
-import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -191,13 +190,14 @@ export default function BoardView({
     <div className="board-root h-dvh overflow-hidden bg-[#f1e6d0] px-0 py-3 md:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-[#2b2118]">
       <div className="flex h-full gap-3">
         <nav aria-label="Pages" className="hidden w-14 flex-col gap-2 overflow-y-auto pt-2 md:flex">
-          <Link
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- leaving the isolated board needs a full page load (next.config.js) */}
+          <a
             href="/lessons"
             aria-label="Back to roadmap"
             className="flex min-h-11 items-center justify-center rounded-xl bg-[#2b2118] text-[#faf6ee] hover:bg-[#3b2a1c]"
           >
             <ArrowLeft className="h-5 w-5" />
-          </Link>
+          </a>
           {board.pages.map((p, i) => (
             <PageButton
               key={p.id}
@@ -213,13 +213,14 @@ export default function BoardView({
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl bg-[#fffdf8] shadow-md">
           <div className="flex shrink-0 items-center gap-2 border-b border-[#e4d9c5] px-3 py-2 md:hidden">
-            <Link
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full page load, as above */}
+            <a
               href="/lessons"
               aria-label="Back to roadmap"
               className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#2b2118] text-[#faf6ee] hover:bg-[#3b2a1c]"
             >
               <ArrowLeft className="h-5 w-5" />
-            </Link>
+            </a>
             <div className="flex flex-1 gap-2 overflow-x-auto">
               {board.pages.map((p, i) => (
                 <PageButton

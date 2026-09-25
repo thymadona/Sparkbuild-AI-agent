@@ -85,6 +85,10 @@ Each rule's rationale is in the skill named in parentheses.
   new table needs an `export *` in `lib/db/schema.ts` and an `enable row level security` line.
   `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. Latest
   migration: `0012` (`messages.role` gains `'helper'`, Bolt's exchanges). (`database`)
+- `/board` is cross-origin isolated (`next.config.js`), which only takes effect on a full page
+  load: go into or out of the board with `openBoard()` or a plain `<a>`, never `router.push` or
+  `<Link>`. Anything the board loads from another site must send CORP or CORS headers.
+  (`project-architecture`)
 - Next 16: `params` is a `Promise` — await it. `.tsx` tests start with
   `/** @jest-environment jsdom */`. Read `node_modules/next/dist/docs/` before assuming an API.
 
@@ -116,8 +120,6 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 ## Known issues (pre-existing; not yours)
 
 - `bun run lint` reports one `no-page-custom-font` warning in `app/layout.tsx`.
-- `next.config.js` isolation headers still target `/editor/*`; `/board` is not cross-origin
-  isolated, so Python `input()` there shows no answer box and raises `EOFError` (phase 6).
 - `types/index.ts` has no interface for `app_settings`.
 
 <!-- BEGIN:nextjs-agent-rules -->
