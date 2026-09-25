@@ -116,6 +116,9 @@ export interface Lesson {
   // Director lessons from week 10: Bolt answers only once the page's code holds a plan
   // (# goal:, # step: and # done: lines), and Sparky judges the plan.
   planFirst?: boolean
+  // Director lessons from week 11: each core task builds one # step: of one program with
+  // Bolt, and Sparky asks the student why one of Bolt's lines is there before completing.
+  stepByStep?: boolean
   tasks: LessonTask[]
 }
 

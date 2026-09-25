@@ -19,6 +19,7 @@ const lesson = LESSONS[0]
 const week8 = LESSONS.find((l) => l.id === 108)!
 const week9 = LESSONS.find((l) => l.id === 109)!
 const week10 = LESSONS.find((l) => l.id === 110)!
+const week11 = LESSONS.find((l) => l.id === 111)!
 
 interface Scenario {
   lesson?: Lesson
@@ -33,6 +34,10 @@ interface Scenario {
   tier?: EscalationTier
   // Sparky's reply must match none of these (e.g. it must not name the planted bug's fix).
   never?: RegExp[]
+  // The student already ran this exact code and saw this (a chat reply after a run).
+  ranStdout?: string
+  // Earlier turns, before the event (e.g. Sparky's "why" question).
+  history?: { role: 'assistant' | 'user'; content: string }[]
 }
 const run =
   (stdout: string) =>
@@ -73,6 +78,21 @@ const INVITES =
 const INVITED = 'Tom, come to my party!\nAna, come to my party!\nSam, come to my party!\n'
 const SONG_PLAN =
   '# goal: Rex sings a party song\n# done: I see la la la\n# ask: print la la la on one line\n'
+
+// Week 11: the show plan and the code of each step, as the chain carries them.
+const SHOW_PLAN =
+  '# goal: Rex runs a quiz and tells your score\n# step: say hi to the player by name\n# step: ask one question and say if right\n# step: keep a score\n# step: ask 3 questions and show the score\n# done: I answer 3 questions and see Score: 3\n'
+const SHOW_HI =
+  '# ask: say hi to the player by name\nname = input("Your name? ")  # Rex asks who plays\nprint("Hi " + name + "! Welcome to Rex\'s show")  # Rex says hi\n'
+const SHOW_QUESTION =
+  'answer = input("2 + 2? ")  # Rex asks a sum\nif answer == "4":  # 4 is the right answer\n    print("Right!")  # Rex cheers\n'
+const SHOW_SCORE = `${SHOW_PLAN}${SHOW_HI}# ask: ask 2 + 2 and say Right! for 4\n# ask: keep a score, add 1 for a right answer, show Score\nscore = 0  # start at zero\n${SHOW_QUESTION}    score = score + 1  # one more point\nprint("Score:", score)  # show the points\n`
+const SCORED = "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\nScore: 1\n"
+const SHOW_FINAL = `${SHOW_PLAN}${SHOW_HI}# ask: ask 2 + 2 and say Right! for 4\n# ask: keep a score, add 1 for a right answer, show Score\n# ask: ask 2 + 2, 3 x 3 and 10 - 4, add 1 for each right, show Score\nquiz = {"2 + 2? ": "4", "3 x 3? ": "9", "10 - 4? ": "6"}  # questions and answers\nscore = 0  # start at zero\nfor q in quiz:  # each question\n    if input(q) == quiz[q]:  # a right answer?\n        print("Right!")  # Rex cheers\n        score = score + 1  # one more point\nprint("Score:", score)  # show the points\n`
+const WHY = [
+  { role: 'user' as const, content: 'I ran it and it shows Score: 1.' },
+  { role: 'assistant' as const, content: 'Nice, Score: 1! Why does score start at 0?' },
+]
 
 const SCENARIOS: Scenario[] = [
   {
@@ -335,6 +355,63 @@ const SCENARIOS: Scenario[] = [
     complete: false,
     never: [/bolt (is|seems|looks) (broken|stuck)/i, /yes[^.]*broken/i, ...PLAN_NEVER],
   },
+  // Week 11 (step by step, rules 2 and 4): each case passes every static check, so only
+  // Sparky can refuse a too-big ask, hold task_complete for its "why" question, or match
+  // "# done:" to the boss run.
+  {
+    name: 'week 11: one ask for the whole show',
+    lesson: week11,
+    task: 'show-question',
+    source: `${SHOW_PLAN}${SHOW_HI}# ask: build the whole quiz show with 3 questions and a score\n${SHOW_QUESTION}`,
+    event: run("Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n"),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 11: step works, why not asked yet',
+    lesson: week11,
+    task: 'show-score',
+    source: SHOW_SCORE,
+    event: run(SCORED),
+    complete: false,
+    never: [/start(s)? (at )?(0|zero) (so|because)/i, ...PLAN_NEVER],
+  },
+  {
+    name: 'week 11: why answered idk',
+    lesson: week11,
+    task: 'show-score',
+    source: SHOW_SCORE,
+    ranStdout: SCORED,
+    history: WHY,
+    event: say('idk'),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  // The run shows Score: 1, not "# done:" (Score: 3): fine before the boss.
+  {
+    name: 'week 11: why answered in own words',
+    lesson: week11,
+    task: 'show-score',
+    source: SHOW_SCORE,
+    ranStdout: SCORED,
+    history: WHY,
+    event: say('so its empty at the start and it only goes up when you get it right'),
+    complete: true,
+  },
+  {
+    name: 'week 11: boss run does not show # done:',
+    lesson: week11,
+    task: 'show-final',
+    source: SHOW_FINAL,
+    history: [
+      { role: 'assistant', content: 'Why does score = 0 go before the loop?' },
+      { role: 'user', content: 'so it does not go back to 0 for every question' },
+    ],
+    event: run(
+      "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 6\n10 - 4? 6\nRight!\nScore: 2\n"
+    ),
+    complete: false,
+  },
 ]
 
 async function play(s: Scenario) {
@@ -343,6 +420,7 @@ async function play(s: Scenario) {
   const id = taskCodeNodeId(task)
   const page = taskPageId(task)
   const two = s.second !== undefined
+  const out = two || s.ranStdout !== undefined
   const code = (i: string, source: string, file?: string) => ({
     id: i,
     parentId: null,
@@ -354,12 +432,18 @@ async function play(s: Scenario) {
     file,
   })
   const board = {
-    pages: [{ id: page, title: task.chip, nodeIds: two ? [id, `out_${id}`, `${id}_2`] : [id] }],
+    pages: [
+      {
+        id: page,
+        title: task.chip,
+        nodeIds: two ? [id, `out_${id}`, `${id}_2`] : out ? [id, `out_${id}`] : [id],
+      },
+    ],
     activePageId: page,
     focusId: null,
     nodes: {
       [id]: code(id, s.source, s.file),
-      ...(two
+      ...(out
         ? {
             [`out_${id}`]: {
               id: `out_${id}`,
@@ -367,7 +451,7 @@ async function play(s: Scenario) {
               createdBy: 'system',
               type: 'output',
               forNodeId: id,
-              stdout: 'hello Moral\n',
+              stdout: s.ranStdout ?? 'hello Moral\n',
               stderr: '',
               ok: true,
               ran: s.source,
@@ -417,6 +501,7 @@ async function play(s: Scenario) {
     },
     messages: [
       { role: 'system', content: system },
+      ...(s.history ?? []),
       { role: 'user', content: event.content },
     ],
     onTaskComplete: async () => {
@@ -459,6 +544,13 @@ const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[]; code?: st
     code: '# ask: a pet named Rex that says Woof\nprint("pet")  # my pet\n',
     must: [/woof/i],
     never: [/input\(/],
+  },
+  // Week 11: a long page (steps 1–3 done); Bolt builds only step 4, in 8 lines or fewer.
+  {
+    request: 'ask 2 + 2, 3 x 3 and 10 - 4, add 1 for each right, show Score',
+    code: SHOW_SCORE,
+    must: [/input\(/, /score/i],
+    never: [],
   },
 ]
 

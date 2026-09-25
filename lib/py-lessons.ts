@@ -3614,4 +3614,264 @@ export const PY_LESSONS: Lesson[] = [
       ),
     ],
   },
+  {
+    id: 111,
+    title: "Week #11 — Rex's Game Show",
+    description: "Build Rex's quiz show, one step at a time.",
+    templateFile: 'py/w11.py',
+    starterFile: 'main.py',
+    extraFiles: { 'bugzap.py': 'py/w11-bugzap.py' },
+    scene: 'robot',
+    aiPolicy: 'director',
+    planFirst: true,
+    stepByStep: true,
+    badge: 'Show Builder',
+    // The four show tasks are one program: task 1 plans the whole show and each core task
+    // builds one # step: of it with Bolt, starting from the last task's finished code. Each
+    // step needs a new # ask:, so ask(n) grows along the chain.
+    tasks: [
+      task(
+        'show-plan',
+        'core',
+        'direct',
+        'Plan the game show',
+        'Your plan is ready. Rex says hi.',
+        'Project plan, then step 1 by Bolt: greet the typed name. Ask why about one Bolt line.',
+        [
+          output('Rex says your name', 'Type a name when it asks.', 'Mia', { inputs: ['Mia'] }),
+          goal(),
+          planSteps(4),
+          doneCheck(),
+          ask(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          learn('A big job is small steps.', [
+            { code: '# goal: Rex runs a quiz show', note: 'Too big for one ask.' },
+            { code: '# step: say hi by name', note: 'Step 1 is small.' },
+            { code: '# ask: say hi by name', note: 'Ask Bolt for one step.' },
+          ]),
+          order('Put the show steps in order.', [
+            '# step: say hi by name',
+            '# step: ask one question',
+            '# step: keep a score',
+            '# step: ask 3 questions',
+          ]),
+        ],
+        'Plan the whole show. Then ask Bolt for step 1.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'show-question',
+        'core',
+        'direct',
+        'Step 2: one question',
+        'Rex asks 2 + 2 and says Right.',
+        'Step 2 by Bolt: ask "2 + 2? ", print Right! for 4. The new # ask: is this step only. Ask why about one Bolt line.',
+        [
+          output('Rex says Right for 4', 'Type 4 when Rex asks.', 'right', {
+            flags: 'i',
+            inputs: ['Mia', '4'],
+          }),
+          ask(2),
+          notes(2, 'After each line: # and your words.'),
+        ],
+        false,
+        [
+          choose(
+            'Which ask is one step?',
+            ['build the whole quiz show', 'ask one sum, say if right', 'make it fun'],
+            1,
+            'One step, so Bolt keeps it small.'
+          ),
+          walk(
+            'Watch it run. The answer is 4.',
+            'answer = "4"\nif answer == "4":\n    print("Right!")\nprint("Next question")',
+            [
+              { line: 1, vars: {}, note: 'Say you typed 4.' },
+              { line: 2, vars: { answer: "'4'" }, note: '"4" matches, so it goes on.' },
+              { line: 3, vars: { answer: "'4'" }, note: 'So Rex says Right!' },
+              { line: 4, vars: { answer: "'4'" }, out: 'Right!', note: 'Then the next question.' },
+            ]
+          ),
+        ],
+        'Ask Bolt for step 2 only. Copy it in.',
+        undefined,
+        { from: 'show-plan', starter: '' }
+      ),
+      task(
+        'show-score',
+        'core',
+        'direct',
+        'Step 3: keep score',
+        'A right answer shows Score: 1.',
+        'Step 3 by Bolt: score starts at 0, +1 when right, print Score. The new # ask: is this step only. Ask why about one Bolt line.',
+        [
+          output('It shows Score: 1', 'Type 4. Then look for Score.', 'score\\W*1', {
+            flags: 'i',
+            inputs: ['Mia', '4'],
+          }),
+          ask(3),
+          notes(3, 'After each line: # and your words.'),
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Give Rex 1 point.',
+            { boxes: [{ name: 'score' }] },
+            { values: { score: 1 } },
+            [
+              ['score = 0', 'set:score=0'],
+              ['score = score + 1', 'add:score:1'],
+            ],
+            [0, 1]
+          ),
+          pairUp('Tap a line. Tap why.', [
+            ['score = 0', 'start at zero'],
+            ['score = score + 1', 'one more point'],
+            ['print("Score:", score)', 'show the points'],
+          ]),
+        ],
+        'Ask Bolt for step 3. Add a # note per line.',
+        undefined,
+        { from: 'show-question', starter: '' }
+      ),
+      task(
+        'show-final',
+        'core',
+        'direct',
+        "Boss: Rex's full show",
+        '3 questions, then your score.',
+        'Step 4 by Bolt: ask 2 + 2, 3 x 3, 10 - 4; all right shows Score: 3. The new # ask: is this step only. Judge the run against # done:. Ask why about one Bolt line.',
+        [
+          output('All right shows Score: 3', 'Answer 4, 9 and 6.', 'score\\W*3', {
+            flags: 'i',
+            inputs: ['Mia', '4', '9', '6'],
+          }),
+          doneCheck(),
+          ask(4),
+          notes(4, 'After each line: # and your words.'),
+        ],
+        true,
+        [
+          bug(
+            'Bolt made a mistake. Which line?',
+            'for q in quiz:\n    score = 0\n    if input(q) == quiz[q]:\n        score = score + 1\nprint("Score:", score)',
+            1,
+            'Start score before the loop.'
+          ),
+          learn('One step. Check. Next step.', [
+            { code: '# ask: ask all 3 questions', note: 'Step 4, the last one.' },
+            { code: 'score = 0  # start at zero', note: 'Copy it. Say why.' },
+            { code: '# done: I see Score: 3', note: 'Run it. Does it match?' },
+          ]),
+        ],
+        'Ask Bolt for the last step. Check it with # done:.',
+        undefined,
+        { from: 'show-score', starter: '' }
+      ),
+      task(
+        'show-extra',
+        'choice',
+        'direct',
+        'Your own mini show',
+        'Your idea, built in 2 steps.',
+        "The student's own two-step show, by Bolt, one # ask: per step. Judge # goal:/# done: against the run. Ask why about one Bolt line.",
+        [
+          runs3,
+          goal(),
+          planSteps(2),
+          doneCheck(),
+          ask(2),
+          notes(2, 'After each line: # and your words.'),
+        ],
+        false,
+        [tryIt('Name your show. Try 2.', 2, ["Rex's Quiz", 'Space Show'])],
+        'Plan your show. Build it one step at a time.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'hw-prize',
+        'bonus',
+        'make',
+        'Gold star prize',
+        'All 3 right shows a gold star.',
+        'One more step on the finished show: all 3 right prints a gold star. The student or Bolt may build it.',
+        [
+          output('3 right shows a star', 'Answer 4, 9 and 6.', 'gold star', {
+            flags: 'i',
+            inputs: ['Mia', '4', '9', '6'],
+          }),
+          planSteps(5),
+          notes(5, 'After each line: # and your words.'),
+        ],
+        false,
+        [
+          choose(
+            'Score is 2. What prints?',
+            ['Gold star!', 'nothing', 'Score: 3'],
+            1,
+            'The if needs 3, so it skips.',
+            'if score == 3:\n    print("Gold star!")'
+          ),
+        ],
+        'Add a # step: for the prize. Then build it.',
+        undefined,
+        { from: 'show-final', starter: '' }
+      ),
+      task(
+        'hw-riddle',
+        'bonus',
+        'direct',
+        "Rex's riddle",
+        'Say piano and Rex says Right.',
+        'Own two-step program by Bolt, one # ask: per step: ask "What has keys but no doors?", Right! for piano.',
+        [
+          output('piano gets Right', 'Type piano when Rex asks.', 'right', {
+            flags: 'i',
+            inputs: ['piano'],
+          }),
+          goal(),
+          planSteps(2),
+          doneCheck(),
+          ask(2),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          order('Plan, ask, plan, ask. Tap in order.', [
+            '# step: Rex asks the riddle',
+            '# ask: ask the riddle',
+            '# step: say Right for piano',
+            '# ask: say Right for piano',
+          ]),
+        ],
+        'Two steps, two asks. One at a time.',
+        undefined,
+        { starter: '' }
+      ),
+      // Lives in bugzap.py, so it works on its anchor, not its own program.
+      task(
+        'hw-bug-show',
+        'bonus',
+        'bugzap',
+        'Fix the score crash',
+        'Type 4 and see Score: 1.',
+        'Bugzap in bugzap.py. Planted crash: TypeError, text + number in the Score print.',
+        [
+          output('It shows Score: 1', 'Type 4. Then look for Score.', 'score\\W*1', {
+            flags: 'i',
+            file: 'bugzap.py',
+            inputs: ['4'],
+          }),
+          doneCheck(),
+          notes(1, 'Add a # note on your fix.'),
+        ]
+      ),
+    ],
+  },
 ]

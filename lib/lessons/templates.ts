@@ -431,6 +431,14 @@ print("Rex done!")
 guest = 3
 print("Guests: " + str(guests))
 `,
+  'py/w11.py': '',
+  'py/w11-bugzap.py': `# TASK: hw-bug-show
+score = 0
+answer = input("2 + 2? ")
+if answer == "4":
+    score = score + 1
+print("Score: " + score)
+`,
 }
 
 export function templateFor(file: string): string {
