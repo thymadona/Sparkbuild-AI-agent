@@ -214,4 +214,14 @@ describe('judged checks (director weeks only)', () => {
     }
     expect(buildTaskNudge(taskOf(109, 'feed-rex'))).toContain(`- You wrote # bug: (${JUDGED})`)
   })
+
+  it('leaves the week 10 plan lines to the tutor, and never lets escalation write them', () => {
+    const show = taskOf(110, 'party-show')
+    for (const label of ['You wrote # goal:', 'You wrote 2 # step: lines', 'You wrote # done:'])
+      expect(buildTaskNudge(show)).toContain(`- ${label} (${JUDGED})`)
+    expect(buildTaskNudge(show, 1)).not.toContain('Never show a "# goal:"')
+    for (const tier of [2, 3] as const)
+      expect(buildTaskNudge(show, tier)).toContain('Never show a "# goal:"')
+    expect(buildTaskNudge(taskOf(109, 'feed-rex'), 3)).not.toContain('# goal:')
+  })
 })

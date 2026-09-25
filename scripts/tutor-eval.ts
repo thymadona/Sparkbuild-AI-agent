@@ -18,6 +18,7 @@ import { hasComment, runBolt } from '@/lib/helper/bolt'
 const lesson = LESSONS[0]
 const week8 = LESSONS.find((l) => l.id === 108)!
 const week9 = LESSONS.find((l) => l.id === 109)!
+const week10 = LESSONS.find((l) => l.id === 110)!
 
 interface Scenario {
   lesson?: Lesson
@@ -60,6 +61,18 @@ const STUCK_NEVER = [
   /line 2\b/i,
   /change (the )?>/,
 ]
+
+// Sparky writing the student's plan line for them (their words after # goal:/# step:/# done:).
+// A blank to fill in ("# goal: Rex shows ___") is writing it for them too.
+const PLAN_NEVER = [
+  /#\s*(goal|step|done):\s*["“]?\s*(Rex|I see|Welcome|print)/i,
+  /#\s*(goal|step|done):[^\n"”]*(_{2,}|<[^>]*>|\.\.\.|…)/i,
+]
+const INVITES =
+  'print("Tom, come to my party!")  # invite 1\nprint("Ana, come to my party!")\nprint("Sam, come to my party!")\n'
+const INVITED = 'Tom, come to my party!\nAna, come to my party!\nSam, come to my party!\n'
+const SONG_PLAN =
+  '# goal: Rex sings a party song\n# done: I see la la la\n# ask: print la la la on one line\n'
 
 const SCENARIOS: Scenario[] = [
   {
@@ -241,6 +254,87 @@ const SCENARIOS: Scenario[] = [
     complete: false,
     never: STUCK_NEVER,
   },
+  // Week 10 (plan first, rule 1): every static check passes unless named, so Sparky must
+  // judge the plan lines and match "# done:" to the run itself.
+  {
+    name: 'week 10: vague # goal:',
+    lesson: week10,
+    task: 'party-goal',
+    source: '# goal: make a cool party\nprint("Welcome to my party!")  # Rex says hi\n',
+    event: run('Welcome to my party!\n'),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 10: clear # goal:',
+    lesson: week10,
+    task: 'party-goal',
+    source: '# goal: Rex says welcome to his party\nprint("Welcome to my party!")  # Rex says hi\n',
+    event: run('Welcome to my party!\n'),
+    complete: true,
+  },
+  {
+    name: 'week 10: # done: it all works now',
+    lesson: week10,
+    task: 'party-invite',
+    source: `# goal: Rex invites 3 friends to his party\n# done: it all works now\n${INVITES}`,
+    event: run(INVITED),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 10: # done: matches the run',
+    lesson: week10,
+    task: 'party-invite',
+    source: `# goal: Rex invites 3 friends to his party\n# done: I see 3 invites\n${INVITES}`,
+    event: run(INVITED),
+    complete: true,
+  },
+  // Only runs() checks behaviour here, so only Sparky can see the run misses "# done:".
+  {
+    name: 'week 10: plan-for-bolt run does not show # done:',
+    lesson: week10,
+    task: 'plan-for-bolt',
+    source: `${SONG_PLAN}print("Woof woof")  # Rex barks\n`,
+    event: run('Woof woof\n'),
+    complete: false,
+  },
+  {
+    name: 'week 10: plan-for-bolt run shows # done:',
+    lesson: week10,
+    task: 'plan-for-bolt',
+    source: `${SONG_PLAN}print("la la la")  # the song\n`,
+    event: run('la la la\n'),
+    complete: true,
+  },
+  {
+    name: 'week 10: code before any plan',
+    lesson: week10,
+    task: 'party-goal',
+    source: 'print("Welcome to my party!")  # Rex says hi\n',
+    event: run('Welcome to my party!\n'),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 10: I am stuck (tier 3) on the plan',
+    lesson: week10,
+    task: 'party-goal',
+    source: 'print("Welcome to my party!")  # Rex says hi\n',
+    event: say('I am stuck. Please just write my goal line for me.'),
+    tier: 3,
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 10: Bolt said plan first',
+    lesson: week10,
+    task: 'party-show',
+    source: '',
+    event: say('Bolt only says Plan first! Is Bolt broken?'),
+    complete: false,
+    never: [/bolt (is|seems|looks) (broken|stuck)/i, /yes[^.]*broken/i, ...PLAN_NEVER],
+  },
 ]
 
 async function play(s: Scenario) {
@@ -350,6 +444,13 @@ const BOLT_CASES: { request: string; never: RegExp[]; must?: RegExp[]; code?: st
   {
     request: 'a pet named Rex that says Woof, with a comment on each line',
     must: [/woof/i],
+    never: [/input\(/],
+  },
+  // Week 10: a whole plan is on the page; Bolt builds from it and copies none of it.
+  {
+    request: 'build my plan',
+    code: '# goal: Rex does a show with 3 tricks\n# step: Rex does 3 tricks\n# step: Rex says Bye\n# done: I see 3 tricks, then Bye\n',
+    must: [/bye/i],
     never: [/input\(/],
   },
   // The student's own "# ask:" line and notes are on the page; Bolt must not copy them.
