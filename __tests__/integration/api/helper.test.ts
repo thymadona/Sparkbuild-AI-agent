@@ -32,6 +32,7 @@ import {
   removeDirectorLesson,
 } from '@/__tests__/fixtures/director-lesson'
 import type { BoardState } from '@/lib/board/reducer'
+import { BOLT_NO_PLAN } from '@/lib/helper/prompt'
 
 const writes = (code: string, caption = 'It prints game.') =>
   mockCreate.mockResolvedValueOnce({
@@ -278,6 +279,74 @@ describe('POST /api/projects/[id]/helper', () => {
     const body = await (await post(project.id, { request: 'make a pet', pageId: 't_dir-1' })).json()
     expect(mockCreate).toHaveBeenCalledTimes(3)
     expect(body.op).toBeNull()
+  })
+
+  describe('in a plan-first lesson (week 10)', () => {
+    const PLAN =
+      '# goal: Rex does a show\n# step: Rex does 3 tricks\n# done: I see 3 tricks, then Bye'
+    const week10 = async (source: string) => {
+      const user = await makeUser()
+      mockGetSessionUser.mockResolvedValue({ id: user.id, email: user.email, name: 'Mia' })
+      const page: BoardState = {
+        pages: [{ id: 't_party-show', title: 'Show', nodeIds: ['code_show'] }],
+        activePageId: 't_party-show',
+        focusId: null,
+        nodes: {
+          code_show: {
+            id: 'code_show',
+            parentId: null,
+            createdBy: 'student',
+            type: 'code',
+            language: 'python',
+            source,
+            editable: true,
+          },
+        },
+      }
+      return { user, project: await makeProject(user.id, { lessonId: 110, board: page }) }
+    }
+    const ask = (id: string) => post(id, { request: 'build my plan', pageId: 't_party-show' })
+
+    it('says plan first, with no model call, no block and no prompt log, until the page has a plan', async () => {
+      const { user, project } = await week10('print("hi")')
+
+      const res = await ask(project.id)
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ op: null, caption: BOLT_NO_PLAN })
+      expect(mockCreate).not.toHaveBeenCalled()
+
+      const [row] = await db.select().from(projects).where(eq(projects.id, project.id))
+      expect((row.board as BoardState).pages[0].nodeIds).toEqual(['code_show'])
+      expect(await helperRows(project.id)).toEqual([
+        {
+          role: 'helper',
+          content: `Asked Bolt: build my plan\nBolt wrote no code: ${BOLT_NO_PLAN}`,
+        },
+      ])
+      expect(await db.select().from(prompts).where(eq(prompts.userId, user.id))).toEqual([])
+    })
+
+    it.each([
+      ['no # done:', '# goal: Rex does a show\n# step: Rex does 3 tricks'],
+      ['no # step:', '# goal: Rex does a show\n# done: I see 3 tricks'],
+      ['a goal under 3 words', PLAN.replace('# goal: Rex does a show', '# goal: a show')],
+    ])('still refuses with %s', async (_, source) => {
+      const { project } = await week10(source)
+      expect((await (await ask(project.id)).json()).caption).toBe(BOLT_NO_PLAN)
+      expect(mockCreate).not.toHaveBeenCalled()
+    })
+
+    it('builds once the plan is there', async () => {
+      const { project } = await week10(PLAN)
+      writes('print("sit")\nprint("Bye!")', 'Rex does a trick and says Bye.')
+      const body = await (await ask(project.id)).json()
+      expect(body.op).toMatchObject({
+        node: { type: 'helper', source: 'print("sit")\nprint("Bye!")' },
+      })
+      expect(mockCreate.mock.calls[0][0].messages.at(-1).content).toContain(
+        '# goal: Rex does a show'
+      )
+    })
   })
 
   it('403s a tutor lesson and a project with no lesson', async () => {

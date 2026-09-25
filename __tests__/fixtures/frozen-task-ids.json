@@ -100,5 +100,16 @@
     "hw-rex-diary",
     "hw-bolt-right",
     "hw-bug-rex"
+  ],
+  "110": [
+    "party-goal",
+    "party-invite",
+    "party-snacks",
+    "party-game",
+    "party-show",
+    "plan-for-bolt",
+    "hw-cake",
+    "hw-gifts",
+    "hw-bug-party"
   ]
 }

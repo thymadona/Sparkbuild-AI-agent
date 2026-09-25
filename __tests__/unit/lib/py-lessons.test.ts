@@ -1,6 +1,14 @@
 import fs from 'fs'
 import path from 'path'
-import { ASK_LINE, BUG_LINE, NOTE, PY_LESSONS } from '@/lib/py-lessons'
+import {
+  ASK_LINE,
+  BUG_LINE,
+  DONE_LINE,
+  GOAL_LINE,
+  NOTE,
+  PY_LESSONS,
+  STEP_LINE,
+} from '@/lib/py-lessons'
 import {
   CURRENT_LESSON_VERSION,
   LESSONS,
@@ -202,23 +210,30 @@ describe.each(
   const has = (t: Lesson['tasks'][number], pattern: string) =>
     t.checks!.some((c) => c.kind === 'sourceMatches' && c.pattern === pattern)
 
-  // Week 8 starts from a request (# ask:); week 9 on can start from Bolt's code under review (# bug:).
-  it('asks for # notes on every task and a # ask: or # bug: line on every core task', () => {
+  // Week 8 starts from a request (# ask:); week 9 on can start from Bolt's code under review
+  // (# bug:); week 10 on can start from the student's plan (# goal:).
+  it('asks for # notes on every task and a # ask:, # bug: or # goal: line on every core task', () => {
     expect(lesson.tasks.filter((t) => !has(t, NOTE)).map((t) => t.id)).toEqual([])
     expect(
       lesson.tasks
-        .filter((t) => t.type === 'core' && !has(t, ASK_LINE) && !has(t, BUG_LINE))
+        .filter(
+          (t) => t.type === 'core' && !has(t, ASK_LINE) && !has(t, BUG_LINE) && !has(t, GOAL_LINE)
+        )
         .map((t) => t.id)
     ).toEqual([])
   })
 
-  // Every starter already lacks notes, an ask and a bug line, so prove the behaviour checks
-  // bite on their own: no task passes on a judged line alone.
-  it('fails every task on its starter even without the notes, ask and bug checks', async () => {
+  // Every starter already lacks notes, an ask, a bug line and a plan, so prove the behaviour
+  // checks bite on their own: no task passes on a judged line alone.
+  it('fails every task on its starter even without the notes, ask, bug and plan checks', async () => {
     const passing: string[] = []
     for (const t of lesson.tasks) {
       const checks = t.checks!.filter(
-        (c) => !(c.kind === 'sourceMatches' && [NOTE, ASK_LINE, BUG_LINE].includes(c.pattern))
+        (c) =>
+          !(
+            c.kind === 'sourceMatches' &&
+            [NOTE, ASK_LINE, BUG_LINE, GOAL_LINE, STEP_LINE, DONE_LINE].includes(c.pattern)
+          )
       )
       const files = filesFor(lesson, false, t)
       const entry = lesson.starterFile!
@@ -281,6 +296,22 @@ describe.each(PY_LESSONS.map((l) => [l.title, l] as const))('%s: real Python', (
       expect(allChecksPassed(await results(lesson, false, t.id))).toBe(false)
       expect(allChecksPassed(await results(lesson, true, t.id))).toBe(true)
     }
+  })
+})
+
+describe('plan lines (week 10 on)', () => {
+  const found = (pattern: string, line: string) => new RegExp(pattern, 'm').test(line)
+
+  it('needs 3+ words after the colon', () => {
+    expect(found(GOAL_LINE, '# goal: Rex says hi')).toBe(true)
+    expect(found(GOAL_LINE, '# goal: a party')).toBe(false)
+    expect(found(STEP_LINE, '# step: print each snack')).toBe(true)
+    expect(found(DONE_LINE, '# done: it works')).toBe(false)
+  })
+
+  it('never counts as a # note', () => {
+    for (const line of ['# goal: Rex says hi', '# step: print each snack', '# done: I see 3'])
+      expect(found(NOTE, line)).toBe(false)
   })
 })
 

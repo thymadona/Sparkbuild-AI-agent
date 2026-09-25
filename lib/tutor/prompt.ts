@@ -44,8 +44,26 @@ const EXPLAIN_RULE = `EXPLAIN RULE (this lesson):
 - When the task has no planted bug, "# bug: none" plus what they tested is a full, correct answer. If every requirement is met, call task_complete now: do not ask them to add to the line or to test more.
 - While they hunt for the bug, ask what the code should do and suggest one input or value to try, like "what if Rex has exactly 10?". Never name, point at or highlight the broken line, and never name the mistake or the fix, even after many tries.`
 
+// Plan-first lessons only (week 10 on, mission rule 1), so weeks 8 and 9 keep their prompt.
+const BOLT_PLAN_RULE = `- In this lesson Bolt writes code only once the student's code holds a plan: a "# goal:", a "# step:" and a "# done:" line. Until then Bolt answers "Plan first!". That is how Bolt works here, not a fault: never call Bolt broken; ask about their plan instead.`
+
+const PLAN_RULE = `PLAN RULE (this lesson):
+- The student plans before code. "# goal:" says what the program will show. "# step:" lines are small pieces, in the order they run. "# done:" says what they will see on screen when it works. The checks only find these lines; you judge them.
+- A goal is clear when a run could show whether it happened, like "Rex says welcome to his party". "make a cool party" or "a fun game" is not clear.
+- A done-check must name something on screen: words, numbers or lines, like "I see 3 invites" or "I type 7 and see You win". "it works", "it all works now", "no red text" or "it is fun" is not a done-check.
+- Match "# done:" to the run: the output in the EVIDENCE must show what it says. If it does not, do not call task_complete: ask them to compare their last run with their "# done:" line.
+- If a plan line is not clear, do not call task_complete: quote it and ask one short question, like "What will Rex show?" or "What will you see on screen?".
+- A plan does not need to be long or perfect. When every plan line is clear, the run shows what "# done:" says and every requirement is met, call task_complete now: do not ask for more detail, more steps, deeper notes or another run.
+- The plan needs only the lines the requirements list: a task with no "# step:" requirement is complete without "# step:" lines.
+- If they write code before any plan, ask for their "# goal:" first.
+- Never write, finish or reword a "# goal:", "# step:" or "# done:" line for them, not even as an example with their words. The plan is their thinking.`
+
 export const explainRule = (lesson: Lesson | null) =>
-  lesson?.aiPolicy === 'director' ? EXPLAIN_RULE : ''
+  lesson?.aiPolicy === 'director'
+    ? lesson.planFirst
+      ? `${EXPLAIN_RULE}\n\n${PLAN_RULE}`
+      : EXPLAIN_RULE
+    : ''
 
 export function lessonLayer(
   lesson: Lesson | null,
@@ -56,7 +74,11 @@ export function lessonLayer(
     lesson ? `LESSON: ${lesson.title}. ${lesson.description}\n${taskList(lesson, openTask)}` : '',
     `CURRENT BOARD:\n${board || (lesson ? '(the task page is opening; add what you teach to it)' : '(empty: start with board_new_page)')}`,
     lesson ? TASK_PAGE_RULE : PAGE_RULE,
-    lesson?.aiPolicy === 'director' ? BOLT_RULE : '',
+    lesson?.aiPolicy === 'director'
+      ? lesson.planFirst
+        ? `${BOLT_RULE}\n${BOLT_PLAN_RULE}`
+        : BOLT_RULE
+      : '',
   ]
     .filter(Boolean)
     .join('\n\n')

@@ -1,6 +1,6 @@
 import { hasCompletedTask, type Lesson, type LessonTask } from './lessons'
 import { JUDGED, judged } from './task-checks'
-import { BUG_LINE } from './py-lessons'
+import { BUG_LINE, GOAL_LINE } from './py-lessons'
 
 // Task types the student must complete themselves. Core tasks are the lesson.
 // 'choice' and 'bonus' are optional extras and never gate the tutor.
@@ -86,9 +86,20 @@ export function detectConfusion(prompt: string, prevUserMessage?: string): boole
 const reviews = (task: LessonTask) =>
   (task.checks ?? []).some((c) => c.kind === 'sourceMatches' && c.pattern === BUG_LINE)
 
+// A plan task (week 10 on) asks for a "# goal:": the plan is the student's thinking, so even
+// the top escalation level never writes it for them.
+const plans = (task: LessonTask) =>
+  (task.checks ?? []).some((c) => c.kind === 'sourceMatches' && c.pattern === GOAL_LINE)
+const PLAN_ESCALATION =
+  'PLAN LINES: the line you show may only be a line of code. Never show a "# goal:", "# step:" or "# done:" line in any form: not finished, not started, and not with a blank to fill (like "# goal: Rex shows ___"). If the plan is what is missing, ask one question with two small choices instead, like "Some words, or a number?".'
+
 function escalationBlock(task: LessonTask, tier: EscalationTier): string {
   if (tier === 1) return ''
+  const block = escalationLines(task, tier)
+  return plans(task) ? `${block}\n${PLAN_ESCALATION}` : block
+}
 
+function escalationLines(task: LessonTask, tier: 2 | 3): string {
   if (reviews(task))
     return [
       `ESCALATION LEVEL ${tier}: your last hints did not work. Say it a completely different way.`,

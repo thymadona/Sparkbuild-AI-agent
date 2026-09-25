@@ -64,6 +64,11 @@ export const NOTE = '^[ \\t]*[^#\\s][^#\\n]*[ \\t]#[ \\t]*\\S'
 export const ASK_LINE = '^[ \\t]*#[ \\t]*ask:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
 // Week 9 on: what was wrong with Bolt's code, as a "# bug:" line of 3+ words ("none, …" too).
 export const BUG_LINE = '^[ \\t]*#[ \\t]*bug:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
+// Week 10 on (plan-first lessons): the student's plan, one "# goal:", "# step:" or "# done:"
+// line of 3+ words each. The Bolt gate uses the same patterns.
+export const GOAL_LINE = '^[ \\t]*#[ \\t]*goal:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
+export const STEP_LINE = '^[ \\t]*#[ \\t]*step:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
+export const DONE_LINE = '^[ \\t]*#[ \\t]*done:[ \\t]*\\S+(?:[ \\t]+\\S+){2,}'
 // Three printed lines, no two the same.
 const THREE_LINES = '^(.+)\\n(?!\\1$)(.+)\\n(?!\\1$|\\2$).+'
 
@@ -116,6 +121,26 @@ const bugNote = (min = 1): TaskCheck => ({
     '# bug: at 10 it said wait, not eat',
     min
   ),
+  judged: true,
+})
+// Plan-first tasks: Sparky judges each plan line (a goal you can see, small steps, a
+// done-check a run shows), like an ask.
+const goal = (): TaskCheck => ({
+  ...match('You wrote # goal:', 'Say what Rex will show.', GOAL_LINE, '# goal: Rex says hi to you'),
+  judged: true,
+})
+const planSteps = (min = 2): TaskCheck => ({
+  ...match(
+    `You wrote ${min} # step: lines`,
+    'One small piece per line.',
+    STEP_LINE,
+    '# step: print each snack',
+    min
+  ),
+  judged: true,
+})
+const doneCheck = (): TaskCheck => ({
+  ...match('You wrote # done:', 'Say what you will see.', DONE_LINE, '# done: I see 3 invites'),
   judged: true,
 })
 const notes = (min = 1, hint = 'After a line: # and your words.'): TaskCheck => ({
@@ -3288,6 +3313,303 @@ export const PY_LESSONS: Lesson[] = [
           }),
           notes(1, 'Add a # note on your fix.'),
           bugNote(),
+        ]
+      ),
+    ],
+  },
+  {
+    id: 110,
+    title: "Week #10 — Rex's Party",
+    description: 'Rex has a party. Plan each part before you build it.',
+    templateFile: 'py/w10.py',
+    starterFile: 'main.py',
+    extraFiles: { 'bugzap.py': 'py/w10-bugzap.py' },
+    scene: 'robot',
+    aiPolicy: 'director',
+    planFirst: true,
+    badge: 'Party Planner',
+    // Each task starts empty: the student writes the plan (# goal:, # step:, # done:) first,
+    // then the code. Only the boss and the choice task send them to Bolt.
+    tasks: [
+      task(
+        'party-goal',
+        'core',
+        'make',
+        'Plan the party',
+        'Your goal says what Rex shows.',
+        'Plan task. The # goal: must say what Rex prints; the output check proves it.',
+        [
+          output('Rex talks about the party', 'Print a line with party.', 'party', {
+            flags: 'i',
+          }),
+          goal(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          learn('Plan first. Then code.', [
+            { code: '# goal: a party', note: 'What will we see?' },
+            { code: '# goal: Rex says welcome', note: 'Now we know what shows.' },
+            { code: 'print("Welcome!")  # Rex says hi', note: 'The code does the goal.' },
+          ]),
+          choose(
+            'Which goal can you see?',
+            ['make it fun', 'Rex says party at 5', 'a cool party'],
+            1,
+            'You can see if it happened.'
+          ),
+        ],
+        'Write # goal: first. Then make Rex say it.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'party-invite',
+        'core',
+        'make',
+        'Send invites',
+        'Rex invites 3 friends.',
+        'Plan task. # done: must name what shows on screen; 3+ lines with a name and "party".',
+        [
+          output(
+            '3 friends get an invite',
+            'One print per friend.',
+            '(?:^.*party.*$[\\s\\S]*?){3}',
+            { flags: 'im' }
+          ),
+          goal(),
+          doneCheck(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          stage(
+            'room',
+            'Done: Rex says Hi Tom, then Hi Ana.',
+            {},
+            { says: ['Hi Tom', 'Hi Ana'] },
+            [
+              ['say Hi Tom', 'say:Hi Tom'],
+              ['say Bye', 'say:Bye'],
+              ['say Hi Ana', 'say:Hi Ana'],
+            ],
+            [0, 2]
+          ),
+          bug(
+            'Which plan line can you not check?',
+            '# goal: Rex invites Tom\n# done: it works\nprint("Tom, come!")',
+            1,
+            'Say what shows, not "it works".'
+          ),
+        ],
+        'Write # goal: and # done:. Then invite 3 friends.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'party-snacks',
+        'core',
+        'make',
+        'Snack table',
+        'Rex shows each snack, then how many.',
+        'Plan task. 2+ # step: lines in run order; output lists the snacks then a count.',
+        [
+          output(
+            'Snacks, then how many',
+            'Print each snack. Then len().',
+            '[A-Za-z][\\s\\S]*\\n\\d+\\s*$'
+          ),
+          goal(),
+          planSteps(2),
+          doneCheck(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          order('Put the plan in order.', [
+            '# step: make a list of snacks',
+            '# step: print each snack',
+            '# step: print how many',
+          ]),
+          pairUp('Tap a step. Tap its code.', [
+            ['make a list', 'snacks = ["cake"]'],
+            ['print each', 'for s in snacks:'],
+            ['how many', 'print(len(snacks))'],
+          ]),
+        ],
+        'Plan 3 steps. Then build the snack table.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'party-game',
+        'core',
+        'make',
+        'Party game',
+        'Type 7 and Rex says you win.',
+        'Plan task. input() game: 7 wins, anything else does not. # done: names an input and its output.',
+        [
+          output('7 wins', 'Check the number is 7.', 'win', { flags: 'i', inputs: ['7'] }),
+          output('3 does not win', 'Only 7 wins.', '^(?![\\s\\S]*win)', {
+            flags: 'i',
+            inputs: ['3'],
+          }),
+          goal(),
+          planSteps(2),
+          doneCheck(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          walk(
+            'Walk the game. Check the done.',
+            'n = 5\nif n == 5:\n    print("You win!")\nprint("Bye")',
+            [
+              { line: 1, vars: {}, note: 'Done: I see You win.' },
+              { line: 2, vars: { n: '5' }, note: '5 == 5? Yes.' },
+              { line: 3, vars: { n: '5' }, note: 'So it prints You win.' },
+              { line: 4, vars: { n: '5' }, out: 'You win!', note: 'I see You win. Done!' },
+            ]
+          ),
+          choose(
+            'Which # done: can you test?',
+            ['it is fun', 'I type 5, see You win', 'no red text'],
+            1,
+            'Type it, run it, look.'
+          ),
+        ],
+        'Plan the game: goal, steps, done. 7 wins.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'party-show',
+        'core',
+        'direct',
+        "Boss: Rex's show",
+        'Rex does 3 tricks, then says Bye.',
+        'Plan task, Bolt builds it. Output: 3 trick lines then Bye. Judge the run against # done:.',
+        [
+          output('3 tricks, then Bye', 'Bye comes last.', '^.+\\n.+\\n.+\\n.*bye', {
+            flags: 'im',
+          }),
+          goal(),
+          planSteps(2),
+          doneCheck(),
+          ask(),
+          notes(2, 'After each line: # and your words.'),
+        ],
+        true,
+        [
+          order('Plan, then ask. Tap in order.', [
+            '# goal: Rex does a show',
+            '# step: Rex does 3 tricks',
+            '# done: I see 3 tricks, then Bye',
+            '# ask: build my plan',
+          ]),
+          learn('Plan. Ask Bolt. Check.', [
+            { code: '# ask: build my plan', note: 'Bolt waits for your plan.' },
+            { code: 'print("Bye!")  # show ends', note: 'Copy it. Add your # notes.' },
+            { code: '# done: I see 3 tricks, then Bye', note: 'Run it. Does it match?' },
+          ]),
+        ],
+        'Plan the show. Then ask Bolt for it.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'plan-for-bolt',
+        'choice',
+        'direct',
+        'Your party part',
+        'Bolt built your plan. You checked it.',
+        "Plan task, the student's own idea. Bolt builds it. Judge # goal:/# done: and the run against each other.",
+        [runs, goal(), doneCheck(), ask(), notes(1, 'Add # and your words.')],
+        false,
+        [
+          pairUp('Tap a line. Tap its job.', [
+            ['# goal:', 'what it shows'],
+            ['# step:', 'one small piece'],
+            ['# done:', 'what you will see'],
+            ['# ask:', 'what Bolt builds'],
+          ]),
+        ],
+        'Plan your own party part. Then ask Bolt.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'hw-cake',
+        'bonus',
+        'make',
+        'Cake countdown',
+        'Rex counts 3, 2, 1, then Cake!',
+        'Plan task. Countdown 3 2 1 then Cake; the steps must match the done order.',
+        [
+          output('3, 2, 1, then Cake', 'Count down first.', '3\\s+2\\s+1\\s+Cake', { flags: 'i' }),
+          goal(),
+          doneCheck(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          bug(
+            'Which step is in the wrong place?',
+            '# goal: count down to cake\n# step: Rex says Cake\n# step: count 3, 2, 1\n# done: I see 3, 2, 1, then Cake',
+            1,
+            'Cake comes last, like done.'
+          ),
+        ],
+        'Plan the countdown. Steps follow # done:.',
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'hw-gifts',
+        'bonus',
+        'make',
+        'Party gifts',
+        'Each friend gets a gift.',
+        'Plan task. A dict of friend to gift; print one line per friend with "gets".',
+        [
+          output('2 friends get gifts', 'Print name gets gift.', '(?:gets[\\s\\S]*){2}', {
+            flags: 'i',
+          }),
+          goal(),
+          doneCheck(),
+          notes(1, 'Add # and your words.'),
+        ],
+        false,
+        [
+          stage(
+            'boxes',
+            'Done: Tom gets ball, Ana gets cake.',
+            { boxes: [{ name: 'Tom' }, { name: 'Ana' }] },
+            { values: { Tom: 'ball', Ana: 'cake' } },
+            [
+              ['Tom: ball', 'set:Tom=ball'],
+              ['Ana: bone', 'set:Ana=bone'],
+              ['Ana: cake', 'set:Ana=cake'],
+            ],
+            [0, 2]
+          ),
+        ],
+        'Plan the gifts. # done: says who gets what.',
+        undefined,
+        { starter: '' }
+      ),
+      // Lives in bugzap.py, so it works on its anchor, not its own program.
+      task(
+        'hw-bug-party',
+        'bonus',
+        'bugzap',
+        'Fix the party',
+        'bugzap.py says Guests: 3.',
+        'Plan task in bugzap.py. Planted crash: NameError, guests is not the name made.',
+        [
+          output('It says Guests: 3', 'Read the red text.', 'Guests: 3', { file: 'bugzap.py' }),
+          doneCheck(),
+          notes(1, 'Add a # note on your fix.'),
         ]
       ),
     ],

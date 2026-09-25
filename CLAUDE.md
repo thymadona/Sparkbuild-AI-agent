@@ -7,7 +7,7 @@ bottom) so it loads only when relevant. Read the matching skill before exploring
 ## What this is
 
 Student Code Builder: an AI-assisted Python platform for students aged 11–16. A 12-week
-course (catalog version 3; weeks 1–9 exist) where the LLM tutors on a shared board
+course (catalog version 3; weeks 1–10 exist) where the LLM tutors on a shared board
 (`/board/[id]`, the only student workspace) and Python runs in the browser via Pyodide.
 Teachers/admins run classes and send invoices/receipts over Telegram from a back office
 (`/staff`).
@@ -70,7 +70,9 @@ Each rule's rationale is in the skill named in parentheses.
   code for the student. It answers only in `aiPolicy: 'director'` lessons (403 otherwise), writes
   at most 8 non-blank lines into its own read-only `helper` block (only the `'bolt'` actor may add
   one), writes no comments (the server sends a commented reply back), and never completes a task: its block and its runs are never evidence for
-  `task_complete`. Sparky still never writes the answer. (`ai-tutor`)
+  `task_complete`. In `planFirst` lessons (week 10 on) it refuses, with no LLM call, until the
+  page's code has `# goal:`, `# step:` and `# done:` lines. Sparky still never writes the answer
+  or a plan line. (`ai-tutor`)
 - The lesson catalog (`lib/py-lessons.ts`) is read live: content edits (checks, prompts, steps,
   wording) reach every student immediately, old and new, and need no version bump. A shipped
   task id or its `# TASK: <id>` anchor is different — `lesson_progress` stores ids as plain
