@@ -3346,8 +3346,20 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          learn('Plan first. Then code.', [
+            { code: '# goal: a party', note: 'What will we see?' },
+            { code: '# goal: Rex says welcome', note: 'Now we know what shows.' },
+            { code: 'print("Welcome!")  # Rex says hi', note: 'The code does the goal.' },
+          ]),
+          choose(
+            'Which goal can you see?',
+            ['make it fun', 'Rex says party at 5', 'a cool party'],
+            1,
+            'You can see if it happened.'
+          ),
+        ],
+        'Write # goal: first. Then make Rex say it.',
         undefined,
         { starter: '' }
       ),
@@ -3370,8 +3382,27 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'room',
+            'Done: Rex says Hi Tom, then Hi Ana.',
+            {},
+            { says: ['Hi Tom', 'Hi Ana'] },
+            [
+              ['say Hi Tom', 'say:Hi Tom'],
+              ['say Bye', 'say:Bye'],
+              ['say Hi Ana', 'say:Hi Ana'],
+            ],
+            [0, 2]
+          ),
+          bug(
+            'Which line shows nothing on screen?',
+            '# goal: Rex invites Tom\n# done: it works\nprint("Tom, come!")',
+            2,
+            'Say what shows, not "it works".'
+          ),
+        ],
+        'Write # goal: and # done:. Then invite 3 friends.',
         undefined,
         { starter: '' }
       ),
@@ -3394,8 +3425,19 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          order('Put the plan in order.', [
+            '# step: make a list of snacks',
+            '# step: print each snack',
+            '# step: print how many',
+          ]),
+          pairUp('Tap a step. Tap its code.', [
+            ['make a list', 'snacks = ["cake"]'],
+            ['print each', 'for s in snacks:'],
+            ['how many', 'print(len(snacks))'],
+          ]),
+        ],
+        'Plan 3 steps. Then build the snack table.',
         undefined,
         { starter: '' }
       ),
@@ -3418,8 +3460,25 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          walk(
+            'Walk the game. Check the done.',
+            'n = 5\nif n == 5:\n    print("You win!")\nprint("Bye")',
+            [
+              { line: 1, vars: {}, note: 'Done: I see You win.' },
+              { line: 2, vars: { n: '5' }, note: '5 == 5? Yes.' },
+              { line: 3, vars: { n: '5' }, note: 'So it prints You win.' },
+              { line: 4, vars: { n: '5' }, out: 'You win!', note: 'I see You win. Done!' },
+            ]
+          ),
+          choose(
+            'Which # done: can you test?',
+            ['it is fun', 'I type 5, see You win', 'no red text'],
+            1,
+            'Type it, run it, look.'
+          ),
+        ],
+        'Plan the game: goal, steps, done. 7 wins.',
         undefined,
         { starter: '' }
       ),
@@ -3441,8 +3500,20 @@ export const PY_LESSONS: Lesson[] = [
           notes(2, 'After each line: # and your words.'),
         ],
         true,
-        undefined,
-        undefined,
+        [
+          order('Plan, then ask. Tap in order.', [
+            '# goal: Rex does a show',
+            '# step: Rex does 3 tricks',
+            '# done: I see 3 tricks, then Bye',
+            '# ask: build my plan',
+          ]),
+          learn('Plan. Ask Bolt. Check.', [
+            { code: '# ask: build my plan', note: 'Bolt waits for your plan.' },
+            { code: 'print("Bye!")  # show ends', note: 'Copy it. Add your # notes.' },
+            { code: '# done: I see 3 tricks, then Bye', note: 'Run it. Does it match?' },
+          ]),
+        ],
+        'Plan the show. Then ask Bolt for it.',
         undefined,
         { starter: '' }
       ),
@@ -3455,8 +3526,15 @@ export const PY_LESSONS: Lesson[] = [
         "Plan task, the student's own idea. Bolt builds it. Judge # goal:/# done: and the run against each other.",
         [runs, goal(), doneCheck(), ask(), notes(1, 'Add # and your words.')],
         false,
-        undefined,
-        undefined,
+        [
+          pairUp('Tap a line. Tap its job.', [
+            ['# goal:', 'what it shows'],
+            ['# step:', 'one small piece'],
+            ['# done:', 'what you will see'],
+            ['# ask:', 'what Bolt builds'],
+          ]),
+        ],
+        'Plan your own party part. Then ask Bolt.',
         undefined,
         { starter: '' }
       ),
@@ -3474,8 +3552,15 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          bug(
+            'Which step is in the wrong place?',
+            '# goal: count down to cake\n# step: Rex says Cake\n# step: count 3, 2, 1\n# done: I see 3, 2, 1, then Cake',
+            2,
+            'Cake comes last, like done.'
+          ),
+        ],
+        'Plan the countdown. Steps follow # done:.',
         undefined,
         { starter: '' }
       ),
@@ -3495,8 +3580,21 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'boxes',
+            'Done: Tom gets ball, Ana gets cake.',
+            { boxes: [{ name: 'Tom' }, { name: 'Ana' }] },
+            { values: { Tom: 'ball', Ana: 'cake' } },
+            [
+              ['Tom: ball', 'set:Tom=ball'],
+              ['Ana: bone', 'set:Ana=bone'],
+              ['Ana: cake', 'set:Ana=cake'],
+            ],
+            [0, 2]
+          ),
+        ],
+        'Plan the gifts. # done: says who gets what.',
         undefined,
         { starter: '' }
       ),

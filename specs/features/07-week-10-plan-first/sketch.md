@@ -207,11 +207,14 @@ Checks:
 
 Steps:
 
-1. `walk` "Type 5. Walk the game.", on the same shape of code with `5` as the magic number
-   (the steps never show the editor's answer):
-   - line 1, `n = 5`, out `Number? 5`, note `I type 5, like my done.`
-   - line 2, note `5 == 5? Yes.`
-   - line 3, out `You win!`, note `I see You win. Done!`
+1. `walk` "Walk the game. Check the done." on `n = 5` / `if n == 5:` / `print("You win!")` /
+   `print("Bye")`. It uses 5 as the magic number, so the steps never show the editor's answer.
+   There's no `input()`, because a walk must match a real traced run (`walk-steps.test.ts`), and
+   the tracer can't type an answer. The fourth line lets the frame after the `print` show its output:
+   - line 1, note `Done: I see You win.`
+   - line 2, `n = 5`, note `5 == 5? Yes.`
+   - line 3, note `So it prints You win.`
+   - line 4, out `You win!`, note `I see You win. Done!`
 2. `choose` "Which # done: can you test?":
    `it is fun` · `I type 5, see You win` · `no red text`. The answer is 1. Explain:
    `Type it, run it, look.`
