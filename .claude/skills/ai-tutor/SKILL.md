@@ -117,6 +117,13 @@ screen opens it by itself.
   says "point them at a value to test", and escalation tiers 2–3 ask for a new input / one exact
   value to print instead of showing the line. `scripts/tutor-eval.ts` checks no leak in the
   caption **or** the board ops (a focus or `highlightLines` on the student's code).
+- Plan-first and step-by-step lessons (`planFirst`, week 10 on; `stepByStep`, week 11 on):
+  `explainRule` appends `PLAN_RULE`, then `STEP_RULE`, after `EXPLAIN_RULE`, so weeks 8–10 keep
+  their prompt byte for byte (`__tests__/unit/lib/tutor/prompt.test.ts`). `STEP_RULE`: `# done:`
+  is matched to the run only in the boss (earlier steps show part of it); an `# ask:` for more
+  than the OPEN step is refused; and when the task `prompt` says "Ask why about one Bolt line",
+  Sparky asks one "why" question before `task_complete` and completes once it has a good
+  own-words answer. The eval cases are `week 10: …` and `week 11: …`.
 
 ## Bolt, the helper AI (director lessons only)
 

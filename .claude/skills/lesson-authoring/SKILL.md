@@ -1,6 +1,6 @@
 ---
 name: lesson-authoring
-description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (10 weeks, ids 101–110) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
+description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (11 weeks, ids 101–111) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
 ---
 
 # Lesson authoring (Python catalog v3)
@@ -74,7 +74,11 @@ Master), 104 Inventory Raid (Loot Lord), 105 The Spell Book (Spell Caster), 106 
 task's starter is scripted Bolt code with a planted bug to find, fix and explain; `hw-bug-rex` is
 anchored in `bugzap.py`), 110 Rex's Party (Party Planner, `director` and `planFirst`: every task
 starts empty; the student writes `# goal:`/`# step:`/`# done:` first, then the code, and Bolt
-builds only in the boss and choice tasks; `hw-bug-party` is anchored in `bugzap.py`).
+builds only in the boss and choice tasks; `hw-bug-party` is anchored in `bugzap.py`), 111 Rex's
+Game Show (Show Builder, `director`, `planFirst` and `stepByStep`: task 1 plans the whole show and
+the four core tasks are one program chained with `from` and an empty `starter`, each adding one
+`# step:` with Bolt and a new `# ask:` (`ask(n)` grows along the chain); `hw-bug-show` is anchored
+in `bugzap.py`).
 
 ## Check helpers (`lib/py-lessons.ts`)
 
@@ -158,6 +162,11 @@ Bolt reads the student's code, so `py-lessons.test.ts` enforces for every direct
 every task has a notes check and every core task an `ask()`, a `bugNote()` **or** a `goal()` check;
 the behaviour checks fail on the starter even without the notes, ask, bug and plan checks; and no starter comment other than a `# TASK:` anchor (a comment
 stating the goal would be read by Bolt). The tutor side of rule 4 (`EXPLAIN_RULE`) is in `ai-tutor`.
+
+Step-by-step chains (week 11): a `from` task with `starter: ''` edits the earlier program
+anywhere, so its fixture block is the **whole** finished program (not appended to the one before).
+Each behaviour check must fail on the previous task's finished code, and each core step's `ask(n)`
+is one more than the asks it inherits (`py-lessons.test.ts` checks both).
 
 Review tasks (week 9): the starter is Bolt's code with one planted bug, and the tutor-only
 `prompt` reads "Scripted Bolt code under review. Rule: … Planted bug: <behaviour>" (or "none").
