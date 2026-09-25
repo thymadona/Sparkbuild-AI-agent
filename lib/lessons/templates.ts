@@ -426,6 +426,11 @@ tricks = ["sit", "spin", "jump"]
 print("Last trick: " + tricks[3])
 print("Rex done!")
 `,
+  'py/w10.py': '',
+  'py/w10-bugzap.py': `# TASK: hw-bug-party
+guest = 3
+print("Guests: " + str(guests))
+`,
 }
 
 export function templateFor(file: string): string {

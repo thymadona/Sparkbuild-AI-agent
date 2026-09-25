@@ -4,6 +4,7 @@ import { blockOf, pageCodeNodeId } from '@/lib/board/code'
 import { apply, type BoardState } from '@/lib/board/reducer'
 import { codeLines, MAX_HELPER_LINES, type BoardOp } from '@/lib/board/schema'
 import { runTurn, type Llm } from '@/lib/tutor/turn'
+import { DONE_LINE, GOAL_LINE, STEP_LINE } from '@/lib/py-lessons'
 import { BOLT_FAILED, BOLT_PROMPT, BOLT_TOO_BIG, BOLT_TOOL, boltRequest } from './prompt'
 
 export const boltLlm: Llm = (msgs) =>
@@ -43,6 +44,17 @@ export function hasComment(source: string): boolean {
   return false
 }
 
+// The code Bolt reads: the page's editor block (only the task's own block of a shared file).
+export function pageCode(board: BoardState, pageId: string): string {
+  const codeNode = board.nodes[pageCodeNodeId(board, pageId) ?? '']
+  return codeNode?.type === 'code' ? blockOf(codeNode.source, codeNode.anchor).block : ''
+}
+
+// Plan-first lessons (mission rule 1): a goal, a step and a done-check before Bolt writes code.
+// The same patterns the task checks use, so an empty "# goal:" does not count.
+export const hasPlan = (code: string) =>
+  [GOAL_LINE, STEP_LINE, DONE_LINE].every((p) => new RegExp(p, 'm').test(code))
+
 // One Bolt request: the model sees BOLT_PROMPT, the request and the student's code on
 // `pageId` (the block their editor shows), nothing else. Its write_code call becomes a
 // helper block; over MAX_HELPER_LINES or a comment goes back to it as an error, and
@@ -54,10 +66,7 @@ export async function runBolt(opts: {
   llm?: Llm
 }): Promise<{ board: BoardState; op: BoardOp | null; caption: string; content: string }> {
   const { board, pageId, request } = opts
-  const codeNode = board.nodes[pageCodeNodeId(board, pageId) ?? '']
-  const studentCode =
-    codeNode?.type === 'code' ? blockOf(codeNode.source, codeNode.anchor).block : ''
-  const content = boltRequest(request, studentCode)
+  const content = boltRequest(request, pageCode(board, pageId))
 
   let added: BoardOp | null = null
   let caption = ''

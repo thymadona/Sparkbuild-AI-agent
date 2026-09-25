@@ -113,6 +113,9 @@ export interface Lesson {
   // (app/api/projects/[id]/helper). Sparky still never writes the answer, and a
   // task is still judged only from the student's own editor.
   aiPolicy?: 'tutor' | 'director'
+  // Director lessons from week 10: Bolt answers only once the page's code holds a plan
+  // (# goal:, # step: and # done: lines), and Sparky judges the plan.
+  planFirst?: boolean
   tasks: LessonTask[]
 }
 

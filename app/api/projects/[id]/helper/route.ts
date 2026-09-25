@@ -9,8 +9,8 @@ import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 import { getLessonForProject } from '@/lib/lessons'
 import { emptyBoard, type BoardState } from '@/lib/board/reducer'
-import { runBolt } from '@/lib/helper/bolt'
-import { BOLT_PROMPT } from '@/lib/helper/prompt'
+import { hasPlan, pageCode, runBolt } from '@/lib/helper/bolt'
+import { BOLT_NO_PLAN, BOLT_PROMPT } from '@/lib/helper/prompt'
 
 export const runtime = 'nodejs'
 
@@ -66,7 +66,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: 'Unknown page' }, { status: 400 })
 
   try {
-    const { board: next, op, caption, content } = await runBolt({ board, pageId, request })
+    // Plan-first lessons: no plan on the page, no model call and no block.
+    const {
+      board: next,
+      op,
+      caption,
+      content,
+    } = lesson.planFirst && !hasPlan(pageCode(board, pageId))
+      ? { board, op: null, caption: BOLT_NO_PLAN, content: null }
+      : await runBolt({ board, pageId, request })
     const source = op?.op === 'add' && op.node.type === 'helper' ? op.node.source : null
 
     if (op)
@@ -81,15 +89,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       role: 'helper',
       content: `Asked Bolt: ${request}\n${source !== null ? `Bolt wrote:\n${source}` : `Bolt wrote no code: ${caption}`}`,
     })
-    await db
-      .insert(prompts)
-      .values({
-        userId: user.id,
-        projectId: id,
-        content,
-        context: { tutor: 'bolt', system: BOLT_PROMPT },
-      })
-      .catch((e) => console.error('prompt log failed:', e))
+    if (content !== null)
+      await db
+        .insert(prompts)
+        .values({
+          userId: user.id,
+          projectId: id,
+          content,
+          context: { tutor: 'bolt', system: BOLT_PROMPT },
+        })
+        .catch((e) => console.error('prompt log failed:', e))
 
     return NextResponse.json({ op, caption })
   } catch (err) {

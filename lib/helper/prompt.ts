@@ -26,6 +26,8 @@ export const BOLT_TOOL = fn(
 
 export const BOLT_TOO_BIG = 'That is too big for me. Ask me for a smaller piece.'
 export const BOLT_FAILED = 'I could not build that. Try asking again.'
+// Plan-first lessons: said without calling the model until the page holds a plan.
+export const BOLT_NO_PLAN = 'Plan first! Write # goal:, # step: and # done: in your code.'
 
 // What Bolt is told: the request and the student's code on that page, nothing else.
 export function boltRequest(request: string, studentCode: string): string {
