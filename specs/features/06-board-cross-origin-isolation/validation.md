@@ -28,5 +28,6 @@ bun run format:check
 ## By hand (owner, before merge)
 
 On a Vercel preview, open a Week 3 lesson from `/lessons` on a real iPad and in laptop Chrome.
-Answer an `input()` and check the task completes. In DevTools, check that the console shows no
+Answer an `input()` and check the task completes. Start a new lesson, then press the browser's
+Back button: `/lessons` reloads with no stuck spinner, and the new lesson shows as started. In DevTools, check that the console shows no
 blocked-resource (COEP) errors.
