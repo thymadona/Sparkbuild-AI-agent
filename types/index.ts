@@ -143,3 +143,9 @@ export interface UserRole {
   granted_by: string | null
   created_at: string
 }
+
+export interface AppSetting {
+  key: string
+  value: unknown // jsonb
+  updated_at: string
+}
