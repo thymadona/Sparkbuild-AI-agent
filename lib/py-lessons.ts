@@ -3396,9 +3396,9 @@ export const PY_LESSONS: Lesson[] = [
             [0, 2]
           ),
           bug(
-            'Which line shows nothing on screen?',
+            'Which plan line can you not check?',
             '# goal: Rex invites Tom\n# done: it works\nprint("Tom, come!")',
-            2,
+            1,
             'Say what shows, not "it works".'
           ),
         ],
@@ -3556,7 +3556,7 @@ export const PY_LESSONS: Lesson[] = [
           bug(
             'Which step is in the wrong place?',
             '# goal: count down to cake\n# step: Rex says Cake\n# step: count 3, 2, 1\n# done: I see 3, 2, 1, then Cake',
-            2,
+            1,
             'Cake comes last, like done.'
           ),
         ],

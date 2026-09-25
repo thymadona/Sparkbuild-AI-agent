@@ -128,13 +128,13 @@ Steps:
    `say Bye` (`say:Bye`), `say Hi Ana` (`say:Hi Ana`). Solution `[0, 2]`.
    The student understands that a done-check is something you watch happen because they make it
    happen and see it.
-2. `bug` "Which line shows nothing on screen?"
+2. `bug` "Which plan line can you not check?"
    ```
    # goal: Rex invites Tom
    # done: it works
    print("Tom, come!")
    ```
-   The bug line is 2. Explain: `Say what shows, not "it works".`
+   The bug line is 1 (`bugLine` counts from 0). Explain: `Say what shows, not "it works".`
 
 `go`: `Write # goal: and # done:. Then invite 3 friends.`
 
@@ -309,7 +309,7 @@ Steps:
    # step: count 3, 2, 1
    # done: I see 3, 2, 1, then Cake
    ```
-   The bug line is 2. Explain: `Cake comes last, like done.`
+   The bug line is 1 (`bugLine` counts from 0). Explain: `Cake comes last, like done.`
 
 `go`: `Plan the countdown. Steps follow # done:.`
 

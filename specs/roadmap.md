@@ -4,7 +4,7 @@ Small phases, done in order. Each phase gets a feature spec in `specs/features/<
 (start one with the `feature-spec` skill). Tick the box in the PR that finishes the phase.
 Replan between phases: is the next item still the right one?
 
-**Done:** course weeks 1–9 (Wake the Robot → Rex's Tricks), Bolt the helper AI, the tutor board with Sparky, and the
+**Done:** course weeks 1–10 (Wake the Robot → Rex's Party), Bolt the helper AI, the tutor board with Sparky, and the
 staff back office (classes, lesson unlocking, Telegram invoices).
 
 Order: finish the Course track first, then the Dashboard track. Revisit at each replan.
@@ -24,7 +24,7 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 - [x] **5. Week 9 — AI Makes Mistakes.** The AI writes buggy code, and the student reviews and fixes it.
 - [x] **6. Cross-origin isolation for `/board`.** Fix the `next.config.js` headers so Python
       `input()` uses the proper path.
-- [ ] **7. Week 10 — Plan First.** The student writes a mini-spec (goal, steps, done-check) before the
+- [x] **7. Week 10 — Plan First.** The student writes a mini-spec (goal, steps, done-check) before the
       AI touches code.
 - [ ] **8. `app_settings` type.** Add its interface to `types/index.ts`.
 - [ ] **9. Week 11 — Build With AI.** Final project: the student plans, the AI helps one step at a
