@@ -45,10 +45,15 @@ pair. Keep `'use client'` explicit; never move server-only logic (or `db`) into 
 ## Config facts
 
 - `next.config.js`: `turbopack.root = __dirname` (an unrelated parent `package-lock.json` made
-  Turbopack pick the wrong root) **and** `headers()`: COOP/COEP `credentialless` on
-  `/editor/:path*` and `/py-worker.js`. The `/editor` pattern predates the board: `/board` is
-  **not** cross-origin isolated, so `usePythonRunner().isolated` is false there, the worker gets
-  no SharedArrayBuffer, and Python `input()` raises `EOFError` (LiveBoard passes no `inputs`).
+  Turbopack pick the wrong root) **and** `headers()`: COOP `same-origin` + COEP `require-corp` on
+  `/board/:path*`, and the same COEP on `/py-worker.js` (the worker must match the page or it
+  won't start). `require-corp`, not `credentialless`, because Safari/iPad ignores `credentialless`.
+  So anything `/board` loads from another site must send CORP or CORS (jsDelivr and Google Fonts
+  do). The headers only apply on a full page load: lessons open the board with `openBoard()`
+  (`lib/open-board.ts`, `location.assign`), and the board's back links are plain `<a>` — never
+  `router.push`/`<Link>` into or out of `/board`. Isolated, `input()` waits for the board's
+  answer box; when not isolated, it raises `EOFError`, and the worker's `noinput` message adds a
+  "can't answer input()" note.
 - `proxy.ts` `config.matcher` excludes `_next/static`, `_next/image`, `favicon.ico`, `api/auth`.
   Proxy runs on Node; setting the `runtime` option throws.
 - `eslint.config.mjs`: `@next/eslint-plugin-next` recommended + core-web-vitals +

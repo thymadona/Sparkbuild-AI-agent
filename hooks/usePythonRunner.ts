@@ -16,7 +16,8 @@ const INPUT_BYTES = 1024
 
 // Runs Python in /py-worker.js. input() blocks the worker on a
 // SharedArrayBuffer, which needs cross-origin isolation (see next.config.js).
-// Without it input() only reads the `inputs` passed to run(), then gets EOF.
+// Without it input() only reads the `inputs` passed to run(), then gets EOF,
+// and the student sees a note saying their browser can't answer input().
 export function usePythonRunner() {
   const [output, setOutput] = useState<OutputChunk[]>([])
   const [status, setStatus] = useState<RunStatus>('loading')
@@ -44,6 +45,11 @@ export function usePythonRunner() {
       else if (data.type === 'input') {
         clearTimeout(timerRef.current)
         setStatus('waiting')
+      } else if (data.type === 'noinput') {
+        append({
+          kind: 'note',
+          text: "This browser can't answer input(). Try another browser, like Chrome or Safari.",
+        })
       } else if (data.type === 'done') {
         clearTimeout(timerRef.current)
         setStatus('idle')

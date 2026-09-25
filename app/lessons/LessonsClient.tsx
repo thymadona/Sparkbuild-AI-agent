@@ -3,7 +3,7 @@
 import PlayerCard from '@/components/PlayerCard'
 import type { PlayerStats } from '@/lib/xp'
 import type { Lesson } from '@/lib/lessons'
-import { useRouter } from 'next/navigation'
+import { openBoard } from '@/lib/open-board'
 import { useState } from 'react'
 import { Check, Compass, Lock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
@@ -30,7 +30,6 @@ export default function LessonsClient({
   stats,
 }: Props) {
   const enabledSet = new Set(enabledLessonIds)
-  const router = useRouter()
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -57,7 +56,7 @@ export default function LessonsClient({
   async function handleStart(lesson: Lesson) {
     const existingProjectId = projectByLessonId.get(lesson.id)
     if (existingProjectId) {
-      router.push(`/board/${existingProjectId}`)
+      openBoard(existingProjectId)
       return
     }
 
@@ -74,7 +73,7 @@ export default function LessonsClient({
       })
       if (!res.ok) throw new Error('Failed to create project')
       const data = await res.json()
-      router.push(`/board/${data.id}`)
+      openBoard(data.id)
     } catch {
       setError('Something went wrong. Please try again.')
       setLoadingId(null)

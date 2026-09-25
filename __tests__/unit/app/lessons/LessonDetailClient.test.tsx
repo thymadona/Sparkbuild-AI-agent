@@ -6,6 +6,11 @@ import LessonDetailClient from '@/app/lessons/[id]/LessonDetailClient'
 import type { Lesson } from '@/lib/lessons'
 
 const push = jest.fn()
+const openBoard = jest.fn()
+
+jest.mock('@/lib/open-board', () => ({
+  openBoard: (id: string) => openBoard(id),
+}))
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
@@ -31,7 +36,7 @@ describe('LessonDetailClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume lesson' }))
 
-    expect(push).toHaveBeenCalledWith('/board/existing-project')
+    expect(openBoard).toHaveBeenCalledWith('existing-project')
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
@@ -44,7 +49,7 @@ describe('LessonDetailClient', () => {
     render(<LessonDetailClient lesson={lesson} existingProjectId={null} />)
     fireEvent.click(screen.getByRole('button', { name: 'Start lesson' }))
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
+    await waitFor(() => expect(openBoard).toHaveBeenCalledWith('new-project'))
     expect(global.fetch).toHaveBeenCalledTimes(1)
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/projects',

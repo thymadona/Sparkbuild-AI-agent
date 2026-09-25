@@ -22,7 +22,7 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 - [x] **4. Delete dead code.** `components/SparkyWorld.tsx`, `components/PythonRunner.tsx`, the
       `/board` fixture demo, and stale comments about `/api/generate`, "build mode" and "Mark done".
 - [x] **5. Week 9 — AI Makes Mistakes.** The AI writes buggy code, and the student reviews and fixes it.
-- [ ] **6. Cross-origin isolation for `/board`.** Fix the `next.config.js` headers so Python
+- [x] **6. Cross-origin isolation for `/board`.** Fix the `next.config.js` headers so Python
       `input()` uses the proper path.
 - [ ] **7. Week 10 — Plan First.** The student writes a mini-spec (goal, steps, done-check) before the
       AI touches code.

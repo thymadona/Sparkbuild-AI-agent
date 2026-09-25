@@ -6,6 +6,11 @@ import LessonsClient from '@/app/lessons/LessonsClient'
 import type { Lesson } from '@/lib/lessons'
 
 const push = jest.fn()
+const openBoard = jest.fn()
+
+jest.mock('@/lib/open-board', () => ({
+  openBoard: (id: string) => openBoard(id),
+}))
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
@@ -58,7 +63,7 @@ describe('LessonsClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume →' }))
 
-    expect(push).toHaveBeenCalledWith('/board/newest-project')
+    expect(openBoard).toHaveBeenCalledWith('newest-project')
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
@@ -71,7 +76,7 @@ describe('LessonsClient', () => {
     render(<LessonsClient lessons={[lesson]} userProjects={[]} enabledLessonIds={[101]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/board/new-project'))
+    await waitFor(() => expect(openBoard).toHaveBeenCalledWith('new-project'))
     expect(global.fetch).toHaveBeenCalledTimes(1)
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/projects',
@@ -121,6 +126,6 @@ describe('LessonsClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Review →' }))
 
-    expect(push).toHaveBeenCalledWith('/board/finished-project')
+    expect(openBoard).toHaveBeenCalledWith('finished-project')
   })
 })
