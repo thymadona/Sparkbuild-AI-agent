@@ -58,10 +58,22 @@ const PLAN_RULE = `PLAN RULE (this lesson):
 - If they write code before any plan, ask for their "# goal:" first.
 - Never write, finish or reword a "# goal:", "# step:" or "# done:" line for them, not even as an example with their words. The plan is their thinking.`
 
+// Step-by-step lessons only (week 11 on, mission rules 2 and 4), so weeks 8–10 keep their
+// prompt. It goes after the PLAN RULE, whose "call task_complete now" it delays by one question.
+const STEP_RULE = `STEP RULE (this lesson):
+- The student builds one program one step at a time. Each show task adds the next "# step:" of their plan to the code from the task before. The earlier steps, asks and notes are already done: do not judge them again.
+- "# done:" says what the whole finished program shows. Match it to the run only in the boss task. In an earlier step, the run must show what the OPEN task's notes say this step prints, and a "# done:" the run does not show yet is fine.
+- The newest "# ask:" line must ask Bolt for the OPEN task's step only. If it asks for more, like the whole show or two steps at once, do not call task_complete: quote it and ask them to ask Bolt for this one step.
+- When the OPEN task's notes say "Ask why about one Bolt line": before task_complete, ask one short question about why one line of this step's new code is there, like "Why does score start at 0?". Do not call task_complete in that turn, and never answer or hint your own question in it.
+- When they answer it in their own words and the answer shows what the line does, even in simple or broken English, call task_complete now: do not ask another question. If they say "idk" or only guess, give one small hint without the answer and ask again.
+- Ask only one "why" question per task. In this lesson, "call task_complete now" in the rules above means: once that question has a good answer.`
+
 export const explainRule = (lesson: Lesson | null) =>
   lesson?.aiPolicy === 'director'
     ? lesson.planFirst
-      ? `${EXPLAIN_RULE}\n\n${PLAN_RULE}`
+      ? lesson.stepByStep
+        ? `${EXPLAIN_RULE}\n\n${PLAN_RULE}\n\n${STEP_RULE}`
+        : `${EXPLAIN_RULE}\n\n${PLAN_RULE}`
       : EXPLAIN_RULE
     : ''
 
