@@ -35,6 +35,8 @@ type Lesson = (typeof PY_LESSONS)[number]
 
 // A week-1 task is its own program: the reference solution is one block per task in
 // the fixture, and a task that builds on another (`from`) starts from that one's finished code.
+// A `from` task with an empty starter (week 11's show steps) edits that code anywhere, so its
+// block is the whole finished program.
 const block = (lesson: Lesson, id: string) => {
   const m = solution(lesson.templateFile).match(
     new RegExp(`^# TASK: ${id}\\n([\\s\\S]*?)(?=^# TASK: |$(?![\\s\\S]))`, 'm')
@@ -44,7 +46,8 @@ const block = (lesson: Lesson, id: string) => {
 }
 const finished = (lesson: Lesson, id: string): string => {
   const t = lesson.tasks.find((x) => x.id === id)!
-  return `${t.from ? `${finished(lesson, t.from)}\n` : ''}${block(lesson, id)}`
+  const whole = !t.from || t.starter === ''
+  return `${whole ? '' : `${finished(lesson, t.from!)}\n`}${block(lesson, id)}`
 }
 function programOf(lesson: Lesson, task: Lesson['tasks'][number], solved: boolean): string {
   if (solved) return finished(lesson, task.id)
@@ -312,6 +315,30 @@ describe('plan lines (week 10 on)', () => {
   it('never counts as a # note', () => {
     for (const line of ['# goal: Rex says hi', '# step: print each snack', '# done: I see 3'])
       expect(found(NOTE, line)).toBe(false)
+  })
+})
+
+describe('week 11: one program, one step per task', () => {
+  const week11 = PY_LESSONS.find((l) => l.id === 111)!
+  const chained = week11.tasks.filter((t) => t.from)
+
+  it('starts each step from the finished program of the step before', () => {
+    expect(chained.map((t) => t.id)).toEqual([
+      'show-question',
+      'show-score',
+      'show-final',
+      'hw-prize',
+    ])
+    for (const t of chained)
+      expect(programOf(week11, t, false).startsWith(finished(week11, t.from!))).toBe(true)
+  })
+
+  it('needs a new # ask: for each core step, so a carried ask never counts', () => {
+    const asks = (code: string) => code.match(new RegExp(ASK_LINE, 'gm'))?.length ?? 0
+    for (const t of chained.filter((x) => x.type === 'core')) {
+      const check = t.checks!.find((c) => c.kind === 'sourceMatches' && c.pattern === ASK_LINE)!
+      expect((check as { min?: number }).min ?? 1).toBe(asks(finished(week11, t.from!)) + 1)
+    }
   })
 })
 

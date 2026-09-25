@@ -1,6 +1,6 @@
 # Week 11 — Rex's Game Show: step sketch
 
-**Waiting for owner approval.** Plan group 1. Groups 2 and 4 build exactly this.
+**Approved by the owner (2026-09-25).** Plan group 1. Groups 2 and 4 build exactly this.
 
 Lesson 111, `Week #11 — Rex's Game Show`, `aiPolicy: 'director'`, `planFirst`, step-by-step,
 badge **Show Builder**. Description: "Build Rex's quiz show, one step at a time." The four

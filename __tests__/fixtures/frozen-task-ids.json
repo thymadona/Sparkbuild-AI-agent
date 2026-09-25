@@ -111,5 +111,15 @@
     "hw-cake",
     "hw-gifts",
     "hw-bug-party"
+  ],
+  "111": [
+    "show-plan",
+    "show-question",
+    "show-score",
+    "show-final",
+    "show-extra",
+    "hw-prize",
+    "hw-riddle",
+    "hw-bug-show"
   ]
 }
