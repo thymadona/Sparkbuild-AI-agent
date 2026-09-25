@@ -3646,8 +3646,20 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          learn('A big job is small steps.', [
+            { code: '# goal: Rex runs a quiz show', note: 'Too big for one ask.' },
+            { code: '# step: say hi by name', note: 'Step 1 is small.' },
+            { code: '# ask: say hi by name', note: 'Ask Bolt for one step.' },
+          ]),
+          order('Put the show steps in order.', [
+            '# step: say hi by name',
+            '# step: ask one question',
+            '# step: keep a score',
+            '# step: ask 3 questions',
+          ]),
+        ],
+        'Plan the whole show. Then ask Bolt for step 1.',
         undefined,
         { starter: '' }
       ),
@@ -3667,8 +3679,25 @@ export const PY_LESSONS: Lesson[] = [
           notes(2, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'Which ask is one step?',
+            ['build the whole quiz show', 'ask one sum, say if right', 'make it fun'],
+            1,
+            'One step, so Bolt keeps it small.'
+          ),
+          walk(
+            'Watch it run. The answer is 4.',
+            'answer = "4"\nif answer == "4":\n    print("Right!")\nprint("Next question")',
+            [
+              { line: 1, vars: {}, note: 'Say you typed 4.' },
+              { line: 2, vars: { answer: "'4'" }, note: '"4" matches, so it goes on.' },
+              { line: 3, vars: { answer: "'4'" }, note: 'So Rex says Right!' },
+              { line: 4, vars: { answer: "'4'" }, out: 'Right!', note: 'Then the next question.' },
+            ]
+          ),
+        ],
+        'Ask Bolt for step 2 only. Copy it in.',
         undefined,
         { from: 'show-plan', starter: '' }
       ),
@@ -3688,8 +3717,25 @@ export const PY_LESSONS: Lesson[] = [
           notes(3, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          stage(
+            'boxes',
+            'Give Rex 1 point.',
+            { boxes: [{ name: 'score' }] },
+            { values: { score: 1 } },
+            [
+              ['score = 0', 'set:score=0'],
+              ['score = score + 1', 'add:score:1'],
+            ],
+            [0, 1]
+          ),
+          pairUp('Tap a line. Tap why.', [
+            ['score = 0', 'start at zero'],
+            ['score = score + 1', 'one more point'],
+            ['print("Score:", score)', 'show the points'],
+          ]),
+        ],
+        'Ask Bolt for step 3. Add a # note per line.',
         undefined,
         { from: 'show-question', starter: '' }
       ),
@@ -3710,8 +3756,20 @@ export const PY_LESSONS: Lesson[] = [
           notes(4, 'After each line: # and your words.'),
         ],
         true,
-        undefined,
-        undefined,
+        [
+          bug(
+            'Bolt made a mistake. Which line?',
+            'for q in quiz:\n    score = 0\n    if input(q) == quiz[q]:\n        score = score + 1\nprint("Score:", score)',
+            1,
+            'Start score before the loop.'
+          ),
+          learn('One step. Check. Next step.', [
+            { code: '# ask: ask all 3 questions', note: 'Step 4, the last one.' },
+            { code: 'score = 0  # start at zero', note: 'Copy it. Say why.' },
+            { code: '# done: I see Score: 3', note: 'Run it. Does it match?' },
+          ]),
+        ],
+        'Ask Bolt for the last step. Check it with # done:.',
         undefined,
         { from: 'show-score', starter: '' }
       ),
@@ -3731,8 +3789,8 @@ export const PY_LESSONS: Lesson[] = [
           notes(2, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [tryIt('Name your show. Try 2.', 2, ["Rex's Quiz", 'Space Show'])],
+        'Plan your show. Build it one step at a time.',
         undefined,
         { starter: '' }
       ),
@@ -3752,8 +3810,16 @@ export const PY_LESSONS: Lesson[] = [
           notes(5, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'Score is 2. What prints?',
+            ['Gold star!', 'nothing', 'Score: 3'],
+            1,
+            'The if needs 3, so it skips.',
+            'if score == 3:\n    print("Gold star!")'
+          ),
+        ],
+        'Add a # step: for the prize. Then build it.',
         undefined,
         { from: 'show-final', starter: '' }
       ),
@@ -3776,8 +3842,15 @@ export const PY_LESSONS: Lesson[] = [
           notes(1, 'Add # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          order('Plan, ask, plan, ask. Tap in order.', [
+            '# step: Rex asks the riddle',
+            '# ask: ask the riddle',
+            '# step: say Right for piano',
+            '# ask: say Right for piano',
+          ]),
+        ],
+        'Two steps, two asks. One at a time.',
         undefined,
         { starter: '' }
       ),

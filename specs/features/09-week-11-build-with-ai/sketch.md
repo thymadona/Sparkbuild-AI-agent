@@ -61,7 +61,7 @@ not a neighbour of week 10's.
 ## Reading load
 
 Measured on `main` (2026-09-25), after adding an 11th lesson with steps: task copy 2520 of a
-3300 cap; step copy 2786 of a 3080 cap (294 left). The step copy below is **232 words**.
+3300 cap; step copy 2786 of a 3080 cap (294 left). The step copy below is **235 words** (3021 of 3080 after it ships).
 
 ---
 
@@ -118,12 +118,13 @@ Checks: `output('Rex says Right for 4', 'Type 4 when Rex asks.', 'right', { flag
 
 Steps:
 
-1. `choose` 'Which ask is one step?': 'build the whole quiz show' · **'ask 2 + 2, say Right for
-   4'** · 'make it fun'. Explain: 'One step, so Bolt keeps it small.'
-2. `walk` 'Watch it run. You type 4.' on
-   `answer = input("2 + 2? ")\nif answer == "4":\n    print("Right!")`:
-   line 1 · 'You typed 4.' → line 2 · '"4" matches, so it goes on.' → line 3, out `Right!` ·
-   'Rex says Right!' (they understand why the `if` lets it through because they watch it).
+1. `choose` 'Which ask is one step?': 'build the whole quiz show' · **'ask one sum, say if
+   right'** · 'make it fun'. Explain: 'One step, so Bolt keeps it small.'
+2. `walk` 'Watch it run. The answer is 4.' on
+   `answer = "4"\nif answer == "4":\n    print("Right!")\nprint("Next question")` (a walk is a
+   real trace, and a trace can't answer `input()`): line 1 · 'Say you typed 4.' → line 2 · '"4"
+   matches, so it goes on.' → line 3 · 'So Rex says Right!' → line 4, out `Right!` · 'Then the
+   next question.' (they understand why the `if` lets it through because they watch it).
 
 Go: `Ask Bolt for step 2 only. Copy it in.`
 
@@ -180,7 +181,7 @@ Steps:
 
 1. `bug` 'Bolt made a mistake. Which line?' on
    `for q in quiz:\n    score = 0\n    if input(q) == quiz[q]:\n        score = score + 1\nprint("Score:", score)`,
-   bug line 1. Explain: 'score = 0 goes before the loop.'
+   bug line 1. Explain: 'Start score before the loop.'
 2. `learn` 'One step. Check. Next step.':
    - `# ask: ask all 3 questions` · 'Step 4, the last one.'
    - `score = 0  # start at zero` · 'Copy it. Say why.'
@@ -209,8 +210,8 @@ print(planet + " is cool!")  # Rex says it back
 
 Checks: `runs3`, `goal()`, `planSteps(2)`, `doneCheck()`, `ask(2)`, `notes(2, …)`.
 
-Steps: `try` 'Name your show. Try 2.' on `print("Welcome to {}!")`, chips "Rex's Quiz" · 'Space
-Show', need 2.
+Steps: `try` 'Name your show. Try 2.' on `print("{}")` (the only sandbox template), chips
+"Rex's Quiz" · 'Space Show', need 2.
 
 Go: `Plan your show. Build it one step at a time.`
 
