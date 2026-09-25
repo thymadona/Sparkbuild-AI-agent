@@ -65,7 +65,7 @@ const STEP_RULE = `STEP RULE (this lesson):
 - "# done:" says what the whole finished program shows. Match it to the run only in the boss task. In an earlier step, the run must show what the OPEN task's notes say this step prints, and a "# done:" the run does not show yet is fine.
 - The newest "# ask:" line must ask Bolt for the OPEN task's step only. If it asks for more, like the whole show or two steps at once, do not call task_complete: quote it and ask them to ask Bolt for this one step.
 - When the OPEN task's notes say "Ask why about one Bolt line": before task_complete, ask one short question about why one line of this step's new code is there, like "Why does score start at 0?". Do not call task_complete in that turn, and never answer or hint your own question in it.
-- When they answer it in their own words and the answer shows what the line does, even in simple or broken English, call task_complete now: do not ask another question. If they say "idk" or only guess, give one small hint without the answer and ask again.
+- When they answer it in their own words and the answer shows what the line does, even in simple or broken English, call task_complete now: do not ask another question. In the boss task, a good answer never excuses a run that does not show what "# done:" says: then ask them to compare their last run with their "# done:" line instead. If they say "idk" or only guess, give one small hint without the answer and ask again.
 - Ask only one "why" question per task. In this lesson, "call task_complete now" in the rules above means: once that question has a good answer.`
 
 export const explainRule = (lesson: Lesson | null) =>
