@@ -94,6 +94,11 @@ const WHY = [
   { role: 'assistant' as const, content: 'Nice, Score: 1! Why does score start at 0?' },
 ]
 
+const BOSS_WHY = [
+  { role: 'assistant' as const, content: 'Why does score = 0 go before the loop?' },
+  { role: 'user' as const, content: 'so it does not go back to 0 for every question' },
+]
+
 const SCENARIOS: Scenario[] = [
   {
     name: 'first-words both blocks changed',
@@ -403,14 +408,22 @@ const SCENARIOS: Scenario[] = [
     lesson: week11,
     task: 'show-final',
     source: SHOW_FINAL,
-    history: [
-      { role: 'assistant', content: 'Why does score = 0 go before the loop?' },
-      { role: 'user', content: 'so it does not go back to 0 for every question' },
-    ],
+    history: BOSS_WHY,
     event: run(
       "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 6\n10 - 4? 6\nRight!\nScore: 2\n"
     ),
     complete: false,
+  },
+  {
+    name: 'week 11: boss run shows # done:',
+    lesson: week11,
+    task: 'show-final',
+    source: SHOW_FINAL,
+    history: BOSS_WHY,
+    event: run(
+      "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 9\nRight!\n10 - 4? 6\nRight!\nScore: 3\n"
+    ),
+    complete: true,
   },
 ]
 
