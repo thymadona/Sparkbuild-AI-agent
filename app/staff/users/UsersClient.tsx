@@ -60,7 +60,7 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search users…"
-        className="w-64 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="w-full sm:w-64 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       />
 
       {error && (
@@ -69,7 +69,7 @@ export default function UsersClient({ users }: { users: UserRow[] }) {
         </div>
       )}
 
-      <div className="rounded-md border border-border overflow-hidden">
+      <div className="rounded-md border border-border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

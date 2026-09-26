@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { Check, Compass, Lock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import type { AccountLinks } from '@/lib/account-links'
+import type { AccessPolicy } from '@/lib/lesson-availability'
 
 // A fixed per-lesson difficulty rating, not a score the student earns — kept
 // visually distinct (muted, labeled) from the real completion state (the
@@ -22,6 +23,8 @@ interface Props {
   userEmail?: string
   stats?: PlayerStats
   links?: AccountLinks
+  // A school (class-only) opens lessons through its classes, not boss wins.
+  policy?: AccessPolicy
 }
 
 export default function LessonsClient({
@@ -31,7 +34,9 @@ export default function LessonsClient({
   userEmail = '',
   stats,
   links,
+  policy = 'self-paced',
 }: Props) {
+  const classOnly = policy === 'class-only'
   const enabledSet = new Set(enabledLessonIds)
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +104,9 @@ export default function LessonsClient({
             Your Journey
           </h1>
           <p className="mt-2 text-lg text-fg-secondary">
-            Learn Python at your own pace. Beat a lesson&apos;s boss to open the next one.
+            {classOnly
+              ? 'Learn Python with your class. Your teacher opens new lessons.'
+              : "Learn Python at your own pace. Beat a lesson's boss to open the next one."}
           </p>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 text-fg-primary">
@@ -203,7 +210,7 @@ export default function LessonsClient({
                       </span>
                       {isLocked ? (
                         <span className="ml-auto rounded-full bg-muted px-5 py-2 text-sm font-semibold text-fg-muted">
-                          Beat the last boss first
+                          {classOnly ? 'Not open yet' : 'Beat the last boss first'}
                         </span>
                       ) : (
                         <button

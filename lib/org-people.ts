@@ -6,6 +6,20 @@ import { DIRECT_ORG_ID } from '@/lib/orgs'
 export const ORG_ROLES = ['admin', 'teacher', 'student'] as const
 export type OrgRole = (typeof ORG_ROLES)[number]
 
+// What an org admin may add from /staff. Naming an org admin stays in /console.
+export const STAFF_ADDABLE_ROLES = ['student', 'teacher'] as const
+export type StaffAddableRole = (typeof STAFF_ADDABLE_ROLES)[number]
+
+export function isStaffAddableRole(role: unknown): role is StaffAddableRole {
+  return (STAFF_ADDABLE_ROLES as readonly unknown[]).includes(role)
+}
+
+// The permission a staff member needs to add someone with this role: the same
+// keys that guard /staff/students and granting roles in /staff/users.
+export function permissionForRole(role: StaffAddableRole): 'students:manage' | 'roles:manage' {
+  return role === 'student' ? 'students:manage' : 'roles:manage'
+}
+
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 export type AddPersonResult =
@@ -33,14 +47,26 @@ export function normalizeEmail(raw: unknown): string | null {
 //     only its owner, signed in, can accept (D2a group 4).
 //   * in another school: refused. Each user belongs to one org.
 //
+// A student's parentEmail goes on the profile only when that profile is made
+// here; an existing profile is never overwritten, and an invite has nowhere
+// to keep it.
+//
 // Runs inside the caller's transaction so the caller's other writes (a new
 // org, a CSV batch row) stand or fall with it. The caller has already checked
 // that it may write to orgId.
 export async function addPersonToOrg(
   tx: Tx,
-  input: { orgId: string; email: string; name: string; role: OrgRole; invitedBy: string }
+  input: {
+    orgId: string
+    email: string
+    name: string
+    role: OrgRole
+    invitedBy: string
+    parentEmail?: string | null
+  }
 ): Promise<AddPersonResult> {
   const { orgId, email, name, role, invitedBy } = input
+  const profile = { name, parentEmail: input.parentEmail ?? null }
 
   const [existing] = await tx
     .select({ id: users.id, orgId: users.orgId })
@@ -53,12 +79,12 @@ export async function addPersonToOrg(
       .insert(users)
       .values({ name, email, emailVerified: true, orgId })
       .returning({ id: users.id })
-    await grant(tx, created.id, orgId, role, invitedBy, name)
+    await grant(tx, created.id, orgId, role, invitedBy, profile)
     return { kind: 'created', userId: created.id }
   }
 
   if (existing.orgId === orgId) {
-    await grant(tx, existing.id, orgId, role, invitedBy, name)
+    await grant(tx, existing.id, orgId, role, invitedBy, profile)
     return { kind: 'granted', userId: existing.id }
   }
 
@@ -94,7 +120,7 @@ async function grant(
   orgId: string,
   role: OrgRole,
   grantedBy: string,
-  name: string
+  profile: { name: string; parentEmail: string | null }
 ) {
   // Through tx, not roleIdByName's db: outside production the pool holds a
   // single connection, which this transaction already has.
@@ -107,7 +133,12 @@ async function grant(
   if (role === 'student') {
     await tx
       .insert(studentProfiles)
-      .values({ userId, fullName: name, createdBy: grantedBy })
+      .values({
+        userId,
+        fullName: profile.name,
+        parentEmail: profile.parentEmail,
+        createdBy: grantedBy,
+      })
       .onConflictDoNothing({ target: studentProfiles.userId })
   }
 

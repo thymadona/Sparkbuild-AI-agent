@@ -5,7 +5,7 @@ import { messages, projects as projectsTable, prompts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { CURRENT_LESSON_VERSION, getLessonForProject } from '@/lib/lessons'
 import { lessonFiles } from '@/lib/lesson-files'
-import { getAvailableLessonIdsForUser } from '@/lib/lesson-availability'
+import { accessPolicyFor, getAvailableLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 import { SavedBoard } from '@/lib/board/code'
@@ -79,12 +79,13 @@ export async function POST(req: Request) {
   }
 
   if (!(await isAdmin(user.id)) && !(await isTeacher(user.id))) {
-    const availableLessonIds = await getAvailableLessonIdsForUser(user.id)
+    const availableLessonIds = await getAvailableLessonIdsForUser(user.id, user.orgId)
     if (!availableLessonIds.has(lessonId)) {
-      return NextResponse.json(
-        { error: 'Finish the lesson before this one first' },
-        { status: 403 }
-      )
+      const error =
+        accessPolicyFor(user.orgId) === 'class-only'
+          ? "Your class hasn't opened this lesson yet"
+          : 'Finish the lesson before this one first'
+      return NextResponse.json({ error }, { status: 403 })
     }
   }
 
