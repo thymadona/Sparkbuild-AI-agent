@@ -565,6 +565,20 @@ const SCENARIOS: Scenario[] = [
     ),
     complete: true,
   },
+  // Seen live: a paraphrased "# done:" on the first run was refused as not naming the screen.
+  {
+    name: 'week 12: demo-own # done: in own words, first run',
+    lesson: week12,
+    task: 'demo-own',
+    source:
+      '# done: I type Sam and Rex says hi Sam and that I am a star\nname = input("Name? ")  # ask the name\nprint("Hi " + name + ", you are a star")  # say it back\n',
+    event: run('Name? Sam\nHi Sam, you are a star\n'),
+    complete: false,
+    never: [
+      /(change|fix|rewrite|describe|needs?|update)\b[^.?!]*# ?done/i,
+      /# ?done:?[^.?!]*\b(needs?|should|must)\b/i,
+    ],
+  },
   // The student's own words in "# done:", not the output copied.
   {
     name: 'week 12: demo-own # done: in own words',
@@ -582,6 +596,39 @@ const SCENARIOS: Scenario[] = [
     ],
     event: say('so Rex can get my name and use it'),
     complete: true,
+  },
+  // Seen live: a bonus keeps the boss's all-right "# done:", but its own run has a wrong
+  // answer. No done-check is required here, so it must complete, not ask to fix the line.
+  {
+    name: 'week 12: hw-answer with the inherited # done:',
+    lesson: week12,
+    task: 'hw-answer',
+    source: DEMO_BOSS.replace(
+      '        score = score + 1  # one more point\n',
+      '        score = score + 1  # one more point\n    else:  # a wrong answer\n        print("It was", quiz[q])  # Rex tells it\n'
+    ),
+    event: run(
+      "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 5\nIt was 4\n3 x 3? 9\nRight!\n10 - 4? 6\nRight!\n5 + 5? 10\nRight!\nScore: 3\n"
+    ),
+    complete: true,
+  },
+  // Seen live: an unlabelled question about the done line must not count as the demo question.
+  {
+    name: 'week 12: demo-own after an unlabelled question',
+    lesson: week12,
+    task: 'demo-own',
+    source:
+      '# done: I type Sam and see Hi Sam, you are a star\nname = input("Name? ")  # ask the name\nprint("Hi " + name + ", you are a star")  # say it back\n',
+    history: [
+      { role: 'user' as const, content: 'I ran it.' },
+      {
+        role: 'assistant' as const,
+        content:
+          'Your # done: line needs something we can see on screen. What will the output show?',
+      },
+    ],
+    event: run('Name? Sam\nHi Sam, you are a star\n'),
+    complete: false,
   },
   {
     name: 'week 12: can Bolt do it?',
