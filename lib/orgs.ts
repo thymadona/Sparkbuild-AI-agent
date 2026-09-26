@@ -1,5 +1,6 @@
-import { eq, sql } from 'drizzle-orm'
-import { users } from '@/lib/db/schema'
+import { and, eq, sql } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { classes, users } from '@/lib/db/schema'
 
 export { DIRECT_ORG_ID, DIRECT_ORG_SLUG } from '@/lib/db/schemas/organizations'
 
@@ -9,4 +10,28 @@ export { DIRECT_ORG_ID, DIRECT_ORG_SLUG } from '@/lib/db/schemas/organizations'
 // and the insert fails on the NOT NULL / FK rather than landing in some org.
 export function orgOfUser(userId: string) {
   return sql<string>`(select ${users.orgId} from ${users} where ${eq(users.id, userId)})`
+}
+
+// Child tables (profiles, members, schedules, projects, prompts…) carry no
+// org_id; they reach it through their user or class. A staff query scopes one
+// with `inArray(child.userId, usersInOrg(orgId))` or
+// `inArray(child.classId, classesInOrg(orgId))`, so the org predicate sits in
+// the same statement's where clause. orgId may be a value or orgOfUser().
+export function usersInOrg(orgId: string | ReturnType<typeof orgOfUser>) {
+  return db.select({ id: users.id }).from(users).where(eq(users.orgId, orgId))
+}
+
+export function classesInOrg(orgId: string | ReturnType<typeof orgOfUser>) {
+  return db.select({ id: classes.id }).from(classes).where(eq(classes.orgId, orgId))
+}
+
+// True if the class exists in this org. Throws on a database error, like any
+// query; the caller picks fail-open or closed.
+export async function classInOrg(classId: string, orgId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: classes.id })
+    .from(classes)
+    .where(and(eq(classes.id, classId), eq(classes.orgId, orgId)))
+    .limit(1)
+  return rows.length > 0
 }

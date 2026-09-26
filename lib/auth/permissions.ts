@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import {
   classMembers,
@@ -9,7 +9,7 @@ import {
   userRoles,
 } from '@/lib/db/schema'
 import { cached } from '@/lib/cache'
-import { orgOfUser } from '@/lib/orgs'
+import { classesInOrg, orgOfUser } from '@/lib/orgs'
 
 export class ForbiddenError extends Error {
   constructor(message = 'Forbidden') {
@@ -21,9 +21,9 @@ export class ForbiddenError extends Error {
 // The roles that mean "this account is staff". `student` is deliberately
 // absent: every non-staff account now holds a student row in user_roles
 // (lib/auth/student-defaults.ts), so "has any user_roles row" is no longer a
-// test for staff. Three pages under app/staff/ and overview-stats.ts match on
-// this list instead, so a new staff role added here is picked up by all of
-// them at once. platform_admin is absent too: it is org-less and grants nothing.
+// test for staff. The /staff students and classes loaders, the class page
+// and overview-stats.ts match on this list instead, so a new staff role added
+// here is picked up by all of them at once. platform_admin is absent too: it is org-less and grants nothing.
 export const STAFF_ROLES = ['admin', 'teacher'] as const
 
 // Looks up a seeded role's id by name, or null when that role is missing —
@@ -60,6 +60,13 @@ function inOwnOrg(userId: string) {
   return eq(userRoles.orgId, orgOfUser(userId))
 }
 
+// class_members has no org link to its class, so a membership row in another
+// org's class is possible in the data. It never makes the user a teacher of
+// anything: teaching rules only count classes in the user's own org.
+function classInOwnOrgOf(userId: string) {
+  return inArray(classMembers.classId, classesInOrg(orgOfUser(userId)))
+}
+
 async function holdsRole(userId: string, name: string): Promise<boolean> {
   const rows = await db
     .select({ one: sql`1` })
@@ -82,6 +89,7 @@ async function hasClassMembership(
       and(
         eq(classMembers.userId, userId),
         eq(classMembers.role, role),
+        classInOwnOrgOf(userId),
         classId === undefined ? undefined : eq(classMembers.classId, classId)
       )
     )
@@ -189,7 +197,13 @@ export async function getStaffContext(
         db
           .select({ class_id: classMembers.classId })
           .from(classMembers)
-          .where(and(eq(classMembers.userId, userId), eq(classMembers.role, 'teacher'))),
+          .where(
+            and(
+              eq(classMembers.userId, userId),
+              eq(classMembers.role, 'teacher'),
+              classInOwnOrgOf(userId)
+            )
+          ),
       ])
 
       const granted = new Set(grantRows.map((r) => r.key))
@@ -247,7 +261,13 @@ export async function getTeacherClassIds(userId: string): Promise<string[]> {
   const rows = await db
     .select({ class_id: classMembers.classId })
     .from(classMembers)
-    .where(and(eq(classMembers.userId, userId), eq(classMembers.role, 'teacher')))
+    .where(
+      and(
+        eq(classMembers.userId, userId),
+        eq(classMembers.role, 'teacher'),
+        classInOwnOrgOf(userId)
+      )
+    )
 
   return rows.map((row) => row.class_id)
 }

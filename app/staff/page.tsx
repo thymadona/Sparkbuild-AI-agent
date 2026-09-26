@@ -29,7 +29,7 @@ export default async function StaffOverviewPage() {
         </p>
       </div>
       <Suspense fallback={<OverviewSkeleton />}>
-        {admin ? <OverviewTab /> : <TeacherOverviewTab userId={user.id} />}
+        {admin ? <OverviewTab orgId={user.orgId} /> : <TeacherOverviewTab userId={user.id} />}
       </Suspense>
     </div>
   )

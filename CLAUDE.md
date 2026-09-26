@@ -47,6 +47,14 @@ Each rule's rationale is in the skill named in parentheses.
 - `db` connects as the owner and **bypasses RLS**: every query carries its own ownership
   predicate (`eq(table.userId, user.id)`) or sits under an explicit permission check. Prefer a
   `where` clause over fetch-then-compare. (`database`)
+- **Every staff/cross-user query carries an org predicate** — anything where one user reads or
+  writes another user's data (`/staff`, `app/api/admin/*`, teacher views). Root tables
+  (`users`, `classes`, `invoices`, `receipts`, `user_roles`) filter on `eq(t.orgId, user.orgId)`;
+  child tables reach the org through their user or class with `usersInOrg()` /
+  `classesInOrg()` (`lib/orgs.ts`). Another org's id answers 404 and a cross-org write is
+  refused. `class_members` has no FK tying a member to the class's org, so adding one checks
+  both in code. A student's own queries need no org predicate: their `user_id` implies it.
+  (`database`, `roles-permissions`)
 - Ids from a path or query string go through `isUuid()` (`lib/db/uuid.ts`) before any query;
   Postgres errors **throw** — keep each caller's fail-open/closed choice. (`database`)
 - Never import `db` in a `'use client'` file; only `NEXT_PUBLIC_*` may reach the browser.
@@ -86,8 +94,8 @@ Each rule's rationale is in the skill named in parentheses.
   DSL can't express (`--custom`) → `bun run db:migrate` → update `types/index.ts` by hand. A
   new table needs an `export *` in `lib/db/schema.ts` and an `enable row level security` line.
   `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. Latest
-  migration: `0013` (drops the Supabase-era authorization SQL functions; the rules live in
-  `lib/auth/permissions.ts`). (`database`)
+  migration: `0015` (the org-less `platform_admin` role; `0014` added `organizations` and
+  `org_id`). (`database`)
 - `/board` is cross-origin isolated (`next.config.js`), which only takes effect on a full page
   load: go into or out of the board with `openBoard()` or a plain `<a>`, never `router.push` or
   `<Link>`. Anything the board loads from another site must send CORP or CORS headers.
@@ -111,7 +119,7 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 | stack, folder layout, where X lives, Next 16 specifics, config, CI, jest harness, env vars    | `project-architecture`  |
 | queries, Drizzle, `db`, migrations, tables, columns, RLS, `isUuid`, `rowsOf`                  | `database`              |
 | login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, new-student access      | `auth-flow`             |
-| roles, permission keys, `hasPermission`, `/staff` gating, assigning roles                     | `roles-permissions`     |
+| roles, permission keys, `hasPermission`, `/staff` gating, assigning roles, orgs, `org_id`     | `roles-permissions`     |
 | Redis, `cached()`, TTLs, invalidation, rate limit / 429                                       | `redis-cache-ratelimit` |
 | tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace, Bolt | `ai-tutor`              |
 | task checks, verify, complete, enabled lessons, autosave                                      | `lesson-progress`       |

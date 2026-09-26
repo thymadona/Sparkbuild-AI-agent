@@ -14,7 +14,7 @@ function estimateCost(count: number): string {
   return d < 0.01 ? '<$0.01' : `$${d.toFixed(2)}`
 }
 
-export default async function OverviewTab() {
+export default async function OverviewTab({ orgId }: { orgId: string }) {
   const {
     totalClasses,
     activeStudentCount,
@@ -25,7 +25,7 @@ export default async function OverviewTab() {
     promptsToday,
     totalPrompts,
     promptsByDay,
-  } = await getSchoolOverviewStats()
+  } = await getSchoolOverviewStats(orgId)
 
   return (
     <div className="space-y-6">

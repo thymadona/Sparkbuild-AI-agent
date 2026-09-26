@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { desc } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classes } from '@/lib/db/schema'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -22,7 +22,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    const rows = await db.select(classColumns).from(classes).orderBy(desc(classes.createdAt))
+    const rows = await db
+      .select(classColumns)
+      .from(classes)
+      .where(eq(classes.orgId, user.orgId))
+      .orderBy(desc(classes.createdAt))
     return NextResponse.json(rows)
   } catch (err) {
     console.error('GET /api/admin/classes failed:', err)

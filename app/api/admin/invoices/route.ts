@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { invoices } from '@/lib/db/schema'
+import { invoices, users } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
-import { orgOfUser } from '@/lib/orgs'
 
 // snake_case keys: `Invoice` in types/index.ts, the finance views and the
 // invoice modals all read this shape directly.
@@ -33,10 +32,11 @@ export async function GET(req: Request) {
   if (userId && !isUuid(userId)) return NextResponse.json([])
 
   try {
-    const base = db.select(invoiceColumns).from(invoices)
-    const rows = await (userId ? base.where(eq(invoices.userId, userId)) : base).orderBy(
-      desc(invoices.createdAt)
-    )
+    const rows = await db
+      .select(invoiceColumns)
+      .from(invoices)
+      .where(and(eq(invoices.orgId, user.orgId), userId ? eq(invoices.userId, userId) : undefined))
+      .orderBy(desc(invoices.createdAt))
 
     return NextResponse.json(rows)
   } catch (err) {
@@ -69,11 +69,21 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Only a student in the caller's org can be billed. The composite FK
+    // (user_id, org_id) → users(id, org_id) backs this up: an invoice stamped
+    // with the caller's org cannot point at another org's user.
+    const [student] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, user_id), eq(users.orgId, user.orgId)))
+      .limit(1)
+    if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+
     const [row] = await db
       .insert(invoices)
       .values({
         userId: user_id,
-        orgId: orgOfUser(user_id),
+        orgId: user.orgId,
         amountCents: amount_cents,
         description,
         dueDate: due_date,

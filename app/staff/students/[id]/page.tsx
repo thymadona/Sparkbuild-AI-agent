@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { getSessionUser } from '@/lib/auth/session'
+import { usersInOrg } from '@/lib/orgs'
 import { db } from '@/lib/db/client'
 import {
   accounts,
@@ -69,7 +70,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         })
         .from(usersTable)
         .leftJoin(accounts, eq(accounts.userId, usersTable.id))
-        .where(eq(usersTable.id, userId))
+        .where(and(eq(usersTable.id, userId), eq(usersTable.orgId, caller.orgId)))
         .limit(1),
       db
         .select({
@@ -81,7 +82,12 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
           is_active: studentProfiles.isActive,
         })
         .from(studentProfiles)
-        .where(eq(studentProfiles.userId, userId))
+        .where(
+          and(
+            eq(studentProfiles.userId, userId),
+            inArray(studentProfiles.userId, usersInOrg(caller.orgId))
+          )
+        )
         .limit(1),
       // Was PostgREST's embedded `classes(...)`, which nested the joined row and
       // needed a cast plus an Array.isArray check at every read site.
@@ -93,7 +99,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         })
         .from(classMembers)
         .innerJoin(classesTable, eq(classesTable.id, classMembers.classId))
-        .where(eq(classMembers.userId, userId)),
+        .where(and(eq(classMembers.userId, userId), eq(classesTable.orgId, caller.orgId))),
       // Same for the embedded `receipts(id)`: a left join gives the receipt id
       // flat, and null when the invoice has not been paid.
       db
@@ -107,7 +113,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         })
         .from(invoicesTable)
         .leftJoin(receipts, eq(receipts.invoiceId, invoicesTable.id))
-        .where(eq(invoicesTable.userId, userId))
+        .where(and(eq(invoicesTable.userId, userId), eq(invoicesTable.orgId, caller.orgId)))
         .orderBy(desc(invoicesTable.createdAt)),
       db
         .select({
@@ -117,11 +123,20 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
           created_at: classesTable.createdAt,
         })
         .from(classesTable)
+        .where(eq(classesTable.orgId, caller.orgId))
         .orderBy(asc(classesTable.name)),
-      db.$count(prompts, eq(prompts.userId, userId)),
-      db.$count(projects, eq(projects.userId, userId)),
+      db.$count(
+        prompts,
+        and(eq(prompts.userId, userId), inArray(prompts.userId, usersInOrg(caller.orgId)))
+      ),
+      db.$count(
+        projects,
+        and(eq(projects.userId, userId), inArray(projects.userId, usersInOrg(caller.orgId)))
+      ),
     ])
 
+  // Every query above carries the caller's org, so another org's student is a
+  // 404 here and nothing of theirs was read.
   const user = accountRow[0]
   if (!user) notFound()
 
