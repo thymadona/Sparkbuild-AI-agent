@@ -123,7 +123,6 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 ## Known issues (pre-existing; not yours)
 
 - `bun run lint` reports one `no-page-custom-font` warning in `app/layout.tsx`.
-- `types/index.ts` has no interface for `app_settings`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

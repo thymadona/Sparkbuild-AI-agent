@@ -27,7 +27,7 @@ track in between as it fits. Revisit at each replan.
       `input()` uses the proper path.
 - [x] **7. Week 10 — Plan First.** The student writes a mini-spec (goal, steps, done-check) before the
       AI touches code.
-- [ ] **8. `app_settings` type.** Add its interface to `types/index.ts`.
+- [x] **8. `app_settings` type.** Add its interface to `types/index.ts`.
 - [x] **9. Week 11 — Build With AI.** Final project: the student plans, the AI helps one step at a
       time, and the student explains each step.
 - [ ] **10. Week 12 — Demo Day.** The student shows and explains their project. This doubles as
