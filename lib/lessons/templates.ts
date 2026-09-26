@@ -439,6 +439,14 @@ if answer == "4":
     score = score + 1
 print("Score: " + score)
 `,
+  'py/w12.py': '',
+  'py/w12-bugzap.py': `# TASK: hw-bug-demo
+score = 0
+answer = input("5 + 5? ")
+if answer == 10:
+    score = score + 1
+print("Score:", score)
+`,
 }
 
 export function templateFor(file: string): string {

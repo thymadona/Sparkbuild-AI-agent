@@ -20,6 +20,7 @@ const week8 = LESSONS.find((l) => l.id === 108)!
 const week9 = LESSONS.find((l) => l.id === 109)!
 const week10 = LESSONS.find((l) => l.id === 110)!
 const week11 = LESSONS.find((l) => l.id === 111)!
+const week12 = LESSONS.find((l) => l.id === 112)!
 
 interface Scenario {
   lesson?: Lesson
@@ -34,6 +35,8 @@ interface Scenario {
   tier?: EscalationTier
   // Sparky's reply must match none of these (e.g. it must not name the planted bug's fix).
   never?: RegExp[]
+  // Sparky's reply must match each of these (e.g. week 12: it says they do it alone).
+  must?: RegExp[]
   // The student already ran this exact code and saw this (a chat reply after a run).
   ranStdout?: string
   // Earlier turns, before the event (e.g. Sparky's "why" question).
@@ -97,6 +100,42 @@ const WHY = [
 const BOSS_WHY = [
   { role: 'assistant' as const, content: 'Why does score = 0 go before the loop?' },
   { role: 'user' as const, content: 'so it does not go back to 0 for every question' },
+]
+
+// Week 12: the finished show, its explained version (demo-explain) and the boss (demo-day).
+const DEMO_SHOW = week12.tasks[0].starter!
+const DEMO_DONE = '# done: I answer 4, 9 and 6 and see Score: 3\n'
+const DEMO_NOTES =
+  'name = input("Your name? ")  # Rex asks who plays\nprint("Hi " + name + "! Welcome to Rex\'s show")  # Rex greets the player\n'
+const DEMO_LOOP =
+  'score = 0  # start at zero\nfor q in quiz:  # each question\n    if input(q) == quiz[q]:  # a right answer?\n        print("Right!")  # Rex cheers\n        score = score + 1  # one more point\nprint("Score:", score)  # show the points\n'
+const DEMO_EXPLAINED = `${DEMO_DONE}${DEMO_NOTES}quiz = {"2 + 2? ": "4", "3 x 3? ": "9", "10 - 4? ": "6"}  # questions and answers\n${DEMO_LOOP}`
+const DEMO_BOSS = `# done: I get all 4 right and see Perfect show, Mia!\n${DEMO_NOTES}quiz = {"2 + 2? ": "4", "3 x 3? ": "9", "10 - 4? ": "6", "5 + 5? ": "10"}  # questions and answers\n${DEMO_LOOP}if score == 4:  # all right?\n    print("Perfect show, " + name + "!")  # Rex cheers you\n`
+const RAN3 =
+  "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 9\nRight!\n10 - 4? 6\nRight!\nScore: 3\n"
+const RAN_PERFECT =
+  "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 9\nRight!\n10 - 4? 6\nRight!\n5 + 5? 10\nRight!\nScore: 4\nPerfect show, Mia!\n"
+const DEMO_WHY = [
+  { role: 'user' as const, content: 'I ran it and it shows Score: 3.' },
+  {
+    role: 'assistant' as const,
+    content: 'Great run! Demo question: why does score = 0 come before the loop?',
+  },
+]
+// The boss's three demo questions: what it does, why a line is there, what if.
+const BOSS_Q1 = [
+  { role: 'user' as const, content: 'I ran it. Can I do my demo now?' },
+  { role: 'assistant' as const, content: 'Nice! Demo question 1: what does your program do?' },
+]
+const BOSS_Q3 = [
+  ...BOSS_Q1,
+  { role: 'user' as const, content: 'it asks 4 sums and tells you your score' },
+  { role: 'assistant' as const, content: 'Good. Demo question 2: why is there a for loop?' },
+  { role: 'user' as const, content: 'so it asks every question in the quiz, not only one' },
+  {
+    role: 'assistant' as const,
+    content: 'Yes! Demo question 3: what if you add one more question to the quiz?',
+  },
 ]
 
 const SCENARIOS: Scenario[] = [
@@ -425,6 +464,182 @@ const SCENARIOS: Scenario[] = [
     ),
     complete: true,
   },
+  // Week 12 (demo day): each case passes every static check, so only Sparky can refuse a
+  // vague "# done:", a run that misses it, or hold task_complete for the demo questions.
+  {
+    name: 'week 12: # done: it all works now',
+    lesson: week12,
+    task: 'demo-run',
+    source: `# done: it all works now\n${DEMO_SHOW}`,
+    event: run(RAN3),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  // Seen live: a good "# done:" on the first run must lead to the demo question, not a
+  // complaint about the done line (which Sparky then counted as its demo question).
+  {
+    name: 'week 12: demo-run # done: matches, first run',
+    lesson: week12,
+    task: 'demo-run',
+    source: `${DEMO_DONE}${DEMO_SHOW}`,
+    event: run(RAN3),
+    complete: false,
+    never: [
+      /(change|fix|rewrite|describe|needs?|update)\b[^.?!]*# ?done/i,
+      /# ?done:?[^.?!]*\b(needs?|should|must)\b/i,
+    ],
+  },
+  {
+    name: 'week 12: explained, demo question not asked yet',
+    lesson: week12,
+    task: 'demo-explain',
+    source: DEMO_EXPLAINED,
+    event: run(RAN3),
+    complete: false,
+    never: [/start(s)? (at )?(0|zero) (so|because)/i, ...PLAN_NEVER],
+  },
+  {
+    name: 'week 12: demo question answered idk',
+    lesson: week12,
+    task: 'demo-explain',
+    source: DEMO_EXPLAINED,
+    ranStdout: RAN3,
+    history: DEMO_WHY,
+    event: say('idk'),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 12: demo question answered in own words',
+    lesson: week12,
+    task: 'demo-explain',
+    source: DEMO_EXPLAINED,
+    ranStdout: RAN3,
+    history: DEMO_WHY,
+    event: say('so the score starts empty before the questions'),
+    complete: true,
+  },
+  {
+    name: 'week 12: boss after one good answer',
+    lesson: week12,
+    task: 'demo-day',
+    source: DEMO_BOSS,
+    ranStdout: RAN_PERFECT,
+    history: BOSS_Q1,
+    event: say('it asks 4 sums and tells you your score'),
+    complete: false,
+    never: PLAN_NEVER,
+  },
+  {
+    name: 'week 12: boss after three good answers',
+    lesson: week12,
+    task: 'demo-day',
+    source: DEMO_BOSS,
+    ranStdout: RAN_PERFECT,
+    history: BOSS_Q3,
+    event: say('the loop asks it too, I only add it to the quiz'),
+    complete: true,
+  },
+  {
+    name: 'week 12: boss run does not show # done:',
+    lesson: week12,
+    task: 'demo-day',
+    // All three answered, then an edit (== 5) and an all-right run with no Perfect show.
+    source: DEMO_BOSS.replace('score == 4', 'score == 5'),
+    history: [
+      ...BOSS_Q3,
+      { role: 'user' as const, content: 'the loop asks it too, I only add it to the quiz' },
+    ],
+    event: run(RAN_PERFECT.replace('Perfect show, Mia!\n', '')),
+    complete: false,
+  },
+  // A bonus keeps the boss's "# done:" (all right), but its own run is a low score: no
+  // done-check is required here, so the inherited line must not block it.
+  {
+    name: 'week 12: hw-cheer-up with the inherited # done:',
+    lesson: week12,
+    task: 'hw-cheer-up',
+    source: `${DEMO_BOSS}if score < 2:  # a low score\n    print("Try again!")  # Rex cheers you up\n`,
+    event: run(
+      "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 1\n10 - 4? 1\n5 + 5? 1\nScore: 1\nTry again!\n"
+    ),
+    complete: true,
+  },
+  // Seen live: a paraphrased "# done:" on the first run was refused as not naming the screen.
+  {
+    name: 'week 12: demo-own # done: in own words, first run',
+    lesson: week12,
+    task: 'demo-own',
+    source:
+      '# done: I type Sam and Rex says hi Sam and that I am a star\nname = input("Name? ")  # ask the name\nprint("Hi " + name + ", you are a star")  # say it back\n',
+    event: run('Name? Sam\nHi Sam, you are a star\n'),
+    complete: false,
+    never: [
+      /(change|fix|rewrite|describe|needs?|update)\b[^.?!]*# ?done/i,
+      /# ?done:?[^.?!]*\b(needs?|should|must)\b/i,
+    ],
+  },
+  // The student's own words in "# done:", not the output copied.
+  {
+    name: 'week 12: demo-own # done: in own words',
+    lesson: week12,
+    task: 'demo-own',
+    source:
+      '# done: I type Mia and it says hi Mia and that I am a star\nname = input("Name? ")  # ask the name\nprint("Hi " + name + ", you are a star")  # say it back\n',
+    ranStdout: 'Name? Mia\nHi Mia, you are a star\n',
+    history: [
+      { role: 'user' as const, content: 'I ran it. It works!' },
+      {
+        role: 'assistant' as const,
+        content: 'Nice run! Demo question: why is the input line there?',
+      },
+    ],
+    event: say('so Rex can get my name and use it'),
+    complete: true,
+  },
+  // Seen live: a bonus keeps the boss's all-right "# done:", but its own run has a wrong
+  // answer. No done-check is required here, so it must complete, not ask to fix the line.
+  {
+    name: 'week 12: hw-answer with the inherited # done:',
+    lesson: week12,
+    task: 'hw-answer',
+    source: DEMO_BOSS.replace(
+      '        score = score + 1  # one more point\n',
+      '        score = score + 1  # one more point\n    else:  # a wrong answer\n        print("It was", quiz[q])  # Rex tells it\n'
+    ),
+    event: run(
+      "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 5\nIt was 4\n3 x 3? 9\nRight!\n10 - 4? 6\nRight!\n5 + 5? 10\nRight!\nScore: 3\n"
+    ),
+    complete: true,
+  },
+  // Seen live: an unlabelled question about the done line must not count as the demo question.
+  {
+    name: 'week 12: demo-own after an unlabelled question',
+    lesson: week12,
+    task: 'demo-own',
+    source:
+      '# done: I type Sam and see Hi Sam, you are a star\nname = input("Name? ")  # ask the name\nprint("Hi " + name + ", you are a star")  # say it back\n',
+    history: [
+      { role: 'user' as const, content: 'I ran it.' },
+      {
+        role: 'assistant' as const,
+        content:
+          'Your # done: line needs something we can see on screen. What will the output show?',
+      },
+    ],
+    event: run('Name? Sam\nHi Sam, you are a star\n'),
+    complete: false,
+  },
+  {
+    name: 'week 12: can Bolt do it?',
+    lesson: week12,
+    task: 'demo-change',
+    source: DEMO_EXPLAINED,
+    event: say('Can Bolt do it for me?'),
+    complete: false,
+    must: [/alone|yourself|on your own|all you|what you can do|solo|bolt is off/i],
+    never: PLAN_NEVER,
+  },
 ]
 
 async function play(s: Scenario) {
@@ -680,6 +895,7 @@ async function main() {
     const { called, text, said, pointed } = await play(s)
     const leaked = [
       ...(s.never ?? []).filter((re) => re.test(said)),
+      ...(s.must ?? []).filter((re) => !re.test(text)).map((re) => `nothing like ${re}`),
       ...(s.never && pointed ? ['a highlight on their code'] : []),
     ]
     const ok = called === s.complete && !leaked.length

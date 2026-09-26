@@ -7,7 +7,7 @@ bottom) so it loads only when relevant. Read the matching skill before exploring
 ## What this is
 
 Student Code Builder: an AI-assisted Python platform for students aged 11–16. A 12-week
-course (catalog version 3; weeks 1–11 exist) where the LLM tutors on a shared board
+course (catalog version 3; weeks 1–12 exist) where the LLM tutors on a shared board
 (`/board/[id]`, the only student workspace) and Python runs in the browser via Pyodide.
 Teachers/admins run classes and send invoices/receipts over Telegram from a back office
 (`/staff`).

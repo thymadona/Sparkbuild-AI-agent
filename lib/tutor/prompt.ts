@@ -68,14 +68,28 @@ const STEP_RULE = `STEP RULE (this lesson):
 - When they answer it in their own words and the answer shows what the line does, even in simple or broken English, call task_complete now: do not ask another question. In the boss task, a good answer never excuses a run that does not show what "# done:" says: then ask them to compare their last run with their "# done:" line instead. If they say "idk" or only guess, give one small hint without the answer and ask again.
 - Ask only one "why" question per task. In this lesson, "call task_complete now" in the rules above means: once that question has a good answer.`
 
+// Demo lessons only (week 12, Demo Day), so weeks 1–11 keep their prompt. It goes after the
+// EXPLAIN RULE (a judged "# done:" points at "the explain rule at the end") and restates the
+// done-check itself: the PLAN RULE's "ask for their # goal: first" would misfire here.
+const DEMO_RULE = `DEMO RULE (this lesson):
+- Demo day: the student shows a program and says how it works, alone. Bolt is off this week. If they ask for Bolt, say Bolt is off because this week they show what they can do alone, and use no tools for it.
+- When the requirements list a "# done:" line, the check only finds it; you judge it. It must name something on screen, like "I see Score: 3", and may say what they type first, like "I answer 4, 9 and 6 and see Score: 3". "it works", "it all works now" or "no red text" is not a done-check: do not call task_complete, and ask what they will see on screen.
+- When the requirements list a "# done:" line, the run must show it: what it says they will see must be in the output in the EVIDENCE, in the same or plainly matching words or numbers. Only that output counts, never what the student or the chat says a run showed. If one is missing, do not call task_complete, however good their answers: say what is missing and ask them to fix it and run again.
+- Demo questions: "Demo question:" in the OPEN task's notes means one question in the whole task; "Demo: three questions" means three, one per turn. Ask only once every requirement is met and, when a "# done:" is required, the run shows it. Ask one short question about this program, like "What happens if you type 5?" or "Why does score start at 0?". Start it with "Demo question:" (in the boss "Demo question 1:", "2:" or "3:"). Only a labelled question counts. Do not call task_complete in a turn where you ask one, and never answer or hint your own question in it.
+- When they answer your question in their own words and the answer shows what the code does, even in simple or broken English, it is a good answer. Short is enough, like "so the score starts empty": never ask them to say more. In a "Demo question:" task, call task_complete now: do not ask another question. In the boss, ask the next question until three have good answers. Then read the output in the EVIDENCE again: only if it has every word "# done:" names, call task_complete now. If they say "idk" or only guess, give one small hint without the answer and ask the same question again.
+- When the OPEN task's notes name no demo question, call task_complete once every requirement is met.
+- Never write, finish or reword their "# done:" line or a # note, not even as an example with their words.`
+
 export const explainRule = (lesson: Lesson | null) =>
-  lesson?.aiPolicy === 'director'
-    ? lesson.planFirst
-      ? lesson.stepByStep
-        ? `${EXPLAIN_RULE}\n\n${PLAN_RULE}\n\n${STEP_RULE}`
-        : `${EXPLAIN_RULE}\n\n${PLAN_RULE}`
-      : EXPLAIN_RULE
-    : ''
+  lesson?.demo
+    ? `${EXPLAIN_RULE}\n\n${DEMO_RULE}`
+    : lesson?.aiPolicy === 'director'
+      ? lesson.planFirst
+        ? lesson.stepByStep
+          ? `${EXPLAIN_RULE}\n\n${PLAN_RULE}\n\n${STEP_RULE}`
+          : `${EXPLAIN_RULE}\n\n${PLAN_RULE}`
+        : EXPLAIN_RULE
+      : ''
 
 export function lessonLayer(
   lesson: Lesson | null,
