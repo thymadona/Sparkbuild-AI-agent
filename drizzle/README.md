@@ -55,7 +55,8 @@ cascade; `user_roles` is NO ACTION).
 `0001_functions_sequence_seed.sql` carries forward everything the Drizzle
 DSL can't express: the five security-definer authorization functions
 (`has_permission`, `is_admin`, `is_teacher_of_class`,
-`can_access_teacher_dashboard`, `is_enrolled_in_class`), the
+`can_access_teacher_dashboard`, `is_enrolled_in_class` — dropped again in
+`0013`, the rules now being Drizzle queries in `lib/auth/permissions.ts`), the
 `receipt_number_seq` sequence, and the roles/permissions seed rows. It is
 re-runnable — every statement is create-or-replace or `ON CONFLICT` guarded.
 

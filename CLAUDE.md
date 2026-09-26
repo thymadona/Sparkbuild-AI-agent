@@ -86,7 +86,8 @@ Each rule's rationale is in the skill named in parentheses.
   DSL can't express (`--custom`) → `bun run db:migrate` → update `types/index.ts` by hand. A
   new table needs an `export *` in `lib/db/schema.ts` and an `enable row level security` line.
   `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. Latest
-  migration: `0012` (`messages.role` gains `'helper'`, Bolt's exchanges). (`database`)
+  migration: `0013` (drops the Supabase-era authorization SQL functions; the rules live in
+  `lib/auth/permissions.ts`). (`database`)
 - `/board` is cross-origin isolated (`next.config.js`), which only takes effect on a full page
   load: go into or out of the board with `openBoard()` or a plain `<a>`, never `router.push` or
   `<Link>`. Anything the board loads from another site must send CORP or CORS headers.

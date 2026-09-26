@@ -17,15 +17,15 @@ export interface GuardInput {
   user: GuardUser | null
   isDeactivated: boolean
   isAdmin: boolean
-  // Must already be admin-inclusive (computed via the can_access_teacher_dashboard
-  // SQL function) — this function does not independently OR it with isAdmin.
+  // Must already be admin-inclusive (computed by
+  // queryCanAccessTeacherDashboard) — this function does not independently OR it with isAdmin.
   hasTeacherAccess: boolean
   // True only for accounts that have a student_profiles row and aren't a
   // student member of any class *and* hold no admin/teacher platform role.
   // The role check matters because a student_profiles row can outlive a
   // promotion to teacher (an old profile from before the account became a
   // teacher isn't cleaned up), so profile-presence alone isn't enough to
-  // mean "needs a class" — see is_enrolled_in_class in the DB.
+  // mean "needs a class" — see queryIsEnrolledInClass.
   needsClassAssignment: boolean
 }
 

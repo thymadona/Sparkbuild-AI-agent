@@ -1,6 +1,6 @@
 ---
 name: roles-permissions
-description: How authorization works — the three platform roles (admin, teacher, auto-granted student), the 6 permission keys and which routes check each, the Postgres functions `has_permission`/`is_admin`/`is_teacher_of_class`/`can_access_teacher_dashboard`/`is_enrolled_in_class`, the `lib/auth/permissions.ts` API (`hasPermission`, `isAdmin`, `isTeacher`, `getStaffContext`, `isTeacherOfClass`, `getTeacherClassIds`, `STAFF_ROLES`) with cache TTLs and fail-closed behaviour, role assignment (`ASSIGNABLE_ROLES`, `/staff/users`), and how `/staff`, `/admin`, `/teacher` pages gate. Use for anything mentioning role, permission, authorization, admin, teacher, staff, student role, 403, hasPermission, isAdmin, isTeacher, user_roles, role_permissions, grant, revoke, class member, teacher of class, who can access. Use this before exploring `lib/auth/permissions.ts`, `app/api/admin/`, `app/staff/` for gating logic — it already maps them.
+description: How authorization works — the three platform roles (admin, teacher, auto-granted student), the 6 permission keys and which routes check each, the rules as Drizzle queries (`queryIsAdmin`, `queryCanAccessTeacherDashboard`, `queryIsEnrolledInClass`; the old Postgres functions `has_permission`/`is_admin`/`is_teacher_of_class`/`can_access_teacher_dashboard`/`is_enrolled_in_class` were dropped), the `lib/auth/permissions.ts` API (`hasPermission`, `isAdmin`, `isTeacher`, `getStaffContext`, `isTeacherOfClass`, `getTeacherClassIds`, `STAFF_ROLES`) with cache TTLs and fail-closed behaviour, role assignment (`ASSIGNABLE_ROLES`, `/staff/users`), and how `/staff`, `/admin`, `/teacher` pages gate. Use for anything mentioning role, permission, authorization, admin, teacher, staff, student role, 403, hasPermission, isAdmin, isTeacher, user_roles, role_permissions, grant, revoke, class member, teacher of class, who can access. Use this before exploring `lib/auth/permissions.ts`, `app/api/admin/`, `app/staff/` for gating logic — it already maps them.
 ---
 
 # Roles and permissions
@@ -41,12 +41,18 @@ Adding a key = insert into `permissions` (+ `role_permissions` for teacher if wa
 gets it automatically) in a custom migration, check it in the route, add to
 `NAV_PERMISSION_KEYS` if it should show a nav item.
 
-## SQL functions (`drizzle/0001`, security definer, `search_path = public`)
+## The rules (Drizzle queries in `lib/auth/permissions.ts`)
 
-`has_permission(user, key)`, `is_admin(user)`, `is_teacher_of_class(user, class)` (admin-inclusive),
-`can_access_teacher_dashboard(user)` (admin or any `class_members.role='teacher'` row),
-`is_enrolled_in_class(user)` (student class row, or admin, or teacher role). `proxy.ts` calls
-the last three; `permissions.ts` wraps the first three.
+No SQL functions: the Supabase-era security-definer functions were dropped in `drizzle/0013`.
+
+- permission: `user_roles ⋈ role_permissions ⋈ permissions` on `key`.
+- admin: holds the `admin` role. Teacher of a class: that class's teacher row, or admin.
+- `queryCanAccessTeacherDashboard`: admin, or any `class_members.role='teacher'` row.
+- `queryIsEnrolledInClass`: a student class row, or admin, or holds the `teacher` _role_
+  (not a class row — a new teacher with no class must not hit `/no-class`).
+
+The `query*` exports are uncached and **throw**; `proxy.ts` calls them and picks fail-open
+(enrolment) or fail-closed (admin, dashboard). The cached wrappers below all fail closed.
 
 ## `lib/auth/permissions.ts`
 

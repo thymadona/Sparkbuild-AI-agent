@@ -17,7 +17,7 @@ import { roles, userRoles, users } from '@/lib/db/schema'
 //
 // "Superadmin" here means the bootstrap holder of the existing `admin` role
 // (full platform access), not a new tier above admin — adding a real
-// fourth role would mean changing public.is_admin() and the route guards.
+// fourth role would mean changing lib/auth/permissions.ts and the route guards.
 //
 // Idempotent: safe to re-run, and safe to run against a database where the
 // person already signed in.

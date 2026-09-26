@@ -13,16 +13,16 @@ Schema authoring is `lib/db/schemas/*.ts`; schema of record is `drizzle/` — se
 
 ## Files
 
-| Path                                           | What it is                                                                                                                                                           |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/db/client.ts`                             | Builds the `pg.Pool`, exports `db` (drizzle + `schema`) and `rowsOf<T>(result)`.                                                                                     |
-| `lib/db/schema.ts`                             | Barrel: `export *` from every file in `schemas/`. A new table **must** be added here or drizzle-kit never sees it.                                                   |
-| `lib/db/schemas/<table>.ts`                    | One table per file. Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) use timestamp `mode: 'date'`; all 18 app tables use `mode: 'string'`.      |
-| `lib/db/uuid.ts`                               | `isUuid(value): value is string` — regex guard, call before any id reaches a query.                                                                                  |
-| `drizzle.config.ts` / `drizzle.test.config.ts` | Same config; the test one points at `TEST_DATABASE_URL`. `push`/`pull` banned (see header).                                                                          |
-| `drizzle/`                                     | Migrations `0000_baseline` … `0012_quick_freak` (`messages.role` gains `'helper'`), `meta/` snapshots, `_archive/` (pre-cutover history, not runnable), `README.md`. |
-| `scripts/seed-superadmin.ts`                   | `bun run db:seed:admin` — creates a credential-less admin `users` row + `user_roles` from `SUPERADMIN_EMAIL`.                                                        |
-| `types/index.ts`                               | Hand-maintained TS mirror of row shapes (snake_case). Nothing generates it — update by hand with every schema change.                                                |
+| Path                                           | What it is                                                                                                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/db/client.ts`                             | Builds the `pg.Pool`, exports `db` (drizzle + `schema`) and `rowsOf<T>(result)`.                                                                                                      |
+| `lib/db/schema.ts`                             | Barrel: `export *` from every file in `schemas/`. A new table **must** be added here or drizzle-kit never sees it.                                                                    |
+| `lib/db/schemas/<table>.ts`                    | One table per file. Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) use timestamp `mode: 'date'`; all 18 app tables use `mode: 'string'`.                       |
+| `lib/db/uuid.ts`                               | `isUuid(value): value is string` — regex guard, call before any id reaches a query.                                                                                                   |
+| `drizzle.config.ts` / `drizzle.test.config.ts` | Same config; the test one points at `TEST_DATABASE_URL`. `push`/`pull` banned (see header).                                                                                           |
+| `drizzle/`                                     | Migrations `0000_baseline` … `0013_drop_auth_functions` (drops the old authorization SQL functions), `meta/` snapshots, `_archive/` (pre-cutover history, not runnable), `README.md`. |
+| `scripts/seed-superadmin.ts`                   | `bun run db:seed:admin` — creates a credential-less admin `users` row + `user_roles` from `SUPERADMIN_EMAIL`.                                                                         |
+| `types/index.ts`                               | Hand-maintained TS mirror of row shapes (snake_case). Nothing generates it — update by hand with every schema change.                                                                 |
 
 ## `lib/db/client.ts` — what it does and why
 
