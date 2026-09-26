@@ -1,6 +1,14 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { classes, invoices, organizations, userRoles } from '@/lib/db/schema'
+import {
+  classes,
+  invoices,
+  organizations,
+  rolePermissions,
+  roles,
+  userRoles,
+} from '@/lib/db/schema'
+import { PLATFORM_ADMIN_ROLE_ID } from '@/lib/db/schemas/roles'
 import { ensureStudentDefaults } from '@/lib/auth/student-defaults'
 import { DIRECT_ORG_ID, DIRECT_ORG_SLUG, orgOfUser } from '@/lib/orgs'
 import { grantRole, makeClass, makeOrg, makeUser, resetDb } from '../helpers/db'
@@ -88,5 +96,42 @@ describe('organizations (D1 group 1)', () => {
     await expect(insert).rejects.toThrow()
     const cls = await makeClass()
     expect(cls.orgId).toBe(DIRECT_ORG_ID)
+  })
+})
+
+describe('platform_admin (D1 group 2)', () => {
+  it('is seeded with the fixed id and carries no permissions', async () => {
+    const [role] = await db.select().from(roles).where(eq(roles.name, 'platform_admin'))
+    expect(role.id).toBe(PLATFORM_ADMIN_ROLE_ID)
+    const perms = await db
+      .select()
+      .from(rolePermissions)
+      .where(eq(rolePermissions.roleId, PLATFORM_ADMIN_ROLE_ID))
+    expect(perms).toEqual([])
+  })
+
+  it('stores the platform_admin grant with no org', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'platform_admin')
+    const grants = await db
+      .select({ orgId: userRoles.orgId })
+      .from(userRoles)
+      .where(eq(userRoles.userId, user.id))
+    expect(grants).toEqual([{ orgId: null }])
+  })
+
+  it('refuses a platform_admin grant that names an org', async () => {
+    const user = await makeUser()
+    const insert = db
+      .insert(userRoles)
+      .values({ userId: user.id, roleId: PLATFORM_ADMIN_ROLE_ID, orgId: DIRECT_ORG_ID })
+    await expect(insert).rejects.toThrow()
+  })
+
+  it('refuses any other grant with no org', async () => {
+    const user = await makeUser()
+    const [admin] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'admin'))
+    const insert = db.insert(userRoles).values({ userId: user.id, roleId: admin.id, orgId: null })
+    await expect(insert).rejects.toThrow()
   })
 })

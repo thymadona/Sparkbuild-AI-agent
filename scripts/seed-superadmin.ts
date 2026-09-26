@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { roles, userRoles, users } from '@/lib/db/schema'
-import { orgOfUser } from '@/lib/orgs'
+import { DIRECT_ORG_ID } from '@/lib/orgs'
 
 // Bootstraps the first admin account. Without this there is a chicken-and-egg
 // problem: roles are granted from /staff/users, which only an admin can reach.
@@ -16,9 +16,10 @@ import { orgOfUser } from '@/lib/orgs'
 // Better Auth's trusted-provider account linking attaches that Google identity
 // to this row instead of creating a second user.
 //
-// "Superadmin" here means the bootstrap holder of the existing `admin` role
-// (full platform access), not a new tier above admin — adding a real
-// fourth role would mean changing lib/auth/permissions.ts and the route guards.
+// "Superadmin" means two grants: the org-less `platform_admin` role, which
+// marks the platform owner (it grants no permissions yet — the D9 console will
+// use it), and `admin` of SparkBuild Direct, which is what opens /staff today.
+// platform_admin is granted only here, never from /staff/users.
 //
 // Idempotent: safe to re-run, and safe to run against a database where the
 // person already signed in.
@@ -36,23 +37,31 @@ export async function seedSuperadmin(): Promise<void> {
     throw new Error(`SUPERADMIN_EMAIL does not look like an email address: ${email}`)
   }
 
-  const [adminRole] = await db
-    .select({ id: roles.id })
+  const roleRows = await db
+    .select({ id: roles.id, name: roles.name })
     .from(roles)
-    .where(eq(roles.name, 'admin'))
-    .limit(1)
-  if (!adminRole) {
-    throw new Error('The "admin" role is missing — run `bun run db:migrate` first.')
+    .where(inArray(roles.name, ['admin', 'platform_admin']))
+  const adminRoleId = roleRows.find((r) => r.name === 'admin')?.id
+  const platformRoleId = roleRows.find((r) => r.name === 'platform_admin')?.id
+  if (!adminRoleId || !platformRoleId) {
+    throw new Error(
+      'The "admin" or "platform_admin" role is missing — run `bun run db:migrate` first.'
+    )
   }
 
   const [existing] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, orgId: users.orgId })
     .from(users)
     .where(eq(users.email, email))
     .limit(1)
 
   let userId: string
   if (existing) {
+    // The admin grant is a Direct grant, and a grant lives in its user's org.
+    // Moving someone between orgs is not this script's call.
+    if (existing.orgId !== DIRECT_ORG_ID) {
+      throw new Error(`${email} belongs to another org, not SparkBuild Direct — not promoting it.`)
+    }
     userId = existing.id
     console.log(`user already exists for ${email} — promoting it`)
   } else {
@@ -64,21 +73,40 @@ export async function seedSuperadmin(): Promise<void> {
     console.log(`created user ${email}`)
   }
 
-  const granted = await db
-    .insert(userRoles)
-    .values({ userId, roleId: adminRole.id, orgId: orgOfUser(userId) })
-    .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
-    .returning({ user_id: userRoles.userId })
+  const [platform, admin] = await db.transaction(async (tx) => [
+    await tx
+      .insert(userRoles)
+      .values({ userId, roleId: platformRoleId, orgId: null })
+      .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
+      .returning({ user_id: userRoles.userId }),
+    await tx
+      .insert(userRoles)
+      .values({ userId, roleId: adminRoleId, orgId: DIRECT_ORG_ID })
+      .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
+      .returning({ user_id: userRoles.userId }),
+  ])
 
   console.log(
-    granted.length > 0
-      ? `granted the admin role to ${email}`
-      : `${email} already held the admin role`
+    platform.length > 0
+      ? `granted the platform_admin role to ${email}`
+      : `${email} already held the platform_admin role`
+  )
+  console.log(
+    admin.length > 0
+      ? `granted the SparkBuild Direct admin role to ${email}`
+      : `${email} already held the SparkBuild Direct admin role`
   )
   console.log(`\nDone. Sign in at /login with Google using ${email} to claim the account.`)
 }
 
-if (process.argv[1]?.endsWith('seed-superadmin.ts')) {
-  await seedSuperadmin()
-  await db.$client.end()
+async function main(): Promise<void> {
+  try {
+    await seedSuperadmin()
+  } finally {
+    await db.$client.end()
+  }
 }
+
+// A function rather than top-level await: Jest compiles this file to CommonJS
+// when the integration test imports seedSuperadmin.
+if (process.argv[1]?.endsWith('seed-superadmin.ts')) void main()

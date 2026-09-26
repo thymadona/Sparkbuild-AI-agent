@@ -12,7 +12,14 @@ import {
   queryIsAdmin,
 } from '@/lib/auth/permissions'
 import { db } from '@/lib/db/client'
-import { addClassMember, grantRole, makeClass, makeUser, resetDb } from '@/__tests__/helpers/db'
+import {
+  addClassMember,
+  grantRole,
+  makeClass,
+  makeOrg,
+  makeUser,
+  resetDb,
+} from '@/__tests__/helpers/db'
 
 // These run against the real TEST_DATABASE_URL rather than a mocked query
 // builder: the rules are multi-table joins, so a mock could only assert the
@@ -313,5 +320,72 @@ describe('queryCanAccessTeacherDashboard', () => {
 
   it('throws when the query fails', async () => {
     await expect(queryCanAccessTeacherDashboard('not-a-uuid')).rejects.toBeTruthy()
+  })
+})
+
+// D1 group 2: a grant counts only in the user's own org, and the org-less
+// platform_admin grant counts nowhere.
+describe('per-org roles', () => {
+  const KEYS = ['classes:manage', 'roles:manage'] as const
+
+  it("answers for a school admin in the school's own org", async () => {
+    const school = await makeOrg()
+    const admin = await makeUser({ orgId: school.id })
+    await grantRole(admin.id, 'admin')
+
+    await expect(hasPermission(admin.id, 'classes:manage')).resolves.toBe(true)
+    await expect(isAdmin(admin.id)).resolves.toBe(true)
+    await expect(queryIsAdmin(admin.id)).resolves.toBe(true)
+    const ctx = await getStaffContext(admin.id, KEYS)
+    expect(ctx.isAdmin).toBe(true)
+    expect(ctx.permissions).toEqual({ 'classes:manage': true, 'roles:manage': true })
+  })
+
+  it('does not make a school admin a teacher of a Direct class, or the reverse', async () => {
+    const school = await makeOrg()
+    const schoolAdmin = await makeUser({ orgId: school.id })
+    const directAdmin = await makeUser()
+    await grantRole(schoolAdmin.id, 'admin')
+    await grantRole(directAdmin.id, 'admin')
+    const schoolClass = await makeClass({ orgId: school.id })
+    const directClass = await makeClass()
+
+    await expect(isTeacherOfClass(schoolAdmin.id, schoolClass.id)).resolves.toBe(true)
+    await expect(isTeacherOfClass(schoolAdmin.id, directClass.id)).resolves.toBe(false)
+    await expect(isTeacherOfClass(directAdmin.id, directClass.id)).resolves.toBe(true)
+    await expect(isTeacherOfClass(directAdmin.id, schoolClass.id)).resolves.toBe(false)
+  })
+
+  it('answers for a school teacher', async () => {
+    const school = await makeOrg()
+    const teacher = await makeUser({ orgId: school.id })
+    await grantRole(teacher.id, 'teacher')
+    await expect(isTeacher(teacher.id)).resolves.toBe(true)
+    await expect(hasPermission(teacher.id, 'students:message')).resolves.toBe(true)
+  })
+
+  it('grants nothing to a platform_admin grant on its own', async () => {
+    const owner = await makeUser()
+    await grantRole(owner.id, 'platform_admin')
+
+    await expect(hasPermission(owner.id, 'roles:manage')).resolves.toBe(false)
+    await expect(isAdmin(owner.id)).resolves.toBe(false)
+    await expect(isTeacher(owner.id)).resolves.toBe(false)
+    await expect(queryCanAccessTeacherDashboard(owner.id)).resolves.toBe(false)
+    const ctx = await getStaffContext(owner.id, KEYS)
+    expect(ctx).toEqual({
+      isAdmin: false,
+      permissions: { 'classes:manage': false, 'roles:manage': false },
+      teacherClassIds: [],
+    })
+    await expect(getUserRoles(owner.id)).resolves.toEqual(['platform_admin'])
+  })
+
+  it('keeps a Direct admin who is also platform_admin an admin of Direct', async () => {
+    const owner = await makeUser()
+    await grantRole(owner.id, 'platform_admin')
+    await grantRole(owner.id, 'admin')
+    await expect(isAdmin(owner.id)).resolves.toBe(true)
+    await expect(hasPermission(owner.id, 'roles:manage')).resolves.toBe(true)
   })
 })

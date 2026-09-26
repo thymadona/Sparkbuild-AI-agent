@@ -1,7 +1,15 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { classMembers, permissions, rolePermissions, roles, userRoles } from '@/lib/db/schema'
+import {
+  classMembers,
+  classes,
+  permissions,
+  rolePermissions,
+  roles,
+  userRoles,
+} from '@/lib/db/schema'
 import { cached } from '@/lib/cache'
+import { orgOfUser } from '@/lib/orgs'
 
 export class ForbiddenError extends Error {
   constructor(message = 'Forbidden') {
@@ -13,8 +21,9 @@ export class ForbiddenError extends Error {
 // The roles that mean "this account is staff". `student` is deliberately
 // absent: every non-staff account now holds a student row in user_roles
 // (lib/auth/student-defaults.ts), so "has any user_roles row" is no longer a
-// test for staff. The four pages under app/staff/ match on this list instead,
-// so a new staff role added here is picked up by all of them at once.
+// test for staff. Three pages under app/staff/ and overview-stats.ts match on
+// this list instead, so a new staff role added here is picked up by all of
+// them at once. platform_admin is absent too: it is org-less and grants nothing.
 export const STAFF_ROLES = ['admin', 'teacher'] as const
 
 // Looks up a seeded role's id by name, or null when that role is missing —
@@ -41,13 +50,22 @@ export async function getUserRoles(userId: string): Promise<string[]> {
 // callers; `db` connects as the owner and no policy calls them, so they now
 // live here with the schema's types. Each throws on a database error — the
 // exported wrappers and proxy.ts each choose to fail closed or open.
+//
+// Roles are per org: admin means admin of the user's own org. Every rule
+// below counts only grants in that org, so an org-less grant (platform_admin,
+// org_id NULL) never matches and grants nothing. A grant's org always equals
+// its user's org (the composite FK), so this is also what keeps a future
+// cross-org grant from counting.
+function inOwnOrg(userId: string) {
+  return eq(userRoles.orgId, orgOfUser(userId))
+}
 
 async function holdsRole(userId: string, name: string): Promise<boolean> {
   const rows = await db
     .select({ one: sql`1` })
     .from(userRoles)
     .innerJoin(roles, eq(roles.id, userRoles.roleId))
-    .where(and(eq(userRoles.userId, userId), eq(roles.name, name)))
+    .where(and(eq(userRoles.userId, userId), inOwnOrg(userId), eq(roles.name, name)))
     .limit(1)
   return rows.length > 0
 }
@@ -91,7 +109,7 @@ async function queryHasPermission(userId: string, key: string): Promise<boolean>
     .from(userRoles)
     .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
     .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(and(eq(userRoles.userId, userId), eq(permissions.key, key)))
+    .where(and(eq(userRoles.userId, userId), inOwnOrg(userId), eq(permissions.key, key)))
     .limit(1)
   return rows.length > 0
 }
@@ -126,15 +144,15 @@ export async function isAdmin(userId: string): Promise<boolean> {
   })
 }
 
-// True if userId holds the teacher role, regardless of class assignment —
-// used to exempt teachers from the per-class lesson-enabled toggle, which is
+// True if userId holds the teacher role in their own org, regardless of class
+// assignment — used to exempt teachers from the per-class lesson-enabled toggle, which is
 // meant to gate students, not the teachers who set it. Fails closed like
-// isAdmin, rather than throwing like getUserRoles, so a lookup failure here
+// isAdmin, rather than throwing, so a lookup failure here
 // denies the bypass instead of crashing the page/route calling it.
 export async function isTeacher(userId: string): Promise<boolean> {
   return cached(`role:teacher:${userId}`, 30, async () => {
     try {
-      return (await getUserRoles(userId)).includes('teacher')
+      return await holdsRole(userId, 'teacher')
     } catch {
       return false
     }
@@ -167,7 +185,7 @@ export async function getStaffContext(
           .innerJoin(roles, eq(roles.id, userRoles.roleId))
           .leftJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
           .leftJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-          .where(eq(userRoles.userId, userId)),
+          .where(and(eq(userRoles.userId, userId), inOwnOrg(userId))),
         db
           .select({ class_id: classMembers.classId })
           .from(classMembers)
@@ -198,14 +216,25 @@ export async function requirePermission(userId: string, key: string): Promise<vo
   }
 }
 
-// True if userId teaches this specific class, or is an admin.
+// True if the class belongs to userId's own org.
+async function classInOwnOrg(userId: string, classId: string): Promise<boolean> {
+  const rows = await db
+    .select({ one: sql`1` })
+    .from(classes)
+    .where(and(eq(classes.id, classId), eq(classes.orgId, orgOfUser(userId))))
+    .limit(1)
+  return rows.length > 0
+}
+
+// True if userId teaches this specific class, or is an admin of the class's org.
 export async function isTeacherOfClass(userId: string, classId: string): Promise<boolean> {
   try {
-    const [teaches, admin] = await Promise.all([
+    const [teaches, admin, ownOrg] = await Promise.all([
       hasClassMembership(userId, 'teacher', classId),
       queryIsAdmin(userId),
+      classInOwnOrg(userId, classId),
     ])
-    return teaches || admin
+    return teaches || (admin && ownOrg)
   } catch (err) {
     console.error('isTeacherOfClass failed:', err)
     return false
