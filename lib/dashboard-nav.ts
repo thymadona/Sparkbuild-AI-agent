@@ -1,4 +1,4 @@
-// Declarative nav config for the unified /staff dashboard. Each item names
+// Declarative nav config for the back-office sidebar (/staff and /console). Each item names
 // the permission flag that unlocks it; DashboardShell filters against a
 // caller-supplied StaffPermissions rather than a role name, so a future
 // role (e.g. a billing clerk) shows the right items just by being granted
@@ -15,7 +15,7 @@ export interface StaffPermissions {
   // row on at least one class. Distinct from canManageClasses: it grants
   // scoped access to *their own* classes, not the full roster.
   isTeacherOfAnyClass: boolean
-  // The platform owner: shows the link out to /console. Not an org power.
+  // The platform owner: shows All Organizations (/console). Not an org power.
   isPlatformAdmin: boolean
 }
 
@@ -31,9 +31,9 @@ export const NAV_PERMISSION_KEYS = [
   'telegram:manage',
 ] as const
 
-export type NavIcon = 'grid' | 'people' | 'book' | 'check' | 'card' | 'send' | 'shield'
+export type NavIcon = 'grid' | 'building' | 'people' | 'book' | 'card' | 'send' | 'shield'
 
-export type NavGroup = 'classes' | 'people' | 'billing'
+export type NavGroup = 'platform' | 'classes' | 'people' | 'billing'
 
 export interface NavItem {
   href: string
@@ -46,17 +46,59 @@ export interface NavItem {
 }
 
 export const GROUP_LABEL: Record<NavGroup, string> = {
+  platform: 'Platform',
   classes: 'Classes',
   people: 'People',
   billing: 'Billing & Integrations',
 }
 
+// Who may enter /staff at all (app/staff/layout.tsx): any admin, or anyone
+// who teaches a class. A platform owner without either sees only /console.
+export function hasStaffAccess(p: StaffPermissions): boolean {
+  return p.isAdmin || p.isTeacherOfAnyClass
+}
+
+// The platform owner's All Classes / Students / Users (console) cover these
+// org-scoped lists, so their sidebar hides them. Only the menu: the pages still
+// open by URL for anyone with the permission.
+function orgOnly(p: StaffPermissions): boolean {
+  return !p.isPlatformAdmin
+}
+
 export const STAFF_NAV: NavItem[] = [
-  { href: '/staff', label: 'Overview', icon: 'grid', exact: true, visible: () => true },
   {
-    href: '/console',
-    label: 'Platform console',
+    href: '/staff',
+    label: 'Overview',
+    icon: 'grid',
+    exact: true,
+    visible: (p) => hasStaffAccess(p),
+  },
+  {
+    href: '/console/orgs',
+    label: 'All Organizations',
+    icon: 'building',
+    group: 'platform',
+    visible: (p) => p.isPlatformAdmin,
+  },
+  {
+    href: '/console/classes',
+    label: 'All Classes',
+    icon: 'book',
+    group: 'platform',
+    visible: (p) => p.isPlatformAdmin,
+  },
+  {
+    href: '/console/students',
+    label: 'All Students',
+    icon: 'people',
+    group: 'platform',
+    visible: (p) => p.isPlatformAdmin,
+  },
+  {
+    href: '/console/users',
+    label: 'All Users',
     icon: 'shield',
+    group: 'platform',
     visible: (p) => p.isPlatformAdmin,
   },
   {
@@ -64,21 +106,21 @@ export const STAFF_NAV: NavItem[] = [
     label: 'Classes',
     icon: 'book',
     group: 'classes',
-    visible: (p) => p.canManageClasses || p.isTeacherOfAnyClass,
+    visible: (p) => orgOnly(p) && (p.canManageClasses || p.isTeacherOfAnyClass),
   },
   {
     href: '/staff/students',
     label: 'Students',
     icon: 'people',
     group: 'people',
-    visible: (p) => p.canManageStudents,
+    visible: (p) => orgOnly(p) && p.canManageStudents,
   },
   {
     href: '/staff/users',
     label: 'People & Roles',
     icon: 'shield',
     group: 'people',
-    visible: (p) => p.canManageRoles,
+    visible: (p) => orgOnly(p) && p.canManageRoles,
   },
   {
     href: '/staff/finance',

@@ -1,5 +1,7 @@
 'use client'
 
+import { PlusIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Class } from '@/types'
@@ -42,9 +44,10 @@ export default function AddToClassModal({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-xs text-primary hover:text-primary/80">
-        + Class
-      </button>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        <PlusIcon />
+        Add to class
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

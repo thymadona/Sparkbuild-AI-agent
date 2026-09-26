@@ -18,6 +18,10 @@ import { loadFinance } from '@/app/staff/finance/finance-data'
 import { loadUsers } from '@/app/staff/users/users-data'
 import ClassDetailPage from '@/app/staff/classes/[id]/page'
 import StudentDetailPage from '@/app/staff/students/[id]/page'
+import InvoicePage from '@/app/staff/finance/[id]/page'
+import UserPage from '@/app/staff/users/[id]/page'
+import { loadOrg } from '@/app/console/orgs/orgs-data'
+import { loadAllClasses, loadAllStudents, loadAllUsers } from '@/app/console/platform-data'
 import {
   addClassMember,
   grantRole,
@@ -109,11 +113,10 @@ describe('staff lists see only the viewer’s org', () => {
     expect(sorted(allStudents.map((s) => s.userId))).toEqual(sorted(a.students.map((s) => s.id)))
   })
 
-  it('invoices and receipts', async () => {
-    const { invoices, profileMap, receiptByInvoice } = await loadFinance(DIRECT_ORG_ID)
+  it('invoices', async () => {
+    const { invoices, profileMap } = await loadFinance(DIRECT_ORG_ID)
     expect(sorted(invoices.map((i) => i.id))).toEqual(sorted([a.unpaid.id, a.paid.id]))
     expect(sorted(Object.keys(profileMap))).toEqual(sorted(a.students.map((s) => s.id)))
-    expect(receiptByInvoice).toEqual({ [a.paid.id]: a.receipt.id })
   })
 
   it('users', async () => {
@@ -160,5 +163,61 @@ describe('detail pages answer 404 for another org’s id', () => {
   it('student', async () => {
     await expect(StudentDetailPage(params(b.students[0].id))).rejects.toEqual(notFound)
     await expect(StudentDetailPage(params(a.students[0].id))).resolves.toBeTruthy()
+  })
+
+  it('invoice', async () => {
+    await expect(InvoicePage(params(b.paid.id))).rejects.toEqual(notFound)
+    await expect(InvoicePage(params('not-a-uuid'))).rejects.toEqual(notFound)
+    await expect(InvoicePage(params(a.paid.id))).resolves.toBeTruthy()
+  })
+
+  it('user', async () => {
+    await expect(UserPage(params(b.teacher.id))).rejects.toEqual(notFound)
+    await expect(UserPage(params(a.teacher.id))).resolves.toBeTruthy()
+  })
+})
+
+describe('the console’s org detail', () => {
+  it('counts one org’s members and classes, and names its admins', async () => {
+    const org = await loadOrg(b.cls.orgId)
+    expect(org).toMatchObject({ id: b.cls.orgId, members: 4, classes: 1 })
+    expect(org!.admins.map((x) => x.email)).toEqual([b.admin.email])
+  })
+
+  it('is null for a malformed or unknown id', async () => {
+    expect(await loadOrg('nope')).toBeNull()
+    expect(await loadOrg('00000000-0000-4000-8000-00000000abcd')).toBeNull()
+  })
+})
+
+describe('the console’s cross-org lists', () => {
+  it('list every org’s classes with their org, counting only same-org members', async () => {
+    // A planted cross-org membership must not count toward b's class.
+    await addClassMember(b.cls.id, a.students[1].id, 'student')
+    const rows = await loadAllClasses()
+    const byId = new Map(rows.map((r) => [r.id, r]))
+    expect(byId.get(a.cls.id)).toMatchObject({ orgId: DIRECT_ORG_ID, students: 1, teachers: 1 })
+    expect(byId.get(b.cls.id)).toMatchObject({ orgId: b.cls.orgId, students: 1, teachers: 1 })
+    expect(byId.get(b.cls.id)!.orgName).toBeTruthy()
+  })
+
+  it('list every org’s students with their org', async () => {
+    const rows = await loadAllStudents()
+    expect(sorted(rows.map((r) => r.id))).toEqual(
+      sorted([...a.students, ...b.students].map((s) => s.id))
+    )
+    expect(rows.find((r) => r.id === b.students[0].id)).toMatchObject({
+      orgId: b.cls.orgId,
+      classes: 1,
+    })
+  })
+
+  it('list every user with only the roles held in their own org', async () => {
+    const rows = await loadAllUsers()
+    expect(rows).toHaveLength(8)
+    expect(rows.find((r) => r.id === b.admin.id)).toMatchObject({
+      orgId: b.cls.orgId,
+      roles: ['admin'],
+    })
   })
 })

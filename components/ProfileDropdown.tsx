@@ -63,7 +63,7 @@ export default function ProfileDropdown({ email, links }: { email: string; links
         {links?.console && (
           <DropdownMenuItem
             onClick={() => {
-              window.location.href = '/console'
+              window.location.href = '/console/orgs'
             }}
             className="flex items-center gap-2.5 px-2 py-2 cursor-pointer"
           >

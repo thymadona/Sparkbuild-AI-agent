@@ -1,5 +1,7 @@
 'use client'
 
+import { CheckIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -21,12 +23,9 @@ export default function MarkPaidButton({ invoiceId }: { invoiceId: string }) {
   }
 
   return (
-    <button
-      onClick={markPaid}
-      disabled={loading}
-      className="rounded bg-success px-2 py-1 text-xs text-success-foreground hover:bg-success/90 disabled:opacity-50"
-    >
-      {loading ? '…' : 'Mark Paid'}
-    </button>
+    <Button variant="success" onClick={markPaid} disabled={loading}>
+      <CheckIcon />
+      {loading ? 'Marking…' : 'Mark paid'}
+    </Button>
   )
 }

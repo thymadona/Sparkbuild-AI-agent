@@ -1,5 +1,7 @@
 'use client'
 
+import { PlusIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ClassSchedule } from '@/types'
@@ -545,9 +547,10 @@ export default function ClassFormModal(props: Props) {
       </button>
     ))
   ) : (
-    <button className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-      + New Class
-    </button>
+    <Button>
+      <PlusIcon />
+      New class
+    </Button>
   )
 
   return (

@@ -1,22 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import Link from 'next/link'
-import ClassFormModal, { type PersonOption } from '@/components/admin/ClassFormModal'
+import { GraduationCapIcon } from 'lucide-react'
+import DataTable from '@/components/dashboard/DataTable'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { formatDate } from '@/lib/format'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 type ScheduleRow = { day_of_week: number; start_time: string; duration_min: number }
-type ClassRow = {
+export type ClassRow = {
   id: string
   name: string
   description: string | null
@@ -56,149 +48,115 @@ function nextSession(schedules: ScheduleRow[]): string {
   return `${DAYS[best.day]} ${formatTime(best.time)}`
 }
 
-export default function ClassesClient({
-  classes,
-  allTeachers,
-  allStudents,
-}: {
-  classes: ClassRow[]
-  allTeachers: PersonOption[]
-  allStudents: PersonOption[]
-}) {
-  const [dayFilter, setDayFilter] = useState<number | null>(null)
-  const [search, setSearch] = useState('')
-
-  const filtered = useMemo(() => {
-    return classes.filter((c) => {
-      if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false
-      if (dayFilter !== null && !c.schedules.some((s) => s.day_of_week === dayFilter)) return false
-      return true
-    })
-  }, [classes, search, dayFilter])
-
+// The admin's class list. Creating a class is the page header's button.
+export default function ClassesClient({ classes }: { classes: ClassRow[] }) {
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Day:</span>
-          <button
-            onClick={() => setDayFilter(null)}
-            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${dayFilter === null ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            All
-          </button>
-          {DAYS.map((d, i) => (
-            <button
-              key={d}
-              onClick={() => setDayFilter(dayFilter === i ? null : i)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${dayFilter === i ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search classes…"
-            className="w-48 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-          <ClassFormModal mode="create" allTeachers={allTeachers} allStudents={allStudents} />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-md border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Class</TableHead>
-              <TableHead>Schedule</TableHead>
-              <TableHead>Next Session</TableHead>
-              <TableHead className="text-right">Students</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead className="text-right">Created</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((cls) => (
-              <TableRow key={cls.id}>
-                <TableCell>
-                  <div className="font-medium text-foreground">{cls.name}</div>
-                  {cls.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
-                      {cls.description}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {cls.schedules.length === 0 ? (
-                    <span className="text-xs text-muted-foreground/70">No schedule</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {cls.schedules.map((s, i) => (
-                        <Badge key={i} variant="secondary">
-                          {DAYS[s.day_of_week]} {formatTime(s.start_time)}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {nextSession(cls.schedules)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums font-medium text-foreground">
-                  {cls.studentCount}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-1.5">
-                    {cls.unpaidCount > 0 && (
-                      <Badge variant="destructive">{cls.unpaidCount} unpaid</Badge>
-                    )}
-                    {cls.paidCount > 0 && <Badge variant="success">{cls.paidCount} paid</Badge>}
-                    {cls.unpaidCount === 0 && cls.paidCount === 0 && (
-                      <span className="text-xs text-muted-foreground/70">—</span>
-                    )}
+    <DataTable
+      rows={classes}
+      getRowId={(c) => c.id}
+      rowHref={(c) => `/staff/classes/${c.id}`}
+      noun="classes"
+      emptyText="No classes yet."
+      search={{ placeholder: 'Search classes', text: (c) => `${c.name} ${c.description ?? ''}` }}
+      filters={[
+        {
+          id: 'day',
+          label: 'Day',
+          options: [
+            { value: 'all', label: 'Any day' },
+            ...DAYS.map((d, i) => ({ value: String(i), label: d })),
+            { value: 'none', label: 'No schedule' },
+          ],
+          match: (c, v) =>
+            v === 'none'
+              ? c.schedules.length === 0
+              : c.schedules.some((s) => s.day_of_week === Number(v)),
+        },
+        {
+          id: 'payment',
+          label: 'Payment',
+          options: [
+            { value: 'all', label: 'All' },
+            { value: 'unpaid', label: 'Has unpaid' },
+            { value: 'paid', label: 'All paid' },
+          ],
+          match: (c, v) =>
+            v === 'unpaid' ? c.unpaidCount > 0 : c.unpaidCount === 0 && c.paidCount > 0,
+        },
+      ]}
+      columns={[
+        {
+          id: 'name',
+          header: 'Class',
+          sortValue: (c) => c.name.toLowerCase(),
+          cell: (c) => (
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <GraduationCapIcon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <div className="font-medium text-foreground">{c.name}</div>
+                {c.description && (
+                  <div className="max-w-xs truncate text-xs text-muted-foreground">
+                    {c.description}
                   </div>
-                </TableCell>
-                <TableCell className="text-right text-xs text-muted-foreground">
-                  {new Date(cls.createdAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link
-                    href={`/staff/classes/${cls.id}`}
-                    className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors"
-                  >
-                    Details →
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-10 text-center text-sm text-muted-foreground/70"
-                >
-                  {search || dayFilter !== null
-                    ? 'No classes match your filter.'
-                    : 'No classes yet.'}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <p className="text-xs text-muted-foreground/70">
-        {filtered.length} of {classes.length} classes
-      </p>
-    </div>
+                )}
+              </div>
+            </div>
+          ),
+        },
+        {
+          id: 'schedule',
+          header: 'Schedule',
+          cell: (c) =>
+            c.schedules.length === 0 ? (
+              <span className="text-xs text-muted-foreground/70">No schedule</span>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {c.schedules.map((s, i) => (
+                  <Badge key={i} variant="secondary">
+                    {DAYS[s.day_of_week]} {formatTime(s.start_time)}
+                  </Badge>
+                ))}
+              </div>
+            ),
+        },
+        {
+          id: 'next',
+          header: 'Next session',
+          cell: (c) => <span className="text-muted-foreground">{nextSession(c.schedules)}</span>,
+        },
+        {
+          id: 'students',
+          header: 'Students',
+          className: 'text-right',
+          sortValue: (c) => c.studentCount,
+          cell: (c) => <span className="font-medium tabular-nums">{c.studentCount}</span>,
+        },
+        {
+          id: 'payment',
+          header: 'Payment',
+          sortValue: (c) => c.unpaidCount,
+          cell: (c) => (
+            <div className="flex gap-1.5">
+              {c.unpaidCount > 0 && <Badge variant="destructive">{c.unpaidCount} unpaid</Badge>}
+              {c.paidCount > 0 && <Badge variant="success">{c.paidCount} paid</Badge>}
+              {c.unpaidCount === 0 && c.paidCount === 0 && (
+                <span className="text-xs text-muted-foreground/70">—</span>
+              )}
+            </div>
+          ),
+        },
+        {
+          id: 'created',
+          header: 'Created',
+          className: 'text-right',
+          sortValue: (c) => c.createdAt,
+          cell: (c) => (
+            <span className="text-xs text-muted-foreground">{formatDate(c.createdAt)}</span>
+          ),
+        },
+      ]}
+    />
   )
 }

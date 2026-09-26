@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { hasPermission } from '@/lib/auth/permissions'
+import CreateStudentModal from '@/components/admin/CreateStudentModal'
+import PageHeader from '@/components/dashboard/PageHeader'
 import StudentsClient from './StudentsClient'
 import { loadStudents } from './students-data'
 import { getSessionUser } from '@/lib/auth/session'
@@ -12,12 +14,11 @@ export default async function StudentsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-foreground">Students</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Manage accounts, classes, and invoices
-        </p>
-      </div>
+      <PageHeader
+        title="Students"
+        description="Accounts, classes and payment. Open a student to edit, invoice or deactivate."
+        actions={<CreateStudentModal />}
+      />
       <StudentsClient rows={rows} classes={classes} />
     </div>
   )

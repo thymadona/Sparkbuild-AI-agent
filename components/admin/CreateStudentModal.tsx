@@ -1,5 +1,7 @@
 'use client'
 
+import { PlusIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -54,12 +56,10 @@ export default function CreateStudentModal() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-      >
-        + New Student
-      </button>
+      <Button onClick={() => setOpen(true)}>
+        <PlusIcon />
+        New student
+      </Button>
       {notice && !open && (
         <p role="status" className="text-sm text-muted-foreground">
           {notice}

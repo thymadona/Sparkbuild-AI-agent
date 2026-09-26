@@ -1,5 +1,7 @@
 'use client'
 
+import { PencilIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -68,13 +70,10 @@ export default function EditStudentModal({ student }: { student: StudentProfile 
 
   return (
     <>
-      <button
-        onClick={handleOpen}
-        className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70 transition-colors"
-        title="Edit student"
-      >
+      <Button variant="outline" onClick={handleOpen}>
+        <PencilIcon />
         Edit
-      </button>
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

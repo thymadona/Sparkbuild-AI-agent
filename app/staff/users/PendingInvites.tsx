@@ -2,7 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { XIcon } from 'lucide-react'
+import DataTable from '@/components/dashboard/DataTable'
+import { Button } from '@/components/ui/button'
+import { formatDate } from '@/lib/format'
 import type { PendingInvite } from '@/lib/org-invites'
+import RoleBadge from '@/components/dashboard/RoleBadge'
 
 // Invites to SparkBuild Direct accounts that have not been answered yet. The
 // account moves only when its owner accepts; revoking withdraws the offer.
@@ -29,26 +34,51 @@ export default function PendingInvites({ invites }: { invites: PendingInvite[] }
   }
 
   return (
-    <section className="rounded-md border border-border p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-foreground">Pending invites</h2>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <ul className="divide-y divide-border text-sm">
-        {invites.map((invite) => (
-          <li key={invite.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
-            <span className="min-w-0 break-all font-medium text-foreground">{invite.email}</span>
-            <span className="text-xs text-muted-foreground">
-              {invite.role} · {new Date(invite.createdAt).toLocaleDateString()}
-            </span>
-            <button
-              onClick={() => revoke(invite.id)}
-              disabled={busyId !== null}
-              className="ml-auto rounded px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
-            >
-              {busyId === invite.id ? 'Revoking…' : 'Revoke'}
-            </button>
-          </li>
-        ))}
-      </ul>
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold text-foreground">Pending invites ({invites.length})</h2>
+      {error && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+      )}
+      <DataTable
+        rows={invites}
+        getRowId={(i) => i.id}
+        noun="invites"
+        emptyText="No pending invites."
+        columns={[
+          {
+            id: 'email',
+            header: 'Email',
+            sortValue: (i) => i.email,
+            cell: (i) => <span className="font-medium text-foreground">{i.email}</span>,
+          },
+          { id: 'role', header: 'Role', cell: (i) => <RoleBadge role={i.role} /> },
+          {
+            id: 'sent',
+            header: 'Invited',
+            sortValue: (i) => i.createdAt,
+            cell: (i) => (
+              <span className="text-xs text-muted-foreground">{formatDate(i.createdAt)}</span>
+            ),
+          },
+          {
+            id: 'revoke',
+            header: '',
+            className: 'text-right',
+            cell: (i) => (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => revoke(i.id)}
+                disabled={busyId !== null}
+                className="text-destructive"
+              >
+                <XIcon />
+                {busyId === i.id ? 'Revoking…' : 'Revoke'}
+              </Button>
+            ),
+          },
+        ]}
+      />
     </section>
   )
 }

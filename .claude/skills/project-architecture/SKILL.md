@@ -27,15 +27,44 @@ Student Code Builder: AI-assisted Python platform for ages 10–16. One Next.js 
 
 ## Subsystems and directories
 
-| Subsystem                                                                             | Server                                                                                                                       | Client                                                                                                             | Library                                                                                                                                                                                                                                                                                                                           |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Board + tutor** (the only student workspace, `/board/[id]`)                         | `app/board/[id]/page.tsx`, `app/api/projects/[id]/turn/route.ts`                                                             | `app/board/LiveBoard.tsx`, `useTutor.ts`, `BoardView.tsx`, `Nodes.tsx`, `TaskHeader.tsx`, `Mascot.tsx`             | `lib/tutor/`, `lib/board/`, `lib/deepseek.ts`, `hooks/usePythonRunner.ts`, `public/py-worker.js`, `public/py-runtime.py`, `lib/sparky-events.ts`                                                                                                                                                                                  |
-| **Lessons** (catalog, checks, progress, XP)                                           | `app/lessons/page.tsx`, `app/lessons/[id]/page.tsx`, `app/api/projects/**`                                                   | `app/lessons/LessonsClient.tsx`, `LessonDetailClient.tsx`, `hooks/use{TaskChecks,RuntimeChecks,LessonProgress}.ts` | `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/lessons/templates.ts` (starters), `lib/task-checks.ts`, `lib/task-verify.ts`, `lib/task-evidence.ts`, `lib/task-progress.ts`, `lib/task-guard.ts`, `lib/python-checks.ts`, `lib/python-check-client.ts`, `lib/lesson-*.ts`, `lib/starter-file.ts`, `lib/xp.ts`, `lib/player-stats.ts` |
-| **Staff back office** (`/staff/*` live; `/admin/*`, `/teacher/*` are redirect shells) | `app/staff/**/page.tsx`, `app/staff/overview-stats.ts`, `app/api/admin/{classes,students,invoices,schedules,telegram,users}` | `app/staff/**/*Client.tsx`, `components/admin/`, `components/dashboard/`                                           | `lib/auth/permissions.ts`, `lib/dashboard-nav.ts`                                                                                                                                                                                                                                                                                 |
+| Subsystem                                                                                              | Server                                                                                                                                                                  | Client                                                                                                             | Library                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Board + tutor** (the only student workspace, `/board/[id]`)                                          | `app/board/[id]/page.tsx`, `app/api/projects/[id]/turn/route.ts`                                                                                                        | `app/board/LiveBoard.tsx`, `useTutor.ts`, `BoardView.tsx`, `Nodes.tsx`, `TaskHeader.tsx`, `Mascot.tsx`             | `lib/tutor/`, `lib/board/`, `lib/deepseek.ts`, `hooks/usePythonRunner.ts`, `public/py-worker.js`, `public/py-runtime.py`, `lib/sparky-events.ts`                                                                                                                                                                                  |
+| **Lessons** (catalog, checks, progress, XP)                                                            | `app/lessons/page.tsx`, `app/lessons/[id]/page.tsx`, `app/api/projects/**`                                                                                              | `app/lessons/LessonsClient.tsx`, `LessonDetailClient.tsx`, `hooks/use{TaskChecks,RuntimeChecks,LessonProgress}.ts` | `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/lessons/templates.ts` (starters), `lib/task-checks.ts`, `lib/task-verify.ts`, `lib/task-evidence.ts`, `lib/task-progress.ts`, `lib/task-guard.ts`, `lib/python-checks.ts`, `lib/python-check-client.ts`, `lib/lesson-*.ts`, `lib/starter-file.ts`, `lib/xp.ts`, `lib/player-stats.ts` |
+| **Staff back office** (`/staff/*` and `/console/*` live; `/admin/*`, `/teacher/*` are redirect shells) | `app/staff/**/page.tsx`, `app/staff/**/*-data.ts`, `app/console/orgs/**`, `app/api/admin/{classes,students,invoices,schedules,telegram,users}`, `app/api/platform/orgs` | `app/staff/**/*Client.tsx`, `*Table.tsx`, `components/admin/`, `components/dashboard/`                             | `lib/auth/permissions.ts`, `lib/dashboard-nav.ts`, `lib/staff-shell.ts`, `lib/format.ts`                                                                                                                                                                                                                                          |
 
 Other routes: `app/login`, `app/register`, `app/profile`, `app/about`,
 `app/invoice/[id]`, `app/receipt/[id]` (**no authorization — the id is the access control**),
 `app/api/auth/[...all]`, `app/api/profile`. Root `proxy.ts` is the route guard.
+
+**Back-office UI.** `/staff` and `/console` share one shell: both layouts call
+`loadShellPermissions` (`lib/staff-shell.ts`) and render `DashboardShell`, whose sidebar is
+`STAFF_NAV` (`lib/dashboard-nav.ts`, lucide icons; the platform owner's "All Organizations" is
+its `platform` group). Every page follows one pattern:
+
+- `PageHeader` (`components/dashboard/`): title, optional back arrow (`backHref`) on detail
+  pages, and `actions` top right. A create action is a button that opens a dialog
+  (`components/ui/dialog.tsx`, or an existing `components/admin/*Modal.tsx`); never an inline
+  form above a list.
+- Every list is `DataTable` (`components/dashboard/DataTable.tsx`): columns with an optional
+  `sortValue`, a search box, `filters` as dropdown menus (`FilterMenu`; the first option is
+  "all", the rest show counts), pagination (10/20/50/100), and `rowHref` so a whole row opens
+  the item's nested route (`/staff/classes/[id]`, `/staff/students/[id]`, `/staff/finance/[id]`,
+  `/staff/users/[id]`, `/console/orgs/[id]`; a cross-org console row opens its org).
+  `initialFilters` starts a filter from the URL (`/console/classes?org=<id>`). Clicks on buttons, links and inputs in a cell
+  don't open the row, so per-row actions stay possible, but most actions belong on the detail
+  page. Rows arrive fully loaded and org-scoped from the page's `*-data.ts` loader; the table
+  pages on the client (no server-side pagination yet).
+- Colour is monochrome: `.staff-shell` (`app/globals.css`) swaps the parchment tokens for zinc
+  (near-black primary, white cards, grey fills). Use tokens (`bg-primary`, `text-muted-foreground`),
+  never raw colours; red, green and amber (`destructive`, `success`, `warning`) are for status
+  only. Portalled dialogs and menus carry `staff-shell` themselves to pick the tokens up.
+- Status words render as `StatusBadge` (one colour and icon per status), number tiles as
+  `StatCard`, dates and money with `lib/format.ts`.
+- `DataTable` takes functions, so it runs in a `'use client'` wrapper (`*Client.tsx`,
+  `*Table.tsx`) beside the route; the server page passes it plain rows.
+- `buttonVariants` lives in `components/ui/button-variants.ts`: a server page can't call a
+  function exported from the `'use client'` `button.tsx`.
 
 **Colocation rule:** route-specific client components live beside their route
 (`app/board/LiveBoard.tsx`, `app/staff/classes/ClassesClient.tsx`); only genuinely reusable UI
