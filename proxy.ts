@@ -1,22 +1,28 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { db, rowsOf } from '@/lib/db/client'
+import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 import { decideGuard } from '@/lib/auth/guard'
+import {
+  queryCanAccessTeacherDashboard,
+  queryIsAdmin,
+  queryIsEnrolledInClass,
+} from '@/lib/auth/permissions'
 
 // Renamed from middleware.ts: `middleware` is deprecated in Next 16 and the
 // convention is now `proxy`. Proxy defaults to the Node.js runtime, and the
 // `runtime` config option is not available here — setting it throws. Node is
-// what this guard needs: it makes three database round-trips, which the Edge
+// what this guard needs: it makes several database round-trips, which the Edge
 // runtime could not do over a TCP Postgres connection.
 
-async function booleanFn(query: ReturnType<typeof sql>): Promise<boolean | null> {
+// Uncached on purpose: a role change takes effect on the next navigation.
+// null on a database error, so each call site picks fail-open or fail-closed.
+async function check(query: Promise<boolean>): Promise<boolean | null> {
   try {
-    const rows = rowsOf<{ ok: boolean | null }>(await db.execute(query))
-    return rows[0]?.ok === true
+    return await query
   } catch (err) {
-    console.error('proxy: authorization function failed:', err)
+    console.error('proxy: authorization check failed:', err)
     return null
   }
 }
@@ -57,7 +63,7 @@ export async function proxy(request: NextRequest) {
           console.error('proxy: student_profiles lookup failed:', err)
           return null
         }),
-      booleanFn(sql`select public.is_enrolled_in_class(${user.id}::uuid) as ok`),
+      check(queryIsEnrolledInClass(user.id)),
     ])
 
     // A missing row means "no student profile" (e.g. an admin) — allow through.
@@ -76,8 +82,8 @@ export async function proxy(request: NextRequest) {
   let hasTeacherAccess = false
   if (user && (isAdminPath || isTeacherPath || isStaffPath)) {
     const [adminResult, teacherResult] = await Promise.all([
-      booleanFn(sql`select public.is_admin(${user.id}::uuid) as ok`),
-      booleanFn(sql`select public.can_access_teacher_dashboard(${user.id}::uuid) as ok`),
+      check(queryIsAdmin(user.id)),
+      check(queryCanAccessTeacherDashboard(user.id)),
     ])
     // Fail closed: a transient DB error locks admins/teachers out rather than
     // letting them through — accepted tradeoff for a PII/admin surface.

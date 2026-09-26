@@ -17,9 +17,9 @@ jobs:
 
     services:
       # Postgres 17 to match production. The application talks to Postgres
-      # directly over Drizzle + postgres.js, and the authorization rules live in
-      # security-definer *functions*, so a real server is the only way to test
-      # that they answer correctly rather than that we called them.
+      # directly over Drizzle + postgres.js, and the authorization rules are
+      # multi-table joins, so a real server is the only way to test that they
+      # answer correctly rather than that we built the query we meant to.
       #
       # This is a throwaway container created and destroyed with the job. It is
       # never any deployed database: migrations against those are run by hand,

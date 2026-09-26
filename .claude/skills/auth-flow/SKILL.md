@@ -51,10 +51,10 @@ identity marker (`roles-permissions`).
 
 Facts gathered per request (only when relevant to the path):
 
-- `/lessons`, `/board`, `/profile` ("protected"): `student_profiles.is_active` and SQL
-  `is_enrolled_in_class(user)`. `isDeactivated = profile exists && is_active === false`.
+- `/lessons`, `/board`, `/profile` ("protected"): `student_profiles.is_active` and
+  `queryIsEnrolledInClass(user)`. `isDeactivated = profile exists && is_active === false`.
   `needsClassAssignment = profile exists && !enrolled`. **Enrollment fails open** (DB error → treated as enrolled).
-- `/admin`, `/teacher`, `/staff`: SQL `is_admin(user)` and `can_access_teacher_dashboard(user)` (admin-inclusive). **Fail closed** (`=== true` only).
+- `/admin`, `/teacher`, `/staff`: `queryIsAdmin(user)` and `queryCanAccessTeacherDashboard(user)` (`lib/auth/permissions.ts`, uncached) (admin-inclusive). **Fail closed** (`=== true` only).
 
 `decideGuard` precedence:
 
@@ -65,7 +65,7 @@ Facts gathered per request (only when relevant to the path):
 5. `/teacher` or `/staff` and no teacher access → `/lessons`.
 
 A missing `student_profiles` row means "not a student" and passes (staff accounts typically
-have none). `is_enrolled_in_class` is true for admins and teacher-role holders even without
+have none). `queryIsEnrolledInClass` is true for admins and teacher-role holders even without
 a class row, because an old profile can outlive a promotion.
 
 The guard only covers **page navigation**. Every API route re-authenticates with

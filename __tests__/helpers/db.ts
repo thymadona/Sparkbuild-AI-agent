@@ -13,7 +13,7 @@ import {
 } from '@/lib/db/schema'
 
 // Reference data created by drizzle/0001_functions_sequence_seed.sql. The
-// authorization functions join through these, so truncating them would make
+// authorization checks join through these, so truncating them would make
 // every permission check vacuously false instead of exercising the real
 // rules. Everything else is test data and goes.
 const SEEDED = ['roles', 'permissions', 'role_permissions', '__drizzle_migrations']

@@ -8,8 +8,7 @@ import { LESSONS } from '@/lib/lessons'
 import { getSessionUser } from '@/lib/auth/session'
 
 // Toggles a lesson week on/off for one class. isTeacherOfClass is already
-// admin-inclusive (see public.is_teacher_of_class in
-// drizzle/0001_functions_sequence_seed.sql), so this one
+// admin-inclusive (see lib/auth/permissions.ts), so this one
 // check covers both "admin managing any class" and "the teacher(s) of this
 // specific class" — the same two callers who reach /staff/classes/[id].
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
