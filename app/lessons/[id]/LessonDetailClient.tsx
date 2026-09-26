@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Lesson } from '@/lib/lessons'
+import { lessonDisplayTitle, type Lesson } from '@/lib/lessons'
 import { openBoard } from '@/lib/open-board'
 
 interface Props {
@@ -26,7 +26,7 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: lesson.title,
+          title: lessonDisplayTitle(lesson),
           lessonId: lesson.id,
         }),
       })
@@ -58,7 +58,9 @@ export default function LessonDetailClient({ lesson, existingProjectId }: Props)
           All lessons
         </button>
 
-        <h1 className="font-display text-2xl font-bold text-fg-primary mb-2">{lesson.title}</h1>
+        <h1 className="font-display text-2xl font-bold text-fg-primary mb-2">
+          {lessonDisplayTitle(lesson)}
+        </h1>
         <p className="text-fg-secondary text-sm mb-8">{lesson.description}</p>
 
         <div className="mb-8">

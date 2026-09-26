@@ -124,7 +124,7 @@ app/
 ├── staff/            Back office (overview, classes, students, finance, telegram, users)
 ├── admin/, teacher/  Redirect shells into /staff
 ├── invoice/[id]/, receipt/[id]/   Link-based views sent to parents
-├── login/, register/, no-class/, profile/, about/
+├── login/, register/, profile/, about/
 └── api/
     ├── auth/[...all]/            Better Auth (incl. the Google callback)
     ├── projects/                 Project CRUD, autosave, lesson progress, tutor turn

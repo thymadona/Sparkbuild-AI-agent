@@ -7,7 +7,8 @@ Replan between phases: is the next item still the right one?
 **Done:** course weeks 1–11 (Wake the Robot → Rex's Game Show), Bolt the helper AI, the tutor board with Sparky, and the
 staff back office (classes, lesson unlocking, Telegram invoices).
 
-Order: finish the Course track first, then the Dashboard track. Revisit at each replan.
+Order: B0, then the Dashboard track D1→D6 (D7 waits for the ABA PayWay keys), with the Course
+track in between as it fits. Revisit at each replan.
 
 ## Course track
 
@@ -35,6 +36,10 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 ## Dashboard track
 
 B2C first, B2B-ready: B2C is the built-in org "SparkBuild Direct" (see tech-stack).
+
+- [x] **B0. B2C self-paced access.** A new student signs in and lands on `/lessons` with no staff
+      step (no `/no-class`). Lesson 1 is open; beating a lesson's boss opens the next one. A class
+      adds lessons and never removes any. B2C copy says "Lesson N", not "Week N". Free until D7.
 
 - [ ] **D1. Organizations.** `organizations` table; `org_id` on users, classes, invoices and other
       tenant tables; backfill everything into SparkBuild Direct; roles scoped per org; an

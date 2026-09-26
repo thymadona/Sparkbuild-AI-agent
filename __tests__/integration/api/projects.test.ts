@@ -22,7 +22,7 @@ import { eq } from 'drizzle-orm'
 import { GET, POST, PATCH, DELETE } from '@/app/api/projects/route'
 import { db } from '@/lib/db/client'
 import { lessonFiles } from '@/lib/lesson-files'
-import { getLessonForProject } from '@/lib/lessons'
+import { LESSONS, getLessonForProject } from '@/lib/lessons'
 import { classEnabledLessons, messages, projects, prompts } from '@/lib/db/schema'
 import {
   addClassMember,
@@ -31,6 +31,7 @@ import {
   makeProject,
   makeUser,
   resetDb,
+  setLessonProgress,
 } from '@/__tests__/helpers/db'
 
 function makeRequest(method: string, body?: object, url = 'http://localhost/api/projects') {
@@ -104,22 +105,40 @@ describe('POST /api/projects', () => {
     expect(row.userId).toBe(owner.id)
   })
 
-  it('lets a student start only a lesson their class has turned on', async () => {
+  it('lets a new student with no class start the first lesson', async () => {
     const student = await makeUser()
     mockGetSessionUser.mockResolvedValue(student)
-    const body = { lessonId: 101, starter: 'print(1)' }
 
-    expect((await POST(makeRequest('POST', body))).status).toBe(403)
+    expect((await POST(makeRequest('POST', { lessonId: LESSONS[0].id }))).status).toBe(201)
+  })
 
-    const klass = await makeClass()
-    await addClassMember(klass.id, student.id, 'student')
-    await db.insert(classEnabledLessons).values({ classId: klass.id, lessonId: 101 })
-    // The enabled-lesson set is cached per user; a fresh student sees the new row.
-    const other = await makeUser()
-    await addClassMember(klass.id, other.id, 'student')
-    mockGetSessionUser.mockResolvedValue(other)
+  it('opens the next lesson only once the boss of the one before is beaten', async () => {
+    const student = await makeUser()
+    mockGetSessionUser.mockResolvedValue(student)
+    const [first, second] = LESSONS
+    const body = { lessonId: second.id }
+
+    const res = await POST(makeRequest('POST', body))
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toBe('Finish the lesson before this one first')
+
+    const project = await makeProject(student.id, { lessonId: first.id })
+    const boss = first.tasks.find((t) => t.boss)!
+    await setLessonProgress(project.id, [boss.id], new Date().toISOString())
 
     expect((await POST(makeRequest('POST', body))).status).toBe(201)
+  })
+
+  it('adds a lesson a class turned on, even out of order', async () => {
+    const student = await makeUser()
+    const klass = await makeClass()
+    await addClassMember(klass.id, student.id, 'student')
+    const last = LESSONS[LESSONS.length - 1]
+    await db.insert(classEnabledLessons).values({ classId: klass.id, lessonId: last.id })
+    mockGetSessionUser.mockResolvedValue(student)
+
+    expect((await POST(makeRequest('POST', { lessonId: last.id }))).status).toBe(201)
+    expect((await POST(makeRequest('POST', { lessonId: LESSONS[0].id }))).status).toBe(201)
   })
 
   it('always pins the current catalog version, whatever the client sends', async () => {

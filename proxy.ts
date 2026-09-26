@@ -4,11 +4,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 import { decideGuard } from '@/lib/auth/guard'
-import {
-  queryCanAccessTeacherDashboard,
-  queryIsAdmin,
-  queryIsEnrolledInClass,
-} from '@/lib/auth/permissions'
+import { queryCanAccessTeacherDashboard, queryIsAdmin } from '@/lib/auth/permissions'
 
 // Renamed from middleware.ts: `middleware` is deprecated in Next 16 and the
 // convention is now `proxy`. Proxy defaults to the Node.js runtime, and the
@@ -44,37 +40,28 @@ export async function proxy(request: NextRequest) {
   const isTeacherPath = pathname.startsWith('/teacher')
   const isStaffPath = pathname.startsWith('/staff')
 
-  // Deactivation + class-assignment checks — only meaningful for accounts
-  // that actually have a student_profiles row (admin/teacher accounts don't
-  // get one, per the ensureStudentProfile hook in lib/auth/index.ts).
+  // Deactivation check — only meaningful for accounts that actually have a
+  // student_profiles row (admin/teacher accounts don't get one, per the
+  // ensureStudentDefaults hook in lib/auth/index.ts). No class is needed:
+  // a new student goes straight to /lessons (lib/lesson-availability.ts).
   let isDeactivated = false
-  let needsClassAssignment = false
   if (isProtected && user) {
-    const [profileRows, enrolled] = await Promise.all([
-      // Scoped to the caller's own id. This used to run on the anon key under
-      // an RLS policy; the connection now bypasses RLS, so the predicate is
-      // the access control.
-      db
-        .select({ is_active: studentProfiles.isActive })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.userId, user.id))
-        .limit(1)
-        .catch((err) => {
-          console.error('proxy: student_profiles lookup failed:', err)
-          return null
-        }),
-      check(queryIsEnrolledInClass(user.id)),
-    ])
+    // Scoped to the caller's own id. The connection bypasses RLS, so the
+    // predicate is the access control. Fails open on error: this gates
+    // product access, not an admin/PII surface.
+    const profileRows = await db
+      .select({ is_active: studentProfiles.isActive })
+      .from(studentProfiles)
+      .where(eq(studentProfiles.userId, user.id))
+      .limit(1)
+      .catch((err) => {
+        console.error('proxy: student_profiles lookup failed:', err)
+        return null
+      })
 
     // A missing row means "no student profile" (e.g. an admin) — allow through.
     const profile = profileRows === null ? null : (profileRows[0] ?? null)
     isDeactivated = profile !== null && profile.is_active === false
-
-    // Fail open on error, matching the profile lookup above — this gates
-    // product access, not an admin/PII surface, so a transient DB error
-    // shouldn't lock a real student out of their own dashboard.
-    const isEnrolled = enrolled === null ? true : enrolled
-    needsClassAssignment = profile !== null && !isEnrolled
   }
 
   // Only pay the round-trip on /admin, /teacher and /staff navigations.
@@ -97,7 +84,6 @@ export async function proxy(request: NextRequest) {
     isDeactivated,
     isAdmin: isAdminUser,
     hasTeacherAccess,
-    needsClassAssignment,
   })
 
   if (decision) {

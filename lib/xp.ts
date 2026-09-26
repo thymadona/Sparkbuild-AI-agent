@@ -52,12 +52,25 @@ export function xpFor(rows: ProgressRow[]): number {
   return total
 }
 
+const beatBoss = (lesson: Lesson, ids: Set<string>) => {
+  const boss = lesson.tasks.find((t) => t.boss)
+  return boss !== undefined && hasCompletedTask(ids, boss.id)
+}
+
 // A lesson's badge is earned by beating its boss task.
 export function badgesFor(rows: ProgressRow[]): string[] {
-  return doneByLesson(rows).flatMap(({ lesson, ids }) => {
-    const boss = lesson.tasks.find((t) => t.boss)
-    return lesson.badge && boss && hasCompletedTask(ids, boss.id) ? [lesson.badge] : []
-  })
+  return doneByLesson(rows).flatMap(({ lesson, ids }) =>
+    lesson.badge && beatBoss(lesson, ids) ? [lesson.badge] : []
+  )
+}
+
+// Ids of the lessons whose boss task the student has beaten.
+export function bossesBeaten(rows: ProgressRow[]): Set<number> {
+  return new Set(
+    doneByLesson(rows)
+      .filter(({ lesson, ids }) => beatBoss(lesson, ids))
+      .map(({ lesson }) => lesson.id)
+  )
 }
 
 export interface PlayerStats {

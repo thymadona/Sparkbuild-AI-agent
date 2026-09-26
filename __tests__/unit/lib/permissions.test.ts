@@ -10,7 +10,6 @@ import {
   ForbiddenError,
   queryCanAccessTeacherDashboard,
   queryIsAdmin,
-  queryIsEnrolledInClass,
 } from '@/lib/auth/permissions'
 import { db } from '@/lib/db/client'
 import { addClassMember, grantRole, makeClass, makeUser, resetDb } from '@/__tests__/helpers/db'
@@ -314,45 +313,5 @@ describe('queryCanAccessTeacherDashboard', () => {
 
   it('throws when the query fails', async () => {
     await expect(queryCanAccessTeacherDashboard('not-a-uuid')).rejects.toBeTruthy()
-  })
-})
-
-describe('queryIsEnrolledInClass', () => {
-  it('is true for a student in a class', async () => {
-    const user = await makeUser()
-    const someClass = await makeClass()
-    await addClassMember(someClass.id, user.id, 'student')
-    await expect(queryIsEnrolledInClass(user.id)).resolves.toBe(true)
-  })
-
-  it('is false for a student in no class', async () => {
-    const user = await makeUser()
-    await grantRole(user.id, 'student')
-    await expect(queryIsEnrolledInClass(user.id)).resolves.toBe(false)
-  })
-
-  it('is false when the only class row is a teacher row and there is no staff role', async () => {
-    const user = await makeUser()
-    const someClass = await makeClass()
-    await addClassMember(someClass.id, user.id, 'teacher')
-    await expect(queryIsEnrolledInClass(user.id)).resolves.toBe(false)
-  })
-
-  it('is true for an admin with no class', async () => {
-    const user = await makeUser()
-    await grantRole(user.id, 'admin')
-    await expect(queryIsEnrolledInClass(user.id)).resolves.toBe(true)
-  })
-
-  // The archive-0016 fix: staff match on the role, so a new teacher is not
-  // sent to /no-class before being assigned one.
-  it('is true for a teacher-role holder with no class', async () => {
-    const user = await makeUser()
-    await grantRole(user.id, 'teacher')
-    await expect(queryIsEnrolledInClass(user.id)).resolves.toBe(true)
-  })
-
-  it('throws when the query fails', async () => {
-    await expect(queryIsEnrolledInClass('not-a-uuid')).rejects.toBeTruthy()
   })
 })

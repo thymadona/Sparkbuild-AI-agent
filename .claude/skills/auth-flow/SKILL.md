@@ -1,6 +1,6 @@
 ---
 name: auth-flow
-description: How authentication works end to end — Better Auth (not Supabase) with Google as the only provider (`lib/auth/index.ts`), `getSessionUser()` in `lib/auth/session.ts`, `authClient` in `lib/auth/client.ts`, the sign-in/callback sequence, `ensureStudentDefaults` (auto student profile + role), the `proxy.ts` route guard and `lib/auth/guard.ts` `decideGuard` precedence (login, deactivated, `/no-class`, `/admin`, `/teacher`, `/staff`), and `bun run db:seed:admin`. Use for anything mentioning auth, authentication, login, sign in, sign out, session, cookie, Google OAuth, Better Auth, callback, redirect_uri_mismatch, getSessionUser, authClient, useSession, proxy.ts, middleware, route guard, deactivated account, no-class, student profile, superadmin. Use this before exploring `lib/auth/`, `proxy.ts`, `app/login`, `app/api/auth` — it already maps them.
+description: How authentication works end to end — Better Auth (not Supabase) with Google as the only provider (`lib/auth/index.ts`), `getSessionUser()` in `lib/auth/session.ts`, `authClient` in `lib/auth/client.ts`, the sign-in/callback sequence, `ensureStudentDefaults` (auto student profile + role), the `proxy.ts` route guard and `lib/auth/guard.ts` `decideGuard` precedence (login, deactivated, `/admin`, `/teacher`, `/staff`), and `bun run db:seed:admin`. Use for anything mentioning auth, authentication, login, sign in, sign out, session, cookie, Google OAuth, Better Auth, callback, redirect_uri_mismatch, getSessionUser, authClient, useSession, proxy.ts, middleware, route guard, deactivated account, student profile, superadmin. Use this before exploring `lib/auth/`, `proxy.ts`, `app/login`, `app/api/auth` — it already maps them.
 ---
 
 # Authentication: Better Auth + Google
@@ -9,19 +9,18 @@ The app talks to Google directly; there is no Supabase Auth and no `middleware.t
 
 ## Files
 
-| Path                                          | What it is                                                                                                                                                                                                                                                         |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `lib/auth/index.ts`                           | `export const auth = betterAuth({...})` — the whole server config (below).                                                                                                                                                                                         |
-| `lib/auth/session.ts`                         | `getSessionUser(): Promise<{ id, email, name }                                                                                                                                                                                                                     | null>`— wrapped in React`cache()`; calls `auth.api.getSession({ headers })`, which validates against the `sessions` table on every call (cookie is not trusted). The one way to read the caller in pages, layouts and route handlers. |
-| `lib/auth/client.ts`                          | `'use client'`; `authClient = createAuthClient()` (same origin), re-exports `signIn`, `signOut`, `useSession`. Consumers: `app/LoginForm.tsx` (sign-in), `components/ProfileDropdown.tsx` and `app/no-class/NoClassClient.tsx` (sign-out). `useSession` is unused. |
-| `lib/auth/student-defaults.ts`                | `ensureStudentDefaults(userId, name)` — see below.                                                                                                                                                                                                                 |
-| `lib/auth/guard.ts`                           | Pure `decideGuard(input): { redirect, params? }                                                                                                                                                                                                                    | null`; no DB, unit-tested directly.                                                                                                                                                                                                   |
-| `proxy.ts`                                    | Next 16 Proxy (Node runtime — setting `runtime` throws). Gathers facts from the DB, calls `decideGuard`, redirects. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, **`api/auth`** (so the OAuth callback completes without a session).             |
-| `app/api/auth/[...all]/route.ts`              | `toNextJsHandler(auth)` — serves `/api/auth/sign-in/social`, `/api/auth/callback/google`, `/api/auth/sign-out`, `/api/auth/get-session`, …                                                                                                                         |
-| `app/login/page.tsx`, `app/register/page.tsx` | Server pages; both render `app/LoginForm.tsx`; redirect to `/lessons` when already signed in; `/login?reason=deactivated` shows a banner.                                                                                                                          |
-| `app/no-class/`                               | "Waiting for a class" page for students not in any class.                                                                                                                                                                                                          |
-| `scripts/seed-superadmin.ts`                  | `bun run db:seed:admin`: finds/creates a `users` row for `SUPERADMIN_EMAIL` (`emailVerified: true`, no credential) and grants `admin`. Idempotent. The person claims it by signing in with Google on that address.                                                 |
-| `lib/auth/permissions.ts`                     | Roles/permissions — see the `roles-permissions` skill.                                                                                                                                                                                                             |
+| Path                                          | What it is                                                                                                                                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/auth/index.ts`                           | `export const auth = betterAuth({...})` — the whole server config (below).                                                                                                                                                                             |
+| `lib/auth/session.ts`                         | `getSessionUser(): Promise<{ id, email, name }                                                                                                                                                                                                         | null>`— wrapped in React`cache()`; calls `auth.api.getSession({ headers })`, which validates against the `sessions` table on every call (cookie is not trusted). The one way to read the caller in pages, layouts and route handlers. |
+| `lib/auth/client.ts`                          | `'use client'`; `authClient = createAuthClient()` (same origin), re-exports `signIn`, `signOut`, `useSession`. Consumers: `app/LoginForm.tsx` (sign-in), `components/ProfileDropdown.tsx` (sign-out). `useSession` is unused.                          |
+| `lib/auth/student-defaults.ts`                | `ensureStudentDefaults(userId, name)` — see below.                                                                                                                                                                                                     |
+| `lib/auth/guard.ts`                           | Pure `decideGuard(input): { redirect, params? }                                                                                                                                                                                                        | null`; no DB, unit-tested directly.                                                                                                                                                                                                   |
+| `proxy.ts`                                    | Next 16 Proxy (Node runtime — setting `runtime` throws). Gathers facts from the DB, calls `decideGuard`, redirects. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, **`api/auth`** (so the OAuth callback completes without a session). |
+| `app/api/auth/[...all]/route.ts`              | `toNextJsHandler(auth)` — serves `/api/auth/sign-in/social`, `/api/auth/callback/google`, `/api/auth/sign-out`, `/api/auth/get-session`, …                                                                                                             |
+| `app/login/page.tsx`, `app/register/page.tsx` | Server pages; both render `app/LoginForm.tsx`; redirect to `/lessons` when already signed in; `/login?reason=deactivated` shows a banner.                                                                                                              |
+| `scripts/seed-superadmin.ts`                  | `bun run db:seed:admin`: finds/creates a `users` row for `SUPERADMIN_EMAIL` (`emailVerified: true`, no credential) and grants `admin`. Idempotent. The person claims it by signing in with Google on that address.                                     |
+| `lib/auth/permissions.ts`                     | Roles/permissions — see the `roles-permissions` skill.                                                                                                                                                                                                 |
 
 ## `lib/auth/index.ts` config (every line is load-bearing)
 
@@ -51,22 +50,21 @@ identity marker (`roles-permissions`).
 
 Facts gathered per request (only when relevant to the path):
 
-- `/lessons`, `/board`, `/profile` ("protected"): `student_profiles.is_active` and
-  `queryIsEnrolledInClass(user)`. `isDeactivated = profile exists && is_active === false`.
-  `needsClassAssignment = profile exists && !enrolled`. **Enrollment fails open** (DB error → treated as enrolled).
+- `/lessons`, `/board`, `/profile` ("protected"): `student_profiles.is_active` only.
+  `isDeactivated = profile exists && is_active === false`. Fails open on a DB error. No class is
+  needed: a new student lands on `/lessons` with the first lesson open (B2C self-paced access,
+  `lib/lesson-availability.ts`; the old `/no-class` page is gone).
 - `/admin`, `/teacher`, `/staff`: `queryIsAdmin(user)` and `queryCanAccessTeacherDashboard(user)` (`lib/auth/permissions.ts`, uncached) (admin-inclusive). **Fail closed** (`=== true` only).
 
 `decideGuard` precedence:
 
 1. No user on any of the above paths → `/login`.
 2. Protected + deactivated → `/login?reason=deactivated`.
-3. Protected + needs class → `/no-class`.
-4. `/admin` and not admin → `/lessons`.
-5. `/teacher` or `/staff` and no teacher access → `/lessons`.
+3. `/admin` and not admin → `/lessons`.
+4. `/teacher` or `/staff` and no teacher access → `/lessons`.
 
 A missing `student_profiles` row means "not a student" and passes (staff accounts typically
-have none). `queryIsEnrolledInClass` is true for admins and teacher-role holders even without
-a class row, because an old profile can outlive a promotion.
+have none).
 
 The guard only covers **page navigation**. Every API route re-authenticates with
 `getSessionUser()` (→ 401) and re-authorizes itself (`roles-permissions`).

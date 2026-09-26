@@ -110,7 +110,7 @@ mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
 | --------------------------------------------------------------------------------------------- | ----------------------- |
 | stack, folder layout, where X lives, Next 16 specifics, config, CI, jest harness, env vars    | `project-architecture`  |
 | queries, Drizzle, `db`, migrations, tables, columns, RLS, `isUuid`, `rowsOf`                  | `database`              |
-| login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, `/no-class`             | `auth-flow`             |
+| login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, new-student access      | `auth-flow`             |
 | roles, permission keys, `hasPermission`, `/staff` gating, assigning roles                     | `roles-permissions`     |
 | Redis, `cached()`, TTLs, invalidation, rate limit / 429                                       | `redis-cache-ratelimit` |
 | tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace, Bolt | `ai-tutor`              |

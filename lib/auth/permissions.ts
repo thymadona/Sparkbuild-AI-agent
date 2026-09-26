@@ -85,17 +85,6 @@ export async function queryCanAccessTeacherDashboard(userId: string): Promise<bo
   return admin || teaches
 }
 
-// Student in some class, or staff. Staff match on the platform *role*, not a
-// class row, so a teacher not yet assigned a class is not sent to /no-class.
-export async function queryIsEnrolledInClass(userId: string): Promise<boolean> {
-  const results = await Promise.all([
-    hasClassMembership(userId, 'student'),
-    queryIsAdmin(userId),
-    holdsRole(userId, 'teacher'),
-  ])
-  return results.some(Boolean)
-}
-
 async function queryHasPermission(userId: string, key: string): Promise<boolean> {
   const rows = await db
     .select({ one: sql`1` })
