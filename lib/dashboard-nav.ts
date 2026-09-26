@@ -15,6 +15,8 @@ export interface StaffPermissions {
   // row on at least one class. Distinct from canManageClasses: it grants
   // scoped access to *their own* classes, not the full roster.
   isTeacherOfAnyClass: boolean
+  // The platform owner: shows the link out to /console. Not an org power.
+  isPlatformAdmin: boolean
 }
 
 // The permission keys the sidebar switches on. Both app/staff/layout.tsx and
@@ -51,6 +53,12 @@ export const GROUP_LABEL: Record<NavGroup, string> = {
 
 export const STAFF_NAV: NavItem[] = [
   { href: '/staff', label: 'Overview', icon: 'grid', exact: true, visible: () => true },
+  {
+    href: '/console',
+    label: 'Platform console',
+    icon: 'shield',
+    visible: (p) => p.isPlatformAdmin,
+  },
   {
     href: '/staff/classes',
     label: 'Classes',

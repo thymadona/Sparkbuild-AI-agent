@@ -74,6 +74,17 @@ export interface Organization {
   created_at: string
 }
 
+export interface OrgInvite {
+  id: string
+  org_id: string
+  email: string // trimmed and lowercased
+  role: 'admin' | 'teacher' | 'student'
+  invited_by: string | null
+  status: 'pending' | 'accepted' | 'declined' | 'revoked'
+  created_at: string
+  responded_at: string | null
+}
+
 export interface Class {
   id: string
   name: string

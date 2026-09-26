@@ -2,6 +2,7 @@ import {
   getUserRoles,
   hasPermission,
   isAdmin,
+  isPlatformAdmin,
   isTeacher,
   requirePermission,
   isTeacherOfClass,
@@ -83,6 +84,28 @@ describe('isAdmin', () => {
 
   it('fails closed (denies) when the query throws', async () => {
     await expect(isAdmin('not-a-uuid')).resolves.toBe(false)
+  })
+})
+
+describe('isPlatformAdmin', () => {
+  it('is true only for the org-less platform_admin grant', async () => {
+    const owner = await makeUser()
+    await grantRole(owner.id, 'platform_admin')
+    const directAdmin = await makeUser()
+    await grantRole(directAdmin.id, 'admin')
+    await expect(isPlatformAdmin(owner.id)).resolves.toBe(true)
+    await expect(isPlatformAdmin(directAdmin.id)).resolves.toBe(false)
+  })
+
+  it('grants no org power: a platform_admin alone is not admin and has no permission', async () => {
+    const owner = await makeUser()
+    await grantRole(owner.id, 'platform_admin')
+    await expect(isAdmin(owner.id)).resolves.toBe(false)
+    await expect(hasPermission(owner.id, 'classes:manage')).resolves.toBe(false)
+  })
+
+  it('fails closed (denies) when the query throws', async () => {
+    await expect(isPlatformAdmin('not-a-uuid')).resolves.toBe(false)
   })
 })
 
