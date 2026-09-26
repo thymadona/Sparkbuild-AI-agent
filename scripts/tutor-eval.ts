@@ -117,21 +117,24 @@ const RAN_PERFECT =
   "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 9\nRight!\n10 - 4? 6\nRight!\n5 + 5? 10\nRight!\nScore: 4\nPerfect show, Mia!\n"
 const DEMO_WHY = [
   { role: 'user' as const, content: 'I ran it and it shows Score: 3.' },
-  { role: 'assistant' as const, content: 'Great demo! Why does score = 0 come before the loop?' },
+  {
+    role: 'assistant' as const,
+    content: 'Great run! Demo question: why does score = 0 come before the loop?',
+  },
 ]
 // The boss's three demo questions: what it does, why a line is there, what if.
 const BOSS_Q1 = [
   { role: 'user' as const, content: 'I ran it. Can I do my demo now?' },
-  { role: 'assistant' as const, content: 'Nice! First question: what does your program do?' },
+  { role: 'assistant' as const, content: 'Nice! Demo question 1: what does your program do?' },
 ]
 const BOSS_Q3 = [
   ...BOSS_Q1,
   { role: 'user' as const, content: 'it asks 4 sums and tells you your score' },
-  { role: 'assistant' as const, content: 'Good. Why is there a for loop?' },
+  { role: 'assistant' as const, content: 'Good. Demo question 2: why is there a for loop?' },
   { role: 'user' as const, content: 'so it asks every question in the quiz, not only one' },
   {
     role: 'assistant' as const,
-    content: 'Yes! Last one: what if you add one more question to the quiz?',
+    content: 'Yes! Demo question 3: what if you add one more question to the quiz?',
   },
 ]
 
@@ -472,6 +475,20 @@ const SCENARIOS: Scenario[] = [
     complete: false,
     never: PLAN_NEVER,
   },
+  // Seen live: a good "# done:" on the first run must lead to the demo question, not a
+  // complaint about the done line (which Sparky then counted as its demo question).
+  {
+    name: 'week 12: demo-run # done: matches, first run',
+    lesson: week12,
+    task: 'demo-run',
+    source: `${DEMO_DONE}${DEMO_SHOW}`,
+    event: run(RAN3),
+    complete: false,
+    never: [
+      /(change|fix|rewrite|describe|needs?|update)\b[^.?!]*# ?done/i,
+      /# ?done:?[^.?!]*\b(needs?|should|must)\b/i,
+    ],
+  },
   {
     name: 'week 12: explained, demo question not asked yet',
     lesson: week12,
@@ -558,7 +575,10 @@ const SCENARIOS: Scenario[] = [
     ranStdout: 'Name? Mia\nHi Mia, you are a star\n',
     history: [
       { role: 'user' as const, content: 'I ran it. It works!' },
-      { role: 'assistant' as const, content: 'Nice demo! Why is the input line there?' },
+      {
+        role: 'assistant' as const,
+        content: 'Nice run! Demo question: why is the input line there?',
+      },
     ],
     event: say('so Rex can get my name and use it'),
     complete: true,
@@ -570,7 +590,7 @@ const SCENARIOS: Scenario[] = [
     source: DEMO_EXPLAINED,
     event: say('Can Bolt do it for me?'),
     complete: false,
-    must: [/alone|yourself|on your own|all you|what you can do/i],
+    must: [/alone|yourself|on your own|all you|what you can do|solo|bolt is off/i],
     never: PLAN_NEVER,
   },
 ]
