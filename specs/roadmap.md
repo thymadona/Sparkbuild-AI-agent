@@ -44,7 +44,7 @@ B2C first, B2B-ready: B2C is the built-in org "SparkBuild Direct" (see tech-stac
 - [x] **D1. Organizations.** `organizations` table; `org_id` on users, classes, invoices and other
       tenant tables; backfill everything into SparkBuild Direct; roles scoped per org; an
       org-predicate hard rule in `CLAUDE.md`. Build it task group by task group.
-- [ ] **D2a. Org onboarding.** On the current host, no subdomains: the platform owner creates and
+- [x] **D2a. Org onboarding.** On the current host, no subdomains: the platform owner creates and
       suspends orgs and names the first org admin by email at `/console`; an org admin adds
       students and teachers by email or CSV; a teacher manages the students in their own classes;
       an existing SparkBuild Direct user joins an org by accepting an invite. School orgs are

@@ -1,6 +1,6 @@
 ---
 name: lesson-progress
-description: How a student's lesson progress is made and verified end to end — catalog resolution (`getLessonForProject`, `CURRENT_LESSON_VERSION = 3`), the check kinds (`sourceMatches` static; `outputContains`/`worldContains`/`callReturns` runtime in Pyodide), `runTaskChecks`, the tutor-judged completion path (`task_complete` tool → turn-route guard → `verifyTask` static floor on stored code → `recordTaskDone` in `lib/task-progress.ts`, the only writer that grows `lesson_progress`, plus the `task_progress` audit row), task gating (`isTaskLocked`, `pendingCoreTask`, `awaitingEditor`), the `lesson_progress` routes (GET / shrink-only PUT), the board's `task.complete` SSE flow, lesson availability (B2C self-paced unlock by boss + `class_enabled_lessons`), and project creation and autosave (`/api/projects`). Use for anything mentioning lesson progress, task, check, verify, complete, task_complete, completed_task_ids, lesson_progress, task_progress, evidence, hasRun, stale run, done, locked, gate, next task, enabled lessons, "not open yet", start/resume lesson, project creation, autosave, PATCH projects, runtime verdict, 409. Use this before exploring `lib/task-*.ts`, `app/api/projects/`, `hooks/use*Progress*`, `lib/lesson-availability.ts`, `lib/lesson-files.ts` — it already maps them.
+description: How a student's lesson progress is made and verified end to end — catalog resolution (`getLessonForProject`, `CURRENT_LESSON_VERSION = 3`), the check kinds (`sourceMatches` static; `outputContains`/`worldContains`/`callReturns` runtime in Pyodide), `runTaskChecks`, the tutor-judged completion path (`task_complete` tool → turn-route guard → `verifyTask` static floor on stored code → `recordTaskDone` in `lib/task-progress.ts`, the only writer that grows `lesson_progress`, plus the `task_progress` audit row), task gating (`isTaskLocked`, `pendingCoreTask`, `awaitingEditor`), the `lesson_progress` routes (GET / shrink-only PUT), the board's `task.complete` SSE flow, lesson availability per org (`accessPolicyFor(orgId)`: Direct self-paced unlock by boss + `class_enabled_lessons`; school orgs class-only), and project creation and autosave (`/api/projects`). Use for anything mentioning lesson progress, task, check, verify, complete, task_complete, completed_task_ids, lesson_progress, task_progress, evidence, hasRun, stale run, done, locked, gate, next task, enabled lessons, "not open yet", start/resume lesson, project creation, autosave, PATCH projects, runtime verdict, 409. Use this before exploring `lib/task-*.ts`, `app/api/projects/`, `hooks/use*Progress*`, `lib/lesson-availability.ts`, `lib/lesson-files.ts` — it already maps them.
 ---
 
 # Lesson progress: checks → evidence → tutor verdict → record
@@ -25,7 +25,7 @@ prompt/tool side). Authoring a lesson (tasks, checks, templates, word budgets) i
 | `lib/board/tasks.ts`                                                    | `taskPageId`, `taskCodeNodeId`, `taskFile`, `taskStarter`, `awaitingEditor(board, task, pageId)` (concept steps still showing → task code is `''`, `task_complete` withheld).                                                                                   |
 | `lib/lesson-files.ts`, `lib/lessons/templates.ts`                       | `lessonFiles(lesson)` builds a new project's files server-side from `TEMPLATES` (`templateFor(key)`); nothing the client sends is used.                                                                                                                         |
 | `lib/starter-file.ts`                                                   | `entryFileFor(lesson, _files)` → `lesson.starterFile ?? 'main.py'` (second arg unused).                                                                                                                                                                         |
-| `lib/lesson-availability.ts`                                            | `getAvailableLessonIdsForUser(userId) → Set<number>` — self-paced (first lesson + each lesson after a beaten boss, uncached) ∪ class-enabled (cached 60s). See Availability.                                                                                    |
+| `lib/lesson-availability.ts`                                            | `accessPolicyFor(orgId) → 'self-paced' \| 'class-only'`; `getAvailableLessonIdsForUser(userId, orgId) → Set<number>` — Direct: self-paced (uncached) ∪ class-enabled (cached 60s); a school: class-enabled only. See Availability.                              |
 | `app/api/projects/route.ts`                                             | GET list · POST create · PATCH autosave · DELETE.                                                                                                                                                                                                               |
 | `app/api/projects/[id]/lesson-progress/route.ts`                        | GET, PUT (shrink only). No route adds an id — that is `task_complete` inside `app/api/projects/[id]/turn/route.ts` (below).                                                                                                                                     |
 | `app/api/admin/classes/[id]/lessons/route.ts`                           | Teacher enables/disables a lesson for a class (`LessonsPanel.tsx`).                                                                                                                                                                                             |
@@ -119,13 +119,24 @@ tasks are unchanged.
 
 ## Availability
 
-`ACCESS_POLICY = 'self-paced'` (B2C, until D1 makes it per org): the first lesson in `LESSONS`
-order is always open, and each next lesson opens once the student beats the **boss** of the one
-before (`bossesBeaten` in `lib/xp.ts`, aliases resolved, uncached so it opens on the next page
-load). No class is needed. A class **adds** lessons on top and never removes any: a teacher
-enables one for the class (`class_enabled_lessons`, toggled via
+The policy is per org: `accessPolicyFor(orgId)` in `lib/lesson-availability.ts`, where `orgId`
+is the student's own (`user.orgId` from the session).
+
+- **`'self-paced'` — SparkBuild Direct (B2C) only.** The first lesson in `LESSONS` order is always
+  open, and each next lesson opens once the student beats the **boss** of the one before
+  (`bossesBeaten` in `lib/xp.ts`, aliases resolved, uncached so it opens on the next page load).
+  No class is needed. A class **adds** lessons on top and never removes any.
+- **`'class-only'` — every school org.** The school sets the pace: a student opens only the
+  lessons a class they are a student-member of has enabled. Beating a boss opens nothing. A
+  school student in no class sees every lesson "Not open yet". A student who moved from Direct
+  (`lib/org-move.ts`) keeps their XP and can resume every project they already started.
+
+A teacher enables a lesson for a class (`class_enabled_lessons`, toggled via
 `POST admin/classes/[id]/lessons { lessonId, enabled }` — `classes:manage` or
-`isTeacherOfClass`), cached 60s. Admins and teachers see everything. Student-facing surfaces
+`isTeacherOfClass`), cached 60s (`enabled-lessons:<user>`, also invalidated on an org move).
+Admins and teachers see everything. `/lessons` passes the `policy` to `LessonsClient` for its
+copy, and POST `/api/projects` answers 403 with a policy-specific message ("Your class hasn't
+opened this lesson yet" / "Finish the lesson before this one first"). Student-facing surfaces
 show `lessonDisplayTitle(lesson)` (no "Week #N —"); staff views and the tutor keep the full title. The gate is enforced only at
 **project creation**; an already-started project stays resumable if later disabled.
 `app/lessons/[id]` does not gate (only the POST does).

@@ -13,7 +13,8 @@ not a thing — role assignment lives in `user_roles`, editable at `/staff/users
 ## Organizations
 
 Every user belongs to one org (`users.org_id`; SparkBuild Direct, `DIRECT_ORG_ID`, is the
-built-in B2C org and where every sign-in lands until D2). **Roles are per org**: a
+built-in B2C org and where a new Google sign-in lands until D2; someone an org admin added by
+email was pre-provisioned in that org). **Roles are per org**: a
 `user_roles` row carries the user's `org_id`, and `admin`/`teacher` mean admin/teacher _of
 that org_. Every rule below counts only grants in the user's own org, so an org-B admin has no
 permission in Direct and vice versa. `getSessionUser()` returns `orgId`.
@@ -22,16 +23,35 @@ Permission says _what_ a user may do; the **org predicate** says _on which rows_
 staff query filters by `user.orgId` (see `database` for `usersInOrg` / `classesInOrg`), so
 another org's id answers 404 and a cross-org write (member into another org's class, invoice
 for another org's student, pay/send another org's invoice, unlock lessons in another org's
-class) is refused. There is no UI to create or switch orgs yet (D9 console).
+class) is refused.
+
+Orgs are created, suspended and reactivated at `/console` by the platform owner (below).
+People join an org in three ways, all through `addPersonToOrg` (`lib/org-people.ts`):
+
+- a new email is pre-provisioned in the org with its role;
+- an email already in the org gets the role granted;
+- an email in Direct gets an `org_invites` row that only that signed-in user can accept
+  (`lib/org-move.ts`, see `database`).
+  An email in another school is refused (409, `CONFLICT_MESSAGE`). Nobody moves school → school
+  or back to Direct.
+
+**Suspension** (`organizations.status = 'suspended'`) pauses every member of that org:
+
+- `getSessionUser()` returns null, so every API answers 401;
+- `proxy.ts` answers `/api/*` with 403 and redirects pages to `/paused`.
+
+The check is `isSuspendedFor` (`lib/orgs.ts`). It fails closed for a school's members, never
+queries for Direct (which can't be suspended), and exempts `platform_admin`. Nothing is
+deleted, so reactivating restores everything.
 
 ## Roles
 
-| Role             | Seeded by      | Permissions                                                                                   | Assignable from UI                                                                    |
-| ---------------- | -------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `admin`          | `drizzle/0001` | all — `role_permissions` is a cross join, so a future key auto-belongs                        | yes (`roles:manage`)                                                                  |
-| `teacher`        | `drizzle/0001` | `students:message`                                                                            | yes                                                                                   |
-| `student`        | `drizzle/0004` | **none** — identity marker only                                                               | no: system-managed, granted by `ensureStudentDefaults` on every sign-in (`auth-flow`) |
-| `platform_admin` | `drizzle/0015` | **none** — org-less (`org_id` NULL) marker for the platform owner; the D9 console will use it | no: only `bun run db:seed:admin` grants it (with Direct `admin`)                      |
+| Role             | Seeded by      | Permissions                                                                                                    | Assignable from UI                                                                    |
+| ---------------- | -------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `admin`          | `drizzle/0001` | all — `role_permissions` is a cross join, so a future key auto-belongs                                         | yes (`roles:manage`)                                                                  |
+| `teacher`        | `drizzle/0001` | `students:message`                                                                                             | yes                                                                                   |
+| `student`        | `drizzle/0004` | **none** — identity marker only                                                                                | no: system-managed, granted by `ensureStudentDefaults` on every sign-in (`auth-flow`) |
+| `platform_admin` | `drizzle/0015` | **none** — org-less (`org_id` NULL) marker for the platform owner; gates `/console` and `/api/platform/*` only | no: only `bun run db:seed:admin` grants it (with Direct `admin`)                      |
 
 Roles are additive: a promoted student keeps both rows. Consequence: **"has a `user_roles`
 row" ≠ "is staff"** — filter with `STAFF_ROLES` (`['admin','teacher']`) where that matters
@@ -41,14 +61,14 @@ membership, a different concept; the two tables never interact.
 
 ## Permission keys (all 6, seeded in `0001`; `homework:review` removed in `0011`)
 
-| Key                | Checked in                                                                                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `classes:manage`   | `app/api/admin/classes/route.ts`, `classes/[id]/route.ts`, `classes/[id]/members/route.ts`, `schedules/route.ts`; `classes/[id]/lessons/route.ts` (**or** `isTeacherOfClass`); `/staff/classes*` pages |
-| `students:manage`  | `app/api/admin/students/route.ts`, `students/[id]/route.ts`; `/staff/students*`                                                                                                                        |
-| `invoices:manage`  | `app/api/admin/invoices/route.ts`, `invoices/[id]/route.ts`, `invoices/[id]/pay`, `invoices/[id]/send`; `/staff/finance`                                                                               |
-| `telegram:manage`  | `app/api/admin/telegram/updates/route.ts`; `/staff/telegram`                                                                                                                                           |
-| `roles:manage`     | `app/api/admin/users/[id]/roles/route.ts`; `/staff/users`                                                                                                                                              |
-| `students:message` | seeded and granted to teacher, **never checked anywhere**                                                                                                                                              |
+| Key                | Checked in                                                                                                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `classes:manage`   | `app/api/admin/classes/route.ts`, `classes/[id]/route.ts`, `schedules/route.ts`; `classes/[id]/lessons/route.ts` and `classes/[id]/members/route.ts` (**or** `isTeacherOfClass`); `/staff/classes*` pages |
+| `students:manage`  | `app/api/admin/students/route.ts`, `students/[id]/route.ts`; `admin/people` + `people/import` for a `student` row (`permissionForRole`); `/staff/students*`                                               |
+| `invoices:manage`  | `app/api/admin/invoices/route.ts`, `invoices/[id]/route.ts`, `invoices/[id]/pay`, `invoices/[id]/send`; `/staff/finance`                                                                                  |
+| `telegram:manage`  | `app/api/admin/telegram/updates/route.ts`; `/staff/telegram`                                                                                                                                              |
+| `roles:manage`     | `app/api/admin/users/[id]/roles/route.ts`; `admin/people` + `people/import` for a `teacher` row; `admin/invites` (list) and `invites/[id]` (revoke); `/staff/users`                                       |
+| `students:message` | seeded and granted to teacher, **never checked anywhere**                                                                                                                                                 |
 
 `NAV_PERMISSION_KEYS` in `lib/dashboard-nav.ts` (`classes:manage`, `students:manage`,
 `invoices:manage`, `roles:manage`, `telegram:manage`) drives sidebar visibility only.
@@ -101,6 +121,21 @@ if (!isUuid(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 
 org's_ classes, so a route that takes a class id still has to check the class is in
 `user.orgId` (`classInOrg`) before trusting the permission (`classes/[id]/lessons`).
 
+**`/console` and `/api/platform/*`** check `isPlatformAdmin(user.id)` (cached 30s, fails closed)
+through `requirePlatformAdmin()` (`lib/platform-orgs.ts`) as their first lines; `proxy.ts`
+sends anyone else from `/console` to `/lessons`. A Direct `admin` gets 403 there.
+`/api/invites` (GET) and `/api/invites/[id]/accept|decline` (POST) need only a session: they
+act on the caller's own invites, matched by the caller's own email.
+
+**Class rosters** (`classes/[id]/members`, POST/DELETE): a `classes:manage` holder may add or
+remove any own-org user in any own-org class, as student or teacher. Otherwise the caller must
+pass `isTeacherOfClass`, and then they may add or remove only **student-only** users (a
+`student` grant in the org and no `STAFF_ROLES` grant, so a promoted student is refused), as
+`role: 'student'`, and may not remove a teacher member.
+
+- Refusals: another teacher's class in the same org is 403; another org's class or user is 404.
+- The teacher view (`/staff/classes/[id]`, `RosterPanel`) offers only those candidates.
+
 Role assignment (`app/api/admin/users/[id]/roles/route.ts`): `POST { role }` / `DELETE ?role=`;
 `ASSIGNABLE_ROLES = ['admin','teacher']` (the `student` role is refused — the sign-in hook
 would re-grant it anyway); DELETE refuses removing your own `admin` (lockout guard); inserts
@@ -126,6 +161,11 @@ carry `grantedBy: user.id` and the target's org. A target in another org → 404
 - `__tests__/unit/lib/permissions.test.ts` — fail-closed behaviour, caching.
 - `__tests__/unit/lib/guard.test.ts` — path precedence.
 - `__tests__/integration/api/admin-user-roles.test.ts` — role assignment across orgs.
+- `__tests__/integration/api/platform-orgs.test.ts`, `__tests__/integration/orgs-suspension.test.ts`,
+  `__tests__/integration/session-suspension.test.ts` — the console and suspension.
+- `__tests__/integration/api/admin-people.test.ts` — people, CSV, invites.
+- `__tests__/integration/api/class-members-teacher.test.ts` — a teacher's roster rights.
+- `__tests__/integration/api/invites.test.ts` — accept/decline and the org move.
 - `__tests__/integration/api/admin-org-isolation.test.ts`, `__tests__/integration/staff-org-isolation.test.ts`
   — two orgs; every staff list, detail page and admin route stays in the viewer's org.
 - `__tests__/helpers/db.ts` `makeOrg()`, `makeUser({ orgId })`, `makeClass({ orgId })`,

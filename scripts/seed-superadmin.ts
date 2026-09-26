@@ -17,8 +17,8 @@ import { DIRECT_ORG_ID } from '@/lib/orgs'
 // to this row instead of creating a second user.
 //
 // "Superadmin" means two grants: the org-less `platform_admin` role, which
-// marks the platform owner (it grants no permissions yet — the D9 console will
-// use it), and `admin` of SparkBuild Direct, which is what opens /staff today.
+// marks the platform owner and opens /console (it grants nothing inside an
+// org), and `admin` of SparkBuild Direct, which is what opens /staff.
 // platform_admin is granted only here, never from /staff/users.
 //
 // Idempotent: safe to re-run, and safe to run against a database where the
