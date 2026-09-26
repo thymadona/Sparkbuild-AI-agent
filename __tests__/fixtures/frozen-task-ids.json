@@ -121,5 +121,15 @@
     "hw-prize",
     "hw-riddle",
     "hw-bug-show"
+  ],
+  "112": [
+    "demo-run",
+    "demo-explain",
+    "demo-change",
+    "demo-day",
+    "demo-own",
+    "hw-answer",
+    "hw-cheer-up",
+    "hw-bug-demo"
   ]
 }

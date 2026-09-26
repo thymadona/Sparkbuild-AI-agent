@@ -119,6 +119,9 @@ export interface Lesson {
   // Director lessons from week 11: each core task builds one # step: of one program with
   // Bolt, and Sparky asks the student why one of Bolt's lines is there before completing.
   stepByStep?: boolean
+  // Week 12, Demo Day: Bolt is off (not director), and Sparky judges # done: against the run
+  // and asks the demo questions each task's notes name before it completes the task.
+  demo?: boolean
   tasks: LessonTask[]
 }
 

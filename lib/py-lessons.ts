@@ -246,6 +246,18 @@ const tryIt = (prompt: string, need: number, chips?: string[]): LessonStep => ({
   ...(chips ? { chips } : {}),
 })
 
+// Week 12: the finished Week 11 game show as code only (no plan, no notes), the same for everyone.
+const SHOW = `name = input("Your name? ")
+print("Hi " + name + "! Welcome to Rex's show")
+quiz = {"2 + 2? ": "4", "3 x 3? ": "9", "10 - 4? ": "6"}
+score = 0
+for q in quiz:
+    if input(q) == quiz[q]:
+        print("Right!")
+        score = score + 1
+print("Score:", score)
+`
+
 export const PY_LESSONS: Lesson[] = [
   {
     id: 101,
@@ -3867,6 +3879,176 @@ export const PY_LESSONS: Lesson[] = [
             flags: 'i',
             file: 'bugzap.py',
             inputs: ['4'],
+          }),
+          doneCheck(),
+          notes(1, 'Add a # note on your fix.'),
+        ]
+      ),
+    ],
+  },
+  {
+    id: 112,
+    title: "Week #12 — Rex's Demo Day",
+    description: "Show Rex's quiz and say how it works.",
+    templateFile: 'py/w12.py',
+    starterFile: 'main.py',
+    extraFiles: { 'bugzap.py': 'py/w12-bugzap.py' },
+    scene: 'robot',
+    demo: true,
+    badge: 'Demo Star',
+    // Demo Day, alone: not director, so Bolt is off. The four demo tasks are one program, the
+    // finished Week 11 show seeded as demo-run's starter and chained with `from`; the bonuses
+    // build on the boss. The tutor-only prompts name the demo questions Sparky asks.
+    tasks: [
+      task(
+        'demo-run',
+        'core',
+        'direct',
+        "Run Rex's show",
+        'Your # done: matches the run.',
+        'Finished show, run as is. Add # done: for all right (Score: 3). Demo question: what happens with a wrong answer.',
+        [
+          output('All right shows Score: 3', 'Answer 4, 9 and 6.', 'score\\W*3', {
+            flags: 'i',
+            inputs: ['Mia', '4', '9', '6'],
+          }),
+          doneCheck(),
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { starter: SHOW }
+      ),
+      task(
+        'demo-explain',
+        'core',
+        'explain',
+        'Say how it works',
+        'Each line has your note.',
+        'Same show: own-words # notes on 5 lines or more. Demo question: why one line is there.',
+        [
+          // Notes that break the program do not count.
+          output('All right shows Score: 3', 'Answer 4, 9 and 6.', 'score\\W*3', {
+            flags: 'i',
+            inputs: ['Mia', '4', '9', '6'],
+          }),
+          notes(5, 'After each line: # and your words.'),
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'demo-run', starter: '' }
+      ),
+      task(
+        'demo-change',
+        'core',
+        'change',
+        'Add a question live',
+        'Rex asks 5 + 5 too.',
+        'Change live: add "5 + 5? ": "10"; all right shows Score: 4. Update # done:. Demo question: why no new if is needed.',
+        [
+          output('All right shows Score: 4', 'Answer 4, 9, 6 and 10.', 'score\\W*4', {
+            flags: 'i',
+            inputs: ['Mia', '4', '9', '6', '10'],
+          }),
+          doneCheck(),
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'demo-explain', starter: '' }
+      ),
+      task(
+        'demo-day',
+        'core',
+        'direct',
+        "Boss: Rex's Demo Day",
+        'Rex cheers, and you answer 3 questions.',
+        'Boss, alone: all 4 right prints "Perfect show, <name>!"; # done: must match the run. Demo: three questions, one per turn: what it does, why one line is there, what if.',
+        [
+          output('All right: Perfect show', 'Answer 4, 9, 6 and 10.', 'perfect show, mia', {
+            flags: 'i',
+            inputs: ['Mia', '4', '9', '6', '10'],
+          }),
+          doneCheck(),
+          notes(6, 'After each line: # and your words.'),
+        ],
+        true,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'demo-change', starter: '' }
+      ),
+      task(
+        'demo-own',
+        'choice',
+        'make',
+        'Demo your own program',
+        'Your program, your words.',
+        "The student's own small program, written alone. # done: must match the run. Demo question: why one line is there.",
+        [runs3, doneCheck(), notes(2, 'After each line: # and your words.')],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { starter: '' }
+      ),
+      task(
+        'hw-answer',
+        'bonus',
+        'change',
+        'Rex tells the answer',
+        'A wrong answer shows the right one.',
+        'Bonus on the finished show: an else prints the right answer after a wrong one. No demo question.',
+        [
+          output('Wrong shows the answer', 'Answer 5 for 2 + 2.', 'it was 4', {
+            flags: 'i',
+            inputs: ['Mia', '5', '9', '6', '10'],
+          }),
+          notes(7, 'After each line: # and your words.'),
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'demo-day', starter: '' }
+      ),
+      task(
+        'hw-cheer-up',
+        'bonus',
+        'change',
+        'Cheer up the player',
+        'One right shows Try again.',
+        'Bonus on the finished show: a score under 2 prints Try again!. No demo question.',
+        [
+          output('Low score: Try again', 'Get only 2 + 2 right.', 'try again', {
+            flags: 'i',
+            inputs: ['Mia', '4', '1', '1', '1'],
+          }),
+          notes(7, 'After each line: # and your words.'),
+        ],
+        false,
+        undefined,
+        undefined,
+        undefined,
+        { from: 'demo-day', starter: '' }
+      ),
+      // Lives in bugzap.py, so it works on its anchor, not its own program.
+      task(
+        'hw-bug-demo',
+        'bonus',
+        'bugzap',
+        'Fix the 10 bug',
+        'Type 10 and see Score: 1.',
+        'Bugzap in bugzap.py. Planted bug: 10 is a number, but input gives text, so it never matches.',
+        [
+          output('It shows Score: 1', 'Type 10. Then look for Score.', 'score\\W*1', {
+            flags: 'i',
+            file: 'bugzap.py',
+            inputs: ['10'],
           }),
           doneCheck(),
           notes(1, 'Add a # note on your fix.'),
