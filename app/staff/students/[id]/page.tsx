@@ -1,5 +1,4 @@
 import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { getSessionUser } from '@/lib/auth/session'
 import { usersInOrg } from '@/lib/orgs'
@@ -11,8 +10,6 @@ import {
   classes as classesTable,
   invoices as invoicesTable,
   projects,
-  prompts,
-  receipts,
   sessions,
   studentProfiles,
   users as usersTable,
@@ -23,29 +20,14 @@ import DeactivateToggle from '@/components/admin/DeactivateToggle'
 import EditStudentModal from '@/components/admin/EditStudentModal'
 import CreateInvoiceModal from '@/components/admin/CreateInvoiceModal'
 import AddToClassModal from '@/components/admin/AddToClassModal'
-import { Badge } from '@/components/ui/badge'
+import PageHeader from '@/components/dashboard/PageHeader'
+import StatCard from '@/components/dashboard/StatCard'
+import StatusBadge from '@/components/dashboard/StatusBadge'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { formatAmount } from '@/lib/format'
 import type { Class } from '@/types'
-
-function formatAmount(cents: number) {
-  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-}
-
-const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function formatTime(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
-}
+import InvoicesTable, { type InvoiceListRow } from '../../finance/InvoicesTable'
+import StudentClassesTable from './StudentClassesTable'
 
 export default async function StudentDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
@@ -55,7 +37,7 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
   if (!caller || !(await hasPermission(caller.id, 'students:manage'))) redirect('/staff')
   if (!isUuid(userId)) notFound()
 
-  const [accountRow, profileRows, memberships, invoices, allClasses, promptCount, projectCount] =
+  const [accountRow, profileRows, memberships, invoices, allClasses, projectCount] =
     await Promise.all([
       // Replaces the Supabase Auth admin user lookup. Sign-in provider comes from
       // the linked OAuth account, and "last signed in" from the newest session
@@ -100,8 +82,6 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         .from(classMembers)
         .innerJoin(classesTable, eq(classesTable.id, classMembers.classId))
         .where(and(eq(classMembers.userId, userId), eq(classesTable.orgId, caller.orgId))),
-      // Same for the embedded `receipts(id)`: a left join gives the receipt id
-      // flat, and null when the invoice has not been paid.
       db
         .select({
           id: invoicesTable.id,
@@ -109,10 +89,9 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
           description: invoicesTable.description,
           due_date: invoicesTable.dueDate,
           status: invoicesTable.status,
-          receipt_id: receipts.id,
+          sent_at: invoicesTable.sentAt,
         })
         .from(invoicesTable)
-        .leftJoin(receipts, eq(receipts.invoiceId, invoicesTable.id))
         .where(and(eq(invoicesTable.userId, userId), eq(invoicesTable.orgId, caller.orgId)))
         .orderBy(desc(invoicesTable.createdAt)),
       db
@@ -125,10 +104,6 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         .from(classesTable)
         .where(eq(classesTable.orgId, caller.orgId))
         .orderBy(asc(classesTable.name)),
-      db.$count(
-        prompts,
-        and(eq(prompts.userId, userId), inArray(prompts.userId, usersInOrg(caller.orgId)))
-      ),
       db.$count(
         projects,
         and(eq(projects.userId, userId), inArray(projects.userId, usersInOrg(caller.orgId)))
@@ -206,46 +181,35 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
       })
     : 'Never'
 
-  const today = new Date().toISOString().split('T')[0]
+  const studentName = profile?.full_name || (user.email ?? '')
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/staff/students" className="hover:text-foreground transition-colors">
-          Students
-        </Link>
-        <span>/</span>
-        <span className="text-foreground">{profile?.full_name ?? user.email}</span>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            {profile?.full_name || <span className="text-muted-foreground italic">No name</span>}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{user.email}</p>
-        </div>
-        {profile && (
-          <div className="flex items-center gap-2">
-            <DeactivateToggle userId={userId} initialActive={profile.is_active} />
-            <EditStudentModal
-              student={{
-                userId,
-                fullName: profile.full_name,
-                parentEmail: profile.parent_email ?? '',
-                parentTelegramChatId: profile.parent_telegram_chat_id ?? '',
-                notes: profile.notes ?? '',
-              }}
-            />
-            <CreateInvoiceModal
-              userId={userId}
-              studentName={profile.full_name || (user.email ?? '')}
-            />
-          </div>
-        )}
-      </div>
+      <PageHeader
+        backHref="/staff/students"
+        title={profile?.full_name || <span className="italic text-muted-foreground">No name</span>}
+        description={user.email}
+        badge={profile && <StatusBadge status={profile.is_active ? 'active' : 'inactive'} />}
+        actions={
+          profile && (
+            <>
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                Active
+                <DeactivateToggle userId={userId} initialActive={profile.is_active} />
+              </span>
+              <EditStudentModal
+                student={{
+                  userId,
+                  fullName: profile.full_name,
+                  parentEmail: profile.parent_email ?? '',
+                  parentTelegramChatId: profile.parent_telegram_chat_id ?? '',
+                  notes: profile.notes ?? '',
+                }}
+              />
+            </>
+          )
+        }
+      />
 
       {/* Profile info */}
       <Card>
@@ -316,12 +280,6 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
           </p>
           <div className="flex items-center gap-8 text-sm">
             <div>
-              <span className="text-muted-foreground">AI requests</span>
-              <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">
-                {promptCount ?? 0}
-              </p>
-            </div>
-            <div>
               <span className="text-muted-foreground">Projects</span>
               <p className="text-foreground mt-0.5 text-lg font-semibold tabular-nums">
                 {projectCount ?? 0}
@@ -331,181 +289,52 @@ export default async function StudentDetailPage(props: { params: Promise<{ id: s
         </CardContent>
       </Card>
 
-      {/* Classes */}
-      <div className="rounded-md border border-border">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Classes{' '}
-            <span className="text-muted-foreground/70 font-normal normal-case ml-1">
-              ({enrolledClasses.length})
-            </span>
-          </p>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">
+            Classes ({enrolledClasses.length})
+          </h2>
           {profile && (
-            <AddToClassModal
-              userId={userId}
-              studentName={profile.full_name || (user.email ?? '')}
-              classes={availableClasses}
-            />
+            <AddToClassModal userId={userId} studentName={studentName} classes={availableClasses} />
           )}
         </div>
-        {enrolledClasses.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-muted-foreground/70">Not enrolled in any class.</p>
-        ) : (
-          <div className="divide-y divide-border">
-            {enrolledClasses.map((cls) => (
-              <div key={cls.id} className="px-5 py-3 flex items-start justify-between gap-4">
-                <div>
-                  <Link
-                    href={`/staff/classes/${cls.id}`}
-                    className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-                  >
-                    {cls.name}
-                  </Link>
-                  {cls.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{cls.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {cls.schedules.length > 0 ? (
-                      cls.schedules.map((s, i) => (
-                        <Badge key={i} variant="secondary">
-                          {DAY[s.day_of_week]} {formatTime(s.start_time)} · {s.duration_min}min
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground/70">No schedule</span>
-                    )}
-                  </div>
-                </div>
-                <Link
-                  href={`/staff/classes/${cls.id}`}
-                  className="text-xs text-muted-foreground/70 hover:text-foreground shrink-0"
-                >
-                  Details →
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
+        <StudentClassesTable classes={enrolledClasses} />
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          icon="outstanding"
+          tone="destructive"
+          label="Outstanding"
+          value={formatAmount(totalUnpaid)}
+        />
+        <StatCard
+          icon="collected"
+          tone="success"
+          label="Collected"
+          value={formatAmount(totalPaid)}
+        />
+        <StatCard icon="invoices" label="Invoices" value={invoices.length} />
       </div>
 
-      {/* Finance summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-destructive/10 ring-destructive/20">
-          <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-destructive/80 mb-1">
-              Outstanding
-            </div>
-            <div className="text-2xl font-bold text-destructive">{formatAmount(totalUnpaid)}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-success/10 ring-success/20">
-          <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-success/80 mb-1">
-              Collected
-            </div>
-            <div className="text-2xl font-bold text-success">{formatAmount(totalPaid)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
-              Invoices
-            </div>
-            <div className="text-2xl font-bold text-foreground">{(invoices ?? []).length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Invoices table */}
-      <div className="rounded-md border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Invoices
-          </p>
-          {profile && (
-            <CreateInvoiceModal
-              userId={userId}
-              studentName={profile.full_name || (user.email ?? '')}
-            />
-          )}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">Invoices</h2>
+          {profile && <CreateInvoiceModal userId={userId} studentName={studentName} />}
         </div>
-        {(invoices ?? []).length === 0 ? (
-          <p className="px-5 py-6 text-sm text-muted-foreground/70">No invoices yet.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Due</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Links</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(invoices ?? []).map((inv) => {
-                const receiptId = inv.receipt_id ?? undefined
-                const isOverdue = inv.status === 'unpaid' && inv.due_date < today
-                return (
-                  <TableRow key={inv.id}>
-                    <TableCell className="text-muted-foreground text-xs max-w-xs truncate">
-                      {inv.description}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold text-foreground">
-                      {formatAmount(inv.amount_cents)}
-                    </TableCell>
-                    <TableCell
-                      className={`text-right text-xs ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}
-                    >
-                      {new Date(inv.due_date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                      {isOverdue && <span className="ml-1 text-destructive">overdue</span>}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={
-                          inv.status === 'paid'
-                            ? 'success'
-                            : inv.status === 'void'
-                              ? 'secondary'
-                              : 'destructive'
-                        }
-                      >
-                        {inv.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <a
-                          href={`/invoice/${inv.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
-                        >
-                          Invoice
-                        </a>
-                        {receiptId && (
-                          <a
-                            href={`/receipt/${receiptId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded bg-muted px-2 py-1 text-xs text-foreground hover:bg-muted/70"
-                          >
-                            Receipt
-                          </a>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+        <InvoicesTable
+          showStudent={false}
+          invoices={invoices.map((inv) => ({
+            id: inv.id,
+            studentName,
+            amount_cents: inv.amount_cents,
+            description: inv.description,
+            due_date: inv.due_date,
+            status: inv.status as InvoiceListRow['status'],
+            sent_at: inv.sent_at,
+          }))}
+        />
+      </section>
     </div>
   )
 }

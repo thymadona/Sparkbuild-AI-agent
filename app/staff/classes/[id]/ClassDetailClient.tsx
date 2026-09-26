@@ -6,14 +6,11 @@ import type { ClassSchedule } from '@/types'
 import ClassFormModal, { type PersonOption } from '@/components/admin/ClassFormModal'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { PencilIcon, Trash2Icon } from 'lucide-react'
+import DataTable from '@/components/dashboard/DataTable'
+import PageHeader from '@/components/dashboard/PageHeader'
+import StatCard from '@/components/dashboard/StatCard'
+import { Button } from '@/components/ui/button'
 
 type Student = PersonOption & { paidCount: number; unpaidCount: number }
 
@@ -34,6 +31,7 @@ export default function ClassDetailClient({
   availableStudents,
   teachers,
   availableTeachers,
+  canOpenStudents,
 }: {
   classId: string
   className: string
@@ -43,6 +41,8 @@ export default function ClassDetailClient({
   availableStudents: PersonOption[]
   teachers: PersonOption[]
   availableTeachers: PersonOption[]
+  // students:manage: only then does a student row open /staff/students/[id].
+  canOpenStudents: boolean
 }) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
@@ -70,54 +70,46 @@ export default function ClassDetailClient({
 
   return (
     <div className="space-y-6">
-      {/* Class name */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">{className}</h2>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <ClassFormModal
-            mode="edit"
-            classId={classId}
-            initialName={className}
-            initialDescription={description}
-            initialSchedules={schedules}
-            initialTeachers={teachers}
-            initialStudents={students}
-            allTeachers={allTeachers}
-            allStudents={allStudents}
-          />
-          <button
-            onClick={deleteClass}
-            disabled={deleting}
-            className="rounded border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
-          >
-            {deleting ? 'Deleting…' : 'Delete class'}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        backHref="/staff/classes"
+        title={className}
+        description={description}
+        actions={
+          <>
+            <ClassFormModal
+              mode="edit"
+              classId={classId}
+              initialName={className}
+              initialDescription={description}
+              initialSchedules={schedules}
+              initialTeachers={teachers}
+              initialStudents={students}
+              allTeachers={allTeachers}
+              allStudents={allStudents}
+              trigger={
+                <Button variant="outline">
+                  <PencilIcon />
+                  Edit class
+                </Button>
+              }
+            />
+            <Button
+              variant="outline"
+              onClick={deleteClass}
+              disabled={deleting}
+              className="text-destructive"
+            >
+              <Trash2Icon />
+              {deleting ? 'Deleting…' : 'Delete'}
+            </Button>
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{students.length}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">enrolled students</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-success/10 ring-success/20">
-          <CardContent>
-            <div className="text-2xl font-bold text-success">{paidCount}</div>
-            <div className="mt-0.5 text-xs text-success/80">paid</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-destructive/10 ring-destructive/20">
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{unpaidCount}</div>
-            <div className="mt-0.5 text-xs text-destructive/80">unpaid</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard icon="users" label="Enrolled students" value={students.length} />
+        <StatCard icon="collected" label="Paid" value={paidCount} tone="success" />
+        <StatCard icon="outstanding" label="Unpaid" value={unpaidCount} tone="destructive" />
       </div>
 
       {/* Schedule */}
@@ -148,84 +140,88 @@ export default function ClassDetailClient({
         </CardContent>
       </Card>
 
-      {/* Teachers */}
-      <div className="rounded-md border border-border overflow-hidden">
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Teachers ({teachers.length})
-          </h3>
-        </div>
-        {teachers.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground/70">
-            No teacher assigned to this class yet — students in this class won&apos;t appear in
-            anyone&apos;s classes tab until one is.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teachers.map((t) => (
-                <TableRow key={t.userId}>
-                  <TableCell className="font-medium text-foreground">
-                    {t.name || <span className="italic text-muted-foreground/70">No name</span>}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{t.email}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Teachers ({teachers.length})</h2>
+        <DataTable
+          rows={teachers}
+          getRowId={(t) => t.userId}
+          noun="teachers"
+          emptyText="No teacher assigned yet. Students in this class won't appear in any teacher's view until you add one."
+          columns={[
+            {
+              id: 'name',
+              header: 'Name',
+              sortValue: (t) => t.name.toLowerCase(),
+              cell: (t) => (
+                <span className="font-medium text-foreground">
+                  {t.name || <span className="italic text-muted-foreground/70">No name</span>}
+                </span>
+              ),
+            },
+            {
+              id: 'email',
+              header: 'Email',
+              cell: (t) => <span className="text-muted-foreground">{t.email}</span>,
+            },
+          ]}
+        />
+      </section>
 
-      {/* Students */}
-      <div className="rounded-md border border-border overflow-hidden">
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Students ({students.length})
-          </h3>
-        </div>
-        {students.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground/70">
-            No students enrolled yet.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Payment</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {students.map((s) => (
-                <TableRow key={s.userId}>
-                  <TableCell className="font-medium text-foreground">
-                    {s.name || <span className="italic text-muted-foreground/70">No name</span>}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{s.email}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1.5">
-                      {s.unpaidCount > 0 && (
-                        <Badge variant="destructive">{s.unpaidCount} unpaid</Badge>
-                      )}
-                      {s.paidCount > 0 && <Badge variant="success">{s.paidCount} paid</Badge>}
-                      {s.paidCount === 0 && s.unpaidCount === 0 && (
-                        <span className="text-xs text-muted-foreground/70">—</span>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">Students ({students.length})</h2>
+        <DataTable
+          rows={students}
+          getRowId={(s) => s.userId}
+          rowHref={canOpenStudents ? (s) => `/staff/students/${s.userId}` : undefined}
+          noun="students"
+          emptyText="No students enrolled yet."
+          search={{ placeholder: 'Search students', text: (s) => `${s.name} ${s.email}` }}
+          filters={[
+            {
+              id: 'payment',
+              label: 'Payment',
+              options: [
+                { value: 'all', label: 'All' },
+                { value: 'unpaid', label: 'Has unpaid' },
+                { value: 'paid', label: 'Paid up' },
+              ],
+              match: (s, v) =>
+                v === 'unpaid' ? s.unpaidCount > 0 : s.unpaidCount === 0 && s.paidCount > 0,
+            },
+          ]}
+          columns={[
+            {
+              id: 'name',
+              header: 'Name',
+              sortValue: (s) => s.name.toLowerCase(),
+              cell: (s) => (
+                <span className="font-medium text-foreground">
+                  {s.name || <span className="italic text-muted-foreground/70">No name</span>}
+                </span>
+              ),
+            },
+            {
+              id: 'email',
+              header: 'Email',
+              cell: (s) => <span className="text-muted-foreground">{s.email}</span>,
+            },
+            {
+              id: 'payment',
+              header: 'Payment',
+              sortValue: (s) => s.unpaidCount,
+              cell: (s) => (
+                <div className="flex gap-1.5">
+                  {s.unpaidCount > 0 && <Badge variant="destructive">{s.unpaidCount} unpaid</Badge>}
+                  {s.paidCount > 0 && <Badge variant="success">{s.paidCount} paid</Badge>}
+                  {s.paidCount === 0 && s.unpaidCount === 0 && (
+                    <span className="text-xs text-muted-foreground/70">—</span>
+                  )}
+                </div>
+              ),
+            },
+          ]}
+        />
+      </section>
     </div>
   )
 }

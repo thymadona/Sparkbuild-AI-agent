@@ -1,5 +1,7 @@
 'use client'
 
+import { SendIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
 export default function SendInvoiceButton({
@@ -40,12 +42,9 @@ export default function SendInvoiceButton({
   }
 
   return (
-    <button
-      onClick={send}
-      disabled={loading || sent}
-      className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-    >
-      {sent ? 'Sent' : loading ? '…' : 'Send TG'}
-    </button>
+    <Button variant="outline" onClick={send} disabled={loading || sent}>
+      <SendIcon />
+      {sent ? 'Sent' : loading ? 'Sending…' : 'Send on Telegram'}
+    </Button>
   )
 }

@@ -15,10 +15,10 @@ Teachers/admins run classes and send invoices/receipts over Telegram from a back
 Every user belongs to one org. SparkBuild Direct (B2C) is self-paced: a student opens the next
 lesson by beating a boss. A school org is **class-only**: a student opens only the lessons a class
 enabled (`accessPolicyFor(orgId)`, `lib/lesson-availability.ts`). The platform owner
-(`platform_admin`) runs `/console` to create, suspend and reactivate orgs and to name each
-org's first admin. A suspended org's members see `/paused`, and every API refuses them.
-Direct can't be suspended. An org admin adds students and teachers by email or CSV from
-`/staff/users` (`addPersonToOrg`, `lib/org-people.ts`): a new email is pre-provisioned, and an
+(`platform_admin`) runs `/console/orgs` (the sidebar's "All Organizations", in the same shell as
+`/staff`, beside read-only cross-org All Classes/Students/Users lists) to create, suspend and reactivate orgs and to name each org's first admin. A
+suspended org's members see `/paused`, and every API refuses them. Direct can't be suspended.
+An org admin adds students and teachers by email or CSV from `/staff/users` (`addPersonToOrg`, `lib/org-people.ts`): a new email is pre-provisioned, and an
 existing Direct account gets an invite that only its owner, signed in, can accept on
 `/lessons`. A teacher manages the student roster of the classes they teach.
 
@@ -129,25 +129,32 @@ Each rule's rationale is in the skill named in parentheses.
 TypeScript, two-space indent, single quotes, no semicolons, strict types, `@/` imports.
 PascalCase components, camelCase utilities, `route.ts` handlers. Route-specific client
 components live beside their route; only reusable UI goes in `components/`. Tailwind with
-`cn()` and `components/ui` primitives. Tests: `*.test.ts(x)` under `__tests__/unit|integration`
-mirroring the source; mock only DeepSeek/Telegram. Commits: Conventional Commits
-(`feat(admin): …`, `fix: …`); PRs explain the user-facing change and note migrations/env changes.
+`cn()` and `components/ui` primitives (Tailwind **v3** classes only: shadcn CLI output uses v4
+syntax that silently fails). Back-office pages (`/staff`, `/console`) are monochrome (zinc
+tokens under `.staff-shell`; colour only for status) and start with `PageHeader`, whose
+top-right holds the create button (a dialog, never a form inline above a list); every list is a
+`DataTable` (`components/dashboard/`) with pagination and dropdown filters, and a row opens its
+nested detail route (`/staff/finance/[id]`). (`project-architecture`)
+
+Tests: `*.test.ts(x)` under `__tests__/unit|integration` mirroring the source; mock only
+DeepSeek/Telegram. Commits: Conventional Commits (`feat(admin): …`, `fix: …`); PRs explain the
+user-facing change and note migrations/env changes.
 
 ## Skills index
 
-| When the task involves…                                                                       | Skill                   |
-| --------------------------------------------------------------------------------------------- | ----------------------- |
-| stack, folder layout, where X lives, Next 16 specifics, config, CI, jest harness, env vars    | `project-architecture`  |
-| queries, Drizzle, `db`, migrations, tables, columns, RLS, `isUuid`, `rowsOf`                  | `database`              |
-| login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, new-student access      | `auth-flow`             |
-| roles, permission keys, `hasPermission`, `/staff` gating, assigning roles, orgs, `org_id`     | `roles-permissions`     |
-| Redis, `cached()`, TTLs, invalidation, rate limit / 429                                       | `redis-cache-ratelimit` |
-| tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace, Bolt | `ai-tutor`              |
-| task checks, verify, complete, enabled lessons, autosave                                      | `lesson-progress`       |
-| adding a week/task, templates, anchors, fixtures, word budgets, catalog version               | `lesson-authoring`      |
-| XP, levels, badges, streak, `activity_days`, `APP_TIMEZONE`                                   | `xp-and-streak`         |
-| issue → branch → PR loop                                                                      | `issue-workflow`        |
-| planning the next roadmap phase, writing a feature spec                                       | `feature-spec`          |
+| When the task involves…                                                                         | Skill                   |
+| ----------------------------------------------------------------------------------------------- | ----------------------- |
+| stack, folder layout, where X lives, Next 16, config, CI, jest, env vars, back-office UI/tables | `project-architecture`  |
+| queries, Drizzle, `db`, migrations, tables, columns, RLS, `isUuid`, `rowsOf`                    | `database`              |
+| login, sessions, Google OAuth, Better Auth, `proxy.ts`, deactivation, new-student access        | `auth-flow`             |
+| roles, permission keys, `hasPermission`, `/staff` gating, assigning roles, orgs, `org_id`       | `roles-permissions`     |
+| Redis, `cached()`, TTLs, invalidation, rate limit / 429                                         | `redis-cache-ratelimit` |
+| tutor prompt, DeepSeek, turn route, board tools/reducer, SSE, LiveBoard, Pyodide, trace, Bolt   | `ai-tutor`              |
+| task checks, verify, complete, enabled lessons, autosave                                        | `lesson-progress`       |
+| adding a week/task, templates, anchors, fixtures, word budgets, catalog version                 | `lesson-authoring`      |
+| XP, levels, badges, streak, `activity_days`, `APP_TIMEZONE`                                     | `xp-and-streak`         |
+| issue → branch → PR loop                                                                        | `issue-workflow`        |
+| planning the next roadmap phase, writing a feature spec                                         | `feature-spec`          |
 
 ## Known issues (pre-existing; not yours)
 

@@ -1,9 +1,18 @@
 'use client'
 
+import { Trash2Icon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function DeleteInvoiceButton({ invoiceId }: { invoiceId: string }) {
+// redirectTo: where to go once the invoice is gone (its own page would 404).
+export default function DeleteInvoiceButton({
+  invoiceId,
+  redirectTo,
+}: {
+  invoiceId: string
+  redirectTo?: string
+}) {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
@@ -13,7 +22,8 @@ export default function DeleteInvoiceButton({ invoiceId }: { invoiceId: string }
     const res = await fetch(`/api/admin/invoices/${invoiceId}`, { method: 'DELETE' })
     setDeleting(false)
     if (res.ok) {
-      router.refresh()
+      if (redirectTo) router.push(redirectTo)
+      else router.refresh()
     } else {
       const data = await res.json()
       alert(data.error ?? 'Failed to delete')
@@ -24,29 +34,20 @@ export default function DeleteInvoiceButton({ invoiceId }: { invoiceId: string }
   if (confirming) {
     return (
       <span className="flex items-center gap-1">
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="rounded bg-destructive px-2 py-1 text-xs text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
-        >
-          {deleting ? '…' : 'Confirm'}
-        </button>
-        <button
-          onClick={() => setConfirming(false)}
-          className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-        >
+        <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+          {deleting ? 'Deleting…' : 'Confirm delete'}
+        </Button>
+        <Button variant="ghost" onClick={() => setConfirming(false)}>
           Cancel
-        </button>
+        </Button>
       </span>
     )
   }
 
   return (
-    <button
-      onClick={() => setConfirming(true)}
-      className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-    >
+    <Button variant="outline" onClick={() => setConfirming(true)} className="text-destructive">
+      <Trash2Icon />
       Delete
-    </button>
+    </Button>
   )
 }

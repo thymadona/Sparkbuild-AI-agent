@@ -1,5 +1,6 @@
 'use client'
 
+import PageHeader from '@/components/dashboard/PageHeader'
 import type { LessonProgressEntry } from './page'
 import LessonsPanel from './LessonsPanel'
 import RosterPanel, { type RosterPerson } from './RosterPanel'
@@ -21,9 +22,7 @@ export default function TeacherClassClient({
 }: Props) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">{className}</h1>
-      </div>
+      <PageHeader backHref="/staff/classes" title={className} />
 
       <RosterPanel classId={classId} students={students} candidates={candidates} />
       <LessonsPanel classId={classId} lessons={lessonsProgress} />

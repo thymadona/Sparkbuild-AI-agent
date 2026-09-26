@@ -1,15 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import Link from 'next/link'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { GraduationCapIcon } from 'lucide-react'
+import DataTable from '@/components/dashboard/DataTable'
 
 type ClassRow = {
   id: string
@@ -19,68 +11,43 @@ type ClassRow = {
 }
 
 export default function TeacherClassesClient({ classes }: { classes: ClassRow[] }) {
-  const [search, setSearch] = useState('')
-
-  const filtered = useMemo(() => {
-    if (!search) return classes
-    return classes.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
-  }, [classes, search])
-
   return (
-    <div className="space-y-4">
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search classes…"
-        className="w-64 rounded border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      />
-
-      <div className="rounded-md border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Class</TableHead>
-              <TableHead className="text-right">Students</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((cls) => (
-              <TableRow key={cls.id}>
-                <TableCell>
-                  <div className="font-medium text-foreground">{cls.name}</div>
-                  {cls.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
-                      {cls.description}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-right tabular-nums font-medium text-foreground">
-                  {cls.studentCount}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Link
-                    href={`/staff/classes/${cls.id}`}
-                    className="rounded bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70 transition-colors"
-                  >
-                    Open →
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={3}
-                  className="py-10 text-center text-sm text-muted-foreground/70"
-                >
-                  {search ? 'No classes match your search.' : 'No classes assigned yet.'}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <DataTable
+      rows={classes}
+      getRowId={(c) => c.id}
+      rowHref={(c) => `/staff/classes/${c.id}`}
+      noun="classes"
+      emptyText="No classes assigned yet."
+      search={{ placeholder: 'Search classes', text: (c) => `${c.name} ${c.description ?? ''}` }}
+      columns={[
+        {
+          id: 'name',
+          header: 'Class',
+          sortValue: (c) => c.name.toLowerCase(),
+          cell: (c) => (
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <GraduationCapIcon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <div className="font-medium text-foreground">{c.name}</div>
+                {c.description && (
+                  <div className="max-w-xs truncate text-xs text-muted-foreground">
+                    {c.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          ),
+        },
+        {
+          id: 'students',
+          header: 'Students',
+          className: 'text-right',
+          sortValue: (c) => c.studentCount,
+          cell: (c) => <span className="font-medium tabular-nums">{c.studentCount}</span>,
+        },
+      ]}
+    />
   )
 }

@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { getStaffContext, isPlatformAdmin } from '@/lib/auth/permissions'
 import DashboardShell from '@/components/dashboard/DashboardShell'
-import { NAV_PERMISSION_KEYS, type StaffPermissions } from '@/lib/dashboard-nav'
+import { hasStaffAccess } from '@/lib/dashboard-nav'
 import { getSessionUser } from '@/lib/auth/session'
+import { loadShellPermissions } from '@/lib/staff-shell'
 
 // Fail fast rather than burning the platform default (300s on Vercel) behind
 // a spinner. lib/db/client.ts sets a 15s statement_timeout under this.
@@ -20,30 +20,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  const [ctx, platformAdmin] = await Promise.all([
-    getStaffContext(user.id, NAV_PERMISSION_KEYS),
-    isPlatformAdmin(user.id),
-  ])
-
-  const permissions: StaffPermissions = {
-    isAdmin: ctx.isAdmin,
-    canManageClasses: ctx.permissions['classes:manage'],
-    canManageStudents: ctx.permissions['students:manage'],
-    canManageInvoices: ctx.permissions['invoices:manage'],
-    canManageRoles: ctx.permissions['roles:manage'],
-    canManageTelegram: ctx.permissions['telegram:manage'],
-    isTeacherOfAnyClass: ctx.teacherClassIds.length > 0,
-    isPlatformAdmin: platformAdmin,
-  }
-
-  if (!ctx.isAdmin && !permissions.isTeacherOfAnyClass) redirect('/lessons')
+  const { permissions, roleLabel } = await loadShellPermissions(user.id)
+  if (!hasStaffAccess(permissions)) redirect('/lessons')
 
   return (
-    <DashboardShell
-      email={user.email ?? ''}
-      roleLabel={ctx.isAdmin ? 'Admin' : 'Teacher'}
-      permissions={permissions}
-    >
+    <DashboardShell email={user.email ?? ''} roleLabel={roleLabel} permissions={permissions}>
       {children}
     </DashboardShell>
   )

@@ -1,20 +1,28 @@
 'use client'
 
+import { PlusIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+// With userId, invoices that student (their page). With students instead, the
+// dialog asks which one (the Billing page's create button).
 export default function CreateInvoiceModal({
   userId,
   studentName,
+  students,
 }: {
-  userId: string
-  studentName: string
+  userId?: string
+  studentName?: string
+  students?: { userId: string; name: string }[]
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ amount: '', description: '', due_date: '' })
+  const [pickedId, setPickedId] = useState('')
+  const targetId = userId ?? pickedId
 
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -27,13 +35,17 @@ export default function CreateInvoiceModal({
       setError('Enter a valid amount')
       return
     }
+    if (!targetId) {
+      setError('Choose a student')
+      return
+    }
     setLoading(true)
     setError('')
     const res = await fetch('/api/admin/invoices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: userId,
+        user_id: targetId,
         amount_cents: amountCents,
         description: form.description.trim(),
         due_date: form.due_date,
@@ -47,21 +59,23 @@ export default function CreateInvoiceModal({
     }
     setOpen(false)
     setForm({ amount: '', description: '', due_date: '' })
+    setPickedId('')
     router.refresh()
     setLoading(false)
   }
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="text-xs text-primary hover:text-primary/80">
-        + Invoice
-      </button>
+      <Button onClick={() => setOpen(true)}>
+        <PlusIcon />
+        New invoice
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-sm rounded-md bg-card border border-border p-6">
             <h2 className="mb-4 text-base font-semibold text-foreground">
-              Invoice for {studentName}
+              {studentName ? `Invoice for ${studentName}` : 'New invoice'}
             </h2>
             {error && (
               <p className="mb-3 rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -69,6 +83,24 @@ export default function CreateInvoiceModal({
               </p>
             )}
             <form onSubmit={submit} className="space-y-3">
+              {!userId && students && (
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Student *</label>
+                  <select
+                    required
+                    value={pickedId}
+                    onChange={(e) => setPickedId(e.target.value)}
+                    className="w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">Choose a student…</option>
+                    {students.map((st) => (
+                      <option key={st.userId} value={st.userId}>
+                        {st.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">Amount (USD) *</label>
                 <input

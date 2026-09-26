@@ -2,6 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { UserMinusIcon, UserPlusIcon } from 'lucide-react'
+import DataTable from '@/components/dashboard/DataTable'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 export interface RosterPerson {
   userId: string
@@ -23,6 +34,7 @@ export default function RosterPanel({ classId, students, candidates }: Props) {
   const [pick, setPick] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
 
   async function send(userId: string, method: 'POST' | 'DELETE') {
     setBusy(userId)
@@ -39,73 +51,111 @@ export default function RosterPanel({ classId, students, candidates }: Props) {
     setBusy(null)
     if (!res.ok) {
       setError(data.error ?? 'Could not update the class')
-      return
+      return false
     }
     setPick('')
     router.refresh()
+    return true
   }
 
-  const label = (p: RosterPerson) => (p.name ? `${p.name} (${p.email})` : p.email)
-
   return (
-    <section className="rounded-md border border-border bg-card p-4">
-      <h2 className="mb-3 text-sm font-semibold text-foreground">Students ({students.length})</h2>
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-foreground">Students ({students.length})</h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <Button onClick={() => setOpen(true)}>
+            <UserPlusIcon />
+            Add student
+          </Button>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add a student</DialogTitle>
+              <DialogDescription>
+                Students of your school who aren&apos;t in this class.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (pick && (await send(pick, 'POST'))) setOpen(false)
+              }}
+              className="space-y-4"
+            >
+              <select
+                value={pick}
+                onChange={(e) => setPick(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                aria-label="Student to add"
+              >
+                <option value="">
+                  {candidates.length ? 'Choose a student…' : 'No other students to add'}
+                </option>
+                {candidates.map((p) => (
+                  <option key={p.userId} value={p.userId}>
+                    {p.name ? `${p.name} (${p.email})` : p.email}
+                  </option>
+                ))}
+              </select>
+              {error && (
+                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+              <DialogFooter>
+                <Button type="submit" disabled={!pick || busy !== null}>
+                  {busy ? 'Adding…' : 'Add'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {error && (
-        <p className="mb-3 rounded border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </p>
+      {error && !open && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (pick) send(pick, 'POST')
-        }}
-        className="mb-4 flex flex-col gap-2 sm:flex-row"
-      >
-        <select
-          value={pick}
-          onChange={(e) => setPick(e.target.value)}
-          className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1.5 text-sm"
-          aria-label="Student to add"
-        >
-          <option value="">
-            {candidates.length ? 'Choose a student to add…' : 'No other students to add'}
-          </option>
-          {candidates.map((p) => (
-            <option key={p.userId} value={p.userId}>
-              {label(p)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          disabled={!pick || busy !== null}
-          className="rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
-        >
-          Add
-        </button>
-      </form>
-
-      {students.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No students in this class yet.</p>
-      ) : (
-        <ul className="divide-y divide-border">
-          {students.map((p) => (
-            <li key={p.userId} className="flex items-center justify-between gap-2 py-2 text-sm">
-              <span className="min-w-0 truncate text-foreground">{label(p)}</span>
-              <button
+      <DataTable
+        rows={students}
+        getRowId={(p) => p.userId}
+        noun="students"
+        emptyText="No students in this class yet."
+        search={{ placeholder: 'Search students', text: (p) => `${p.name} ${p.email}` }}
+        columns={[
+          {
+            id: 'name',
+            header: 'Name',
+            sortValue: (p) => p.name.toLowerCase(),
+            cell: (p) => (
+              <span className="font-medium text-foreground">
+                {p.name || <span className="italic text-muted-foreground/70">No name</span>}
+              </span>
+            ),
+          },
+          {
+            id: 'email',
+            header: 'Email',
+            cell: (p) => <span className="text-muted-foreground">{p.email}</span>,
+          },
+          {
+            id: 'remove',
+            header: '',
+            className: 'text-right',
+            cell: (p) => (
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => send(p.userId, 'DELETE')}
                 disabled={busy !== null}
-                className="shrink-0 text-xs text-destructive hover:text-destructive/80 disabled:opacity-50"
+                className="text-destructive"
               >
+                <UserMinusIcon />
                 {busy === p.userId ? 'Removing…' : 'Remove'}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+              </Button>
+            ),
+          },
+        ]}
+      />
     </section>
   )
 }

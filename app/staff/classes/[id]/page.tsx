@@ -1,5 +1,4 @@
 import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
 import { and, asc, desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import {
@@ -205,14 +204,6 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
 
     return (
       <div>
-        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/staff/classes" className="hover:text-foreground transition-colors">
-            Classes
-          </Link>
-          <span>/</span>
-          <span className="text-foreground">{cls.name}</span>
-        </div>
-
         <div className="space-y-6">
           <ClassDetailClient
             classId={cls.id}
@@ -223,6 +214,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
             availableStudents={availableStudents}
             teachers={teachers}
             availableTeachers={availableTeachers}
+            canOpenStudents={await hasPermission(user.id, 'students:manage')}
           />
           <LessonsPanel classId={cls.id} lessons={adminLessons} />
         </div>
@@ -390,14 +382,6 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/staff/classes" className="hover:text-foreground transition-colors">
-          Classes
-        </Link>
-        <span>/</span>
-        <span className="text-foreground">{cls.name}</span>
-      </div>
-
       <TeacherClassClient
         classId={cls.id}
         className={cls.name}

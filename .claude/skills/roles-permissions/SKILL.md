@@ -145,10 +145,23 @@ carry `grantedBy: user.id` and the target's org. A target in another org → 404
 ## Page gating
 
 - `/staff/*` is the live back office. `app/staff/layout.tsx`: session → `/login`;
-  `getStaffContext(user.id, NAV_PERMISSION_KEYS)`; not admin and not teacher of any class →
+  `loadShellPermissions` (`lib/staff-shell.ts`: `getStaffContext(user.id, NAV_PERMISSION_KEYS)`
+  plus `isPlatformAdmin`); not admin and not teacher of any class (`hasStaffAccess`) →
   `/lessons`. Each page re-checks its own key (`students:manage`, `roles:manage`,
   `invoices:manage`, `telegram:manage`; `/staff/classes/[id]` falls back to `isTeacherOfClass`).
   Nav visibility is not an access boundary.
+- `/console/*` renders in the same `DashboardShell` as `/staff`: the sidebar shows
+  "All Organizations" (`/console/orgs`, list; `/console/orgs/[id]`, detail) plus the read-only
+  cross-org lists "All Classes", "All Students" and "All Users" (`/console/{classes,students,users}`,
+  loaders in `app/console/platform-data.ts`, Organization column and filter, `?org=<id>` preselects
+  one) when `isPlatformAdmin`. These are the only cross-org reads outside `orgs-data.ts`; they
+  write nothing, and `/staff` stays org-scoped even for the platform owner. For a platform owner the
+  sidebar hides the org-scoped Classes, Students and People & Roles (`orgOnly` in
+  `lib/dashboard-nav.ts`); the pages still open by URL.
+- AI usage (request counts and estimated cost, `lib/ai-usage.ts`; the pure estimate is
+  `lib/ai-cost.ts`) is platform-owner only: read it from `/console` pages, never `/staff`. The
+  console shows it platform-wide, per org and per student; org admins and teachers see none. `app/console/layout.tsx` re-checks `isPlatformAdmin` and nothing else, so a
+  platform owner with no org role sees only that group (Overview is hidden: `hasStaffAccess`).
 - `/admin/*` and `/teacher/*` are **redirect shells** to the `/staff` equivalents. Their
   layouts still gate (`isAdmin` / `getTeacherClassIds`) and `proxy.ts` gates them too.
 

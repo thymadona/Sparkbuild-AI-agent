@@ -4,6 +4,8 @@ import { db } from '@/lib/db/client'
 import { classMembers, classes as classesTable } from '@/lib/db/schema'
 import { hasPermission, isAdmin, getTeacherClassIds } from '@/lib/auth/permissions'
 import { usersInOrg } from '@/lib/orgs'
+import ClassFormModal from '@/components/admin/ClassFormModal'
+import PageHeader from '@/components/dashboard/PageHeader'
 import ClassesClient from './ClassesClient'
 import TeacherClassesClient from './TeacherClassesClient'
 import { loadClasses } from './classes-data'
@@ -26,13 +28,14 @@ export default async function ClassesPage() {
 
     return (
       <div>
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-foreground">Classes</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Filter by day, view schedules, and open class details
-          </p>
-        </div>
-        <ClassesClient classes={rows} allTeachers={allTeachers} allStudents={allStudents} />
+        <PageHeader
+          title="Classes"
+          description="Schedules, rosters and payment at a glance. Open a class for details."
+          actions={
+            <ClassFormModal mode="create" allTeachers={allTeachers} allStudents={allStudents} />
+          }
+        />
+        <ClassesClient classes={rows} />
       </div>
     )
   }
@@ -81,12 +84,10 @@ export default async function ClassesPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-foreground">Your classes</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Rosters and class management, scoped to classes you teach.
-        </p>
-      </div>
+      <PageHeader
+        title="Your classes"
+        description="Rosters and class management, scoped to classes you teach."
+      />
       <TeacherClassesClient classes={rows} />
     </div>
   )
