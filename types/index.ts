@@ -153,7 +153,7 @@ export interface UserRole {
   role_id: string
   granted_by: string | null
   created_at: string
-  org_id: string | null // the user's org; null only for an org-less platform role
+  org_id: string | null // the user's org; null only for platform_admin
 }
 
 export interface AppSetting {

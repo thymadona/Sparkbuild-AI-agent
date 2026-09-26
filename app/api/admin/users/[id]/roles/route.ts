@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { userRoles } from '@/lib/db/schema'
+import { userRoles, users } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission, roleIdByName } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
-import { orgOfUser } from '@/lib/orgs'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -15,7 +14,20 @@ interface Props {
 // lib/auth/student-defaults.ts on every non-staff sign-in and shown as a
 // read-only badge in /staff/users — hand-revoking a role the auth hook
 // re-grants on the next sign-in would just desync the UI from reality.
+// Nor is 'platform_admin': it is org-less, and only scripts/seed-superadmin.ts
+// grants it.
 const ASSIGNABLE_ROLES = ['admin', 'teacher']
+
+// Roles are per org, and an admin manages only their own org's users. A user
+// in another org answers exactly like one that does not exist.
+async function inCallerOrg(userId: string, orgId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.id, userId), eq(users.orgId, orgId)))
+    .limit(1)
+  return rows.length > 0
+}
 
 export async function POST(req: Request, props: Props) {
   const params = await props.params
@@ -32,6 +44,9 @@ export async function POST(req: Request, props: Props) {
   }
 
   try {
+    if (!(await inCallerOrg(params.id, user.orgId))) {
+      return NextResponse.json({ error: 'Unknown user' }, { status: 404 })
+    }
     const roleId = await roleIdByName(role)
     if (!roleId) return NextResponse.json({ error: 'Unknown role' }, { status: 400 })
 
@@ -39,7 +54,7 @@ export async function POST(req: Request, props: Props) {
     // composite (user_id, role_id) primary key.
     await db
       .insert(userRoles)
-      .values({ userId: params.id, roleId, orgId: orgOfUser(params.id), grantedBy: user.id })
+      .values({ userId: params.id, roleId, orgId: user.orgId, grantedBy: user.id })
       .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
 
     return NextResponse.json({ ok: true })
@@ -69,12 +84,21 @@ export async function DELETE(req: Request, props: Props) {
   }
 
   try {
+    if (!(await inCallerOrg(params.id, user.orgId))) {
+      return NextResponse.json({ error: 'Unknown user' }, { status: 404 })
+    }
     const roleId = await roleIdByName(role)
     if (!roleId) return NextResponse.json({ error: 'Unknown role' }, { status: 400 })
 
     await db
       .delete(userRoles)
-      .where(and(eq(userRoles.userId, params.id), eq(userRoles.roleId, roleId)))
+      .where(
+        and(
+          eq(userRoles.userId, params.id),
+          eq(userRoles.roleId, roleId),
+          eq(userRoles.orgId, user.orgId)
+        )
+      )
 
     return NextResponse.json({ ok: true })
   } catch (err) {
