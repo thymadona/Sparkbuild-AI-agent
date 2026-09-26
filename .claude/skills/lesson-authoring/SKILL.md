@@ -1,6 +1,6 @@
 ---
 name: lesson-authoring
-description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (11 weeks, ids 101–111) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
+description: 'How to add or change lesson content — the `Lesson`/`LessonTask` shape in `lib/lessons.ts`, the v3 Python catalog in `lib/py-lessons.ts` (12 weeks, ids 101–112) and its check helpers (`match`, `output`, `world`, `calls`, `guess`, `runs`, `task`), starters as TS strings in `lib/lessons/templates.ts` (`TEMPLATES`, `templateFor`) with the `# TASK: <id>` anchor convention for shared files (weeks 2–6) and per-task `starter`/`from` programs (week 1), concept `steps` (`LessonStep`: `choose`/`try`/`learn`/`order`/`bug`/`match`/`stage`) and `go`/`then`, reference solutions in `__tests__/fixtures/py/`, the invariants `py-lessons.test.ts` enforces (no pass on starter, all pass on solution, one boss…), the student-copy word budgets and banned vocabulary in `lesson-copy.test.ts`, badges, XP per task type, and the catalog-versioning rule. Use for anything mentioning new lesson, new week, week 7, add/edit a task, curriculum, starter file, template, bugzap, task anchor, concept step, quiz, stage, scene, sandbox, check pattern, regex check, reading level, word budget, too advanced, vocabulary, badge, boss task, catalog version, py-lessons, task order, chip, success text. Use this before exploring `lib/py-lessons.ts`, `lib/lessons/templates.ts`, `lib/board/scenes/`, `__tests__/fixtures/py/` — it already maps them.'
 ---
 
 # Lesson authoring (Python catalog v3)
@@ -78,7 +78,11 @@ builds only in the boss and choice tasks; `hw-bug-party` is anchored in `bugzap.
 Game Show (Show Builder, `director`, `planFirst` and `stepByStep`: task 1 plans the whole show and
 the four core tasks are one program chained with `from` and an empty `starter`, each adding one
 `# step:` with Bolt and a new `# ask:` (`ask(n)` grows along the chain); `hw-bug-show` is anchored
-in `bugzap.py`).
+in `bugzap.py`), 112 Rex's Demo Day (Demo Star, `demo` and **not** director, so Bolt is off:
+`demo-run`'s `starter` is the finished Week 11 show as code only, the next core tasks and the
+bonuses `hw-answer`/`hw-cheer-up` chain on it with `from` and an empty `starter`; the tutor-only
+`prompt` names the demo questions, "Demo question:" (one) or "Demo: three questions" (the boss);
+`hw-bug-demo` is anchored in `bugzap.py`).
 
 ## Check helpers (`lib/py-lessons.ts`)
 

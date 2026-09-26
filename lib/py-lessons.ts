@@ -5,8 +5,8 @@ import type { TaskCheck } from './task-checks'
 // holds rows 1-6 from the retired web course, and those must never re-enable a
 // Python week by accident.
 //
-// Weeks 1-7 the AI is a tutor (aiPolicy 'tutor'); weeks 8-12 the student
-// directs it ('director'). Checks are about what the program does, not which
+// Weeks 1-7 the AI is a tutor (aiPolicy 'tutor'); weeks 8-11 the student
+// directs it ('director'); week 12 (demo) is alone again, with no Bolt. Checks are about what the program does, not which
 // exact words the student typed: they either match the source loosely or run
 // the program (lib/python-checks.ts). Every printed line is something Sparky
 // says on screen; `import sparky` adds colors, the vault door and the alarm.

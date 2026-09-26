@@ -4,7 +4,7 @@ Small phases, done in order. Each phase gets a feature spec in `specs/features/<
 (start one with the `feature-spec` skill). Tick the box in the PR that finishes the phase.
 Replan between phases: is the next item still the right one?
 
-**Done:** course weeks 1–11 (Wake the Robot → Rex's Game Show), Bolt the helper AI, the tutor board with Sparky, and the
+**Done:** course weeks 1–12 (Wake the Robot → Rex's Demo Day), Bolt the helper AI, the tutor board with Sparky, and the
 staff back office (classes, lesson unlocking, Telegram invoices).
 
 Order: finish the Course track first, then the Dashboard track. Revisit at each replan.
@@ -29,8 +29,8 @@ Order: finish the Course track first, then the Dashboard track. Revisit at each 
 - [ ] **8. `app_settings` type.** Add its interface to `types/index.ts`.
 - [x] **9. Week 11 — Build With AI.** Final project: the student plans, the AI helps one step at a
       time, and the student explains each step.
-- [ ] **10. Week 12 — Demo Day.** The student shows and explains their project. This doubles as
-      proof of skill for parents.
+- [x] **10. Week 12 — Demo Day.** The student shows a finished program alone (Bolt off), explains
+      each line, changes it live and answers Sparky's demo questions.
 
 ## Dashboard track
 
@@ -46,7 +46,8 @@ B2C first, B2B-ready: B2C is the built-in org "SparkBuild Direct" (see tech-stac
 - [ ] **D4. People & classes.** Add and import students and teachers, deactivate; classes,
       schedules, teacher assignment, lesson unlocking.
 - [ ] **D5. Reports.** Progress per class and per student, completion, activity, CSV export.
-- [ ] **D6. Parent accounts.** Parent role, parent ↔ child link, a parent view of progress and invoices.
+- [ ] **D6. Parent accounts.** Parent role, parent ↔ child link, a parent view of progress and invoices,
+      and proof of skill at the end of the course (see backlog).
 - [ ] **D7. Online payment & self-checkout.** ABA PayWay / KHQR; parent signs up → adds child →
       picks class or plan → pays; invoices and receipts. Likely splits (payment first, then checkout).
 - [ ] **D8. Remove old dashboards.** Delete `/staff`, `/admin` and `/teacher` once D3–D7 cover B2C.

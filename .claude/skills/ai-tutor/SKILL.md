@@ -124,6 +124,14 @@ screen opens it by itself.
   than the OPEN step is refused; and when the task `prompt` says "Ask why about one Bolt line",
   Sparky asks one "why" question before `task_complete` and completes once it has a good
   own-words answer. The eval cases are `week 10: …` and `week 11: …`.
+- Demo lessons (`demo`, week 12): not director, so no Bolt rules and the helper route 403s.
+  `explainRule` returns `EXPLAIN_RULE` then `DEMO_RULE` (checked before the director branch, so
+  weeks 1–11 keep their prompt byte for byte). `DEMO_RULE`: a required `# done:` must name
+  something on screen and the run must show it (only the EVIDENCE counts, never the chat); the
+  task `prompt` says "Demo question:" (ask one) or "Demo: three questions" (the boss, one per
+  turn), asked only once every requirement is met; a short own-words answer is enough; "idk"
+  gets a hint and the same question; a request for Bolt gets "this week you show it alone". The
+  eval cases are `week 12: …`.
 
 ## Bolt, the helper AI (director lessons only)
 
