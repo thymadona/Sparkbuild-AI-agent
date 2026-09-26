@@ -3915,8 +3915,21 @@ export const PY_LESSONS: Lesson[] = [
           doneCheck(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          learn('A demo shows three things.', [
+            { code: '# done: I see Score: 3', note: 'What it does.' },
+            { code: 'score = 0  # start at zero', note: 'How it works.' },
+            { code: '"5 + 5? ": "10"', note: 'You change it live.' },
+          ]),
+          choose(
+            'You type 5 for 2 + 2. What prints?',
+            ['Right!', 'nothing', 'Score: 5'],
+            1,
+            '5 is not "4", so Rex skips it.',
+            'if input(q) == quiz[q]:\n    print("Right!")'
+          ),
+        ],
+        'Run the show. Write a # done: line.',
         undefined,
         { starter: SHOW }
       ),
@@ -3936,8 +3949,45 @@ export const PY_LESSONS: Lesson[] = [
           notes(5, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          walk(
+            'Watch the loop go.',
+            'quiz = {"2 + 2? ": "4", "3 x 3? ": "9"}\nfor q in quiz:\n    print(quiz[q])',
+            [
+              { line: 1, vars: {}, note: 'Two questions, two answers.' },
+              { line: 2, vars: { quiz: "{'2 + 2? ': '4', '3 x 3? ': '9'}" } },
+              {
+                line: 3,
+                vars: { quiz: "{'2 + 2? ': '4', '3 x 3? ': '9'}", q: "'2 + 2? '" },
+                note: 'q is the first question.',
+              },
+              {
+                line: 2,
+                vars: { quiz: "{'2 + 2? ': '4', '3 x 3? ': '9'}", q: "'2 + 2? '" },
+                out: '4',
+                note: 'Rex shows its answer.',
+              },
+              {
+                line: 3,
+                vars: { quiz: "{'2 + 2? ': '4', '3 x 3? ': '9'}", q: "'3 x 3? '" },
+                out: '4',
+                note: 'q is the next question.',
+              },
+              {
+                line: 2,
+                vars: { quiz: "{'2 + 2? ': '4', '3 x 3? ': '9'}", q: "'3 x 3? '" },
+                out: '4\n9',
+                note: 'Every question, one by one.',
+              },
+            ]
+          ),
+          pairUp('Tap a line. Tap what it does.', [
+            ['for q in quiz:', 'each question'],
+            ['if input(q) == quiz[q]:', 'a right answer?'],
+            ['score = score + 1', 'one more point'],
+          ]),
+        ],
+        'Add a # note after each line.',
         undefined,
         { from: 'demo-run', starter: '' }
       ),
@@ -3956,8 +4006,26 @@ export const PY_LESSONS: Lesson[] = [
           doneCheck(),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          bug(
+            'Rex added 5 + 5. Which line is wrong?',
+            'quiz = {"2 + 2? ": "4", "5 + 5? ": 10}\nscore = 0\nfor q in quiz:\n    if input(q) == quiz[q]:\n        score = score + 1',
+            0,
+            'input gives text, so write "10".'
+          ),
+          stage(
+            'boxes',
+            'You got 4 right. Give Rex 4 points.',
+            { boxes: [{ name: 'score' }] },
+            { values: { score: 4 } },
+            [
+              ['score = 0', 'set:score=0'],
+              ['score = score + 1', 'add:score:1'],
+            ],
+            [0, 1, 1, 1, 1]
+          ),
+        ],
+        'Add "5 + 5? " to the quiz. Fix your # done:.',
         undefined,
         { from: 'demo-explain', starter: '' }
       ),
@@ -3977,8 +4045,20 @@ export const PY_LESSONS: Lesson[] = [
           notes(6, 'After each line: # and your words.'),
         ],
         true,
-        undefined,
-        undefined,
+        [
+          order('Put your demo in order.', [
+            'Run the show',
+            'Say what you see',
+            'Say how it works',
+            'Answer a question',
+          ]),
+          pairUp('Tap a question. Tap a good answer.', [
+            ['What does it do?', 'asks 4 sums, shows the score'],
+            ['Why score = 0?', 'no points yet'],
+            ['Why a for loop?', 'it asks every question'],
+          ]),
+        ],
+        "Add Rex's cheer. Then give your demo.",
         undefined,
         { from: 'demo-change', starter: '' }
       ),
@@ -3991,8 +4071,15 @@ export const PY_LESSONS: Lesson[] = [
         "The student's own small program, written alone. # done: must match the run. Demo question: why one line is there.",
         [runs3, doneCheck(), notes(2, 'After each line: # and your words.')],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'Which # done: can a run show?',
+            ['it works', 'I see Hi Mia', 'it is fun'],
+            1,
+            'A run shows words, so you can check them.'
+          ),
+        ],
+        'Write a small program. Then demo it.',
         undefined,
         { starter: '' }
       ),
@@ -4011,8 +4098,15 @@ export const PY_LESSONS: Lesson[] = [
           notes(7, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          order('Tap the lines in order.', [
+            'if input(q) == quiz[q]:',
+            '    print("Right!")',
+            'else:',
+            '    print("It was", quiz[q])',
+          ]),
+        ],
+        'Add an else. Rex says the answer.',
         undefined,
         { from: 'demo-day', starter: '' }
       ),
@@ -4031,8 +4125,16 @@ export const PY_LESSONS: Lesson[] = [
           notes(7, 'After each line: # and your words.'),
         ],
         false,
-        undefined,
-        undefined,
+        [
+          choose(
+            'You get 1 right. What prints?',
+            ['Try again!', 'nothing', 'Perfect show!'],
+            0,
+            '1 is less than 2, so it prints.',
+            'if score < 2:\n    print("Try again!")'
+          ),
+        ],
+        'Add Try again! for a low score.',
         undefined,
         { from: 'demo-day', starter: '' }
       ),
