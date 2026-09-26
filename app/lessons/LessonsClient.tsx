@@ -129,7 +129,7 @@ export default function LessonsClient({
       <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
         {/* Roadmap */}
         <div className="relative">
-          <div className="absolute left-8 top-8 bottom-8 w-px bg-border" />
+          <div className="absolute left-8 top-8 bottom-8 hidden w-px sm:block bg-border" />
           <div className="space-y-5">
             {lessons.map((lesson, i) => {
               const isStarted = projectByLessonId.has(lesson.id)
@@ -140,7 +140,7 @@ export default function LessonsClient({
                 <div key={lesson.id} className="flex gap-5 relative">
                   {/* Node */}
                   <div
-                    className={`relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border text-lg font-bold transition-colors ${
+                    className={`relative z-10 hidden h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border text-lg font-bold sm:flex transition-colors ${
                       isStarted
                         ? 'bg-tint-sage text-fg-primary'
                         : isLocked
@@ -157,7 +157,7 @@ export default function LessonsClient({
                     )}
                   </div>
                   {/* Card */}
-                  <div className="flex-1 rounded-2xl border border-border bg-card p-5">
+                  <div className="min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p
@@ -226,7 +226,11 @@ export default function LessonsClient({
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-5">{stats && <PlayerCard stats={stats} />}</div>
+        {stats && (
+          <div className="order-first space-y-5 lg:order-none">
+            <PlayerCard stats={stats} />
+          </div>
+        )}
       </div>
     </AppShell>
   )
