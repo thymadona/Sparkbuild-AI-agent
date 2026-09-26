@@ -2,14 +2,16 @@
 
 import { useState } from 'react'
 import AppShell from '@/components/AppShell'
+import type { AccountLinks } from '@/lib/account-links'
 
 interface Props {
   email: string
   initialName: string
   xp: number
+  links?: AccountLinks
 }
 
-export default function ProfileClient({ email, initialName, xp }: Props) {
+export default function ProfileClient({ email, initialName, xp, links }: Props) {
   const [name, setName] = useState(initialName)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -37,7 +39,7 @@ export default function ProfileClient({ email, initialName, xp }: Props) {
   }
 
   return (
-    <AppShell userEmail={email} xp={xp}>
+    <AppShell userEmail={email} xp={xp} links={links}>
       <section>
         <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
           Your profile

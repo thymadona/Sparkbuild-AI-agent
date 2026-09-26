@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import ProfileClient from './ProfileClient'
 import { getSessionUser } from '@/lib/auth/session'
 import { getPlayerStats } from '@/lib/player-stats'
+import { getAccountLinks } from '@/lib/account-links'
 import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 
@@ -20,7 +21,14 @@ export default async function ProfilePage() {
     .where(eq(studentProfiles.userId, user.id))
     .limit(1)
 
-  const { xp } = await getPlayerStats(user.id)
+  const [{ xp }, links] = await Promise.all([getPlayerStats(user.id), getAccountLinks(user.id)])
 
-  return <ProfileClient email={user.email} initialName={profile?.full_name || user.name} xp={xp} />
+  return (
+    <ProfileClient
+      email={user.email}
+      initialName={profile?.full_name || user.name}
+      xp={xp}
+      links={links}
+    />
+  )
 }

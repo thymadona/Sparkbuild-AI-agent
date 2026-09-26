@@ -6,6 +6,7 @@ import { LESSONS } from '@/lib/lessons'
 import { getPlayerStats } from '@/lib/player-stats'
 import { getAvailableLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
+import { getAccountLinks } from '@/lib/account-links'
 import LessonsClient from './LessonsClient'
 import { getSessionUser } from '@/lib/auth/session'
 
@@ -16,7 +17,7 @@ export default async function LessonsPage() {
     redirect('/')
   }
 
-  const [userProjects, availableLessonIds, admin, teacher, stats] = await Promise.all([
+  const [userProjects, availableLessonIds, admin, teacher, stats, links] = await Promise.all([
     db
       .select({
         id: projects.id,
@@ -32,6 +33,7 @@ export default async function LessonsPage() {
     isAdmin(user.id),
     isTeacher(user.id),
     getPlayerStats(user.id),
+    getAccountLinks(user.id),
   ])
 
   // Admins and teachers previewing the catalog aren't gated — the lesson
@@ -47,6 +49,7 @@ export default async function LessonsPage() {
       enabledLessonIds={enabledIds}
       userEmail={user.email ?? ''}
       stats={stats}
+      links={links}
     />
   )
 }

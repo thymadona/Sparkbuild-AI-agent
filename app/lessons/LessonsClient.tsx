@@ -7,6 +7,7 @@ import { openBoard } from '@/lib/open-board'
 import { useState } from 'react'
 import { Check, Compass, Lock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
+import type { AccountLinks } from '@/lib/account-links'
 
 // A fixed per-lesson difficulty rating, not a score the student earns — kept
 // visually distinct (muted, labeled) from the real completion state (the
@@ -20,6 +21,7 @@ interface Props {
   enabledLessonIds?: number[]
   userEmail?: string
   stats?: PlayerStats
+  links?: AccountLinks
 }
 
 export default function LessonsClient({
@@ -28,6 +30,7 @@ export default function LessonsClient({
   enabledLessonIds = [],
   userEmail = '',
   stats,
+  links,
 }: Props) {
   const enabledSet = new Set(enabledLessonIds)
   const [loadingId, setLoadingId] = useState<number | null>(null)
@@ -89,7 +92,7 @@ export default function LessonsClient({
   const progressPct = Math.round((tasksDone / tasksTotal) * 100)
 
   return (
-    <AppShell userEmail={userEmail} xp={stats?.xp}>
+    <AppShell userEmail={userEmail} xp={stats?.xp} links={links}>
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
