@@ -3,14 +3,21 @@ import { db } from '@/lib/db/client'
 import { classEnabledLessons, classMembers, lessonProgress, projects } from '@/lib/db/schema'
 import { cached } from '@/lib/cache'
 import { LESSONS } from '@/lib/lessons'
+import { DIRECT_ORG_ID } from '@/lib/orgs'
 import { bossesBeaten } from '@/lib/xp'
 
-// Who opens which lesson. 'self-paced' (B2C, SparkBuild Direct): the first
-// lesson is open, and each next lesson opens once the student beats the boss
-// of the one before, with no staff step. A class a teacher unlocks lessons for
-// adds to that and never takes a lesson away. D1 makes this per org (a school
-// is class-only) and D7 adds a paid plan; until then everyone is self-paced.
-export const ACCESS_POLICY = 'self-paced' as const
+export type AccessPolicy = 'self-paced' | 'class-only'
+
+// Who opens which lesson, per org. 'self-paced' (B2C, SparkBuild Direct): the
+// first lesson is open, and each next lesson opens once the student beats the
+// boss of the one before, with no staff step; a class that unlocks lessons
+// adds to that and never takes one away. 'class-only' (every school org): the
+// school sets the pace, so a student opens only what a class enabled. A
+// lesson already started stays resumable either way (LessonsClient locks only
+// unstarted ones). D7 adds a paid plan.
+export function accessPolicyFor(orgId: string): AccessPolicy {
+  return orgId === DIRECT_ORG_ID ? 'self-paced' : 'class-only'
+}
 
 // Pure: the lessons a student has reached, walking the catalog in order.
 export function selfPacedLessonIds(beaten: Set<number>): number[] {
@@ -22,9 +29,15 @@ export function selfPacedLessonIds(beaten: Set<number>): number[] {
   return open
 }
 
-// Every lesson this student may start: self-paced ∪ class-unlocked. Staff
-// bypass this at the call sites.
-export async function getAvailableLessonIdsForUser(userId: string): Promise<Set<number>> {
+// Every lesson this student may start: self-paced ∪ class-unlocked in Direct,
+// class-unlocked only in a school. orgId is the student's own (the session's).
+// Staff bypass this at the call sites.
+export async function getAvailableLessonIdsForUser(
+  userId: string,
+  orgId: string
+): Promise<Set<number>> {
+  if (accessPolicyFor(orgId) === 'class-only') return getEnabledLessonIdsForUser(userId)
+
   const [selfPaced, enabled] = await Promise.all([
     getSelfPacedLessonIdsForUser(userId),
     getEnabledLessonIdsForUser(userId),

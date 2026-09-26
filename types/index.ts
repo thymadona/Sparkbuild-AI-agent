@@ -13,6 +13,7 @@ export interface Project {
   lesson_id: number | null
   lesson_version: number | null
   submission_status: SubmissionStatus | null
+  board: unknown | null // jsonb: the tutor board (lib/board), null until the tutor first draws
   created_at: string
   updated_at: string
 }
@@ -21,6 +22,22 @@ export interface LessonProgress {
   project_id: string
   completed_task_ids: string[]
   updated_at: string
+}
+
+// The audit row behind one completed task (lib/task-progress.ts).
+export interface TaskProgress {
+  project_id: string
+  task_id: string
+  completed_at: string
+  reason: string
+  code: Record<string, string> // { file: source }
+  output: Record<string, string> // { file: stdout }
+  judged_by: string
+}
+
+export interface ActivityDay {
+  user_id: string
+  day: string // YYYY-MM-DD in APP_TIMEZONE
 }
 
 // Snapshot of what actually went into a turn's model call — captured so a
@@ -40,7 +57,7 @@ export interface PromptContext {
 export interface Prompt {
   id: string
   user_id: string
-  project_id: string
+  project_id: string | null
   content: string
   context: PromptContext | null
   created_at: string
@@ -72,6 +89,17 @@ export interface Organization {
   slug: string // the subdomain it will answer on (D2)
   status: 'active' | 'suspended'
   created_at: string
+}
+
+export interface OrgInvite {
+  id: string
+  org_id: string
+  email: string // trimmed and lowercased
+  role: 'admin' | 'teacher' | 'student'
+  invited_by: string | null
+  status: 'pending' | 'accepted' | 'declined' | 'revoked'
+  created_at: string
+  responded_at: string | null
 }
 
 export interface Class {

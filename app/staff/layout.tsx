@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getStaffContext } from '@/lib/auth/permissions'
+import { getStaffContext, isPlatformAdmin } from '@/lib/auth/permissions'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import { NAV_PERMISSION_KEYS, type StaffPermissions } from '@/lib/dashboard-nav'
 import { getSessionUser } from '@/lib/auth/session'
@@ -20,7 +20,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  const ctx = await getStaffContext(user.id, NAV_PERMISSION_KEYS)
+  const [ctx, platformAdmin] = await Promise.all([
+    getStaffContext(user.id, NAV_PERMISSION_KEYS),
+    isPlatformAdmin(user.id),
+  ])
 
   const permissions: StaffPermissions = {
     isAdmin: ctx.isAdmin,
@@ -30,6 +33,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     canManageRoles: ctx.permissions['roles:manage'],
     canManageTelegram: ctx.permissions['telegram:manage'],
     isTeacherOfAnyClass: ctx.teacherClassIds.length > 0,
+    isPlatformAdmin: platformAdmin,
   }
 
   if (!ctx.isAdmin && !permissions.isTeacherOfAnyClass) redirect('/lessons')

@@ -8,6 +8,7 @@ export default function CreateStudentModal() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -24,6 +25,7 @@ export default function CreateStudentModal() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setNotice('')
     const res = await fetch('/api/admin/students', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,12 +37,15 @@ export default function CreateStudentModal() {
         notes: form.notes.trim() || undefined,
       }),
     })
-    const data = (await res.json()) as { error?: string }
+    const data = (await res.json().catch(() => ({}))) as { error?: string; status?: string }
     if (!res.ok) {
       setError(data.error ?? 'Failed to create student')
       setLoading(false)
       return
     }
+    // A SparkBuild Direct account isn't moved until its owner accepts.
+    if (data.status === 'invited')
+      setNotice(`Invite sent to ${form.email.trim()}. They join when they accept it.`)
     setOpen(false)
     setForm({ full_name: '', email: '', parent_email: '', parent_telegram_chat_id: '', notes: '' })
     router.refresh()
@@ -55,6 +60,11 @@ export default function CreateStudentModal() {
       >
         + New Student
       </button>
+      {notice && !open && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {notice}
+        </p>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

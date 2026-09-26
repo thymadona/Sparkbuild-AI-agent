@@ -9,9 +9,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth/client'
-import { LogOut, User } from 'lucide-react'
+import { LayoutDashboard, LogOut, ShieldCheck, User } from 'lucide-react'
+import type { AccountLinks } from '@/lib/account-links'
 
-export default function ProfileDropdown({ email }: { email: string }) {
+export default function ProfileDropdown({ email, links }: { email: string; links?: AccountLinks }) {
   const router = useRouter()
   const initials = email[0].toUpperCase()
   const username = email.split('@')[0]
@@ -48,6 +49,28 @@ export default function ProfileDropdown({ email }: { email: string }) {
           <User className="size-3.5 text-muted-foreground" />
           <span>Profile</span>
         </DropdownMenuItem>
+        {links?.staff && (
+          <DropdownMenuItem
+            onClick={() => {
+              window.location.href = '/staff'
+            }}
+            className="flex items-center gap-2.5 px-2 py-2 cursor-pointer"
+          >
+            <LayoutDashboard className="size-3.5 text-muted-foreground" />
+            <span>Dashboard</span>
+          </DropdownMenuItem>
+        )}
+        {links?.console && (
+          <DropdownMenuItem
+            onClick={() => {
+              window.location.href = '/console'
+            }}
+            className="flex items-center gap-2.5 px-2 py-2 cursor-pointer"
+          >
+            <ShieldCheck className="size-3.5 text-muted-foreground" />
+            <span>Platform console</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleSignOut}

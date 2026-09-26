@@ -2,14 +2,19 @@
 
 import { useState } from 'react'
 import AppShell from '@/components/AppShell'
+import type { AccountLinks } from '@/lib/account-links'
+import type { MyInvite } from '@/lib/org-invites'
+import InviteBanner from '@/components/InviteBanner'
 
 interface Props {
   email: string
   initialName: string
   xp: number
+  links?: AccountLinks
+  invites?: MyInvite[]
 }
 
-export default function ProfileClient({ email, initialName, xp }: Props) {
+export default function ProfileClient({ email, initialName, xp, links, invites = [] }: Props) {
   const [name, setName] = useState(initialName)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -37,13 +42,15 @@ export default function ProfileClient({ email, initialName, xp }: Props) {
   }
 
   return (
-    <AppShell userEmail={email} xp={xp}>
+    <AppShell userEmail={email} xp={xp} links={links}>
       <section>
         <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">
           Your profile
         </h1>
         <p className="mt-2 text-lg text-fg-secondary">This is the name your teacher sees.</p>
       </section>
+
+      <InviteBanner invites={invites} />
 
       <form
         onSubmit={handleSave}

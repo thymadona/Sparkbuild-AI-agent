@@ -8,22 +8,26 @@ description: How this repo reads and writes Postgres — the single Drizzle `db`
 One data path: `lib/db/client.ts` exports `db`. No Supabase client, no PostgREST, no
 `@supabase/*` dependency (the DB may still be _hosted_ on Supabase; nothing in the app knows).
 Schema authoring is `lib/db/schemas/*.ts`; schema of record is `drizzle/` — see
-[schema-changes.md](schema-changes.md). Column-level facts for all 23 tables:
+[schema-changes.md](schema-changes.md). Column-level facts for all 24 tables:
 [tables.md](tables.md).
 
 ## Files
 
-| Path                                           | What it is                                                                                                                                                                                                                           |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `lib/db/client.ts`                             | Builds the `pg.Pool`, exports `db` (drizzle + `schema`) and `rowsOf<T>(result)`.                                                                                                                                                     |
-| `lib/db/schema.ts`                             | Barrel: `export *` from every file in `schemas/`. A new table **must** be added here or drizzle-kit never sees it.                                                                                                                   |
-| `lib/db/schemas/<table>.ts`                    | One table per file. Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) use timestamp `mode: 'date'`; all 19 app tables use `mode: 'string'`.                                                                      |
-| `lib/db/uuid.ts`                               | `isUuid(value): value is string` — regex guard, call before any id reaches a query.                                                                                                                                                  |
-| `drizzle.config.ts` / `drizzle.test.config.ts` | Same config; the test one points at `TEST_DATABASE_URL`. `push`/`pull` banned (see header).                                                                                                                                          |
-| `drizzle/`                                     | Migrations `0000_baseline` … `0015_platform_admin_role` (`0014` adds `organizations` + `org_id`, `0013` drops the old authorization SQL functions), `meta/` snapshots, `_archive/` (pre-cutover history, not runnable), `README.md`. |
-| `lib/orgs.ts`                                  | `DIRECT_ORG_ID`, `orgOfUser(userId)` (insert-time subquery), `usersInOrg(orgId)` / `classesInOrg(orgId)` (subqueries for `inArray`), `classInOrg(classId, orgId)`.                                                                   |
-| `scripts/seed-superadmin.ts`                   | `bun run db:seed:admin` — creates a credential-less `users` row in Direct from `SUPERADMIN_EMAIL` with `platform_admin` + Direct `admin`.                                                                                            |
-| `types/index.ts`                               | Hand-maintained TS mirror of row shapes (snake_case). Nothing generates it — update by hand with every schema change.                                                                                                                |
+| Path                                           | What it is                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/db/client.ts`                             | Builds the `pg.Pool`, exports `db` (drizzle + `schema`) and `rowsOf<T>(result)`.                                                                                                                                                                                                   |
+| `lib/db/schema.ts`                             | Barrel: `export *` from every file in `schemas/`. A new table **must** be added here or drizzle-kit never sees it.                                                                                                                                                                 |
+| `lib/db/schemas/<table>.ts`                    | One table per file. Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) use timestamp `mode: 'date'`; all 20 app tables use `mode: 'string'`.                                                                                                                    |
+| `lib/db/uuid.ts`                               | `isUuid(value): value is string` — regex guard, call before any id reaches a query.                                                                                                                                                                                                |
+| `drizzle.config.ts` / `drizzle.test.config.ts` | Same config; the test one points at `TEST_DATABASE_URL`. `push`/`pull` banned (see header).                                                                                                                                                                                        |
+| `drizzle/`                                     | Migrations `0000_baseline` … `0016_tearful_the_hood` (`org_invites`; `0015` the `platform_admin` role, `0014` adds `organizations` + `org_id`, `0013` drops the old authorization SQL functions), `meta/` snapshots, `_archive/` (pre-cutover history, not runnable), `README.md`. |
+| `lib/orgs.ts`                                  | `DIRECT_ORG_ID`, `orgOfUser(userId)` (insert-time subquery), `usersInOrg(orgId)` / `classesInOrg(orgId)` (subqueries for `inArray`), `classInOrg(classId, orgId)`.                                                                                                                 |
+| `lib/orgs.ts` (cont.)                          | `isSuspendedFor(userId, orgId)` — false for Direct without a query, false for `platform_admin`; throws (callers fail closed).                                                                                                                                                      |
+| `lib/org-people.ts`                            | `addPersonToOrg(tx, …)` — new email → pre-provisioned user in the org; same org → grant; Direct → `org_invites` row; another school → conflict. `grantOrgRole(tx, …)`, `normalizeEmail`, `STAFF_ADDABLE_ROLES`, `Tx`.                                                              |
+| `lib/org-invites.ts`                           | `loadPendingInvites(orgId)` (staff list), `loadMyInvites(user)` (a Direct user's own, matched on `lower(users.email)`, active orgs only).                                                                                                                                          |
+| `lib/org-move.ts`                              | `acceptInvite(userId, inviteId)` — **the only writer of `users.org_id`** (the move transaction below); `declineInvite`.                                                                                                                                                            |
+| `scripts/seed-superadmin.ts`                   | `bun run db:seed:admin` — creates a credential-less `users` row in Direct from `SUPERADMIN_EMAIL` with `platform_admin` + Direct `admin`.                                                                                                                                          |
+| `types/index.ts`                               | Hand-maintained TS mirror of row shapes (snake_case). Nothing generates it — update by hand with every schema change.                                                                                                                                                              |
 
 ## `lib/db/client.ts` — what it does and why
 
@@ -89,8 +93,21 @@ the schema objects are camelCase with explicit column strings (`userId: uuid('us
   user's org changes); nothing ties `class_members` to its class's org, so the member-add route
   checks both. A student's own queries need no org predicate — their `user_id` implies it.
 - **Every user belongs to exactly one org.** `users.org_id` defaults to Direct
-  (`DIRECT_ORG_ID`), so every new sign-in lands there until D2. Orgs are suspended, never
-  deleted; nothing cascades from `organizations`.
+  (`DIRECT_ORG_ID`), so a new Google sign-in lands there until D2. A person an org admin added
+  by email was pre-provisioned in that org, and their first Google sign-in links to that row.
+  Orgs are suspended, never deleted; nothing cascades from `organizations`.
+- **Moving a user between orgs is `acceptInvite` (`lib/org-move.ts`) only**, one transaction:
+  lock the user and the invite (matched on the user's own lowercased email; another user's
+  invite is a 404) → refuse an `unpaid` Direct invoice → refuse if it removes Direct's last
+  `admin` (Direct admin grants locked `for update`) → delete the user's non-`student` Direct
+  grants → `update users set org_id` (invoices, receipts and the remaining grants follow the
+  composite `on update cascade` FKs; `platform_admin` has `org_id` NULL and is untouched) →
+  delete Direct `class_members` → `grantOrgRole` the invited role → invite `accepted`, their
+  other pending invites `declined`. Only Direct users can move (no school → school, no way
+  back). Projects, progress and `activity_days` are keyed by user id and stay.
+- **`org_invites`** (`0016`) are bound to an email (stored lowercased) with status `pending` /
+  `accepted` / `declined` / `revoked`; one `pending` per `(org_id, email)` (partial unique
+  index). Answered rows are kept as history.
 - **Guard ids with `isUuid()` first.** Postgres raises `22P02` on a malformed uuid bind, Drizzle
   throws, Next renders 500. `isUuid` turns a mistyped URL into a 404.
 - **Errors throw; they do not arrive as `{ error }`.** A handler that must answer 500 needs

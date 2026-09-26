@@ -6,10 +6,12 @@ const BASE: GuardInput = {
   isDeactivated: false,
   isAdmin: false,
   hasTeacherAccess: false,
+  isPlatformAdmin: false,
+  isSuspended: false,
 }
 
 describe('decideGuard — unauthenticated', () => {
-  it.each(['/lessons', '/board/1', '/profile', '/admin', '/teacher', '/staff'])(
+  it.each(['/lessons', '/board/1', '/profile', '/admin', '/teacher', '/staff', '/console'])(
     'redirects to /login for %s',
     (pathname) => {
       expect(decideGuard({ ...BASE, pathname, user: null })).toEqual({ redirect: '/login' })
@@ -91,5 +93,36 @@ describe('decideGuard — /staff (unified admin+teacher dashboard)', () => {
     ).toEqual({
       redirect: '/lessons',
     })
+  })
+})
+
+describe('decideGuard — /console', () => {
+  it('sends a non-platform user, even an org admin, to /lessons', () => {
+    expect(
+      decideGuard({ ...BASE, pathname: '/console', isAdmin: true, hasTeacherAccess: true })
+    ).toEqual({ redirect: '/lessons' })
+  })
+
+  it('lets the platform owner through', () => {
+    expect(decideGuard({ ...BASE, pathname: '/console', isPlatformAdmin: true })).toBeNull()
+  })
+})
+
+describe('decideGuard — suspended org', () => {
+  it.each(['/lessons', '/board/1', '/staff', '/console', '/'])(
+    'sends a paused member to /paused from %s',
+    (pathname) => {
+      expect(
+        decideGuard({ ...BASE, pathname, isSuspended: true, isAdmin: true, hasTeacherAccess: true })
+      ).toEqual({ redirect: '/paused' })
+    }
+  )
+
+  it.each(['/paused', '/login'])('does not redirect %s, so there is no loop', (pathname) => {
+    expect(decideGuard({ ...BASE, pathname, isSuspended: true })).toBeNull()
+  })
+
+  it('leaves /paused alone for everyone else', () => {
+    expect(decideGuard({ ...BASE, pathname: '/paused' })).toBeNull()
   })
 })

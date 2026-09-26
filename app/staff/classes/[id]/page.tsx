@@ -233,7 +233,7 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   const allowed = await isTeacherOfClass(user.id, params.id)
   if (!allowed) redirect('/staff/classes')
 
-  const [classRows, members, allUsers, profiles, enabledLessons] = await Promise.all([
+  const [classRows, members, allUsers, profiles, enabledLessons, grants] = await Promise.all([
     db
       .select({
         id: classesTable.id,
@@ -266,10 +266,22 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
       .select({ lesson_id: classEnabledLessons.lessonId })
       .from(classEnabledLessons)
       .where(eq(classEnabledLessons.classId, params.id)),
+    // Every grant in the org, to find who a teacher may add: students who
+    // hold no staff role (the members route enforces the same rule).
+    db
+      .select({ user_id: userRoles.userId, role: roles.name })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(eq(userRoles.orgId, user.orgId)),
   ])
 
   const cls = classRows[0]
   if (!cls) redirect('/staff/classes')
+
+  const staffIds = new Set(
+    grants.filter((g) => (STAFF_ROLES as readonly string[]).includes(g.role)).map((g) => g.user_id)
+  )
+  const memberIds = new Set(members.map((m) => m.user_id))
 
   const studentIds = members.filter((m) => m.role === 'student').map((m) => m.user_id)
   const emailById = Object.fromEntries(allUsers.map((u) => [u.id, u.email ?? u.id]))
@@ -278,6 +290,15 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
   const students = studentIds
     .map((id) => ({ userId: id, name: nameById[id] ?? '', email: emailById[id] ?? id.slice(0, 8) }))
     .sort((a, b) => a.name.localeCompare(b.name))
+
+  const candidates = grants
+    .filter((g) => g.role === 'student' && !staffIds.has(g.user_id) && !memberIds.has(g.user_id))
+    .map((g) => ({
+      userId: g.user_id,
+      name: nameById[g.user_id] ?? '',
+      email: emailById[g.user_id] ?? g.user_id.slice(0, 8),
+    }))
+    .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
 
   const enabledLessonIds = (enabledLessons ?? []).map((d) => d.lesson_id)
   const blankTasks = (lesson: (typeof LESSONS)[number]) =>
@@ -377,7 +398,13 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
         <span className="text-foreground">{cls.name}</span>
       </div>
 
-      <TeacherClassClient classId={cls.id} className={cls.name} lessonsProgress={lessonsProgress} />
+      <TeacherClassClient
+        classId={cls.id}
+        className={cls.name}
+        lessonsProgress={lessonsProgress}
+        students={students}
+        candidates={candidates}
+      />
     </div>
   )
 }

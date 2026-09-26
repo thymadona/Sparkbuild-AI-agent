@@ -7,8 +7,8 @@ Replan between phases: is the next item still the right one?
 **Done:** course weeks 1–12 (Wake the Robot → Rex's Demo Day), Bolt the helper AI, the tutor board with Sparky, and the
 staff back office (classes, lesson unlocking, Telegram invoices).
 
-Order: B0, then the Dashboard track D1→D6 (D7 waits for the ABA PayWay keys), with the Course
-track in between as it fits. Revisit at each replan.
+Order: B0, then the Dashboard track D1 → D2a → D3/D4 → D5/D6, with D2 (subdomains) later and D7
+waiting for the ABA PayWay keys. Revisit at each replan.
 
 ## Course track
 
@@ -44,12 +44,17 @@ B2C first, B2B-ready: B2C is the built-in org "SparkBuild Direct" (see tech-stac
 - [x] **D1. Organizations.** `organizations` table; `org_id` on users, classes, invoices and other
       tenant tables; backfill everything into SparkBuild Direct; roles scoped per org; an
       org-predicate hard rule in `CLAUDE.md`. Build it task group by task group.
+- [x] **D2a. Org onboarding.** On the current host, no subdomains: the platform owner creates and
+      suspends orgs and names the first org admin by email at `/console`; an org admin adds
+      students and teachers by email or CSV; a teacher manages the students in their own classes;
+      an existing SparkBuild Direct user joins an org by accepting an invite. School orgs are
+      class-only (no boss unlock).
 - [ ] **D2. Subdomains & sign-in.** Wildcard domain; host → org in `proxy.ts`; `app.` and
       `console.` hosts; Google sign-in across subdomains; landing page on the apex domain.
 - [ ] **D3. New dashboard shell.** Org-scoped layout for the org admin, plus a teacher view. It sits
       beside the old dashboards.
-- [ ] **D4. People & classes.** Add and import students and teachers, deactivate; classes,
-      schedules, teacher assignment, lesson unlocking.
+- [ ] **D4. People & classes.** In the D3 shell: deactivate; classes, schedules, teacher
+      assignment, lesson unlocking. (Adding and importing people moved to D2a.)
 - [ ] **D5. Reports.** Progress per class and per student, completion, activity, CSV export.
 - [ ] **D6. Parent accounts.** Parent role, parent ↔ child link, a parent view of progress and invoices,
       and proof of skill at the end of the course (see backlog).
@@ -57,8 +62,8 @@ B2C first, B2B-ready: B2C is the built-in org "SparkBuild Direct" (see tech-stac
       picks class or plan → pays; invoices and receipts. Likely splits (payment first, then checkout).
 - [ ] **D8. Remove old dashboards.** Delete `/staff`, `/admin` and `/teacher` once D3–D7 cover B2C.
       B2C is complete at this point.
-- [ ] **D9. Platform console.** At `console.`: create and suspend orgs, set subdomain, invite the
-      first school admin.
+- [ ] **D9. Platform console.** Move the D2a `/console` to the `console.` host and set each
+      org's subdomain.
 - [ ] **D10. School billing.** Per-seat plans, seat counting, invoices from SparkBuild to the
       school, paid via ABA.
 - [ ] **D11. Pilot school.** Onboard the first partner school, then replan from what we learn.

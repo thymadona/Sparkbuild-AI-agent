@@ -28,6 +28,7 @@ import {
   addClassMember,
   grantRole,
   makeClass,
+  makeOrg,
   makeProject,
   makeUser,
   resetDb,
@@ -139,6 +140,27 @@ describe('POST /api/projects', () => {
 
     expect((await POST(makeRequest('POST', { lessonId: last.id }))).status).toBe(201)
     expect((await POST(makeRequest('POST', { lessonId: LESSONS[0].id }))).status).toBe(201)
+  })
+
+  it('opens only class-enabled lessons for a school student, whatever bosses they beat', async () => {
+    const school = await makeOrg()
+    const student = await makeUser({ orgId: school.id })
+    mockGetSessionUser.mockResolvedValue(student)
+    const [first, second] = LESSONS
+
+    const res = await POST(makeRequest('POST', { lessonId: first.id }))
+    expect(res.status).toBe(403)
+    expect((await res.json()).error).toBe("Your class hasn't opened this lesson yet")
+
+    const project = await makeProject(student.id, { lessonId: first.id })
+    const boss = first.tasks.find((t) => t.boss)!
+    await setLessonProgress(project.id, [boss.id], new Date().toISOString())
+    expect((await POST(makeRequest('POST', { lessonId: second.id }))).status).toBe(403)
+
+    const klass = await makeClass({ orgId: school.id })
+    await addClassMember(klass.id, student.id, 'student')
+    await db.insert(classEnabledLessons).values({ classId: klass.id, lessonId: second.id })
+    expect((await POST(makeRequest('POST', { lessonId: second.id }))).status).toBe(201)
   })
 
   it('always pins the current catalog version, whatever the client sends', async () => {

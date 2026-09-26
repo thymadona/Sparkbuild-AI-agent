@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import {
+  PLATFORM_ADMIN_ROLE_ID,
   classMembers,
   classes,
   permissions,
@@ -101,6 +102,18 @@ export function queryIsAdmin(userId: string): Promise<boolean> {
   return holdsRole(userId, 'admin')
 }
 
+// The platform owner: the org-less platform_admin grant. It opens /console
+// and its API and nothing else — it is deliberately not a rule above, so it
+// never counts as admin, teacher or a permission inside any org.
+export async function queryIsPlatformAdmin(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ one: sql`1` })
+    .from(userRoles)
+    .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, PLATFORM_ADMIN_ROLE_ID)))
+    .limit(1)
+  return rows.length > 0
+}
+
 // Admin, or teaches at least one class. A teacher-role holder with no class
 // yet does not get the dashboard.
 export async function queryCanAccessTeacherDashboard(userId: string): Promise<boolean> {
@@ -147,6 +160,17 @@ export async function isAdmin(userId: string): Promise<boolean> {
       return await queryIsAdmin(userId)
     } catch (err) {
       console.error('isAdmin failed:', err)
+      return false
+    }
+  })
+}
+
+export async function isPlatformAdmin(userId: string): Promise<boolean> {
+  return cached(`role:platform_admin:${userId}`, 30, async () => {
+    try {
+      return await queryIsPlatformAdmin(userId)
+    } catch (err) {
+      console.error('isPlatformAdmin failed:', err)
       return false
     }
   })

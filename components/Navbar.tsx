@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import ProfileDropdown from './ProfileDropdown'
 import Logo from './Logo'
+import type { AccountLinks } from '@/lib/account-links'
 
 interface NavbarProps {
   /** 'marketing' floats over a hero (fixed + blur); 'app' docks inline (sticky). */
@@ -14,6 +15,8 @@ interface NavbarProps {
   userEmail?: string
   /** app only: total course XP, shown beside the account menu. */
   xp?: number
+  /** app only: the back-office areas the account menu links to. */
+  links?: AccountLinks
 }
 
 export default function Navbar({
@@ -21,6 +24,7 @@ export default function Navbar({
   isLoggedIn = false,
   userEmail,
   xp,
+  links,
 }: NavbarProps) {
   return (
     <header
@@ -58,7 +62,7 @@ export default function Navbar({
                   <span className="sr-only">XP</span>
                 </span>
               )}
-              {userEmail && <ProfileDropdown email={userEmail} />}
+              {userEmail && <ProfileDropdown email={userEmail} links={links} />}
             </>
           )}
         </div>

@@ -12,6 +12,16 @@ course (catalog version 3; weeks 1–12 exist) where the LLM tutors on a shared 
 Teachers/admins run classes and send invoices/receipts over Telegram from a back office
 (`/staff`).
 
+Every user belongs to one org. SparkBuild Direct (B2C) is self-paced: a student opens the next
+lesson by beating a boss. A school org is **class-only**: a student opens only the lessons a class
+enabled (`accessPolicyFor(orgId)`, `lib/lesson-availability.ts`). The platform owner
+(`platform_admin`) runs `/console` to create, suspend and reactivate orgs and to name each
+org's first admin. A suspended org's members see `/paused`, and every API refuses them.
+Direct can't be suspended. An org admin adds students and teachers by email or CSV from
+`/staff/users` (`addPersonToOrg`, `lib/org-people.ts`): a new email is pre-provisioned, and an
+existing Direct account gets an invite that only its owner, signed in, can accept on
+`/lessons`. A teacher manages the student roster of the classes they teach.
+
 **The platform is Python-only.** There is no HTML editor, web preview, free-form project or
 public gallery — do not add them. Anything that still references such things (see Known
 issues) is a dead remnant to delete or move toward the Python model, not a second track.
@@ -55,6 +65,17 @@ Each rule's rationale is in the skill named in parentheses.
   refused. `class_members` has no FK tying a member to the class's org, so adding one checks
   both in code. A student's own queries need no org predicate: their `user_id` implies it.
   (`database`, `roles-permissions`)
+- `platform_admin` grants nothing inside an org: it gates only `/console` and `/api/platform/*`
+  (`requirePlatformAdmin`, `lib/platform-orgs.ts`), and no org rule counts it. Suspension is
+  checked in `getSessionUser()` (it returns null) and in `proxy.ts`. The check fails closed for a
+  school's members and never queries for Direct users; `platform_admin` is exempt. (`auth-flow`,
+  `roles-permissions`)
+- **An org move is `acceptInvite` (`lib/org-move.ts`) only**, in one transaction. It refuses an
+  unpaid Direct invoice and removing Direct's last admin. Then it deletes the non-student Direct
+  grants **before** moving `users.org_id`, because the `on update cascade` FKs would otherwise
+  turn a Direct admin grant into a school one. Invoices, receipts and the remaining grants follow
+  the cascade, Direct class memberships are dropped, and projects, progress and XP stay. Never
+  write `users.org_id` anywhere else. (`database`)
 - Ids from a path or query string go through `isUuid()` (`lib/db/uuid.ts`) before any query;
   Postgres errors **throw** — keep each caller's fail-open/closed choice. (`database`)
 - Never import `db` in a `'use client'` file; only `NEXT_PUBLIC_*` may reach the browser.
@@ -94,8 +115,8 @@ Each rule's rationale is in the skill named in parentheses.
   DSL can't express (`--custom`) → `bun run db:migrate` → update `types/index.ts` by hand. A
   new table needs an `export *` in `lib/db/schema.ts` and an `enable row level security` line.
   `drizzle-kit push`/`pull` are banned. Keep explicit snake_case column strings. Latest
-  migration: `0015` (the org-less `platform_admin` role; `0014` added `organizations` and
-  `org_id`). (`database`)
+  migration: `0016` (`org_invites`; `0015` added the org-less `platform_admin` role, `0014`
+  `organizations` and `org_id`). (`database`)
 - `/board` is cross-origin isolated (`next.config.js`), which only takes effect on a full page
   load: go into or out of the board with `openBoard()` or a plain `<a>`, never `router.push` or
   `<Link>`. Anything the board loads from another site must send CORP or CORS headers.

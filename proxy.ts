@@ -4,7 +4,12 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 import { decideGuard } from '@/lib/auth/guard'
-import { queryCanAccessTeacherDashboard, queryIsAdmin } from '@/lib/auth/permissions'
+import {
+  queryCanAccessTeacherDashboard,
+  queryIsAdmin,
+  queryIsPlatformAdmin,
+} from '@/lib/auth/permissions'
+import { isSuspendedFor } from '@/lib/orgs'
 
 // Renamed from middleware.ts: `middleware` is deprecated in Next 16 and the
 // convention is now `proxy`. Proxy defaults to the Node.js runtime, and the
@@ -39,6 +44,18 @@ export async function proxy(request: NextRequest) {
   const isAdminPath = pathname.startsWith('/admin')
   const isTeacherPath = pathname.startsWith('/teacher')
   const isStaffPath = pathname.startsWith('/staff')
+  const isConsolePath = pathname.startsWith('/console')
+
+  // A suspended org pauses every member (Direct users skip the query). Fails
+  // closed like getSessionUser: a failed check pauses a school user.
+  let isSuspended = false
+  if (user) {
+    const suspended = await check(isSuspendedFor(user.id, user.orgId as string))
+    isSuspended = suspended !== false
+  }
+  if (isSuspended && pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Your school’s access is paused' }, { status: 403 })
+  }
 
   // Deactivation check — only meaningful for accounts that actually have a
   // student_profiles row (admin/teacher accounts don't get one, per the
@@ -78,12 +95,20 @@ export async function proxy(request: NextRequest) {
     hasTeacherAccess = teacherResult === true
   }
 
+  // Fail closed, like the admin checks above.
+  let isPlatformAdminUser = false
+  if (user && isConsolePath && !isSuspended) {
+    isPlatformAdminUser = (await check(queryIsPlatformAdmin(user.id))) === true
+  }
+
   const decision = decideGuard({
     pathname,
     user: user ? { id: user.id, email: user.email } : null,
     isDeactivated,
     isAdmin: isAdminUser,
     hasTeacherAccess,
+    isPlatformAdmin: isPlatformAdminUser,
+    isSuspended,
   })
 
   if (decision) {
