@@ -26,6 +26,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
         .select({
           id: invoices.id,
           userId: invoices.userId,
+          orgId: invoices.orgId,
           amountCents: invoices.amountCents,
           description: invoices.description,
           status: invoices.status,
@@ -58,6 +59,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
         .values({
           invoiceId: invoice.id,
           userId: invoice.userId,
+          orgId: invoice.orgId,
           amountCents: invoice.amountCents,
           description: invoice.description,
           paidAt,

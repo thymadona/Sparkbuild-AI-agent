@@ -12,6 +12,7 @@ const classColumns = {
   name: classes.name,
   description: classes.description,
   created_at: classes.createdAt,
+  org_id: classes.orgId,
 }
 
 export async function GET() {
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
   try {
     const [row] = await db
       .insert(classes)
-      .values({ name, description: description ?? null })
+      .values({ name, description: description ?? null, orgId: user.orgId })
       .returning(classColumns)
 
     return NextResponse.json(row)

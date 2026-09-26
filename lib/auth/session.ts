@@ -6,6 +6,8 @@ export interface SessionUser {
   id: string
   email: string
   name: string
+  /** The user's organization (users.org_id); SparkBuild Direct for B2C. */
+  orgId: string
 }
 
 /**
@@ -27,5 +29,6 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     id: session.user.id,
     email: session.user.email ?? '',
     name: session.user.name ?? '',
+    orgId: session.user.orgId as string,
   }
 })

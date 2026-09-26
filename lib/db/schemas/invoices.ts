@@ -1,5 +1,16 @@
 import { sql } from 'drizzle-orm'
-import { check, date, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core'
+import { organizations } from './organizations'
 import { users } from './users'
 
 export const invoices = pgTable(
@@ -18,8 +29,20 @@ export const invoices = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id),
   },
   (t) => [
+    // The invoice's org is its student's org, enforced by the database.
+    foreignKey({
+      name: 'invoices_user_id_org_id_fk',
+      columns: [t.userId, t.orgId],
+      foreignColumns: [users.id, users.orgId],
+    })
+      .onUpdate('cascade')
+      .onDelete('cascade'),
+    index('invoices_org_id_idx').on(t.orgId),
     check('invoices_amount_cents_check', sql`${t.amountCents} > 0`),
     check('invoices_status_check', sql`${t.status} = ANY (ARRAY['unpaid', 'paid', 'void'])`),
     index('invoices_status_idx').on(t.status),

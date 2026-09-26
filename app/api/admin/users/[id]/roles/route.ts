@@ -5,6 +5,7 @@ import { userRoles } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission, roleIdByName } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
+import { orgOfUser } from '@/lib/orgs'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -38,7 +39,7 @@ export async function POST(req: Request, props: Props) {
     // composite (user_id, role_id) primary key.
     await db
       .insert(userRoles)
-      .values({ userId: params.id, roleId, grantedBy: user.id })
+      .values({ userId: params.id, roleId, orgId: orgOfUser(params.id), grantedBy: user.id })
       .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
 
     return NextResponse.json({ ok: true })

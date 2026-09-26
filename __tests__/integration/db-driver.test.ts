@@ -28,6 +28,7 @@ describe('driver type parsing', () => {
     const user = await makeUser()
     await db.insert(invoices).values({
       userId: user.id,
+      orgId: user.orgId,
       amountCents: 100,
       description: 'x',
       dueDate: '2026-01-01',

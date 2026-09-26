@@ -70,11 +70,30 @@ describe('getSchoolOverviewStats', () => {
   it('splits unpaid invoices into overdue and not-yet-due, ignoring paid ones', async () => {
     const user = await makeUser()
     await db.insert(invoices).values([
-      { userId: user.id, amountCents: 100, description: 'overdue a', dueDate: '2020-01-01' },
-      { userId: user.id, amountCents: 100, description: 'overdue b', dueDate: '2021-06-15' },
-      { userId: user.id, amountCents: 100, description: 'not yet due', dueDate: '2999-12-31' },
       {
         userId: user.id,
+        orgId: user.orgId,
+        amountCents: 100,
+        description: 'overdue a',
+        dueDate: '2020-01-01',
+      },
+      {
+        userId: user.id,
+        orgId: user.orgId,
+        amountCents: 100,
+        description: 'overdue b',
+        dueDate: '2021-06-15',
+      },
+      {
+        userId: user.id,
+        orgId: user.orgId,
+        amountCents: 100,
+        description: 'not yet due',
+        dueDate: '2999-12-31',
+      },
+      {
+        userId: user.id,
+        orgId: user.orgId,
         amountCents: 100,
         description: 'paid but overdue',
         dueDate: '2020-01-01',

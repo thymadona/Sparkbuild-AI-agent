@@ -1,6 +1,7 @@
 import { db } from '@/lib/db/client'
 import { studentProfiles, userRoles } from '@/lib/db/schema'
 import { getUserRoles, roleIdByName } from '@/lib/auth/permissions'
+import { orgOfUser } from '@/lib/orgs'
 
 // Every non-admin, non-teacher sign-in is a student by default. Originally
 // app/auth/callback/route.ts, which ran this after Supabase's PKCE exchange;
@@ -40,7 +41,7 @@ export async function ensureStudentDefaults(userId: string, name: string): Promi
       if (studentRoleId) {
         await tx
           .insert(userRoles)
-          .values({ userId, roleId: studentRoleId })
+          .values({ userId, roleId: studentRoleId, orgId: orgOfUser(userId) })
           .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
       }
     })

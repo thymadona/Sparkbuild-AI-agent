@@ -31,7 +31,18 @@ export const auth = betterAuth({
   // to carry were identity maps and are gone. Renaming a property in
   // lib/db/schema.ts still breaks the adapter at runtime ("field does not
   // exist in the schema"), and no longer has a map here to remind you.
-  user: { modelName: 'users' },
+  //
+  // `orgId` is the one app-owned column on users. Declaring it makes
+  // getSession() return it (so getSessionUser can hand every route the
+  // viewer's org without a second query); `input: false` stops a sign-up body
+  // from setting it, and with no `defaultValue` Better Auth leaves it out of
+  // the insert entirely, so the users.org_id column default applies.
+  user: {
+    modelName: 'users',
+    additionalFields: {
+      orgId: { type: 'string', required: false, input: false },
+    },
+  },
   session: { modelName: 'sessions' },
   account: {
     modelName: 'accounts',
