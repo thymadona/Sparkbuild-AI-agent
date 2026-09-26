@@ -88,11 +88,11 @@ describe('LessonsClient', () => {
     expect(body).not.toHaveProperty('starter')
   })
 
-  it('shows a locked state instead of Start when the class has not turned the lesson on', () => {
+  it('shows a locked state instead of Start when the lesson is not open yet', () => {
     render(<LessonsClient lessons={[lesson]} userProjects={[]} enabledLessonIds={[]} />)
 
     expect(screen.queryByRole('button', { name: 'Start' })).not.toBeInTheDocument()
-    expect(screen.getByText('Not open yet')).toBeInTheDocument()
+    expect(screen.getByText('Beat the last boss first')).toBeInTheDocument()
   })
 
   it('still lets a student resume a lesson they already started, even if since turned off', () => {

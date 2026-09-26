@@ -11,7 +11,7 @@ import {
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Mascot from '@/app/board/Mascot'
-import { LESSONS } from '@/lib/lessons'
+import { LESSONS, lessonDisplayTitle } from '@/lib/lessons'
 import { getSessionUser } from '@/lib/auth/session'
 
 const FEATURES = [
@@ -240,7 +240,7 @@ export default async function Home() {
 
             <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_320px]">
               <div className="flex flex-col gap-6">
-                <p className="sr-only">Week 4 of 6</p>
+                <p className="sr-only">Lesson 4 of 6</p>
                 <div aria-hidden="true" className="flex items-center gap-3">
                   {[1, 2, 3].map((n) => (
                     <div
@@ -278,7 +278,7 @@ export default async function Home() {
                           </span>
                         )}
                         <h3 className="mt-1 font-display text-lg font-bold text-fg-primary">
-                          {lesson.title}
+                          {lessonDisplayTitle(lesson)}
                         </h3>
                         <p className="mt-1 text-sm text-fg-secondary">{lesson.description}</p>
                       </div>

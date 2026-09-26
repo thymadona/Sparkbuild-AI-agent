@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
-import { db, rowsOf } from '@/lib/db/client'
-import { classMembers, roles, userRoles } from '@/lib/db/schema'
+import { db } from '@/lib/db/client'
+import { classMembers, permissions, rolePermissions, roles, userRoles } from '@/lib/db/schema'
 import { cached } from '@/lib/cache'
 
 export class ForbiddenError extends Error {
@@ -36,15 +36,64 @@ export async function getUserRoles(userId: string): Promise<string[]> {
   return rows.map((row) => row.name)
 }
 
-// The authorization checks below run as Postgres security-definer functions
-// (drizzle/0001_functions_sequence_seed.sql) rather than as Drizzle queries.
-// Those functions already encode the rules — including the teacher exemption
-// in is_enrolled_in_class that exists specifically to fix a bug — and
-// reimplementing multi-table joins on the app's authorization boundary would
-// be new places to get it wrong.
-async function callBooleanFn(query: ReturnType<typeof sql>): Promise<boolean> {
-  const rows = rowsOf<{ ok: boolean | null }>(await db.execute(query))
-  return rows[0]?.ok === true
+// The authorization rules, as plain queries. These used to be Postgres
+// security-definer functions, a Supabase-era design for RLS policies and RPC
+// callers; `db` connects as the owner and no policy calls them, so they now
+// live here with the schema's types. Each throws on a database error — the
+// exported wrappers and proxy.ts each choose to fail closed or open.
+
+async function holdsRole(userId: string, name: string): Promise<boolean> {
+  const rows = await db
+    .select({ one: sql`1` })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(and(eq(userRoles.userId, userId), eq(roles.name, name)))
+    .limit(1)
+  return rows.length > 0
+}
+
+async function hasClassMembership(
+  userId: string,
+  role: 'student' | 'teacher',
+  classId?: string
+): Promise<boolean> {
+  const rows = await db
+    .select({ one: sql`1` })
+    .from(classMembers)
+    .where(
+      and(
+        eq(classMembers.userId, userId),
+        eq(classMembers.role, role),
+        classId === undefined ? undefined : eq(classMembers.classId, classId)
+      )
+    )
+    .limit(1)
+  return rows.length > 0
+}
+
+export function queryIsAdmin(userId: string): Promise<boolean> {
+  return holdsRole(userId, 'admin')
+}
+
+// Admin, or teaches at least one class. A teacher-role holder with no class
+// yet does not get the dashboard.
+export async function queryCanAccessTeacherDashboard(userId: string): Promise<boolean> {
+  const [admin, teaches] = await Promise.all([
+    queryIsAdmin(userId),
+    hasClassMembership(userId, 'teacher'),
+  ])
+  return admin || teaches
+}
+
+async function queryHasPermission(userId: string, key: string): Promise<boolean> {
+  const rows = await db
+    .select({ one: sql`1` })
+    .from(userRoles)
+    .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+    .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+    .where(and(eq(userRoles.userId, userId), eq(permissions.key, key)))
+    .limit(1)
+  return rows.length > 0
 }
 
 // Fail closed, unlike lib/ratelimit.ts's checkRateLimit (which fails open —
@@ -52,14 +101,13 @@ async function callBooleanFn(query: ReturnType<typeof sql>): Promise<boolean> {
 // access: this guards admin/PII surfaces, where the safe default is "no
 // access", not "any access".
 //
-// The try/catch has to sit *inside* the cached() callback. Drizzle throws
-// where the old Supabase client returned `{ data, error }`, and cached()
-// does not swallow exceptions from its callback — so an uncaught throw here
-// would crash the calling page rather than deny access.
+// The try/catch has to sit *inside* the cached() callback: cached() does not
+// swallow exceptions from its callback, so an uncaught throw here would crash
+// the calling page rather than deny access.
 export async function hasPermission(userId: string, key: string): Promise<boolean> {
   return cached(`perm:${userId}:${key}`, 30, async () => {
     try {
-      return await callBooleanFn(sql`select public.has_permission(${userId}::uuid, ${key}) as ok`)
+      return await queryHasPermission(userId, key)
     } catch (err) {
       console.error(`hasPermission(${key}) failed:`, err)
       return false
@@ -70,7 +118,7 @@ export async function hasPermission(userId: string, key: string): Promise<boolea
 export async function isAdmin(userId: string): Promise<boolean> {
   return cached(`role:admin:${userId}`, 30, async () => {
     try {
-      return await callBooleanFn(sql`select public.is_admin(${userId}::uuid) as ok`)
+      return await queryIsAdmin(userId)
     } catch (err) {
       console.error('isAdmin failed:', err)
       return false
@@ -101,40 +149,36 @@ export interface StaffContext {
   teacherClassIds: string[]
 }
 
-// Everything app/staff/layout.tsx needs, batched into one round trip instead
-// of the seven cached() calls it used to make on every /staff page.
-//
-// This does not reimplement the rules: it calls the same security-definer
-// functions as isAdmin/hasPermission, so each still has one definition. Fails
-// closed like they do, with the try/catch inside the cached() callback.
+// Everything app/staff/layout.tsx needs, batched into two parallel queries
+// instead of the seven cached() calls it used to make on every /staff page:
+// the user's role names with every permission key those roles carry, and the
+// classes they teach. Fails closed like isAdmin/hasPermission, with the
+// try/catch inside the cached() callback.
 export async function getStaffContext(
   userId: string,
   keys: readonly string[]
 ): Promise<StaffContext> {
   return cached(`staff:ctx:${userId}:${keys.join(',')}`, 30, async () => {
     try {
-      // Aliased positionally: permission keys contain colons, and quoting
-      // caller-supplied text into an identifier is a habit worth avoiding.
-      const columns = keys.map(
-        (key, i) =>
-          sql`public.has_permission(${userId}::uuid, ${key}) as ${sql.identifier(`p${i}`)}`
-      )
-
-      const [rows, classRows] = await Promise.all([
-        db.execute(
-          sql`select ${sql.join([sql`public.is_admin(${userId}::uuid) as is_admin`, ...columns], sql`, `)}`
-        ),
+      const [grantRows, classRows] = await Promise.all([
+        db
+          .select({ role: roles.name, key: permissions.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(roles.id, userRoles.roleId))
+          .leftJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+          .leftJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+          .where(eq(userRoles.userId, userId)),
         db
           .select({ class_id: classMembers.classId })
           .from(classMembers)
           .where(and(eq(classMembers.userId, userId), eq(classMembers.role, 'teacher'))),
       ])
 
-      const row = rowsOf<Record<string, boolean | null>>(rows)[0] ?? {}
+      const granted = new Set(grantRows.map((r) => r.key))
 
       return {
-        isAdmin: row.is_admin === true,
-        permissions: Object.fromEntries(keys.map((key, i) => [key, row[`p${i}`] === true])),
+        isAdmin: grantRows.some((r) => r.role === 'admin'),
+        permissions: Object.fromEntries(keys.map((key) => [key, granted.has(key)])),
         teacherClassIds: classRows.map((r) => r.class_id),
       }
     } catch (err) {
@@ -157,9 +201,11 @@ export async function requirePermission(userId: string, key: string): Promise<vo
 // True if userId teaches this specific class, or is an admin.
 export async function isTeacherOfClass(userId: string, classId: string): Promise<boolean> {
   try {
-    return await callBooleanFn(
-      sql`select public.is_teacher_of_class(${userId}::uuid, ${classId}::uuid) as ok`
-    )
+    const [teaches, admin] = await Promise.all([
+      hasClassMembership(userId, 'teacher', classId),
+      queryIsAdmin(userId),
+    ])
+    return teaches || admin
   } catch (err) {
     console.error('isTeacherOfClass failed:', err)
     return false

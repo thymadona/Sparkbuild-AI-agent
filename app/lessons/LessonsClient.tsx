@@ -2,13 +2,13 @@
 
 import PlayerCard from '@/components/PlayerCard'
 import type { PlayerStats } from '@/lib/xp'
-import type { Lesson } from '@/lib/lessons'
+import { lessonDisplayTitle, type Lesson } from '@/lib/lessons'
 import { openBoard } from '@/lib/open-board'
 import { useState } from 'react'
 import { Check, Compass, Lock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 
-// A fixed per-week difficulty rating, not a score the student earns — kept
+// A fixed per-lesson difficulty rating, not a score the student earns — kept
 // visually distinct (muted, labeled) from the real completion state (the
 // checkmark node and Resume button) so it can't be misread as "you only
 // scored 1/3" on a finished project.
@@ -67,12 +67,17 @@ export default function LessonsClient({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: lesson.title,
+          title: lessonDisplayTitle(lesson),
           lessonId: lesson.id,
         }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 403 && typeof data.error === 'string') {
+        setError(data.error)
+        setLoadingId(null)
+        return
+      }
       if (!res.ok) throw new Error('Failed to create project')
-      const data = await res.json()
       openBoard(data.id)
     } catch {
       setError('Something went wrong. Please try again.')
@@ -91,7 +96,7 @@ export default function LessonsClient({
             Your Journey
           </h1>
           <p className="mt-2 text-lg text-fg-secondary">
-            Learn Python, then build your own projects. Each week is harder.
+            Learn Python at your own pace. Beat a lesson&apos;s boss to open the next one.
           </p>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 text-fg-primary">
@@ -130,7 +135,7 @@ export default function LessonsClient({
               const isStarted = projectByLessonId.has(lesson.id)
               const isDone = doneOf(lesson) === lesson.tasks.length
               const isLocked = !isStarted && !enabledSet.has(lesson.id)
-              const stars = Math.min(3, Math.floor(i / 4) + 1) // weeks 1-4 easy, 5-8 medium, 9+ hard
+              const stars = Math.min(3, Math.floor(i / 4) + 1) // lessons 1-4 easy, 5-8 medium, 9+ hard
               return (
                 <div key={lesson.id} className="flex gap-5 relative">
                   {/* Node */}
@@ -158,10 +163,10 @@ export default function LessonsClient({
                         <p
                           className={`text-xs font-bold uppercase tracking-widest ${'text-fg-muted'}`}
                         >
-                          Week {i + 1}
+                          Lesson {i + 1}
                         </p>
                         <h3 className={`font-display mt-1 text-lg font-bold ${'text-fg-primary'}`}>
-                          {lesson.title.split('—')[1]?.trim() ?? lesson.title}
+                          {lessonDisplayTitle(lesson)}
                         </h3>
                         <p className={`mt-1.5 text-sm leading-relaxed ${'text-fg-secondary'}`}>
                           {lesson.description}
@@ -195,7 +200,7 @@ export default function LessonsClient({
                       </span>
                       {isLocked ? (
                         <span className="ml-auto rounded-full bg-muted px-5 py-2 text-sm font-semibold text-fg-muted">
-                          Not open yet
+                          Beat the last boss first
                         </span>
                       ) : (
                         <button

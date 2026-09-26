@@ -8,15 +8,15 @@ import {
   getTeacherClassIds,
   getStaffContext,
   ForbiddenError,
+  queryCanAccessTeacherDashboard,
+  queryIsAdmin,
 } from '@/lib/auth/permissions'
 import { db } from '@/lib/db/client'
 import { addClassMember, grantRole, makeClass, makeUser, resetDb } from '@/__tests__/helpers/db'
 
 // These run against the real TEST_DATABASE_URL rather than a mocked query
-// builder. The rules under test live in Postgres security-definer functions
-// (drizzle/0001_functions_sequence_seed.sql), so a mock could only assert
-// that we called them — not that they answer correctly. The previous version
-// of this file stubbed the PostgREST wire shape, which no longer exists.
+// builder: the rules are multi-table joins, so a mock could only assert the
+// query we built — not that it answers correctly.
 beforeEach(resetDb)
 afterAll(() => db.$client.end())
 
@@ -263,5 +263,55 @@ describe('getStaffContext', () => {
     for (const key of KEYS) {
       expect(ctx.permissions[key]).toBe(false)
     }
+  })
+})
+
+// The proxy's checks. Uncached, and they throw — proxy.ts picks fail-open
+// (enrolment) or fail-closed (admin, teacher dashboard) per call site.
+describe('queryIsAdmin', () => {
+  it('is true only for the admin role', async () => {
+    const admin = await makeUser()
+    const teacher = await makeUser()
+    await grantRole(admin.id, 'admin')
+    await grantRole(teacher.id, 'teacher')
+
+    await expect(queryIsAdmin(admin.id)).resolves.toBe(true)
+    await expect(queryIsAdmin(teacher.id)).resolves.toBe(false)
+  })
+
+  it('throws when the query fails', async () => {
+    await expect(queryIsAdmin('not-a-uuid')).rejects.toBeTruthy()
+  })
+})
+
+describe('queryCanAccessTeacherDashboard', () => {
+  it('is true for an admin with no class', async () => {
+    const admin = await makeUser()
+    await grantRole(admin.id, 'admin')
+    await expect(queryCanAccessTeacherDashboard(admin.id)).resolves.toBe(true)
+  })
+
+  it('is true for anyone who teaches a class', async () => {
+    const user = await makeUser()
+    const someClass = await makeClass()
+    await addClassMember(someClass.id, user.id, 'teacher')
+    await expect(queryCanAccessTeacherDashboard(user.id)).resolves.toBe(true)
+  })
+
+  it('is false for a teacher-role holder who teaches no class yet', async () => {
+    const user = await makeUser()
+    await grantRole(user.id, 'teacher')
+    await expect(queryCanAccessTeacherDashboard(user.id)).resolves.toBe(false)
+  })
+
+  it('is false for a student in a class', async () => {
+    const user = await makeUser()
+    const someClass = await makeClass()
+    await addClassMember(someClass.id, user.id, 'student')
+    await expect(queryCanAccessTeacherDashboard(user.id)).resolves.toBe(false)
+  })
+
+  it('throws when the query fails', async () => {
+    await expect(queryCanAccessTeacherDashboard('not-a-uuid')).rejects.toBeTruthy()
   })
 })

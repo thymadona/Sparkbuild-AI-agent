@@ -33,7 +33,7 @@ Student Code Builder: AI-assisted Python platform for ages 10–16. One Next.js 
 | **Lessons** (catalog, checks, progress, XP)                                           | `app/lessons/page.tsx`, `app/lessons/[id]/page.tsx`, `app/api/projects/**`                                                   | `app/lessons/LessonsClient.tsx`, `LessonDetailClient.tsx`, `hooks/use{TaskChecks,RuntimeChecks,LessonProgress}.ts` | `lib/lessons.ts`, `lib/py-lessons.ts`, `lib/lessons/templates.ts` (starters), `lib/task-checks.ts`, `lib/task-verify.ts`, `lib/task-evidence.ts`, `lib/task-progress.ts`, `lib/task-guard.ts`, `lib/python-checks.ts`, `lib/python-check-client.ts`, `lib/lesson-*.ts`, `lib/starter-file.ts`, `lib/xp.ts`, `lib/player-stats.ts` |
 | **Staff back office** (`/staff/*` live; `/admin/*`, `/teacher/*` are redirect shells) | `app/staff/**/page.tsx`, `app/staff/overview-stats.ts`, `app/api/admin/{classes,students,invoices,schedules,telegram,users}` | `app/staff/**/*Client.tsx`, `components/admin/`, `components/dashboard/`                                           | `lib/auth/permissions.ts`, `lib/dashboard-nav.ts`                                                                                                                                                                                                                                                                                 |
 
-Other routes: `app/login`, `app/register`, `app/no-class`, `app/profile`, `app/about`,
+Other routes: `app/login`, `app/register`, `app/profile`, `app/about`,
 `app/invoice/[id]`, `app/receipt/[id]` (**no authorization — the id is the access control**),
 `app/api/auth/[...all]`, `app/api/profile`. Root `proxy.ts` is the route guard.
 

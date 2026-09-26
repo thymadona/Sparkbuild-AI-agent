@@ -92,6 +92,13 @@
       "when": 1790178201902,
       "tag": "0012_quick_freak",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790405671475,
+      "tag": "0013_drop_auth_functions",
+      "breakpoints": true
     }
   ]
 }

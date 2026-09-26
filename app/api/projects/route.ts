@@ -5,7 +5,7 @@ import { messages, projects as projectsTable, prompts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { CURRENT_LESSON_VERSION, getLessonForProject } from '@/lib/lessons'
 import { lessonFiles } from '@/lib/lesson-files'
-import { getEnabledLessonIdsForUser } from '@/lib/lesson-availability'
+import { getAvailableLessonIdsForUser } from '@/lib/lesson-availability'
 import { isAdmin, isTeacher } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
 import { SavedBoard } from '@/lib/board/code'
@@ -79,10 +79,10 @@ export async function POST(req: Request) {
   }
 
   if (!(await isAdmin(user.id)) && !(await isTeacher(user.id))) {
-    const enabledLessonIds = await getEnabledLessonIdsForUser(user.id)
-    if (!enabledLessonIds.has(lessonId)) {
+    const availableLessonIds = await getAvailableLessonIdsForUser(user.id)
+    if (!availableLessonIds.has(lessonId)) {
       return NextResponse.json(
-        { error: 'This lesson is not available for your class right now' },
+        { error: 'Finish the lesson before this one first' },
         { status: 403 }
       )
     }

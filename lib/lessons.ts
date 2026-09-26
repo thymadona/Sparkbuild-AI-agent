@@ -124,6 +124,12 @@ export interface Lesson {
 
 export const LESSONS: Lesson[] = PY_LESSONS
 
+// The title a B2C student sees: self-paced, so no "Week #N — " prefix. Staff
+// views and the tutor keep the full catalog title, since schools run weeks.
+export function lessonDisplayTitle(lesson: Pick<Lesson, 'title'>): string {
+  return lesson.title.replace(/^Week #\d+\s*—\s*/, '')
+}
+
 // A project pinned to any other version predates the Python course and has no
 // lesson to resolve to.
 export function getLessonForProject(lessonId: number, lessonVersion: number | null) {
