@@ -79,12 +79,12 @@ export async function addPersonToOrg(
       .insert(users)
       .values({ name, email, emailVerified: true, orgId })
       .returning({ id: users.id })
-    await grant(tx, created.id, orgId, role, invitedBy, profile)
+    await grantOrgRole(tx, created.id, orgId, role, invitedBy, profile)
     return { kind: 'created', userId: created.id }
   }
 
   if (existing.orgId === orgId) {
-    await grant(tx, existing.id, orgId, role, invitedBy, profile)
+    await grantOrgRole(tx, existing.id, orgId, role, invitedBy, profile)
     return { kind: 'granted', userId: existing.id }
   }
 
@@ -114,12 +114,15 @@ export async function addPersonToOrg(
   return { kind: 'invited', inviteId: invite.id }
 }
 
-async function grant(
+// Grants an org role inside the caller's transaction, with the student
+// profile a student gets at sign-in. Also used by the move flow
+// (lib/org-move.ts) once the user is in the org.
+export async function grantOrgRole(
   tx: Tx,
   userId: string,
   orgId: string,
   role: OrgRole,
-  grantedBy: string,
+  grantedBy: string | null,
   profile: { name: string; parentEmail: string | null }
 ) {
   // Through tx, not roleIdByName's db: outside production the pool holds a

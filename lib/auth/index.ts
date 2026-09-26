@@ -43,6 +43,11 @@ export const auth = betterAuth({
       orgId: { type: 'string', required: false, input: false },
     },
   },
+  // No session.cookieCache, on purpose. With a database adapter Better Auth
+  // leaves it off, so every getSession() reads the session and its user row
+  // (orgId included) from Postgres. Turning it on would let a cookie serve a
+  // stale orgId for up to its maxAge after an org move (lib/org-move.ts) or a
+  // suspension check against the wrong org.
   session: { modelName: 'sessions' },
   account: {
     modelName: 'accounts',

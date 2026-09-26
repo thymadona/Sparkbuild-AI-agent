@@ -9,6 +9,8 @@ import { Check, Compass, Lock } from 'lucide-react'
 import AppShell from '@/components/AppShell'
 import type { AccountLinks } from '@/lib/account-links'
 import type { AccessPolicy } from '@/lib/lesson-availability'
+import type { MyInvite } from '@/lib/org-invites'
+import InviteBanner from '@/components/InviteBanner'
 
 // A fixed per-lesson difficulty rating, not a score the student earns — kept
 // visually distinct (muted, labeled) from the real completion state (the
@@ -25,6 +27,8 @@ interface Props {
   links?: AccountLinks
   // A school (class-only) opens lessons through its classes, not boss wins.
   policy?: AccessPolicy
+  // Open invites to join a school (Direct users only).
+  invites?: MyInvite[]
 }
 
 export default function LessonsClient({
@@ -35,6 +39,7 @@ export default function LessonsClient({
   stats,
   links,
   policy = 'self-paced',
+  invites = [],
 }: Props) {
   const classOnly = policy === 'class-only'
   const enabledSet = new Set(enabledLessonIds)
@@ -98,6 +103,8 @@ export default function LessonsClient({
 
   return (
     <AppShell userEmail={userEmail} xp={stats?.xp} links={links}>
+      <InviteBanner invites={invites} />
+
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-fg-primary">

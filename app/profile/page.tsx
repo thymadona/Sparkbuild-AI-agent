@@ -4,6 +4,7 @@ import ProfileClient from './ProfileClient'
 import { getSessionUser } from '@/lib/auth/session'
 import { getPlayerStats } from '@/lib/player-stats'
 import { getAccountLinks } from '@/lib/account-links'
+import { loadMyInvites } from '@/lib/org-invites'
 import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 
@@ -21,7 +22,14 @@ export default async function ProfilePage() {
     .where(eq(studentProfiles.userId, user.id))
     .limit(1)
 
-  const [{ xp }, links] = await Promise.all([getPlayerStats(user.id), getAccountLinks(user.id)])
+  const [{ xp }, links, invites] = await Promise.all([
+    getPlayerStats(user.id),
+    getAccountLinks(user.id),
+    loadMyInvites(user).catch((err) => {
+      console.error('loadMyInvites failed:', err)
+      return []
+    }),
+  ])
 
   return (
     <ProfileClient
@@ -29,6 +37,7 @@ export default async function ProfilePage() {
       initialName={profile?.full_name || user.name}
       xp={xp}
       links={links}
+      invites={invites}
     />
   )
 }
