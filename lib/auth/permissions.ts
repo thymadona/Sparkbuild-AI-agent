@@ -21,9 +21,9 @@ export class ForbiddenError extends Error {
 // The roles that mean "this account is staff". `student` is deliberately
 // absent: every non-staff account now holds a student row in user_roles
 // (lib/auth/student-defaults.ts), so "has any user_roles row" is no longer a
-// test for staff. Three pages under app/staff/ and overview-stats.ts match on
-// this list instead, so a new staff role added here is picked up by all of
-// them at once. platform_admin is absent too: it is org-less and grants nothing.
+// test for staff. The /staff students and classes loaders, the class page
+// and overview-stats.ts match on this list instead, so a new staff role added
+// here is picked up by all of them at once. platform_admin is absent too: it is org-less and grants nothing.
 export const STAFF_ROLES = ['admin', 'teacher'] as const
 
 // Looks up a seeded role's id by name, or null when that role is missing —

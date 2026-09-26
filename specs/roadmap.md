@@ -41,7 +41,7 @@ B2C first, B2B-ready: B2C is the built-in org "SparkBuild Direct" (see tech-stac
       step (no `/no-class`). Lesson 1 is open; beating a lesson's boss opens the next one. A class
       adds lessons and never removes any. B2C copy says "Lesson N", not "Week N". Free until D7.
 
-- [ ] **D1. Organizations.** `organizations` table; `org_id` on users, classes, invoices and other
+- [x] **D1. Organizations.** `organizations` table; `org_id` on users, classes, invoices and other
       tenant tables; backfill everything into SparkBuild Direct; roles scoped per org; an
       org-predicate hard rule in `CLAUDE.md`. Build it task group by task group.
 - [ ] **D2. Subdomains & sign-in.** Wildcard domain; host → org in `proxy.ts`; `app.` and

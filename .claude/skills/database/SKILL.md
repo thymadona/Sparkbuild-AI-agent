@@ -1,6 +1,6 @@
 ---
 name: database
-description: How this repo reads and writes Postgres — the single Drizzle `db` client over node-postgres (`lib/db/client.ts`), the ownership-predicate rule, `isUuid()`, `rowsOf()`, `db.execute` patterns, camelCase/snake_case naming, RLS-with-zero-policies, and the schema-change workflow (`lib/db/schemas/*.ts` → `bun run db:generate` → `bun run db:migrate`). Use for anything mentioning database, db, query, select/insert/update/delete, drizzle, drizzle-kit, postgres, migration, schema, table, column, index, foreign key, RLS, pool, transaction, seed, `db:generate`, `db:migrate`, `types/index.ts`, or "where is X stored". Read `schema-changes.md` here before adding a table/column and `tables.md` for column-level detail. Use this before exploring `lib/db/`, `drizzle/` or route handlers for query patterns — it already maps them.
+description: How this repo reads and writes Postgres — the single Drizzle `db` client over node-postgres (`lib/db/client.ts`), the ownership-predicate and org-predicate rules (`lib/orgs.ts`: `DIRECT_ORG_ID`, `orgOfUser`, `usersInOrg`, `classesInOrg`, `classInOrg`), `isUuid()`, `rowsOf()`, `db.execute` patterns, camelCase/snake_case naming, RLS-with-zero-policies, and the schema-change workflow (`lib/db/schemas/*.ts` → `bun run db:generate` → `bun run db:migrate`). Use for anything mentioning database, db, query, select/insert/update/delete, drizzle, drizzle-kit, postgres, migration, schema, table, column, index, foreign key, RLS, pool, transaction, seed, `db:generate`, `db:migrate`, organization, org, org_id, tenant, SparkBuild Direct, `types/index.ts`, or "where is X stored". Read `schema-changes.md` here before adding a table/column and `tables.md` for column-level detail. Use this before exploring `lib/db/`, `drizzle/` or route handlers for query patterns — it already maps them.
 ---
 
 # Database: Drizzle over node-postgres
@@ -8,21 +8,22 @@ description: How this repo reads and writes Postgres — the single Drizzle `db`
 One data path: `lib/db/client.ts` exports `db`. No Supabase client, no PostgREST, no
 `@supabase/*` dependency (the DB may still be _hosted_ on Supabase; nothing in the app knows).
 Schema authoring is `lib/db/schemas/*.ts`; schema of record is `drizzle/` — see
-[schema-changes.md](schema-changes.md). Column-level facts for all 21 tables:
+[schema-changes.md](schema-changes.md). Column-level facts for all 23 tables:
 [tables.md](tables.md).
 
 ## Files
 
-| Path                                           | What it is                                                                                                                                                                            |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/db/client.ts`                             | Builds the `pg.Pool`, exports `db` (drizzle + `schema`) and `rowsOf<T>(result)`.                                                                                                      |
-| `lib/db/schema.ts`                             | Barrel: `export *` from every file in `schemas/`. A new table **must** be added here or drizzle-kit never sees it.                                                                    |
-| `lib/db/schemas/<table>.ts`                    | One table per file. Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) use timestamp `mode: 'date'`; all 18 app tables use `mode: 'string'`.                       |
-| `lib/db/uuid.ts`                               | `isUuid(value): value is string` — regex guard, call before any id reaches a query.                                                                                                   |
-| `drizzle.config.ts` / `drizzle.test.config.ts` | Same config; the test one points at `TEST_DATABASE_URL`. `push`/`pull` banned (see header).                                                                                           |
-| `drizzle/`                                     | Migrations `0000_baseline` … `0013_drop_auth_functions` (drops the old authorization SQL functions), `meta/` snapshots, `_archive/` (pre-cutover history, not runnable), `README.md`. |
-| `scripts/seed-superadmin.ts`                   | `bun run db:seed:admin` — creates a credential-less admin `users` row + `user_roles` from `SUPERADMIN_EMAIL`.                                                                         |
-| `types/index.ts`                               | Hand-maintained TS mirror of row shapes (snake_case). Nothing generates it — update by hand with every schema change.                                                                 |
+| Path                                           | What it is                                                                                                                                                                                                                           |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/db/client.ts`                             | Builds the `pg.Pool`, exports `db` (drizzle + `schema`) and `rowsOf<T>(result)`.                                                                                                                                                     |
+| `lib/db/schema.ts`                             | Barrel: `export *` from every file in `schemas/`. A new table **must** be added here or drizzle-kit never sees it.                                                                                                                   |
+| `lib/db/schemas/<table>.ts`                    | One table per file. Better Auth tables (`users`, `sessions`, `accounts`, `verifications`) use timestamp `mode: 'date'`; all 19 app tables use `mode: 'string'`.                                                                      |
+| `lib/db/uuid.ts`                               | `isUuid(value): value is string` — regex guard, call before any id reaches a query.                                                                                                                                                  |
+| `drizzle.config.ts` / `drizzle.test.config.ts` | Same config; the test one points at `TEST_DATABASE_URL`. `push`/`pull` banned (see header).                                                                                                                                          |
+| `drizzle/`                                     | Migrations `0000_baseline` … `0015_platform_admin_role` (`0014` adds `organizations` + `org_id`, `0013` drops the old authorization SQL functions), `meta/` snapshots, `_archive/` (pre-cutover history, not runnable), `README.md`. |
+| `lib/orgs.ts`                                  | `DIRECT_ORG_ID`, `orgOfUser(userId)` (insert-time subquery), `usersInOrg(orgId)` / `classesInOrg(orgId)` (subqueries for `inArray`), `classInOrg(classId, orgId)`.                                                                   |
+| `scripts/seed-superadmin.ts`                   | `bun run db:seed:admin` — creates a credential-less `users` row in Direct from `SUPERADMIN_EMAIL` with `platform_admin` + Direct `admin`.                                                                                            |
+| `types/index.ts`                               | Hand-maintained TS mirror of row shapes (snake_case). Nothing generates it — update by hand with every schema change.                                                                                                                |
 
 ## `lib/db/client.ts` — what it does and why
 
@@ -54,6 +55,14 @@ const [row] = await db.update(projects).set(updates)
   .where(and(eq(projects.id, id), eq(projects.userId, user.id))).returning(projectColumns)
 if (!row) return 404
 
+// Org-scoped staff read/write — app/api/admin/invoices/[id]/route.ts, app/staff/*/…-data.ts
+db.select(...).from(invoices).where(and(eq(invoices.id, id), eq(invoices.orgId, user.orgId)))
+db.select(...).from(studentProfiles).where(inArray(studentProfiles.userId, usersInOrg(orgId)))
+const rows = await db.delete(classSchedules)
+  .where(and(eq(classSchedules.id, id), inArray(classSchedules.classId, classesInOrg(user.orgId))))
+  .returning({ id: classSchedules.id })
+if (rows.length === 0) return 404
+
 // Raw SQL — app/api/admin/invoices/[id]/pay/route.ts (inside db.transaction)
 rowsOf<{ value: string }>(await tx.execute(sql`select nextval('receipt_number_seq') as value`))
 
@@ -70,6 +79,18 @@ the schema objects are camelCase with explicit column strings (`userId: uuid('us
 - **`db` connects as the owner and bypasses RLS.** Authorization is written into every query:
   the second `eq(table.userId, user.id)` clause or an `hasPermission()` check above it. Dropping
   it is a horizontal privilege escalation. Prefer a `where` predicate over fetch-then-compare.
+- **Staff queries also carry the viewer's org.** One user reading or writing another's data
+  (`/staff`, `app/api/admin/*`, teacher views) filters by `user.orgId` from `getSessionUser()`:
+  root tables (`users`, `classes`, `invoices`, `receipts`, `user_roles`) by `org_id`; child
+  tables (profiles, members, schedules, enabled lessons, projects, prompts, messages…) have no
+  `org_id` and go through `usersInOrg()` / `classesInOrg()`. Another org's id → 404; a
+  cross-org write → refused. The composite FKs `(user_id, org_id) → users(id, org_id)` on
+  `invoices`, `receipts`, `user_roles` keep those rows in their user's org (and cascade when a
+  user's org changes); nothing ties `class_members` to its class's org, so the member-add route
+  checks both. A student's own queries need no org predicate — their `user_id` implies it.
+- **Every user belongs to exactly one org.** `users.org_id` defaults to Direct
+  (`DIRECT_ORG_ID`), so every new sign-in lands there until D2. Orgs are suspended, never
+  deleted; nothing cascades from `organizations`.
 - **Guard ids with `isUuid()` first.** Postgres raises `22P02` on a malformed uuid bind, Drizzle
   throws, Next renders 500. `isUuid` turns a mistyped URL into a 404.
 - **Errors throw; they do not arrive as `{ error }`.** A handler that must answer 500 needs
@@ -98,7 +119,10 @@ the schema objects are camelCase with explicit column strings (`userId: uuid('us
 
 Tests run against a **real** Postgres (`TEST_DATABASE_URL`, database `spark_build_test`):
 `jest.globalSetup.ts` runs `bun run db:migrate:test`, `__tests__/helpers/db.ts` truncates
-between tests and exposes fixtures `makeUser`, `grantRole`, `makeClass`, `addClassMember`.
+between tests (keeping the seeded Direct org) and exposes fixtures `makeOrg`,
+`makeUser({ orgId })`, `grantRole` (also `'platform_admin'`), `makeClass({ orgId })`,
+`addClassMember`. Org isolation is pinned by `__tests__/integration/api/admin-org-isolation.test.ts`
+and `__tests__/integration/staff-org-isolation.test.ts`.
 `maxWorkers: 1` because every suite shares that one database. Each database keeps its own
 `drizzle.__drizzle_migrations` ledger. Harness details: `project-architecture` skill.
 
