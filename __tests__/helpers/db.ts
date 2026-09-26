@@ -1,22 +1,26 @@
-import { eq, sql } from 'drizzle-orm'
+import { eq, ne, sql } from 'drizzle-orm'
 import { db, rowsOf } from '@/lib/db/client'
 import {
   classMembers,
   classes,
   lessonProgress,
   messages,
+  organizations,
   projects,
   roles,
   studentProfiles,
   userRoles,
   users,
 } from '@/lib/db/schema'
+import { DIRECT_ORG_ID, orgOfUser } from '@/lib/orgs'
 
 // Reference data created by drizzle/0001_functions_sequence_seed.sql. The
 // authorization checks join through these, so truncating them would make
 // every permission check vacuously false instead of exercising the real
-// rules. Everything else is test data and goes.
-const SEEDED = ['roles', 'permissions', 'role_permissions', '__drizzle_migrations']
+// rules. `organizations` holds the seeded SparkBuild Direct row (drizzle/0014)
+// that users.org_id defaults to, so it is emptied of test orgs instead of
+// truncated. Everything else is test data and goes.
+const SEEDED = ['roles', 'permissions', 'role_permissions', 'organizations', '__drizzle_migrations']
 
 /**
  * Empties every table that holds test data. CASCADE handles the FK order for
@@ -39,12 +43,22 @@ export async function resetDb(): Promise<void> {
     sql`, `
   )
   await db.execute(sql`truncate table ${list} restart identity cascade`)
+  await db.delete(organizations).where(ne(organizations.id, DIRECT_ORG_ID))
 }
 
 let seq = 0
 const uniq = () => `${Date.now()}-${seq++}`
 
-/** Creates a user row. Email is made unique so callers never collide. */
+/** Creates a school org beside SparkBuild Direct. */
+export async function makeOrg(overrides: Partial<typeof organizations.$inferInsert> = {}) {
+  const [row] = await db
+    .insert(organizations)
+    .values({ name: 'Test School', slug: `school-${seq++}`, ...overrides })
+    .returning()
+  return row
+}
+
+/** Creates a user row (in SparkBuild Direct unless `orgId` says otherwise). Email is made unique so callers never collide. */
 export async function makeUser(overrides: Partial<typeof users.$inferInsert> = {}) {
   const [row] = await db
     .insert(users)
@@ -66,13 +80,16 @@ export async function grantRole(userId: string, roleName: 'admin' | 'teacher' | 
     .where(eq(roles.name, roleName))
     .limit(1)
   if (!role) throw new Error(`role "${roleName}" is missing — is drizzle/0001 applied?`)
-  await db.insert(userRoles).values({ userId, roleId: role.id }).onConflictDoNothing()
+  await db
+    .insert(userRoles)
+    .values({ userId, roleId: role.id, orgId: orgOfUser(userId) })
+    .onConflictDoNothing()
 }
 
 export async function makeClass(overrides: Partial<typeof classes.$inferInsert> = {}) {
   const [row] = await db
     .insert(classes)
-    .values({ name: `Class ${uniq()}`, ...overrides })
+    .values({ name: `Class ${uniq()}`, orgId: DIRECT_ORG_ID, ...overrides })
     .returning()
   return row
 }

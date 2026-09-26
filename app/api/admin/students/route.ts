@@ -36,7 +36,12 @@ export async function POST(req: Request) {
     const newUserId = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(users)
-        .values({ name: full_name, email: email.trim().toLowerCase(), emailVerified: true })
+        .values({
+          name: full_name,
+          email: email.trim().toLowerCase(),
+          emailVerified: true,
+          orgId: user.orgId,
+        })
         .returning({ id: users.id })
 
       await tx.insert(studentProfiles).values({
@@ -56,7 +61,12 @@ export async function POST(req: Request) {
       if (studentRoleId) {
         await tx
           .insert(userRoles)
-          .values({ userId: created.id, roleId: studentRoleId, grantedBy: user.id })
+          .values({
+            userId: created.id,
+            roleId: studentRoleId,
+            orgId: user.orgId,
+            grantedBy: user.id,
+          })
           .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
       }
 

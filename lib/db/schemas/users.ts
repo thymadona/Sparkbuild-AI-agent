@@ -1,4 +1,5 @@
-import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
+import { DIRECT_ORG_ID, organizations } from './organizations'
 
 // --- Better Auth ---------------------------------------------------------
 // `users`, `sessions`, `accounts` and `verifications` are Better Auth's own
@@ -17,12 +18,26 @@ import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 // default `mode: 'date'` — Better Auth reads and writes real Date objects
 // (it compares `expires_at` against now) — unlike the application tables,
 // which are `mode: 'string'` (see the header in lib/db/schema.ts).
-export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified').default(false).notNull(),
-  image: text('image'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-})
+//
+// `orgId` is ours, not Better Auth's: lib/auth/index.ts declares it as an
+// additional field with `input: false`, so Better Auth never writes it and the
+// column default files every new sign-in under SparkBuild Direct. The
+// (id, org_id) unique key exists so invoices, receipts and user_roles can
+// point at it and never disagree with their user about the org.
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('email_verified').default(false).notNull(),
+    image: text('image'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    orgId: uuid('org_id')
+      .default(DIRECT_ORG_ID)
+      .notNull()
+      .references(() => organizations.id),
+  },
+  (t) => [unique('users_id_org_id_key').on(t.id, t.orgId), index('users_org_id_idx').on(t.orgId)]
+)

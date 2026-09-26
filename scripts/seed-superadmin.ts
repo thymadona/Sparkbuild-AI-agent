@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { roles, userRoles, users } from '@/lib/db/schema'
+import { orgOfUser } from '@/lib/orgs'
 
 // Bootstraps the first admin account. Without this there is a chicken-and-egg
 // problem: roles are granted from /staff/users, which only an admin can reach.
@@ -65,7 +66,7 @@ export async function seedSuperadmin(): Promise<void> {
 
   const granted = await db
     .insert(userRoles)
-    .values({ userId, roleId: adminRole.id })
+    .values({ userId, roleId: adminRole.id, orgId: orgOfUser(userId) })
     .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] })
     .returning({ user_id: userRoles.userId })
 

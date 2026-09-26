@@ -1,4 +1,5 @@
 // --- Better Auth ---------------------------------------------------------
+export * from './schemas/organizations'
 export * from './schemas/users'
 export * from './schemas/sessions'
 export * from './schemas/accounts'

@@ -5,6 +5,7 @@ import { invoices } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
+import { orgOfUser } from '@/lib/orgs'
 
 // snake_case keys: `Invoice` in types/index.ts, the finance views and the
 // invoice modals all read this shape directly.
@@ -18,6 +19,7 @@ const invoiceColumns = {
   sent_at: invoices.sentAt,
   paid_at: invoices.paidAt,
   created_at: invoices.createdAt,
+  org_id: invoices.orgId,
 }
 
 export async function GET(req: Request) {
@@ -69,7 +71,13 @@ export async function POST(req: Request) {
   try {
     const [row] = await db
       .insert(invoices)
-      .values({ userId: user_id, amountCents: amount_cents, description, dueDate: due_date })
+      .values({
+        userId: user_id,
+        orgId: orgOfUser(user_id),
+        amountCents: amount_cents,
+        description,
+        dueDate: due_date,
+      })
       .returning(invoiceColumns)
 
     return NextResponse.json(row)

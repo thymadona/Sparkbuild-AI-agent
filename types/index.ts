@@ -66,11 +66,20 @@ export interface StudentProfile {
   created_at: string
 }
 
+export interface Organization {
+  id: string
+  name: string
+  slug: string // the subdomain it will answer on (D2)
+  status: 'active' | 'suspended'
+  created_at: string
+}
+
 export interface Class {
   id: string
   name: string
   description: string | null
   created_at: string
+  org_id: string
 }
 
 export interface ClassMember {
@@ -106,6 +115,7 @@ export interface Invoice {
   sent_at: string | null
   paid_at: string | null
   created_at: string
+  org_id: string // always its student's org
 }
 
 export interface Receipt {
@@ -116,6 +126,7 @@ export interface Receipt {
   description: string
   paid_at: string
   receipt_number: string
+  org_id: string // always its user's org
 }
 
 export interface Role {
@@ -142,6 +153,7 @@ export interface UserRole {
   role_id: string
   granted_by: string | null
   created_at: string
+  org_id: string | null // the user's org; null only for an org-less platform role
 }
 
 export interface AppSetting {
