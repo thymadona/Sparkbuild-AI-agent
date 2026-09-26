@@ -53,3 +53,33 @@ describe('step-by-step prompt rules', () => {
     ).toEqual(['show-plan', 'show-question', 'show-score', 'show-final', 'show-extra'])
   })
 })
+
+describe('demo prompt rules', () => {
+  const week8 = LESSONS.find((l) => l.id === 108)!
+  const week12 = LESSONS.find((l) => l.id === 112)!
+  const DEMO = 'DEMO RULE'
+
+  it('reach only demo lessons, so weeks 1–11 keep their prompt', () => {
+    for (const lesson of LESSONS)
+      expect(`${lesson.id}: ${promptOf(lesson).includes(DEMO)}`).toBe(
+        `${lesson.id}: ${lesson.demo === true}`
+      )
+    expect(LESSONS.filter((l) => l.demo).map((l) => l.id)).toEqual([112])
+  })
+
+  it('keep the explain rule and add the demo rule after it, with no Bolt in week 12', () => {
+    expect(explainRule(week12).startsWith(`${explainRule(week8)}\n\n${DEMO}`)).toBe(true)
+    expect(explainRule(week12)).not.toContain('PLAN RULE')
+    expect(week12.aiPolicy).toBeUndefined()
+    expect(lessonLayer(week12, '', week12.tasks[0])).not.toContain('helper robot')
+  })
+
+  // The DEMO RULE keys on the task notes: one question in the core tasks and the choice,
+  // three in the boss, none in the bonuses.
+  it('names the demo questions only in the core tasks and the choice', () => {
+    const named = (phrase: string) =>
+      week12.tasks.filter((t) => t.prompt.includes(phrase)).map((t) => t.id)
+    expect(named('Demo question:')).toEqual(['demo-run', 'demo-explain', 'demo-change', 'demo-own'])
+    expect(named('Demo: three questions')).toEqual(['demo-day'])
+  })
+})
