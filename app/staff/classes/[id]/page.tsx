@@ -23,6 +23,7 @@ import ClassDetailClient from './ClassDetailClient'
 import TeacherClassClient from './TeacherClassClient'
 import LessonsPanel from './LessonsPanel'
 import { getSessionUser } from '@/lib/auth/session'
+import { usersInOrg } from '@/lib/orgs'
 
 export interface StudentTaskProgress {
   id: string
@@ -51,6 +52,8 @@ export interface LessonProgressEntry {
 // only for classes:manage/admin; lesson-progress roster for the
 // teacher(s) actually assigned to this specific class. isTeacherOfClass
 // re-checks per class, since teaching one class grants nothing on another.
+// The class query carries the viewer's org, so another org's class id is a
+// 404 for an admin (and the usual redirect for a teacher).
 export default async function ClassDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
   const user = await getSessionUser()
@@ -77,12 +80,17 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
           description: classesTable.description,
         })
         .from(classesTable)
-        .where(eq(classesTable.id, params.id))
+        .where(and(eq(classesTable.id, params.id), eq(classesTable.orgId, user.orgId)))
         .limit(1),
       db
         .select({ user_id: classMembers.userId, role: classMembers.role })
         .from(classMembers)
-        .where(eq(classMembers.classId, params.id)),
+        .where(
+          and(
+            eq(classMembers.classId, params.id),
+            inArray(classMembers.userId, usersInOrg(user.orgId))
+          )
+        ),
       db
         .select({
           id: classSchedules.id,
@@ -95,17 +103,25 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
         .from(classSchedules)
         .where(eq(classSchedules.classId, params.id))
         .orderBy(asc(classSchedules.dayOfWeek), asc(classSchedules.startTime)),
-      db.select({ user_id: invoices.userId, status: invoices.status }).from(invoices),
+      db
+        .select({ user_id: invoices.userId, status: invoices.status })
+        .from(invoices)
+        .where(eq(invoices.orgId, user.orgId)),
       // Reads public.users directly. The Supabase Auth admin listing this
       // replaced was paginated at 1000 and silently dropped everyone past it.
-      db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
+      db
+        .select({ id: usersTable.id, email: usersTable.email })
+        .from(usersTable)
+        .where(eq(usersTable.orgId, user.orgId)),
       db
         .select({ user_id: studentProfiles.userId, full_name: studentProfiles.fullName })
-        .from(studentProfiles),
+        .from(studentProfiles)
+        .where(inArray(studentProfiles.userId, usersInOrg(user.orgId))),
       db
         .select({ user_id: userRoles.userId, name: roles.name })
         .from(userRoles)
-        .innerJoin(roles, eq(roles.id, userRoles.roleId)),
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(eq(userRoles.orgId, user.orgId)),
       db
         .select({ lesson_id: classEnabledLessons.lessonId })
         .from(classEnabledLessons)
@@ -225,18 +241,27 @@ export default async function ClassDetailPage(props: { params: Promise<{ id: str
         description: classesTable.description,
       })
       .from(classesTable)
-      .where(eq(classesTable.id, params.id))
+      .where(and(eq(classesTable.id, params.id), eq(classesTable.orgId, user.orgId)))
       .limit(1),
     db
       .select({ user_id: classMembers.userId, role: classMembers.role })
       .from(classMembers)
-      .where(eq(classMembers.classId, params.id)),
+      .where(
+        and(
+          eq(classMembers.classId, params.id),
+          inArray(classMembers.userId, usersInOrg(user.orgId))
+        )
+      ),
     // Reads public.users directly. The Supabase Auth admin listing this
     // replaced was paginated at 1000 and silently dropped everyone past it.
-    db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable),
+    db
+      .select({ id: usersTable.id, email: usersTable.email })
+      .from(usersTable)
+      .where(eq(usersTable.orgId, user.orgId)),
     db
       .select({ user_id: studentProfiles.userId, full_name: studentProfiles.fullName })
-      .from(studentProfiles),
+      .from(studentProfiles)
+      .where(inArray(studentProfiles.userId, usersInOrg(user.orgId))),
     db
       .select({ lesson_id: classEnabledLessons.lessonId })
       .from(classEnabledLessons)

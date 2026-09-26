@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classes } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
@@ -28,7 +28,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   }
 
   try {
-    await db.update(classes).set(updates).where(eq(classes.id, params.id))
+    const updated = await db
+      .update(classes)
+      .set(updates)
+      .where(and(eq(classes.id, params.id), eq(classes.orgId, user.orgId)))
+      .returning({ id: classes.id })
+    if (updated.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('PATCH /api/admin/classes/[id] failed:', err)
@@ -45,7 +50,11 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
   if (!isUuid(params.id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
-    await db.delete(classes).where(eq(classes.id, params.id))
+    const deleted = await db
+      .delete(classes)
+      .where(and(eq(classes.id, params.id), eq(classes.orgId, user.orgId)))
+      .returning({ id: classes.id })
+    if (deleted.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('DELETE /api/admin/classes/[id] failed:', err)

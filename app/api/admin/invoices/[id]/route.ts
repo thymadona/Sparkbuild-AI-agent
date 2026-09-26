@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { invoices } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
@@ -38,7 +38,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     const [existing] = await db
       .select({ status: invoices.status })
       .from(invoices)
-      .where(eq(invoices.id, params.id))
+      .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
       .limit(1)
 
     if (!existing) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
@@ -46,7 +46,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       return NextResponse.json({ error: 'Cannot edit a paid invoice' }, { status: 400 })
     }
 
-    await db.update(invoices).set(updates).where(eq(invoices.id, params.id))
+    await db
+      .update(invoices)
+      .set(updates)
+      .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('PATCH /api/admin/invoices/[id] failed:', err)
@@ -66,7 +69,7 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     const [existing] = await db
       .select({ status: invoices.status })
       .from(invoices)
-      .where(eq(invoices.id, params.id))
+      .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
       .limit(1)
 
     if (!existing) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
@@ -74,7 +77,7 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
       return NextResponse.json({ error: 'Cannot delete a paid invoice' }, { status: 400 })
     }
 
-    await db.delete(invoices).where(eq(invoices.id, params.id))
+    await db.delete(invoices).where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('DELETE /api/admin/invoices/[id] failed:', err)

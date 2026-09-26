@@ -1,6 +1,7 @@
 import { db } from '@/lib/db/client'
 import { invoices } from '@/lib/db/schema'
 import { getSchoolOverviewStats } from '@/app/staff/overview-stats'
+import { DIRECT_ORG_ID } from '@/lib/orgs'
 import {
   addClassMember,
   grantRole,
@@ -17,7 +18,7 @@ afterAll(() => db.$client.end())
 
 describe('getSchoolOverviewStats', () => {
   it('counts an empty school as all zeros', async () => {
-    const stats = await getSchoolOverviewStats()
+    const stats = await getSchoolOverviewStats(DIRECT_ORG_ID)
 
     expect(stats.totalClasses).toBe(0)
     expect(stats.activeStudentCount).toBe(0)
@@ -44,7 +45,7 @@ describe('getSchoolOverviewStats', () => {
     await grantRole(admin.id, 'admin')
     await makeStudentProfile(admin.id)
 
-    const stats = await getSchoolOverviewStats()
+    const stats = await getSchoolOverviewStats(DIRECT_ORG_ID)
 
     expect(stats.activeStudentCount).toBe(1)
   })
@@ -61,7 +62,7 @@ describe('getSchoolOverviewStats', () => {
     const student = await makeUser()
     await addClassMember(a.id, student.id, 'student')
 
-    const stats = await getSchoolOverviewStats()
+    const stats = await getSchoolOverviewStats(DIRECT_ORG_ID)
 
     expect(stats.teacherCount).toBe(1)
     expect(stats.totalClasses).toBe(2)
@@ -101,7 +102,7 @@ describe('getSchoolOverviewStats', () => {
       },
     ])
 
-    const stats = await getSchoolOverviewStats()
+    const stats = await getSchoolOverviewStats(DIRECT_ORG_ID)
 
     expect(stats.unpaidCount).toBe(3)
     expect(stats.overdueCount).toBe(2)

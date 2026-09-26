@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classSchedules } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
+import { classInOrg, classesInOrg } from '@/lib/orgs'
 
 // snake_case keys: `ClassSchedule` in types/index.ts and the schedule editor
 // read this shape directly.
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
   }
 
   try {
+    if (!(await classInOrg(class_id, user.orgId)))
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+
     const [row] = await db
       .insert(classSchedules)
       .values({
@@ -95,7 +99,14 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    await db.update(classSchedules).set(updates).where(eq(classSchedules.id, id))
+    const updated = await db
+      .update(classSchedules)
+      .set(updates)
+      .where(
+        and(eq(classSchedules.id, id), inArray(classSchedules.classId, classesInOrg(user.orgId)))
+      )
+      .returning({ id: classSchedules.id })
+    if (updated.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('PATCH /api/admin/schedules failed:', err)
@@ -115,7 +126,13 @@ export async function DELETE(req: Request) {
   if (!isUuid(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
-    await db.delete(classSchedules).where(eq(classSchedules.id, id))
+    const deleted = await db
+      .delete(classSchedules)
+      .where(
+        and(eq(classSchedules.id, id), inArray(classSchedules.classId, classesInOrg(user.orgId)))
+      )
+      .returning({ id: classSchedules.id })
+    if (deleted.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('DELETE /api/admin/schedules failed:', err)

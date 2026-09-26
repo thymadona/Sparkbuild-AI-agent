@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { studentProfiles } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
+import { usersInOrg } from '@/lib/orgs'
 
 // PATCH: update student profile fields (is_active, full_name, parent_email, parent_telegram_chat_id, notes)
 export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -41,7 +42,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
   }
 
   try {
-    await db.update(studentProfiles).set(updates).where(eq(studentProfiles.userId, params.id))
+    const updated = await db
+      .update(studentProfiles)
+      .set(updates)
+      .where(
+        and(
+          eq(studentProfiles.userId, params.id),
+          inArray(studentProfiles.userId, usersInOrg(user.orgId))
+        )
+      )
+      .returning({ userId: studentProfiles.userId })
+    if (updated.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('PATCH /api/admin/students/[id] failed:', err)

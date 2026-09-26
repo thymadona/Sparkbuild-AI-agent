@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { invoices, receipts, studentProfiles } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
@@ -39,7 +39,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     })
     .from(invoices)
     .innerJoin(studentProfiles, eq(studentProfiles.userId, invoices.userId))
-    .where(eq(invoices.id, params.id))
+    .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
     .limit(1)
 
   if (!row) {
@@ -47,7 +47,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     const [invoiceOnly] = await db
       .select({ id: invoices.id })
       .from(invoices)
-      .where(eq(invoices.id, params.id))
+      .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
       .limit(1)
 
     return invoiceOnly
@@ -124,7 +124,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     await db
       .update(invoices)
       .set({ sentAt: new Date().toISOString() })
-      .where(eq(invoices.id, params.id))
+      .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
   } catch (err) {
     console.error('invoice sent but sent_at not recorded:', err)
   }

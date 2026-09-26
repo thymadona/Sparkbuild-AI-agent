@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { classMembers } from '@/lib/db/schema'
+import { classMembers, classes, users } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getSessionUser } from '@/lib/auth/session'
+import { classInOrg } from '@/lib/orgs'
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params
@@ -26,6 +27,16 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   // a teacher back to a student, or vice versa) updates the role in place
   // instead of erroring on the composite (class_id, user_id) primary key.
   try {
+    // class_members has no FK tying a member to the class's org, so this is
+    // the check: the class and the user must both be in the caller's org.
+    const [both] = await db
+      .select({ id: classes.id })
+      .from(classes)
+      .innerJoin(users, eq(users.orgId, classes.orgId))
+      .where(and(eq(classes.id, params.id), eq(classes.orgId, user.orgId), eq(users.id, userId)))
+      .limit(1)
+    if (!both) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     await db
       .insert(classMembers)
       .values({ classId: params.id, userId, role: role ?? 'student' })
@@ -56,6 +67,9 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
     return NextResponse.json({ error: 'userId is not a valid id' }, { status: 400 })
 
   try {
+    if (!(await classInOrg(params.id, user.orgId)))
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     await db
       .delete(classMembers)
       .where(and(eq(classMembers.classId, params.id), eq(classMembers.userId, userId)))

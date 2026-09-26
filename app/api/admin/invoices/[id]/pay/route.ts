@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db, rowsOf } from '@/lib/db/client'
 import { invoices, receipts } from '@/lib/db/schema'
 import { isUuid } from '@/lib/db/uuid'
@@ -32,7 +32,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
           status: invoices.status,
         })
         .from(invoices)
-        .where(eq(invoices.id, params.id))
+        .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
         .limit(1)
 
       if (!invoice) return { error: 'Invoice not found', status: 404 } as const
@@ -67,7 +67,10 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
         })
         .returning({ id: receipts.id })
 
-      await tx.update(invoices).set({ status: 'paid', paidAt }).where(eq(invoices.id, params.id))
+      await tx
+        .update(invoices)
+        .set({ status: 'paid', paidAt })
+        .where(and(eq(invoices.id, params.id), eq(invoices.orgId, user.orgId)))
 
       return { receipt_id: receipt.id, receipt_number: receiptNumber } as const
     })

@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { classMembers, classes, lessonProgress, projects as projectsTable } from '@/lib/db/schema'
 import { getTeacherClassIds } from '@/lib/auth/permissions'
+import { orgOfUser, usersInOrg } from '@/lib/orgs'
 import { getLessonForProject, LESSONS } from '@/lib/lessons'
 import { Card, CardContent } from '@/components/ui/card'
 import { HeroMetric, MagnitudeBar, Meter, StatChip } from './OverviewWidgets'
@@ -9,7 +10,7 @@ import { HeroMetric, MagnitudeBar, Meter, StatChip } from './OverviewWidgets'
 const WEEK_MS = 7 * 86_400_000
 
 // Scoped to classes this specific user teaches — getTeacherClassIds already
-// filters by user_id, and every query below filters further by studentIds
+// filters by user_id and the user's org, and every query below filters further by studentIds
 // derived from those classes, so this never surfaces another teacher's roster.
 export default async function TeacherOverviewTab({ userId }: { userId: string }) {
   const weekAgo = new Date(Date.now() - WEEK_MS).toISOString()
@@ -34,7 +35,15 @@ export default async function TeacherOverviewTab({ userId }: { userId: string })
     db
       .select({ user_id: classMembers.userId, class_id: classMembers.classId })
       .from(classMembers)
-      .where(and(inArray(classMembers.classId, classIds), eq(classMembers.role, 'student'))),
+      .where(
+        and(
+          inArray(classMembers.classId, classIds),
+          eq(classMembers.role, 'student'),
+          // A class's roster is not tied to its org by an FK; count only
+          // students in the teacher's own org.
+          inArray(classMembers.userId, usersInOrg(orgOfUser(userId)))
+        )
+      ),
   ])
 
   const classStudentIds = new Map<string, Set<string>>()
