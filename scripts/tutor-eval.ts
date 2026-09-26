@@ -536,6 +536,33 @@ const SCENARIOS: Scenario[] = [
     event: run(RAN_PERFECT.replace('Perfect show, Mia!\n', '')),
     complete: false,
   },
+  // A bonus keeps the boss's "# done:" (all right), but its own run is a low score: no
+  // done-check is required here, so the inherited line must not block it.
+  {
+    name: 'week 12: hw-cheer-up with the inherited # done:',
+    lesson: week12,
+    task: 'hw-cheer-up',
+    source: `${DEMO_BOSS}if score < 2:  # a low score\n    print("Try again!")  # Rex cheers you up\n`,
+    event: run(
+      "Your name? Mia\nHi Mia! Welcome to Rex's show\n2 + 2? 4\nRight!\n3 x 3? 1\n10 - 4? 1\n5 + 5? 1\nScore: 1\nTry again!\n"
+    ),
+    complete: true,
+  },
+  // The student's own words in "# done:", not the output copied.
+  {
+    name: 'week 12: demo-own # done: in own words',
+    lesson: week12,
+    task: 'demo-own',
+    source:
+      '# done: I type Mia and it says hi Mia and that I am a star\nname = input("Name? ")  # ask the name\nprint("Hi " + name + ", you are a star")  # say it back\n',
+    ranStdout: 'Name? Mia\nHi Mia, you are a star\n',
+    history: [
+      { role: 'user' as const, content: 'I ran it. It works!' },
+      { role: 'assistant' as const, content: 'Nice demo! Why is the input line there?' },
+    ],
+    event: say('so Rex can get my name and use it'),
+    complete: true,
+  },
   {
     name: 'week 12: can Bolt do it?',
     lesson: week12,
